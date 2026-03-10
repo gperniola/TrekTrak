@@ -11,7 +11,7 @@ export function LeftPanel() {
   const [view, setView] = useState<'edit' | 'table'>('edit');
 
   return (
-    <div className="w-full lg:w-[380px] flex flex-col bg-gray-900 border-r border-gray-700 h-full">
+    <div className="w-full h-[50vh] lg:h-full lg:w-[380px] flex flex-col bg-gray-900 border-r border-gray-700">
       <ItineraryHeader />
       <div className="flex border-b border-gray-700">
         <button

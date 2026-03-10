@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import type { Waypoint, Leg, DifficultyGrade } from './types';
 import { azimuthToCardinal } from './calculations';
+import { formatTime } from './format';
 
 interface PdfData {
   name: string;
@@ -11,12 +12,6 @@ interface PdfData {
   totalElevLoss: number;
   totalTime: number;
   difficulty: DifficultyGrade;
-}
-
-function formatTime(minutes: number): string {
-  const h = Math.floor(minutes / 60);
-  const m = Math.round(minutes % 60);
-  return `${h}h ${m}m`;
 }
 
 export function generateSummaryPDF(data: PdfData): jsPDF {
@@ -100,7 +95,7 @@ export function generateRoadbookPDF(data: PdfData): jsPDF {
     const to = waypoints.find((w) => w.id === leg.toWaypointId);
 
     doc.setFontSize(14);
-    doc.text(`Tratta ${i + 1}: ${from?.name || `WP${i + 1}`} → ${to?.name || `WP${i + 2}`}`, 14, 20);
+    doc.text(`Tratta ${i + 1}: ${from?.name || `WP${i + 1}`} -> ${to?.name || `WP${i + 2}`}`, 14, 20);
 
     let y = 35;
     doc.setFontSize(11);

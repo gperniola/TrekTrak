@@ -34,6 +34,7 @@ function recalculateLeg(leg: Leg): Leg {
 interface ItineraryState {
   itineraryId: string;
   itineraryName: string;
+  createdAt: string;
   waypoints: Waypoint[];
   legs: Leg[];
   settings: AppSettings;
@@ -47,12 +48,13 @@ interface ItineraryState {
   reorderWaypoints: (newOrder: number[]) => void;
   updateSettings: (settings: AppSettings) => void;
   resetItinerary: () => void;
-  loadItinerary: (id: string, name: string, waypoints: Waypoint[], legs: Leg[]) => void;
+  loadItinerary: (id: string, name: string, waypoints: Waypoint[], legs: Leg[], createdAt?: string) => void;
 }
 
 const initialState = {
   itineraryId: generateId(),
   itineraryName: '',
+  createdAt: new Date().toISOString(),
   waypoints: [] as Waypoint[],
   legs: [] as Leg[],
   settings: { tolerances: { ...DEFAULT_TOLERANCES } } as AppSettings,
@@ -122,25 +124,29 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
   },
 
   reorderWaypoints: (newOrder) => {
-    const { waypoints } = get();
+    const { waypoints, legs } = get();
     const reordered = newOrder.map((oldIdx, newIdx) => ({
       ...waypoints[oldIdx],
       order: newIdx,
     }));
     const newLegs: Leg[] = [];
     for (let i = 0; i < reordered.length - 1; i++) {
-      newLegs.push(createEmptyLeg(reordered[i].id, reordered[i + 1].id));
+      const existing = legs.find(
+        (l) => l.fromWaypointId === reordered[i].id && l.toWaypointId === reordered[i + 1].id
+      );
+      newLegs.push(existing ?? createEmptyLeg(reordered[i].id, reordered[i + 1].id));
     }
     set({ waypoints: reordered, legs: newLegs });
   },
 
   updateSettings: (settings) => set({ settings }),
 
-  resetItinerary: () => set({ ...initialState, itineraryId: generateId() }),
+  resetItinerary: () => set({ ...initialState, itineraryId: generateId(), createdAt: new Date().toISOString() }),
 
-  loadItinerary: (id, name, waypoints, legs) => set({
+  loadItinerary: (id, name, waypoints, legs, createdAt) => set({
     itineraryId: id,
     itineraryName: name,
+    createdAt: createdAt ?? new Date().toISOString(),
     waypoints,
     legs,
   }),

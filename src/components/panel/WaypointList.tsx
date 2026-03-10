@@ -48,13 +48,14 @@ export function WaypointList() {
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    const oldIndex = waypoints.findIndex((wp) => wp.id === active.id);
-    const newIndex = waypoints.findIndex((wp) => wp.id === over.id);
-    const newOrder = waypoints.map((_, i) => i);
+    const currentWaypoints = useItineraryStore.getState().waypoints;
+    const oldIndex = currentWaypoints.findIndex((wp) => wp.id === active.id);
+    const newIndex = currentWaypoints.findIndex((wp) => wp.id === over.id);
+    const newOrder = currentWaypoints.map((_, i) => i);
     newOrder.splice(oldIndex, 1);
     newOrder.splice(newIndex, 0, oldIndex);
     reorderWaypoints(newOrder);
-  }, [waypoints, reorderWaypoints]);
+  }, [reorderWaypoints]);
 
   const wpIds = waypoints.map((wp) => wp.id);
   const maxWaypoints = 50;

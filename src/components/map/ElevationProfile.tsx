@@ -15,17 +15,20 @@ export function ElevationProfile() {
     );
   }
 
-  // Build cumulative distance / altitude data
+  // Build cumulative distance / altitude data, skip waypoints without altitude
   let cumulativeDist = 0;
-  const data = waypoints.map((wp, i) => {
+  const data: { distance: number; altitude: number; name: string }[] = [];
+  waypoints.forEach((wp, i) => {
     if (i > 0 && legs[i - 1]?.distance != null) {
       cumulativeDist += legs[i - 1].distance!;
     }
-    return {
-      distance: parseFloat(cumulativeDist.toFixed(2)),
-      altitude: wp.altitude ?? 0,
-      name: wp.name || `WP${i + 1}`,
-    };
+    if (wp.altitude != null) {
+      data.push({
+        distance: parseFloat(cumulativeDist.toFixed(2)),
+        altitude: wp.altitude,
+        name: wp.name || `WP${i + 1}`,
+      });
+    }
   });
 
   return (

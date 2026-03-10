@@ -38,7 +38,9 @@ export function NumberInput({
         value={value ?? ''}
         onChange={(e) => {
           const v = e.target.value;
-          onChange(v === '' ? null : Number(v));
+          if (v === '') { onChange(null); return; }
+          const num = Number(v);
+          onChange(isNaN(num) ? null : num);
         }}
         step={step}
         min={min}

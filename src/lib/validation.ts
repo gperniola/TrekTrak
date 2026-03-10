@@ -28,6 +28,28 @@ export function validateValue(
   };
 }
 
+export function validateAzimuth(
+  userValue: number,
+  realValue: number,
+  tolerance: { strict: number; loose: number }
+): ValidationResult {
+  // Compute shortest angular distance (handles 0/360 wraparound)
+  let delta = userValue - realValue;
+  if (delta > 180) delta -= 360;
+  if (delta < -180) delta += 360;
+  const absDelta = Math.abs(delta);
+  const status = absDelta <= tolerance.strict ? 'valid'
+    : absDelta <= tolerance.loose ? 'warning'
+    : 'error';
+  return {
+    status,
+    userValue,
+    realValue,
+    delta: absDelta,
+    tolerance,
+  };
+}
+
 export function percentageTolerance(
   referenceValue: number,
   percentStrict: number

@@ -1,21 +1,22 @@
 'use client';
 
+import { useState } from 'react';
 import { loadItineraries, deleteItinerary } from '@/lib/storage';
 import { useItineraryStore } from '@/stores/itineraryStore';
 
 export function SavedItinerariesModal({ onClose }: { onClose: () => void }) {
   const loadItinerary = useItineraryStore((s) => s.loadItinerary);
-  const all = loadItineraries();
+  const [items, setItems] = useState(() => loadItineraries());
 
-  const handleLoad = (it: typeof all[0]) => {
-    loadItinerary(it.id, it.name, it.waypoints, it.legs);
+  const handleLoad = (it: typeof items[0]) => {
+    loadItinerary(it.id, it.name, it.waypoints, it.legs, it.createdAt);
     onClose();
   };
 
   const handleDelete = (id: string) => {
     if (confirm('Eliminare questo itinerario?')) {
       deleteItinerary(id);
-      onClose();
+      setItems(loadItineraries());
     }
   };
 
@@ -23,11 +24,11 @@ export function SavedItinerariesModal({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-gray-800 rounded-lg p-6 w-96 max-h-[70vh] flex flex-col">
         <h3 className="text-lg font-bold text-green-400 mb-4">Itinerari salvati</h3>
-        {all.length === 0 ? (
+        {items.length === 0 ? (
           <p className="text-gray-400 text-sm">Nessun itinerario salvato</p>
         ) : (
           <div className="flex-1 overflow-y-auto space-y-2">
-            {all.map((it) => (
+            {items.map((it) => (
               <div key={it.id} className="bg-gray-900 rounded p-3 flex justify-between items-center">
                 <div>
                   <div className="text-sm font-medium">{it.name || 'Senza nome'}</div>

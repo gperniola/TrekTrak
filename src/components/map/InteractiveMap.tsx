@@ -6,22 +6,19 @@ import 'leaflet/dist/leaflet.css';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { useCallback } from 'react';
 
-// Fix default marker icon
-const defaultIcon = L.icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-});
+// Icon cache to avoid recreating on every render
+const iconCache = new Map<number, L.DivIcon>();
 
 function greenIcon(label: number) {
-  return L.divIcon({
+  if (iconCache.has(label)) return iconCache.get(label)!;
+  const icon = L.divIcon({
     className: '',
     html: `<div style="background:#4ade80;color:#000;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:12px;border:2px solid #fff;">${label}</div>`,
     iconSize: [24, 24],
     iconAnchor: [12, 12],
   });
+  iconCache.set(label, icon);
+  return icon;
 }
 
 function MapEvents() {

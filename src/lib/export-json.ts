@@ -11,6 +11,24 @@ export function exportItineraryJSON(itinerary: Itinerary): void {
   URL.revokeObjectURL(url);
 }
 
+function validateItinerarySchema(data: unknown): data is Itinerary {
+  if (typeof data !== 'object' || data == null) return false;
+  const obj = data as Record<string, unknown>;
+  if (typeof obj.id !== 'string') return false;
+  if (typeof obj.name !== 'string') return false;
+  if (!Array.isArray(obj.waypoints)) return false;
+  if (!Array.isArray(obj.legs)) return false;
+  for (const wp of obj.waypoints) {
+    if (typeof wp !== 'object' || wp == null) return false;
+    if (typeof wp.id !== 'string' || typeof wp.order !== 'number') return false;
+  }
+  for (const leg of obj.legs) {
+    if (typeof leg !== 'object' || leg == null) return false;
+    if (typeof leg.id !== 'string' || typeof leg.fromWaypointId !== 'string' || typeof leg.toWaypointId !== 'string') return false;
+  }
+  return true;
+}
+
 export function importItineraryJSON(onLoad: (itinerary: Itinerary) => void): void {
   const input = document.createElement('input');
   input.type = 'file';
@@ -21,12 +39,12 @@ export function importItineraryJSON(onLoad: (itinerary: Itinerary) => void): voi
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
-        const itinerary = JSON.parse(ev.target?.result as string) as Itinerary;
-        if (!itinerary.waypoints || !itinerary.legs) {
-          alert('File JSON non valido: mancano waypoints o legs');
+        const parsed = JSON.parse(ev.target?.result as string);
+        if (!validateItinerarySchema(parsed)) {
+          alert('File JSON non valido: struttura dati non conforme');
           return;
         }
-        onLoad(itinerary);
+        onLoad(parsed);
       } catch {
         alert('Errore nel parsing del file JSON');
       }

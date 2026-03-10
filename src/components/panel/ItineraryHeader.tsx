@@ -7,33 +7,49 @@ import { SavedItinerariesModal } from './SavedItinerariesModal';
 import { exportItineraryJSON, importItineraryJSON } from '@/lib/export-json';
 
 export function ItineraryHeader() {
-  const store = useItineraryStore();
-  const { itineraryId, itineraryName, waypoints, legs, setItineraryName, loadItinerary, resetItinerary } = store;
+  const itineraryId = useItineraryStore((s) => s.itineraryId);
+  const itineraryName = useItineraryStore((s) => s.itineraryName);
+  const createdAt = useItineraryStore((s) => s.createdAt);
+  const waypoints = useItineraryStore((s) => s.waypoints);
+  const legs = useItineraryStore((s) => s.legs);
+  const setItineraryName = useItineraryStore((s) => s.setItineraryName);
+  const loadItinerary = useItineraryStore((s) => s.loadItinerary);
+  const resetItinerary = useItineraryStore((s) => s.resetItinerary);
   const [showSaved, setShowSaved] = useState(false);
-  const [createdAt] = useState(() => new Date().toISOString());
 
   const handleSave = () => {
-    const existing = loadItineraries().find((it) => it.id === itineraryId);
-    saveItinerary({
-      id: itineraryId,
-      name: itineraryName,
-      createdAt: existing?.createdAt ?? createdAt,
-      updatedAt: new Date().toISOString(),
-      waypoints,
-      legs,
-    });
-    if (isStorageNearLimit()) {
-      alert('Attenzione: lo spazio di archiviazione locale si sta esaurendo. Esporta i tuoi itinerari in JSON e cancella quelli vecchi.');
+    try {
+      const existing = loadItineraries().find((it) => it.id === itineraryId);
+      saveItinerary({
+        id: itineraryId,
+        name: itineraryName,
+        createdAt: existing?.createdAt ?? createdAt,
+        updatedAt: new Date().toISOString(),
+        waypoints,
+        legs,
+      });
+      if (isStorageNearLimit()) {
+        alert('Attenzione: lo spazio di archiviazione locale si sta esaurendo. Esporta i tuoi itinerari in JSON e cancella quelli vecchi.');
+      }
+    } catch {
+      alert('Errore nel salvataggio. Lo spazio di archiviazione potrebbe essere pieno.');
     }
   };
 
   const handleExportJSON = () => {
-    exportItineraryJSON({ id: itineraryId, name: itineraryName, createdAt, updatedAt: new Date().toISOString(), waypoints, legs });
+    exportItineraryJSON({
+      id: itineraryId,
+      name: itineraryName,
+      createdAt,
+      updatedAt: new Date().toISOString(),
+      waypoints,
+      legs,
+    });
   };
 
   const handleImportJSON = () => {
     importItineraryJSON((itinerary) => {
-      loadItinerary(itinerary.id, itinerary.name, itinerary.waypoints, itinerary.legs);
+      loadItinerary(itinerary.id, itinerary.name, itinerary.waypoints, itinerary.legs, itinerary.createdAt);
     });
   };
 
