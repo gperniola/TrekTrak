@@ -40,10 +40,13 @@ export function calculateMunterTime(
   elevationGainM: number,
   elevationLossM: number
 ): number {
-  if (distanceKm === 0 && elevationGainM === 0 && elevationLossM === 0) return 0;
-  const tHoriz = (distanceKm / 4) * 60;
-  const tVertGain = (elevationGainM / 400) * 60;
-  const tVertLoss = (elevationLossM / 800) * 60;
+  const d = Math.max(0, distanceKm);
+  const g = Math.max(0, elevationGainM);
+  const l = Math.max(0, elevationLossM);
+  if (d === 0 && g === 0 && l === 0) return 0;
+  const tHoriz = (d / 4) * 60;
+  const tVertGain = (g / 400) * 60;
+  const tVertLoss = (l / 800) * 60;
   const tVert = Math.max(tVertGain, tVertLoss);
   return Math.max(tHoriz, tVert) + 0.5 * Math.min(tHoriz, tVert);
 }
@@ -69,6 +72,7 @@ export function calculateDifficulty(maxSlopePercent: number): DifficultyGrade {
 
 export function azimuthToCardinal(azimuth: number): string {
   const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-  const index = Math.round(azimuth / 45) % 8;
+  const normalized = ((azimuth % 360) + 360) % 360;
+  const index = Math.round(normalized / 45) % 8;
   return directions[index];
 }

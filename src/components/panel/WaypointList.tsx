@@ -51,6 +51,7 @@ export function WaypointList() {
     const currentWaypoints = useItineraryStore.getState().waypoints;
     const oldIndex = currentWaypoints.findIndex((wp) => wp.id === active.id);
     const newIndex = currentWaypoints.findIndex((wp) => wp.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
     const newOrder = currentWaypoints.map((_, i) => i);
     newOrder.splice(oldIndex, 1);
     newOrder.splice(newIndex, 0, oldIndex);

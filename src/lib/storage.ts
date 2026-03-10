@@ -28,7 +28,11 @@ export function loadItineraries(): Itinerary[] {
   try {
     const raw = localStorage.getItem(KEYS.itineraries);
     if (!raw) return [];
-    return JSON.parse(raw) as Itinerary[];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (item: unknown) => item != null && typeof item === 'object' && typeof (item as Record<string, unknown>).id === 'string'
+    ) as Itinerary[];
   } catch {
     return [];
   }

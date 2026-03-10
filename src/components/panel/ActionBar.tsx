@@ -31,6 +31,7 @@ export function ActionBar() {
       alert('Aggiungi almeno 2 waypoint');
       return;
     }
+    // PDF is useful even without coordinates, so only check waypoint count
     downloadPDF({
       name: itineraryName,
       waypoints,
@@ -44,8 +45,9 @@ export function ActionBar() {
   };
 
   const handleGPX = () => {
-    if (waypoints.length < 2) {
-      alert('Aggiungi almeno 2 waypoint');
+    const validCoordWps = waypoints.filter((wp) => wp.lat != null && wp.lon != null);
+    if (validCoordWps.length < 2) {
+      alert('Servono almeno 2 waypoint con coordinate valide per il GPX');
       return;
     }
     downloadGPX(itineraryName, waypoints);
@@ -143,7 +145,7 @@ export function ActionBar() {
           }
         }
 
-        updateLeg(leg.id, { validationState: { ...leg.validationState, ...updates } });
+        updateLeg(leg.id, { validationState: updates });
       }
 
       if (!apiAvailable) {

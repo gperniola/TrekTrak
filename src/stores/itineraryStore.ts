@@ -125,6 +125,8 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
 
   reorderWaypoints: (newOrder) => {
     const { waypoints, legs } = get();
+    if (newOrder.length !== waypoints.length) return;
+    if (newOrder.some((idx) => idx < 0 || idx >= waypoints.length)) return;
     const reordered = newOrder.map((oldIdx, newIdx) => ({
       ...waypoints[oldIdx],
       order: newIdx,
@@ -141,19 +143,27 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
 
   updateSettings: (settings) => set({ settings }),
 
-  resetItinerary: () => set({ ...initialState, itineraryId: generateId(), createdAt: new Date().toISOString() }),
+  resetItinerary: () => set({
+    itineraryId: generateId(),
+    itineraryName: '',
+    createdAt: new Date().toISOString(),
+    waypoints: [],
+    legs: [],
+    settings: { tolerances: { ...DEFAULT_TOLERANCES } },
+  }),
 
   loadItinerary: (id, name, waypoints, legs, createdAt) => {
-    const wpIds = new Set(waypoints.map((w) => w.id));
-    const validLegs = legs.filter(
-      (l) => wpIds.has(l.fromWaypointId) && wpIds.has(l.toWaypointId)
-    );
+    const cleanWaypoints = waypoints.map(({ validationState, ...wp }, i) => ({ ...wp, order: i }));
+    const wpIds = new Set(cleanWaypoints.map((w) => w.id));
+    const cleanLegs = legs
+      .filter((l) => wpIds.has(l.fromWaypointId) && wpIds.has(l.toWaypointId))
+      .map(({ validationState, ...leg }) => leg);
     set({
       itineraryId: id,
       itineraryName: name,
       createdAt: createdAt ?? new Date().toISOString(),
-      waypoints,
-      legs: validLegs,
+      waypoints: cleanWaypoints,
+      legs: cleanLegs,
     });
   },
 }));

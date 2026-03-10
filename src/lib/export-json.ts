@@ -1,4 +1,5 @@
 import type { Itinerary } from './types';
+import { sanitizeFilename } from './format';
 
 export function exportItineraryJSON(itinerary: Itinerary): void {
   const json = JSON.stringify(itinerary, null, 2);
@@ -6,9 +7,9 @@ export function exportItineraryJSON(itinerary: Itinerary): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${itinerary.name || 'trektrak-itinerario'}.json`;
+  a.download = `${sanitizeFilename(itinerary.name || 'trektrak-itinerario')}.json`;
   a.click();
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function validateItinerarySchema(data: unknown): data is Itinerary {
@@ -22,7 +23,7 @@ function validateItinerarySchema(data: unknown): data is Itinerary {
   if (typeof obj.updatedAt !== 'string') return false;
   for (const wp of obj.waypoints) {
     if (typeof wp !== 'object' || wp == null) return false;
-    if (typeof wp.id !== 'string' || typeof wp.order !== 'number') return false;
+    if (typeof wp.id !== 'string' || typeof wp.name !== 'string' || typeof wp.order !== 'number') return false;
     if (wp.lat != null && typeof wp.lat !== 'number') return false;
     if (wp.lon != null && typeof wp.lon !== 'number') return false;
     if (wp.altitude != null && typeof wp.altitude !== 'number') return false;

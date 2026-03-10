@@ -1,7 +1,11 @@
 import jsPDF from 'jspdf';
 import type { Waypoint, Leg, DifficultyGrade } from './types';
 import { azimuthToCardinal } from './calculations';
-import { formatTime } from './format';
+import { formatTime, sanitizeFilename } from './format';
+
+function truncate(str: string, maxLen: number): string {
+  return str.length > maxLen ? str.substring(0, maxLen - 1) + '.' : str;
+}
 
 interface PdfData {
   name: string;
@@ -49,8 +53,8 @@ export function generateSummaryPDF(data: PdfData): jsPDF {
     const to = waypoints.find((w) => w.id === leg.toWaypointId);
     const row = [
       String(i + 1),
-      from?.name || `WP${i + 1}`,
-      to?.name || `WP${i + 2}`,
+      truncate(from?.name || `WP${i + 1}`, 16),
+      truncate(to?.name || `WP${i + 2}`, 16),
       leg.distance != null ? leg.distance.toFixed(1) : '-',
       leg.elevationGain != null ? String(leg.elevationGain) : '-',
       leg.elevationLoss != null ? String(leg.elevationLoss) : '-',
@@ -136,5 +140,5 @@ export function downloadPDF(data: PdfData, format: 'summary' | 'roadbook'): void
   const doc = format === 'summary'
     ? generateSummaryPDF(data)
     : generateRoadbookPDF(data);
-  doc.save(`${data.name || 'trektrak-itinerario'}-${format}.pdf`);
+  doc.save(`${sanitizeFilename(data.name || 'trektrak-itinerario')}-${format}.pdf`);
 }

@@ -64,7 +64,14 @@ export function ItineraryHeader() {
           <button onClick={() => setShowSaved(true)} className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600">
             Carica
           </button>
-          <button onClick={resetItinerary} className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600">
+          <button
+            onClick={() => {
+              if (waypoints.length === 0 || confirm('Creare un nuovo itinerario? Le modifiche non salvate andranno perse.')) {
+                resetItinerary();
+              }
+            }}
+            className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600"
+          >
             Nuovo
           </button>
           <button onClick={handleExportJSON} className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600" title="Esporta JSON">

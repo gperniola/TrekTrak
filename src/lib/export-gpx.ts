@@ -1,15 +1,19 @@
 import type { Waypoint } from './types';
+import { sanitizeFilename } from './format';
 
 function escapeXml(str: string): string {
   return str
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
 }
 
 export function generateGPX(name: string, waypoints: Waypoint[]): string {
-  const validWps = waypoints.filter((wp) => wp.lat != null && wp.lon != null);
+  const validWps = waypoints.filter(
+    (wp) => wp.lat != null && wp.lon != null && Number.isFinite(wp.lat) && Number.isFinite(wp.lon)
+  );
 
   const wptElements = validWps
     .map((wp) => {
@@ -50,7 +54,7 @@ export function downloadGPX(name: string, waypoints: Waypoint[]): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${name || 'trektrak-route'}.gpx`;
+  a.download = `${sanitizeFilename(name || 'trektrak-route')}.gpx`;
   a.click();
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
