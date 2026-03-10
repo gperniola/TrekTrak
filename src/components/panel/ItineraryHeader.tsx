@@ -88,6 +88,7 @@ export function ItineraryHeader() {
           type="text"
           value={itineraryName}
           onChange={(e) => setItineraryName(e.target.value)}
+          maxLength={200}
           placeholder="Nome itinerario..."
           className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-sm text-white focus:border-green-500 focus:outline-none"
         />

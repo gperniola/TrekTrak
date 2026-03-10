@@ -32,6 +32,7 @@ export function WaypointCard({ waypoint, dragHandleProps }: { waypoint: Waypoint
           type="text"
           value={waypoint.name}
           onChange={(e) => updateWaypoint(waypoint.id, { name: e.target.value })}
+          maxLength={100}
           placeholder="Nome waypoint..."
           className="w-full bg-gray-900 border border-gray-600 rounded px-2 py-1 text-sm text-white focus:border-green-500 focus:outline-none"
         />

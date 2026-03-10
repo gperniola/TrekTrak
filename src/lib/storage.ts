@@ -68,7 +68,20 @@ export function loadSettings(): AppSettings {
   try {
     const raw = localStorage.getItem(KEYS.settings);
     if (!raw) return { tolerances: { ...DEFAULT_TOLERANCES } };
-    return JSON.parse(raw) as AppSettings;
+    const parsed = JSON.parse(raw);
+    if (typeof parsed?.tolerances !== 'object' || parsed.tolerances == null) {
+      return { tolerances: { ...DEFAULT_TOLERANCES } };
+    }
+    return {
+      tolerances: {
+        ...DEFAULT_TOLERANCES,
+        ...Object.fromEntries(
+          Object.entries(parsed.tolerances).filter(
+            ([, v]) => typeof v === 'number' && Number.isFinite(v as number) && (v as number) >= 0
+          )
+        ),
+      },
+    };
   } catch {
     return { tolerances: { ...DEFAULT_TOLERANCES } };
   }

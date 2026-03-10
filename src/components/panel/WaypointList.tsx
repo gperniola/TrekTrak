@@ -41,7 +41,7 @@ export function WaypointList() {
   const reorderWaypoints = useItineraryStore((s) => s.reorderWaypoints);
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 

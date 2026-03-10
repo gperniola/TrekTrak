@@ -40,7 +40,7 @@ export function NumberInput({
           const v = e.target.value;
           if (v === '') { onChange(null); return; }
           let num = Number(v);
-          if (isNaN(num)) { onChange(null); return; }
+          if (!Number.isFinite(num)) { onChange(null); return; }
           if (min != null && num < min) num = min;
           if (max != null && num > max) num = max;
           onChange(num);

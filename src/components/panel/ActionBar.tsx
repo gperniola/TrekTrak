@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { downloadPDF } from '@/lib/export-pdf';
 import { downloadGPX } from '@/lib/export-gpx';
@@ -19,6 +19,8 @@ export function ActionBar() {
   const updateLeg = useItineraryStore((s) => s.updateLeg);
   const [verifying, setVerifying] = useState(false);
   const verifyingRef = useRef(false);
+  const mountedRef = useRef(true);
+  useEffect(() => { return () => { mountedRef.current = false; }; }, []);
 
   const totalDistance = legs.reduce((sum, l) => sum + (l.distance ?? 0), 0);
   const totalGain = legs.reduce((sum, l) => sum + (l.elevationGain ?? 0), 0);
@@ -61,6 +63,15 @@ export function ActionBar() {
       const tol = settings.tolerances;
       let apiAvailable = true;
 
+      // Clear all previous validation state first
+      const stateBeforeClear = useItineraryStore.getState();
+      for (const wp of stateBeforeClear.waypoints) {
+        if (wp.validationState) updateWaypoint(wp.id, { validationState: undefined });
+      }
+      for (const leg of stateBeforeClear.legs) {
+        if (leg.validationState) updateLeg(leg.id, { validationState: undefined });
+      }
+
       // Cache elevation lookups to avoid duplicate API calls
       const elevationCache = new Map<string, number | null>();
       const getCachedElevation = async (lat: number, lon: number): Promise<number | null> => {
@@ -71,7 +82,7 @@ export function ActionBar() {
         return result;
       };
 
-      // Read fresh state from store
+      // Read fresh state from store after clearing
       const currentState = useItineraryStore.getState();
       const currentWaypoints = currentState.waypoints;
       const currentLegs = currentState.legs;
@@ -153,7 +164,7 @@ export function ActionBar() {
       }
     } finally {
       verifyingRef.current = false;
-      setVerifying(false);
+      if (mountedRef.current) setVerifying(false);
     }
   };
 

@@ -21,20 +21,26 @@ function validateItinerarySchema(data: unknown): data is Itinerary {
   if (!Array.isArray(obj.legs)) return false;
   if (typeof obj.createdAt !== 'string') return false;
   if (typeof obj.updatedAt !== 'string') return false;
+  const wpIds = new Set<string>();
   for (const wp of obj.waypoints) {
     if (typeof wp !== 'object' || wp == null) return false;
     if (typeof wp.id !== 'string' || typeof wp.name !== 'string' || typeof wp.order !== 'number') return false;
-    if (wp.lat != null && typeof wp.lat !== 'number') return false;
-    if (wp.lon != null && typeof wp.lon !== 'number') return false;
-    if (wp.altitude != null && typeof wp.altitude !== 'number') return false;
+    if (wpIds.has(wp.id)) return false;
+    wpIds.add(wp.id);
+    if (wp.lat != null && (typeof wp.lat !== 'number' || !Number.isFinite(wp.lat) || wp.lat < -90 || wp.lat > 90)) return false;
+    if (wp.lon != null && (typeof wp.lon !== 'number' || !Number.isFinite(wp.lon) || wp.lon < -180 || wp.lon > 180)) return false;
+    if (wp.altitude != null && (typeof wp.altitude !== 'number' || !Number.isFinite(wp.altitude))) return false;
   }
+  const legIds = new Set<string>();
   for (const leg of obj.legs) {
     if (typeof leg !== 'object' || leg == null) return false;
     if (typeof leg.id !== 'string' || typeof leg.fromWaypointId !== 'string' || typeof leg.toWaypointId !== 'string') return false;
-    if (leg.distance != null && typeof leg.distance !== 'number') return false;
-    if (leg.elevationGain != null && typeof leg.elevationGain !== 'number') return false;
-    if (leg.elevationLoss != null && typeof leg.elevationLoss !== 'number') return false;
-    if (leg.azimuth != null && typeof leg.azimuth !== 'number') return false;
+    if (legIds.has(leg.id)) return false;
+    legIds.add(leg.id);
+    if (leg.distance != null && (typeof leg.distance !== 'number' || !Number.isFinite(leg.distance) || leg.distance < 0)) return false;
+    if (leg.elevationGain != null && (typeof leg.elevationGain !== 'number' || !Number.isFinite(leg.elevationGain) || leg.elevationGain < 0)) return false;
+    if (leg.elevationLoss != null && (typeof leg.elevationLoss !== 'number' || !Number.isFinite(leg.elevationLoss) || leg.elevationLoss < 0)) return false;
+    if (leg.azimuth != null && (typeof leg.azimuth !== 'number' || !Number.isFinite(leg.azimuth) || leg.azimuth < 0 || leg.azimuth > 360)) return false;
   }
   return true;
 }

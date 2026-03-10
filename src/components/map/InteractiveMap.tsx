@@ -22,20 +22,13 @@ function greenIcon(label: number) {
 }
 
 function MapEvents() {
-  const addWaypoint = useItineraryStore((s) => s.addWaypoint);
-  const updateWaypointPosition = useItineraryStore((s) => s.updateWaypointPosition);
+  const addWaypointAtPosition = useItineraryStore((s) => s.addWaypointAtPosition);
 
   useMapEvents({
     click(e) {
       const currentState = useItineraryStore.getState();
       if (currentState.waypoints.length >= 50) return;
-      addWaypoint();
-      // After adding, update the latest waypoint with clicked coordinates
-      const state = useItineraryStore.getState();
-      const lastWp = state.waypoints[state.waypoints.length - 1];
-      if (lastWp) {
-        updateWaypointPosition(lastWp.id, e.latlng.lat, e.latlng.lng);
-      }
+      addWaypointAtPosition(e.latlng.lat, e.latlng.lng);
     },
   });
 

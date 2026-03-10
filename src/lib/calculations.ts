@@ -57,10 +57,15 @@ export function calculateSlope(
   elevationLossM: number
 ): number {
   if (distanceKm === 0) return 0;
-  const netElevation = Math.abs(elevationGainM - elevationLossM);
-  return (netElevation / (distanceKm * 1000)) * 100;
+  const maxElevation = Math.max(elevationGainM, elevationLossM);
+  return (maxElevation / (distanceKm * 1000)) * 100;
 }
 
+/**
+ * Approximate SAC-style difficulty from slope percentage.
+ * Simplified heuristic -- the real SAC scale also considers
+ * trail marking, exposure, and terrain type.
+ */
 export function calculateDifficulty(maxSlopePercent: number): DifficultyGrade {
   if (maxSlopePercent >= 55) return 'T6';
   if (maxSlopePercent >= 45) return 'T5';

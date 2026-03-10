@@ -55,9 +55,9 @@ export function ElevationProfile() {
             fill="url(#altGradient)"
             strokeWidth={2}
           />
-          {data.map((point, i) => (
+          {data.map((point) => (
             <ReferenceDot
-              key={i}
+              key={`${point.distance}-${point.name}`}
               x={point.distance}
               y={point.altitude}
               r={4}

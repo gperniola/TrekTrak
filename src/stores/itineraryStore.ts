@@ -41,6 +41,7 @@ interface ItineraryState {
 
   setItineraryName: (name: string) => void;
   addWaypoint: () => void;
+  addWaypointAtPosition: (lat: number, lon: number) => void;
   removeWaypoint: (id: string) => void;
   updateWaypoint: (id: string, data: Partial<Waypoint>) => void;
   updateWaypointPosition: (id: string, lat: number, lon: number) => void;
@@ -83,6 +84,24 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
     set({ waypoints: [...waypoints, newWp], legs: newLegs });
   },
 
+  addWaypointAtPosition: (lat, lon) => {
+    const { waypoints, legs } = get();
+    const newWp: Waypoint = {
+      id: generateId(),
+      name: '',
+      lat,
+      lon,
+      altitude: null,
+      order: waypoints.length,
+    };
+    const newLegs = [...legs];
+    if (waypoints.length > 0) {
+      const lastWp = waypoints[waypoints.length - 1];
+      newLegs.push(createEmptyLeg(lastWp.id, newWp.id));
+    }
+    set({ waypoints: [...waypoints, newWp], legs: newLegs });
+  },
+
   removeWaypoint: (id) => {
     const { waypoints, legs } = get();
     const filtered = waypoints.filter((wp) => wp.id !== id);
@@ -108,7 +127,7 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
   updateWaypointPosition: (id, lat, lon) => {
     set({
       waypoints: get().waypoints.map((wp) =>
-        wp.id === id ? { ...wp, lat, lon } : wp
+        wp.id === id ? { ...wp, lat, lon, validationState: undefined } : wp
       ),
     });
   },
@@ -118,6 +137,15 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
       legs: get().legs.map((leg) => {
         if (leg.id !== id) return leg;
         const updated = { ...leg, ...data };
+        // Clear stale validation for fields the user edited (not when setting validationState itself)
+        if (!('validationState' in data) && leg.validationState) {
+          const cleared = { ...leg.validationState };
+          if ('distance' in data) delete cleared.distance;
+          if ('elevationGain' in data) delete cleared.elevationGain;
+          if ('elevationLoss' in data) delete cleared.elevationLoss;
+          if ('azimuth' in data) delete cleared.azimuth;
+          updated.validationState = Object.keys(cleared).length > 0 ? cleared : undefined;
+        }
         return recalculateLeg(updated);
       }),
     });
@@ -127,6 +155,7 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
     const { waypoints, legs } = get();
     if (newOrder.length !== waypoints.length) return;
     if (newOrder.some((idx) => idx < 0 || idx >= waypoints.length)) return;
+    if (new Set(newOrder).size !== newOrder.length) return;
     const reordered = newOrder.map((oldIdx, newIdx) => ({
       ...waypoints[oldIdx],
       order: newIdx,

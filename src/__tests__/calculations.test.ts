@@ -87,11 +87,12 @@ describe('calculateSlope', () => {
     expect(calculateSlope(1, 100, 0)).toBeCloseTo(10, 1);
   });
 
-  test('uses net elevation (gain - loss)', () => {
-    expect(calculateSlope(2, 200, 50)).toBeCloseTo(7.5, 1);
+  test('uses max of gain/loss for slope', () => {
+    // 200m gain over 2km = 10%
+    expect(calculateSlope(2, 200, 50)).toBeCloseTo(10, 1);
   });
 
-  test('negative net elevation returns absolute value', () => {
+  test('descent-only uses loss for slope', () => {
     expect(calculateSlope(1, 0, 100)).toBeCloseTo(10, 1);
   });
 
