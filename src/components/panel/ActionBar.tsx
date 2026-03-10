@@ -14,7 +14,6 @@ export function ActionBar() {
   const itineraryName = useItineraryStore((s) => s.itineraryName);
   const waypoints = useItineraryStore((s) => s.waypoints);
   const legs = useItineraryStore((s) => s.legs);
-  const settings = useItineraryStore((s) => s.settings);
   const updateWaypoint = useItineraryStore((s) => s.updateWaypoint);
   const updateLeg = useItineraryStore((s) => s.updateLeg);
   const [verifying, setVerifying] = useState(false);
@@ -60,17 +59,13 @@ export function ActionBar() {
     verifyingRef.current = true;
     setVerifying(true);
     try {
-      const tol = settings.tolerances;
       let apiAvailable = true;
 
-      // Clear all previous validation state first
-      const stateBeforeClear = useItineraryStore.getState();
-      for (const wp of stateBeforeClear.waypoints) {
-        if (wp.validationState) updateWaypoint(wp.id, { validationState: undefined });
-      }
-      for (const leg of stateBeforeClear.legs) {
-        if (leg.validationState) updateLeg(leg.id, { validationState: undefined });
-      }
+      // Clear all previous validation state in one batch
+      useItineraryStore.getState().clearAllValidation();
+
+      // Read tolerances from fresh store state (not stale closure)
+      const tol = useItineraryStore.getState().settings.tolerances;
 
       // Cache elevation lookups to avoid duplicate API calls
       const elevationCache = new Map<string, number | null>();
@@ -156,7 +151,9 @@ export function ActionBar() {
           }
         }
 
-        updateLeg(leg.id, { validationState: updates });
+        if (Object.keys(updates).length > 0) {
+          updateLeg(leg.id, { validationState: updates });
+        }
       }
 
       if (!apiAvailable) {

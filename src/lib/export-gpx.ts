@@ -17,7 +17,7 @@ export function generateGPX(name: string, waypoints: Waypoint[]): string {
 
   const wptElements = validWps
     .map((wp) => {
-      const ele = wp.altitude != null ? `\n      <ele>${wp.altitude}</ele>` : '';
+      const ele = wp.altitude != null && Number.isFinite(wp.altitude) ? `\n      <ele>${wp.altitude}</ele>` : '';
       return `    <wpt lat="${wp.lat}" lon="${wp.lon}">${ele}
       <name>${escapeXml(wp.name || `WP${wp.order + 1}`)}</name>
     </wpt>`;
@@ -26,7 +26,7 @@ export function generateGPX(name: string, waypoints: Waypoint[]): string {
 
   const trkptElements = validWps
     .map((wp) => {
-      const ele = wp.altitude != null ? `\n        <ele>${wp.altitude}</ele>` : '';
+      const ele = wp.altitude != null && Number.isFinite(wp.altitude) ? `\n        <ele>${wp.altitude}</ele>` : '';
       return `      <trkpt lat="${wp.lat}" lon="${wp.lon}">${ele}
       </trkpt>`;
     })

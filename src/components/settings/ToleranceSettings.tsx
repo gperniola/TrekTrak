@@ -34,7 +34,7 @@ export function ToleranceSettings({ onClose }: { onClose: () => void }) {
   ];
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1001]" onClick={onClose}>
       <div className="bg-gray-800 rounded-lg p-6 w-80" onClick={(e) => e.stopPropagation()}>
         <h3 className="text-lg font-bold text-green-400 mb-4">Tolleranze di validazione</h3>
         <p className="text-xs text-gray-400 mb-4">
@@ -50,7 +50,7 @@ export function ToleranceSettings({ onClose }: { onClose: () => void }) {
                   value={tol[key]}
                   onChange={(e) => {
                     const num = Number(e.target.value);
-                    if (!isNaN(num) && num >= 0) setTol({ ...tol, [key]: num });
+                    if (Number.isFinite(num) && num >= 0) setTol({ ...tol, [key]: num });
                   }}
                   min={0}
                   className="w-20 bg-gray-900 border border-gray-600 rounded px-2 py-1 text-sm text-white text-right"

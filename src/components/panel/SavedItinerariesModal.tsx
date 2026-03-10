@@ -17,6 +17,8 @@ export function SavedItinerariesModal({ onClose }: { onClose: () => void }) {
   }, [onClose]);
 
   const handleLoad = (it: typeof items[0]) => {
+    const currentWps = useItineraryStore.getState().waypoints;
+    if (currentWps.length > 0 && !confirm('Caricare questo itinerario? Le modifiche non salvate andranno perse.')) return;
     loadItinerary(it.id, it.name, it.waypoints, it.legs, it.createdAt);
     onClose();
   };
@@ -29,7 +31,7 @@ export function SavedItinerariesModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1001]" onClick={onClose}>
       <div className="bg-gray-800 rounded-lg p-6 w-96 max-h-[70vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         <h3 className="text-lg font-bold text-green-400 mb-4">Itinerari salvati</h3>
         {items.length === 0 ? (

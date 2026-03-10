@@ -19,7 +19,11 @@ export function WaypointCard({ waypoint, dragHandleProps }: { waypoint: Waypoint
             ☰
           </span>
           <button
-            onClick={() => removeWaypoint(waypoint.id)}
+            onClick={() => {
+              if (confirm(`Rimuovere waypoint "${waypoint.name || 'Senza nome'}"?`)) {
+                removeWaypoint(waypoint.id);
+              }
+            }}
             className="text-gray-500 hover:text-red-400 text-xs px-1"
             title="Rimuovi"
           >
@@ -43,6 +47,8 @@ export function WaypointCard({ waypoint, dragHandleProps }: { waypoint: Waypoint
           value={waypoint.lat}
           onChange={(v) => updateWaypoint(waypoint.id, { lat: v })}
           step={0.001}
+          min={-90}
+          max={90}
           placeholder="46.123"
         />
         <NumberInput
@@ -50,6 +56,8 @@ export function WaypointCard({ waypoint, dragHandleProps }: { waypoint: Waypoint
           value={waypoint.lon}
           onChange={(v) => updateWaypoint(waypoint.id, { lon: v })}
           step={0.001}
+          min={-180}
+          max={180}
           placeholder="11.456"
         />
         <NumberInput

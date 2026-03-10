@@ -65,6 +65,9 @@ export function importItineraryJSON(onLoad: (itinerary: Itinerary) => void): voi
         alert('Errore nel parsing del file JSON');
       }
     };
+    reader.onerror = () => {
+      alert('Errore nella lettura del file');
+    };
     reader.readAsText(file);
   };
   input.click();

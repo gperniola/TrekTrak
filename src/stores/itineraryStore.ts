@@ -47,6 +47,7 @@ interface ItineraryState {
   updateWaypointPosition: (id: string, lat: number, lon: number) => void;
   updateLeg: (id: string, data: Partial<Leg>) => void;
   reorderWaypoints: (newOrder: number[]) => void;
+  clearAllValidation: () => void;
   updateSettings: (settings: AppSettings) => void;
   resetItinerary: () => void;
   loadItinerary: (id: string, name: string, waypoints: Waypoint[], legs: Leg[], createdAt?: string) => void;
@@ -118,9 +119,16 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
 
   updateWaypoint: (id, data) => {
     set({
-      waypoints: get().waypoints.map((wp) =>
-        wp.id === id ? { ...wp, ...data } : wp
-      ),
+      waypoints: get().waypoints.map((wp) => {
+        if (wp.id !== id) return wp;
+        const updated = { ...wp, ...data };
+        if (!('validationState' in data) && wp.validationState) {
+          if ('altitude' in data || 'lat' in data || 'lon' in data) {
+            updated.validationState = undefined;
+          }
+        }
+        return updated;
+      }),
     });
   },
 
@@ -170,6 +178,14 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
     set({ waypoints: reordered, legs: newLegs });
   },
 
+  clearAllValidation: () => {
+    const { waypoints, legs } = get();
+    set({
+      waypoints: waypoints.map((wp) => ({ ...wp, validationState: undefined })),
+      legs: legs.map((leg) => ({ ...leg, validationState: undefined })),
+    });
+  },
+
   updateSettings: (settings) => set({ settings }),
 
   resetItinerary: () => set({
@@ -183,16 +199,25 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
 
   loadItinerary: (id, name, waypoints, legs, createdAt) => {
     const cleanWaypoints = waypoints.map(({ validationState, ...wp }, i) => ({ ...wp, order: i }));
-    const wpIds = new Set(cleanWaypoints.map((w) => w.id));
-    const cleanLegs = legs
-      .filter((l) => wpIds.has(l.fromWaypointId) && wpIds.has(l.toWaypointId))
-      .map(({ validationState, ...leg }) => leg);
+    // Rebuild consecutive leg chain, preserving data for matching from/to pairs
+    const newLegs: Leg[] = [];
+    for (let i = 0; i < cleanWaypoints.length - 1; i++) {
+      const existing = legs.find(
+        (l) => l.fromWaypointId === cleanWaypoints[i].id && l.toWaypointId === cleanWaypoints[i + 1].id
+      );
+      if (existing) {
+        const { validationState, ...clean } = existing;
+        newLegs.push(recalculateLeg(clean));
+      } else {
+        newLegs.push(createEmptyLeg(cleanWaypoints[i].id, cleanWaypoints[i + 1].id));
+      }
+    }
     set({
       itineraryId: id,
       itineraryName: name,
       createdAt: createdAt ?? new Date().toISOString(),
       waypoints: cleanWaypoints,
-      legs: cleanLegs,
+      legs: newLegs,
     });
   },
 }));

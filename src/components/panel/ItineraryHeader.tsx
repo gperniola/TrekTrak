@@ -25,8 +25,8 @@ export function ItineraryHeader() {
         name: itineraryName,
         createdAt: existing?.createdAt ?? createdAt,
         updatedAt: new Date().toISOString(),
-        waypoints,
-        legs,
+        waypoints: waypoints.map(({ validationState, ...wp }) => wp),
+        legs: legs.map(({ validationState, estimatedTime, slope, ...leg }) => leg),
       });
       if (isStorageNearLimit()) {
         alert('Attenzione: lo spazio di archiviazione locale si sta esaurendo. Esporta i tuoi itinerari in JSON e cancella quelli vecchi.');
@@ -42,13 +42,15 @@ export function ItineraryHeader() {
       name: itineraryName,
       createdAt,
       updatedAt: new Date().toISOString(),
-      waypoints,
-      legs,
+      waypoints: waypoints.map(({ validationState, ...wp }) => wp),
+      legs: legs.map(({ validationState, estimatedTime, slope, ...leg }) => leg),
     });
   };
 
   const handleImportJSON = () => {
     importItineraryJSON((itinerary) => {
+      const currentWps = useItineraryStore.getState().waypoints;
+      if (currentWps.length > 0 && !confirm('Importare questo itinerario? Le modifiche non salvate andranno perse.')) return;
       loadItinerary(itinerary.id, itinerary.name, itinerary.waypoints, itinerary.legs, itinerary.createdAt);
     });
   };
@@ -81,7 +83,6 @@ export function ItineraryHeader() {
             ↑
           </button>
         </div>
-      {showSaved && <SavedItinerariesModal onClose={() => setShowSaved(false)} />}
       </div>
       <div className="px-3 pb-3">
         <input
@@ -93,6 +94,7 @@ export function ItineraryHeader() {
           className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-sm text-white focus:border-green-500 focus:outline-none"
         />
       </div>
+      {showSaved && <SavedItinerariesModal onClose={() => setShowSaved(false)} />}
     </div>
   );
 }
