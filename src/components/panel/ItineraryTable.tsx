@@ -22,7 +22,7 @@ export function ItineraryTable() {
   const totalTime = legs.reduce((s, l) => s + (l.estimatedTime ?? 0), 0);
 
   return (
-    <div className="overflow-x-auto">
+    <div className="flex-1 overflow-y-auto overflow-x-auto">
       <table className="w-full text-xs text-left">
         <thead className="text-gray-400 uppercase bg-gray-900">
           <tr>

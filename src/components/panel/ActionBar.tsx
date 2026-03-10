@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { downloadPDF } from '@/lib/export-pdf';
 import { downloadGPX } from '@/lib/export-gpx';
@@ -18,6 +18,7 @@ export function ActionBar() {
   const updateWaypoint = useItineraryStore((s) => s.updateWaypoint);
   const updateLeg = useItineraryStore((s) => s.updateLeg);
   const [verifying, setVerifying] = useState(false);
+  const verifyingRef = useRef(false);
 
   const totalDistance = legs.reduce((sum, l) => sum + (l.distance ?? 0), 0);
   const totalGain = legs.reduce((sum, l) => sum + (l.elevationGain ?? 0), 0);
@@ -51,6 +52,8 @@ export function ActionBar() {
   };
 
   const handleVerify = async () => {
+    if (verifyingRef.current) return;
+    verifyingRef.current = true;
     setVerifying(true);
     try {
       const tol = settings.tolerances;
@@ -147,6 +150,7 @@ export function ActionBar() {
         alert('Alcuni dati non sono stati verificati: servizio altimetrico non disponibile. Distanza e azimuth sono stati comunque validati.');
       }
     } finally {
+      verifyingRef.current = false;
       setVerifying(false);
     }
   };

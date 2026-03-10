@@ -23,10 +23,17 @@ function validateItinerarySchema(data: unknown): data is Itinerary {
   for (const wp of obj.waypoints) {
     if (typeof wp !== 'object' || wp == null) return false;
     if (typeof wp.id !== 'string' || typeof wp.order !== 'number') return false;
+    if (wp.lat != null && typeof wp.lat !== 'number') return false;
+    if (wp.lon != null && typeof wp.lon !== 'number') return false;
+    if (wp.altitude != null && typeof wp.altitude !== 'number') return false;
   }
   for (const leg of obj.legs) {
     if (typeof leg !== 'object' || leg == null) return false;
     if (typeof leg.id !== 'string' || typeof leg.fromWaypointId !== 'string' || typeof leg.toWaypointId !== 'string') return false;
+    if (leg.distance != null && typeof leg.distance !== 'number') return false;
+    if (leg.elevationGain != null && typeof leg.elevationGain !== 'number') return false;
+    if (leg.elevationLoss != null && typeof leg.elevationLoss !== 'number') return false;
+    if (leg.azimuth != null && typeof leg.azimuth !== 'number') return false;
   }
   return true;
 }

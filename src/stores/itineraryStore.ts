@@ -143,11 +143,17 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
 
   resetItinerary: () => set({ ...initialState, itineraryId: generateId(), createdAt: new Date().toISOString() }),
 
-  loadItinerary: (id, name, waypoints, legs, createdAt) => set({
-    itineraryId: id,
-    itineraryName: name,
-    createdAt: createdAt ?? new Date().toISOString(),
-    waypoints,
-    legs,
-  }),
+  loadItinerary: (id, name, waypoints, legs, createdAt) => {
+    const wpIds = new Set(waypoints.map((w) => w.id));
+    const validLegs = legs.filter(
+      (l) => wpIds.has(l.fromWaypointId) && wpIds.has(l.toWaypointId)
+    );
+    set({
+      itineraryId: id,
+      itineraryName: name,
+      createdAt: createdAt ?? new Date().toISOString(),
+      waypoints,
+      legs: validLegs,
+    });
+  },
 }));

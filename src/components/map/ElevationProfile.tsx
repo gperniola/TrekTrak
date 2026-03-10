@@ -7,14 +7,6 @@ export function ElevationProfile() {
   const waypoints = useItineraryStore((s) => s.waypoints);
   const legs = useItineraryStore((s) => s.legs);
 
-  if (waypoints.length < 2) {
-    return (
-      <div className="h-full flex items-center justify-center text-gray-500 text-sm">
-        Aggiungi almeno 2 waypoint per il profilo altimetrico
-      </div>
-    );
-  }
-
   // Build cumulative distance / altitude data, skip waypoints without altitude
   let cumulativeDist = 0;
   const data: { distance: number; altitude: number; name: string }[] = [];
@@ -30,6 +22,14 @@ export function ElevationProfile() {
       });
     }
   });
+
+  if (data.length < 2) {
+    return (
+      <div className="h-full flex items-center justify-center text-gray-500 text-sm">
+        Aggiungi almeno 2 waypoint con quota per il profilo altimetrico
+      </div>
+    );
+  }
 
   return (
     <div className="h-full p-2">
