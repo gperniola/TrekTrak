@@ -1,13 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { saveSettings } from '@/lib/storage';
 import type { ToleranceSettings as TolSettings } from '@/lib/types';
 
 export function ToleranceSettings({ onClose }: { onClose: () => void }) {
-  const { settings, updateSettings } = useItineraryStore();
+  const settings = useItineraryStore((s) => s.settings);
+  const updateSettings = useItineraryStore((s) => s.updateSettings);
   const [tol, setTol] = useState<TolSettings>({ ...settings.tolerances });
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   const handleSave = () => {
     const newSettings = { ...settings, tolerances: tol };
@@ -25,8 +34,8 @@ export function ToleranceSettings({ onClose }: { onClose: () => void }) {
   ];
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-gray-800 rounded-lg p-6 w-80">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
+      <div className="bg-gray-800 rounded-lg p-6 w-80" onClick={(e) => e.stopPropagation()}>
         <h3 className="text-lg font-bold text-green-400 mb-4">Tolleranze di validazione</h3>
         <p className="text-xs text-gray-400 mb-4">
           Soglia stretta = valore impostato. Soglia larga = 2x il valore.
@@ -39,7 +48,11 @@ export function ToleranceSettings({ onClose }: { onClose: () => void }) {
                 <input
                   type="number"
                   value={tol[key]}
-                  onChange={(e) => setTol({ ...tol, [key]: Number(e.target.value) })}
+                  onChange={(e) => {
+                    const num = Number(e.target.value);
+                    if (!isNaN(num) && num >= 0) setTol({ ...tol, [key]: num });
+                  }}
+                  min={0}
                   className="w-20 bg-gray-900 border border-gray-600 rounded px-2 py-1 text-sm text-white text-right"
                 />
                 <span className="text-xs text-gray-500 w-10">{unit}</span>

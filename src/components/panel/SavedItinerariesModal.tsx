@@ -1,12 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { loadItineraries, deleteItinerary } from '@/lib/storage';
 import { useItineraryStore } from '@/stores/itineraryStore';
 
 export function SavedItinerariesModal({ onClose }: { onClose: () => void }) {
   const loadItinerary = useItineraryStore((s) => s.loadItinerary);
   const [items, setItems] = useState(() => loadItineraries());
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   const handleLoad = (it: typeof items[0]) => {
     loadItinerary(it.id, it.name, it.waypoints, it.legs, it.createdAt);
@@ -21,8 +29,8 @@ export function SavedItinerariesModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-gray-800 rounded-lg p-6 w-96 max-h-[70vh] flex flex-col">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
+      <div className="bg-gray-800 rounded-lg p-6 w-96 max-h-[70vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         <h3 className="text-lg font-bold text-green-400 mb-4">Itinerari salvati</h3>
         {items.length === 0 ? (
           <p className="text-gray-400 text-sm">Nessun itinerario salvato</p>

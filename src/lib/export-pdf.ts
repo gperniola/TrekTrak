@@ -124,9 +124,9 @@ export function generateRoadbookPDF(data: PdfData): jsPDF {
     // From/To coordinates
     y += 5;
     doc.setFontSize(9);
-    doc.text(`Partenza: ${from?.name} (${from?.lat ?? '-'}, ${from?.lon ?? '-'}) alt. ${from?.altitude ?? '-'}m`, 14, y);
+    doc.text(`Partenza: ${from?.name || 'N/A'} (${from?.lat ?? '-'}, ${from?.lon ?? '-'}) alt. ${from?.altitude ?? '-'}m`, 14, y);
     y += 6;
-    doc.text(`Arrivo: ${to?.name} (${to?.lat ?? '-'}, ${to?.lon ?? '-'}) alt. ${to?.altitude ?? '-'}m`, 14, y);
+    doc.text(`Arrivo: ${to?.name || 'N/A'} (${to?.lat ?? '-'}, ${to?.lon ?? '-'}) alt. ${to?.altitude ?? '-'}m`, 14, y);
   });
 
   return doc;

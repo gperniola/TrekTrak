@@ -18,6 +18,8 @@ function validateItinerarySchema(data: unknown): data is Itinerary {
   if (typeof obj.name !== 'string') return false;
   if (!Array.isArray(obj.waypoints)) return false;
   if (!Array.isArray(obj.legs)) return false;
+  if (typeof obj.createdAt !== 'string') return false;
+  if (typeof obj.updatedAt !== 'string') return false;
   for (const wp of obj.waypoints) {
     if (typeof wp !== 'object' || wp == null) return false;
     if (typeof wp.id !== 'string' || typeof wp.order !== 'number') return false;

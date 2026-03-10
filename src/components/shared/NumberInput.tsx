@@ -39,8 +39,11 @@ export function NumberInput({
         onChange={(e) => {
           const v = e.target.value;
           if (v === '') { onChange(null); return; }
-          const num = Number(v);
-          onChange(isNaN(num) ? null : num);
+          let num = Number(v);
+          if (isNaN(num)) { onChange(null); return; }
+          if (min != null && num < min) num = min;
+          if (max != null && num > max) num = max;
+          onChange(num);
         }}
         step={step}
         min={min}

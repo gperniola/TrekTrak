@@ -43,7 +43,11 @@ export function saveItinerary(itinerary: Itinerary): void {
   } else {
     all.push(itinerary);
   }
-  localStorage.setItem(KEYS.itineraries, JSON.stringify(all));
+  try {
+    localStorage.setItem(KEYS.itineraries, JSON.stringify(all));
+  } catch {
+    throw new Error('Spazio di archiviazione esaurito');
+  }
 }
 
 export function deleteItinerary(id: string): void {

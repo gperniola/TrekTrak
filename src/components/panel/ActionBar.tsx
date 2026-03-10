@@ -60,7 +60,7 @@ export function ActionBar() {
       const elevationCache = new Map<string, number | null>();
       const getCachedElevation = async (lat: number, lon: number): Promise<number | null> => {
         const key = `${lat},${lon}`;
-        if (elevationCache.has(key)) return elevationCache.get(key)!;
+        if (elevationCache.has(key)) return elevationCache.get(key) ?? null;
         const result = await fetchElevation(lat, lon);
         elevationCache.set(key, result);
         return result;
@@ -94,7 +94,7 @@ export function ActionBar() {
         const to = currentWaypoints.find((w) => w.id === leg.toWaypointId);
         if (from?.lat == null || from?.lon == null || to?.lat == null || to?.lon == null) continue;
 
-        const updates: Record<string, unknown> = {};
+        const updates: Partial<NonNullable<typeof leg.validationState>> = {};
 
         // Distance validation
         if (leg.distance != null) {

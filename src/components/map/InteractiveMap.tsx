@@ -27,6 +27,8 @@ function MapEvents() {
 
   useMapEvents({
     click(e) {
+      const currentState = useItineraryStore.getState();
+      if (currentState.waypoints.length >= 50) return;
       addWaypoint();
       // After adding, update the latest waypoint with clicked coordinates
       const state = useItineraryStore.getState();
