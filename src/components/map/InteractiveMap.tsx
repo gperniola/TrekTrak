@@ -9,6 +9,7 @@ import { useMap } from 'react-leaflet';
 import { fetchElevation } from '@/lib/elevation-api';
 import { haversineDistance, forwardAzimuth } from '@/lib/calculations';
 import { fetchTrailRoute } from '@/lib/routing-api';
+import { LocationSearch } from './LocationSearch';
 import type { Leg } from '@/lib/types';
 
 // Icon cache to avoid recreating on every render
@@ -314,6 +315,7 @@ export function InteractiveMap() {
       />
       <GeolocateOnMount />
       <MapEvents />
+      <LocationSearch />
 
       {validWaypoints.map((wp) => (
         <Marker
