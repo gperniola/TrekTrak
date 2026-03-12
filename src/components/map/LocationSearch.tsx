@@ -27,12 +27,29 @@ export function LocationSearch() {
     setActiveIndex(-1);
   }, []);
 
-  // Prevent Leaflet from receiving native events through this overlay
+  // Prevent Leaflet from receiving click/scroll/touch through this overlay.
+  // NOTE: We intentionally do NOT use L.DomEvent.disableClickPropagation() because
+  // it also stops 'mousedown' propagation, which prevents React's event delegation
+  // from receiving onMouseDown handlers on dropdown items.
+  // Instead, we selectively stop click, dblclick, touchstart, and contextmenu
+  // (which trigger Leaflet map click/zoom/drag/tapHold), keeping mousedown free for React.
   useEffect(() => {
-    if (containerRef.current) {
-      L.DomEvent.disableClickPropagation(containerRef.current);
-      L.DomEvent.disableScrollPropagation(containerRef.current);
-    }
+    const el = containerRef.current;
+    if (!el) return;
+    L.DomEvent.disableScrollPropagation(el);
+    const stop = L.DomEvent.stopPropagation;
+    L.DomEvent.on(el, 'click', stop);
+    L.DomEvent.on(el, 'dblclick', stop);
+    L.DomEvent.on(el, 'touchstart', stop);
+    L.DomEvent.on(el, 'contextmenu', stop);
+    // Set Leaflet's internal click-through guard flag
+    (el as unknown as Record<string, boolean>)['_leaflet_disable_click'] = true;
+    return () => {
+      L.DomEvent.off(el, 'click', stop);
+      L.DomEvent.off(el, 'dblclick', stop);
+      L.DomEvent.off(el, 'touchstart', stop);
+      L.DomEvent.off(el, 'contextmenu', stop);
+    };
   }, []);
 
   // Debounced search with cancellation
@@ -151,7 +168,7 @@ export function LocationSearch() {
           aria-label="Cerca località sulla mappa"
           aria-expanded={open}
           aria-autocomplete="list"
-          aria-controls={LISTBOX_ID}
+          aria-controls={open && results.length > 0 ? LISTBOX_ID : undefined}
           aria-activedescendant={activeIndex >= 0 ? `location-option-${activeIndex}` : undefined}
           className="w-full bg-gray-800/95 border border-gray-600 rounded pl-8 pr-3 py-1.5 text-sm text-white placeholder-gray-500 focus:border-green-500 focus:outline-none"
         />
