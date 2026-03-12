@@ -14,6 +14,7 @@ async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Respons
 }
 
 export async function fetchElevation(lat: number, lon: number): Promise<number | null> {
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
   // Try OpenTopoData first
   try {
     const response = await fetchWithTimeout(
@@ -23,7 +24,7 @@ export async function fetchElevation(lat: number, lon: number): Promise<number |
     if (response.ok) {
       const data = await response.json();
       const elevation = data?.results?.[0]?.elevation;
-      if (typeof elevation === 'number') return elevation;
+      if (typeof elevation === 'number' && Number.isFinite(elevation)) return elevation;
     }
   } catch {
     // Fall through to fallback
@@ -38,7 +39,7 @@ export async function fetchElevation(lat: number, lon: number): Promise<number |
     if (response.ok) {
       const data = await response.json();
       const elevation = data?.results?.[0]?.elevation;
-      if (typeof elevation === 'number') return elevation;
+      if (typeof elevation === 'number' && Number.isFinite(elevation)) return elevation;
     }
   } catch {
     // Both failed

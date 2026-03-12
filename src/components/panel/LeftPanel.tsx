@@ -17,15 +17,19 @@ export function LeftPanel() {
       <ModeSwitch />
       <TrackRoutingSwitch />
       <ItineraryHeader />
-      <div className="flex border-b border-gray-700">
+      <div className="flex border-b border-gray-700" role="tablist">
         <button
           onClick={() => setView('edit')}
+          role="tab"
+          aria-selected={view === 'edit'}
           className={`flex-1 py-2 text-xs text-center ${view === 'edit' ? 'text-green-400 border-b-2 border-green-400' : 'text-gray-500'}`}
         >
           Modifica
         </button>
         <button
           onClick={() => setView('table')}
+          role="tab"
+          aria-selected={view === 'table'}
           className={`flex-1 py-2 text-xs text-center ${view === 'table' ? 'text-green-400 border-b-2 border-green-400' : 'text-gray-500'}`}
         >
           Tabella

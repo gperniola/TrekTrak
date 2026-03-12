@@ -209,4 +209,64 @@ describe('validateItinerarySchema', () => {
     };
     expect(validateItinerarySchema(it)).toBe(false);
   });
+
+  test('rejects itinerary with more than 50 waypoints', () => {
+    const wps = Array.from({ length: 51 }, (_, i) => ({
+      id: `wp${i}`, name: `WP${i}`, lat: null, lon: null, altitude: null, order: i,
+    }));
+    const it = { ...validItinerary, waypoints: wps, legs: [] };
+    expect(validateItinerarySchema(it)).toBe(false);
+  });
+
+  test('accepts itinerary with exactly 50 waypoints', () => {
+    const wps = Array.from({ length: 50 }, (_, i) => ({
+      id: `wp${i}`, name: `WP${i}`, lat: null, lon: null, altitude: null, order: i,
+    }));
+    const it = { ...validItinerary, waypoints: wps, legs: [] };
+    expect(validateItinerarySchema(it)).toBe(true);
+  });
+
+  test('accepts leg with valid routeGeometry', () => {
+    const it = {
+      ...validItinerary,
+      legs: [{
+        id: 'leg1', fromWaypointId: 'wp1', toWaypointId: 'wp2',
+        routeGeometry: [[46.0, 11.0], [46.005, 11.005], [46.01, 11.01]],
+      }],
+    };
+    expect(validateItinerarySchema(it)).toBe(true);
+  });
+
+  test('rejects leg with non-array routeGeometry', () => {
+    const it = {
+      ...validItinerary,
+      legs: [{
+        id: 'leg1', fromWaypointId: 'wp1', toWaypointId: 'wp2',
+        routeGeometry: 'not-an-array',
+      }],
+    };
+    expect(validateItinerarySchema(it)).toBe(false);
+  });
+
+  test('rejects leg with NaN in routeGeometry coords', () => {
+    const it = {
+      ...validItinerary,
+      legs: [{
+        id: 'leg1', fromWaypointId: 'wp1', toWaypointId: 'wp2',
+        routeGeometry: [[NaN, 11.0], [46.01, 11.01]],
+      }],
+    };
+    expect(validateItinerarySchema(it)).toBe(false);
+  });
+
+  test('rejects leg with too-short coord array in routeGeometry', () => {
+    const it = {
+      ...validItinerary,
+      legs: [{
+        id: 'leg1', fromWaypointId: 'wp1', toWaypointId: 'wp2',
+        routeGeometry: [[46.0], [46.01, 11.01]],
+      }],
+    };
+    expect(validateItinerarySchema(it)).toBe(false);
+  });
 });

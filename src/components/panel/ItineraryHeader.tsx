@@ -60,10 +60,10 @@ export function ItineraryHeader() {
       <div className="p-3 flex items-center justify-between">
         <span className="text-lg font-bold text-green-400">&#9650; TrekTrak</span>
         <div className="flex gap-1">
-          <button onClick={handleSave} className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600">
+          <button onClick={handleSave} className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600" aria-label="Salva itinerario">
             Salva
           </button>
-          <button onClick={() => setShowSaved(true)} className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600">
+          <button onClick={() => setShowSaved(true)} className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600" aria-label="Carica itinerario">
             Carica
           </button>
           <button
@@ -73,13 +73,14 @@ export function ItineraryHeader() {
               }
             }}
             className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600"
+            aria-label="Nuovo itinerario"
           >
             Nuovo
           </button>
-          <button onClick={handleExportJSON} className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600" title="Esporta JSON">
+          <button onClick={handleExportJSON} className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600" title="Esporta JSON" aria-label="Esporta JSON">
             ↓
           </button>
-          <button onClick={handleImportJSON} className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600" title="Importa JSON">
+          <button onClick={handleImportJSON} className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600" title="Importa JSON" aria-label="Importa JSON">
             ↑
           </button>
         </div>
@@ -91,6 +92,7 @@ export function ItineraryHeader() {
           onChange={(e) => setItineraryName(e.target.value)}
           maxLength={200}
           placeholder="Nome itinerario..."
+          aria-label="Nome itinerario"
           className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-sm text-white focus:border-green-500 focus:outline-none"
         />
       </div>

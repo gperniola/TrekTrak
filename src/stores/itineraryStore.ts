@@ -244,7 +244,9 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
       const bOrd = Number.isFinite(b.order) ? b.order : Infinity;
       return aOrd - bOrd;
     });
-    const cleanWaypoints = sorted.map(({ validationState, ...wp }, i) => ({ ...wp, order: i }));
+    // Enforce 50-waypoint cap on import
+    const capped = sorted.slice(0, 50);
+    const cleanWaypoints = capped.map(({ validationState, ...wp }, i) => ({ ...wp, order: i }));
     // Rebuild consecutive leg chain, preserving data for matching from/to pairs
     const newLegs: Leg[] = [];
     for (let i = 0; i < cleanWaypoints.length - 1; i++) {

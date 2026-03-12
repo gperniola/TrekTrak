@@ -50,9 +50,9 @@ export function ToleranceSettings({ onClose }: { onClose: () => void }) {
                   value={tol[key]}
                   onChange={(e) => {
                     const num = Number(e.target.value);
-                    if (Number.isFinite(num) && num >= 0) setTol({ ...tol, [key]: num });
+                    if (Number.isFinite(num) && num > 0) setTol({ ...tol, [key]: num });
                   }}
-                  min={0}
+                  min={0.01}
                   className="w-20 bg-gray-900 border border-gray-600 rounded px-2 py-1 text-sm text-white text-right"
                 />
                 <span className="text-xs text-gray-500 w-10">{unit}</span>

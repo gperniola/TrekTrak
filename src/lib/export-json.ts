@@ -8,7 +8,9 @@ export function exportItineraryJSON(itinerary: Itinerary): void {
   const a = document.createElement('a');
   a.href = url;
   a.download = `${sanitizeFilename(itinerary.name || 'trektrak-itinerario')}.json`;
+  document.body.appendChild(a);
   a.click();
+  document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
@@ -19,6 +21,7 @@ export function validateItinerarySchema(data: unknown): data is Itinerary {
   if (typeof obj.name !== 'string') return false;
   if (!Array.isArray(obj.waypoints)) return false;
   if (!Array.isArray(obj.legs)) return false;
+  if (obj.waypoints.length > 50) return false;
   if (typeof obj.createdAt !== 'string') return false;
   if (typeof obj.updatedAt !== 'string') return false;
   const wpIds = new Set<string>();
@@ -42,6 +45,13 @@ export function validateItinerarySchema(data: unknown): data is Itinerary {
     if (leg.elevationGain != null && (typeof leg.elevationGain !== 'number' || !Number.isFinite(leg.elevationGain) || leg.elevationGain < 0)) return false;
     if (leg.elevationLoss != null && (typeof leg.elevationLoss !== 'number' || !Number.isFinite(leg.elevationLoss) || leg.elevationLoss < 0)) return false;
     if (leg.azimuth != null && (typeof leg.azimuth !== 'number' || !Number.isFinite(leg.azimuth) || leg.azimuth < 0 || leg.azimuth >= 360)) return false;
+    if (leg.routeGeometry != null) {
+      if (!Array.isArray(leg.routeGeometry)) return false;
+      for (const coord of leg.routeGeometry) {
+        if (!Array.isArray(coord) || coord.length < 2) return false;
+        if (!Number.isFinite(coord[0]) || !Number.isFinite(coord[1])) return false;
+      }
+    }
   }
   return true;
 }

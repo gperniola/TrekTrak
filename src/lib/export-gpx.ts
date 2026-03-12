@@ -30,6 +30,7 @@ function buildTrkptElements(waypoints: Waypoint[], legs: Leg[]): string {
         // Use trail points (skip first to avoid duplicating prev waypoint)
         for (let j = 1; j < leg.routeGeometry.length - 1; j++) {
           const [lat, lon] = leg.routeGeometry[j];
+          if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
           parts.push(`      <trkpt lat="${lat}" lon="${lon}"></trkpt>`);
         }
       }
@@ -90,6 +91,8 @@ export function downloadGPX(name: string, waypoints: Waypoint[], legs: Leg[] = [
   const a = document.createElement('a');
   a.href = url;
   a.download = `${sanitizeFilename(name || 'trektrak-route')}.gpx`;
+  document.body.appendChild(a);
   a.click();
+  document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

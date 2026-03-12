@@ -40,6 +40,7 @@ export function WaypointCard({ waypoint, dragHandleProps }: { waypoint: Waypoint
           onChange={(e) => updateWaypoint(waypoint.id, { name: e.target.value })}
           maxLength={100}
           placeholder="Nome waypoint..."
+          aria-label={`Nome waypoint ${waypoint.order + 1}`}
           className="w-full bg-gray-900 border border-gray-600 rounded px-2 py-1 text-sm text-white focus:border-green-500 focus:outline-none"
         />
       </div>

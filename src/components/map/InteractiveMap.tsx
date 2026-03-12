@@ -151,11 +151,17 @@ async function autoFillTrackData(waypointId: string) {
   const wp = waypoints.find((w) => w.id === waypointId);
   if (!wp || wp.lat == null || wp.lon == null) return;
 
-  // Fetch elevation for this waypoint (cached for reuse in leg processing)
-  const wpElevation = await getCachedElevation(wp.lat, wp.lon, elevationCache);
-  if (isStale()) return;
-  if (wpElevation != null) {
-    updateWaypoint(wp.id, { altitude: Math.round(wpElevation) });
+  // In classic mode, fetch elevation for this waypoint (cached for reuse in leg processing)
+  // In guided mode, defer to ORS-provided elevation in autoFillLegGuided for consistency
+  if (!isGuided) {
+    const currentWp = useItineraryStore.getState().waypoints.find((w) => w.id === wp.id);
+    if (currentWp && currentWp.altitude == null) {
+      const wpElevation = await getCachedElevation(wp.lat, wp.lon, elevationCache);
+      if (isStale()) return;
+      if (wpElevation != null) {
+        updateWaypoint(wp.id, { altitude: Math.round(wpElevation) });
+      }
+    }
   }
 
   // Find and update adjacent legs
@@ -199,18 +205,19 @@ function GeolocateOnMount() {
   const userInteracted = useRef(false);
 
   useEffect(() => {
+    let unmounted = false;
     const onMove = () => { userInteracted.current = true; };
     map.once('movestart', onMove);
-    if (!navigator.geolocation) return;
+    if (!navigator.geolocation) return () => { map.off('movestart', onMove); };
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        if (!userInteracted.current) {
+        if (!unmounted && !userInteracted.current) {
           map.flyTo([pos.coords.latitude, pos.coords.longitude], DEFAULT_ZOOM, { duration: 1.5 });
         }
       },
       () => { /* permission denied or error — stay on default center */ }
     );
-    return () => { map.off('movestart', onMove); };
+    return () => { unmounted = true; map.off('movestart', onMove); };
   }, [map]);
 
   return null;

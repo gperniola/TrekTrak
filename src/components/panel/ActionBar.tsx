@@ -21,7 +21,8 @@ export function ActionBar() {
   const [verifying, setVerifying] = useState(false);
   const verifyingRef = useRef(false);
   const mountedRef = useRef(true);
-  useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
+  const verifyGenerationRef = useRef(0);
+  useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; verifyGenerationRef.current++; }; }, []);
 
   const totalDistance = legs.reduce((sum, l) => sum + (l.distance ?? 0), 0);
   const totalGain = legs.reduce((sum, l) => sum + (l.elevationGain ?? 0), 0);
@@ -60,6 +61,8 @@ export function ActionBar() {
     if (verifyingRef.current) return;
     verifyingRef.current = true;
     setVerifying(true);
+    const generation = ++verifyGenerationRef.current;
+    const isStale = () => !mountedRef.current || verifyGenerationRef.current !== generation;
     try {
       let apiAvailable = true;
 
@@ -86,6 +89,7 @@ export function ActionBar() {
 
       // Validate or auto-fill waypoint altitudes
       for (const wp of currentWaypoints) {
+        if (isStale()) break;
         if (wp.lat == null || wp.lon == null) continue;
         const realAlt = await getCachedElevation(wp.lat, wp.lon);
         if (realAlt == null) {
@@ -107,6 +111,7 @@ export function ActionBar() {
 
       // Validate leg data
       for (const leg of currentLegs) {
+        if (isStale()) break;
         const from = currentWaypoints.find((w) => w.id === leg.fromWaypointId);
         const to = currentWaypoints.find((w) => w.id === leg.toWaypointId);
         if (from?.lat == null || from?.lon == null || to?.lat == null || to?.lon == null) continue;

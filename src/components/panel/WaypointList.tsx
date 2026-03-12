@@ -67,13 +67,17 @@ export function WaypointList() {
       <div className="text-xs uppercase text-gray-500 px-2">Waypoint</div>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={wpIds} strategy={verticalListSortingStrategy}>
-          {waypoints.map((wp, i) => (
-            <SortableWaypoint
-              key={wp.id}
-              waypoint={wp}
-              legAfter={i < legs.length ? <LegCard leg={legs[i]} /> : undefined}
-            />
-          ))}
+          {waypoints.map((wp, i) => {
+            const nextWp = waypoints[i + 1];
+            const leg = nextWp ? legs.find((l) => l.fromWaypointId === wp.id && l.toWaypointId === nextWp.id) : undefined;
+            return (
+              <SortableWaypoint
+                key={wp.id}
+                waypoint={wp}
+                legAfter={leg ? <LegCard leg={leg} /> : undefined}
+              />
+            );
+          })}
         </SortableContext>
       </DndContext>
       {isTrack ? (

@@ -22,6 +22,7 @@ export default function Home() {
           <button
             onClick={() => setShowSettings(true)}
             className="absolute top-3 left-3 z-[1000] bg-gray-800/90 px-2 py-1 rounded text-xs text-gray-400 hover:text-white"
+            aria-label="Apri impostazioni"
           >
             Impostazioni
           </button>

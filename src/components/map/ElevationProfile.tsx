@@ -1,9 +1,11 @@
 'use client';
 
+import { useId } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceDot } from 'recharts';
 import { useItineraryStore } from '@/stores/itineraryStore';
 
 export function ElevationProfile() {
+  const gradientId = useId();
   const waypoints = useItineraryStore((s) => s.waypoints);
   const legs = useItineraryStore((s) => s.legs);
 
@@ -11,8 +13,14 @@ export function ElevationProfile() {
   let cumulativeDist = 0;
   const data: { distance: number; altitude: number; name: string }[] = [];
   waypoints.forEach((wp, i) => {
-    if (i > 0 && legs[i - 1]?.distance != null) {
-      cumulativeDist += legs[i - 1].distance!;
+    if (i > 0) {
+      const prevWp = waypoints[i - 1];
+      const leg = legs.find(
+        (l) => l.fromWaypointId === prevWp.id && l.toWaypointId === wp.id
+      );
+      if (leg?.distance != null) {
+        cumulativeDist += leg.distance;
+      }
     }
     if (wp.altitude != null) {
       data.push({
@@ -44,7 +52,7 @@ export function ElevationProfile() {
       <ResponsiveContainer width="100%" height="85%">
         <AreaChart data={data}>
           <defs>
-            <linearGradient id="altGradient" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="#4ade80" stopOpacity={0.3} />
               <stop offset="95%" stopColor="#4ade80" stopOpacity={0.05} />
             </linearGradient>
@@ -59,7 +67,7 @@ export function ElevationProfile() {
             type="monotone"
             dataKey="altitude"
             stroke="#4ade80"
-            fill="url(#altGradient)"
+            fill={`url(#${gradientId})`}
             strokeWidth={2}
           />
           {data.map((point, i) => (

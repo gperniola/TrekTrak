@@ -470,4 +470,16 @@ describe('loadItinerary', () => {
     expect(wps[0].order).toBe(0);
     expect(wps[1].order).toBe(1);
   });
+
+  test('caps waypoints at 50 on import', () => {
+    const waypoints = Array.from({ length: 60 }, (_, i) => ({
+      id: `wp${i}`, name: `WP${i}`, lat: null, lon: null, altitude: null, order: i,
+    }));
+
+    useItineraryStore.getState().loadItinerary('id', 'Route', waypoints, []);
+
+    const wps = useItineraryStore.getState().waypoints;
+    expect(wps).toHaveLength(50);
+    expect(wps[49].order).toBe(49);
+  });
 });
