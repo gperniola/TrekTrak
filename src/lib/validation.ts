@@ -18,6 +18,9 @@ export function validateValue(
   tolerance: { strict: number; loose: number }
 ): ValidationResult {
   const delta = Math.abs(userValue - realValue);
+  if (!Number.isFinite(delta)) {
+    return { status: 'error', userValue, realValue, delta: Infinity, tolerance };
+  }
   const status = determineStatus(userValue, realValue, tolerance.strict, tolerance.loose);
   return {
     status,

@@ -104,3 +104,15 @@ describe('isStorageNearLimit', () => {
     expect(isStorageNearLimit()).toBe(false);
   });
 });
+
+describe('saveItinerary quota exceeded', () => {
+  test('throws user-friendly error when localStorage is full', () => {
+    const originalSetItem = localStorageMock.setItem;
+    localStorageMock.setItem = () => { throw new DOMException('quota exceeded'); };
+    try {
+      expect(() => saveItinerary(makeItinerary('1', 'Big'))).toThrow('Spazio di archiviazione esaurito');
+    } finally {
+      localStorageMock.setItem = originalSetItem;
+    }
+  });
+});

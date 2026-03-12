@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Waypoint, Leg, AppSettings } from '../lib/types';
+import type { Waypoint, Leg, AppSettings, AppMode, TrackRouting } from '../lib/types';
 import { DEFAULT_TOLERANCES } from '../lib/types';
 import { calculateMunterTime, calculateSlope } from '../lib/calculations';
 
@@ -38,7 +38,11 @@ interface ItineraryState {
   waypoints: Waypoint[];
   legs: Leg[];
   settings: AppSettings;
+  appMode: AppMode;
+  trackRouting: TrackRouting;
 
+  setAppMode: (mode: AppMode) => void;
+  setTrackRouting: (routing: TrackRouting) => void;
   setItineraryName: (name: string) => void;
   addWaypoint: () => void;
   addWaypointAtPosition: (lat: number, lon: number) => void;
@@ -60,15 +64,45 @@ const initialState = {
   waypoints: [] as Waypoint[],
   legs: [] as Leg[],
   settings: { tolerances: { ...DEFAULT_TOLERANCES } } as AppSettings,
+  appMode: 'learn' as AppMode,
+  trackRouting: 'classic' as TrackRouting,
 };
 
 export const useItineraryStore = create<ItineraryState>()((set, get) => ({
   ...initialState,
 
+  setAppMode: (mode) => {
+    if (mode === get().appMode) return;
+    const { waypoints, legs } = get();
+    // Atomic update: clear validation + set mode + clear routeGeometry if switching to learn
+    set({
+      appMode: mode,
+      waypoints: waypoints.map((wp) => ({ ...wp, validationState: undefined })),
+      legs: (mode === 'learn'
+        ? legs.map((l) => ({ ...l, validationState: undefined, routeGeometry: undefined }))
+        : legs.map((l) => ({ ...l, validationState: undefined }))
+      ),
+    });
+  },
+
+  setTrackRouting: (routing) => {
+    if (routing === get().trackRouting) return;
+    // Clear route geometry when switching to classic
+    if (routing === 'classic') {
+      set({
+        trackRouting: routing,
+        legs: get().legs.map((l) => ({ ...l, routeGeometry: undefined })),
+      });
+    } else {
+      set({ trackRouting: routing });
+    }
+  },
+
   setItineraryName: (name) => set({ itineraryName: name }),
 
   addWaypoint: () => {
     const { waypoints, legs } = get();
+    if (waypoints.length >= 50) return;
     const newWp: Waypoint = {
       id: generateId(),
       name: '',
@@ -87,6 +121,7 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
 
   addWaypointAtPosition: (lat, lon) => {
     const { waypoints, legs } = get();
+    if (waypoints.length >= 50) return;
     const newWp: Waypoint = {
       id: generateId(),
       name: '',
@@ -112,7 +147,9 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
       const existing = legs.find(
         (l) => l.fromWaypointId === reordered[i].id && l.toWaypointId === reordered[i + 1].id
       );
-      newLegs.push(existing ?? createEmptyLeg(reordered[i].id, reordered[i + 1].id));
+      // Strip routeGeometry from preserved legs (route is stale after removal)
+      const clean = existing ? { ...existing, routeGeometry: undefined } : undefined;
+      newLegs.push(clean ?? createEmptyLeg(reordered[i].id, reordered[i + 1].id));
     }
     set({ waypoints: reordered, legs: newLegs });
   },
@@ -173,7 +210,8 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
       const existing = legs.find(
         (l) => l.fromWaypointId === reordered[i].id && l.toWaypointId === reordered[i + 1].id
       );
-      newLegs.push(existing ?? createEmptyLeg(reordered[i].id, reordered[i + 1].id));
+      const clean = existing ? { ...existing, routeGeometry: undefined } : undefined;
+      newLegs.push(clean ?? createEmptyLeg(reordered[i].id, reordered[i + 1].id));
     }
     set({ waypoints: reordered, legs: newLegs });
   },
@@ -195,10 +233,18 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
     waypoints: [],
     legs: [],
     settings: { tolerances: { ...DEFAULT_TOLERANCES } },
+    appMode: 'learn' as AppMode,
+    trackRouting: 'classic' as TrackRouting,
   }),
 
   loadItinerary: (id, name, waypoints, legs, createdAt) => {
-    const cleanWaypoints = waypoints.map(({ validationState, ...wp }, i) => ({ ...wp, order: i }));
+    // Sort by order field before re-indexing to respect imported ordering (NaN-safe)
+    const sorted = [...waypoints].sort((a, b) => {
+      const aOrd = Number.isFinite(a.order) ? a.order : Infinity;
+      const bOrd = Number.isFinite(b.order) ? b.order : Infinity;
+      return aOrd - bOrd;
+    });
+    const cleanWaypoints = sorted.map(({ validationState, ...wp }, i) => ({ ...wp, order: i }));
     // Rebuild consecutive leg chain, preserving data for matching from/to pairs
     const newLegs: Leg[] = [];
     for (let i = 0; i < cleanWaypoints.length - 1; i++) {

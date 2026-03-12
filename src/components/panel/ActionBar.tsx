@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import type { Leg } from '@/lib/types';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { downloadPDF } from '@/lib/export-pdf';
 import { downloadGPX } from '@/lib/export-gpx';
@@ -16,10 +17,11 @@ export function ActionBar() {
   const legs = useItineraryStore((s) => s.legs);
   const updateWaypoint = useItineraryStore((s) => s.updateWaypoint);
   const updateLeg = useItineraryStore((s) => s.updateLeg);
+  const appMode = useItineraryStore((s) => s.appMode);
   const [verifying, setVerifying] = useState(false);
   const verifyingRef = useRef(false);
   const mountedRef = useRef(true);
-  useEffect(() => { return () => { mountedRef.current = false; }; }, []);
+  useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
 
   const totalDistance = legs.reduce((sum, l) => sum + (l.distance ?? 0), 0);
   const totalGain = legs.reduce((sum, l) => sum + (l.elevationGain ?? 0), 0);
@@ -51,7 +53,7 @@ export function ActionBar() {
       alert('Servono almeno 2 waypoint con coordinate valide per il GPX');
       return;
     }
-    downloadGPX(itineraryName, waypoints);
+    downloadGPX(itineraryName, waypoints, legs);
   };
 
   const handleVerify = async () => {
@@ -82,21 +84,25 @@ export function ActionBar() {
       const currentWaypoints = currentState.waypoints;
       const currentLegs = currentState.legs;
 
-      // Validate waypoint altitudes
+      // Validate or auto-fill waypoint altitudes
       for (const wp of currentWaypoints) {
-        if (wp.lat == null || wp.lon == null || wp.altitude == null) continue;
+        if (wp.lat == null || wp.lon == null) continue;
         const realAlt = await getCachedElevation(wp.lat, wp.lon);
         if (realAlt == null) {
           apiAvailable = false;
           continue;
         }
-        const result = validateValue(wp.altitude, realAlt, {
-          strict: tol.altitude,
-          loose: tol.altitude * 2,
-        });
-        updateWaypoint(wp.id, {
-          validationState: { altitude: result },
-        });
+        if (wp.altitude != null) {
+          const result = validateValue(wp.altitude, realAlt, {
+            strict: tol.altitude,
+            loose: tol.altitude * 2,
+          });
+          updateWaypoint(wp.id, {
+            validationState: { altitude: result },
+          });
+        } else {
+          updateWaypoint(wp.id, { altitude: Math.round(realAlt) });
+        }
       }
 
       // Validate leg data
@@ -105,28 +111,36 @@ export function ActionBar() {
         const to = currentWaypoints.find((w) => w.id === leg.toWaypointId);
         if (from?.lat == null || from?.lon == null || to?.lat == null || to?.lon == null) continue;
 
-        const updates: Partial<NonNullable<typeof leg.validationState>> = {};
+        const validationUpdates: Partial<NonNullable<typeof leg.validationState>> = {};
+        const fieldUpdates: Partial<Leg> = {};
 
-        // Distance validation
+        // Distance: validate if user entered, auto-fill if empty
+        const realDist = haversineDistance(from.lat, from.lon, to.lat, to.lon);
         if (leg.distance != null) {
-          const realDist = haversineDistance(from.lat, from.lon, to.lat, to.lon);
-          updates.distance = validateValue(
+          const distTol = realDist > 0
+            ? percentageTolerance(realDist, tol.distance)
+            : { strict: tol.distance / 100, loose: (tol.distance / 100) * 2 };
+          validationUpdates.distance = validateValue(
             leg.distance,
             realDist,
-            percentageTolerance(realDist, tol.distance)
+            distTol
           );
+        } else {
+          fieldUpdates.distance = Math.round(realDist * 1000) / 1000;
         }
 
-        // Azimuth validation (with circular wraparound)
+        // Azimuth: validate if user entered, auto-fill if empty
+        const realAz = forwardAzimuth(from.lat, from.lon, to.lat, to.lon);
         if (leg.azimuth != null) {
-          const realAz = forwardAzimuth(from.lat, from.lon, to.lat, to.lon);
-          updates.azimuth = validateAzimuth(leg.azimuth, realAz, {
+          validationUpdates.azimuth = validateAzimuth(leg.azimuth, realAz, {
             strict: tol.azimuth,
             loose: tol.azimuth * 2,
           });
+        } else {
+          fieldUpdates.azimuth = Math.round(realAz * 10) / 10;
         }
 
-        // Elevation gain/loss validation (uses cached API results)
+        // Elevation gain/loss: validate or auto-fill (uses cached API results)
         const fromAlt = await getCachedElevation(from.lat, from.lon);
         const toAlt = await getCachedElevation(to.lat, to.lon);
         if (fromAlt == null || toAlt == null) {
@@ -136,27 +150,41 @@ export function ActionBar() {
           const realGain = Math.max(0, toAlt - fromAlt);
           const realLoss = Math.max(0, fromAlt - toAlt);
           if (leg.elevationGain != null) {
-            updates.elevationGain = validateValue(
+            const elevGainTol = realGain > 0
+              ? percentageTolerance(realGain, tol.elevationDelta)
+              : { strict: tol.elevationDelta / 100, loose: (tol.elevationDelta / 100) * 2 };
+            validationUpdates.elevationGain = validateValue(
               leg.elevationGain,
               realGain,
-              percentageTolerance(realGain || 1, tol.elevationDelta)
+              elevGainTol
             );
+          } else {
+            fieldUpdates.elevationGain = Math.round(realGain);
           }
           if (leg.elevationLoss != null) {
-            updates.elevationLoss = validateValue(
+            const elevLossTol = realLoss > 0
+              ? percentageTolerance(realLoss, tol.elevationDelta)
+              : { strict: tol.elevationDelta / 100, loose: (tol.elevationDelta / 100) * 2 };
+            validationUpdates.elevationLoss = validateValue(
               leg.elevationLoss,
               realLoss,
-              percentageTolerance(realLoss || 1, tol.elevationDelta)
+              elevLossTol
             );
+          } else {
+            fieldUpdates.elevationLoss = Math.round(realLoss);
           }
         }
 
-        if (Object.keys(updates).length > 0) {
-          updateLeg(leg.id, { validationState: updates });
+        const legUpdate: Partial<Leg> = { ...fieldUpdates };
+        if (Object.keys(validationUpdates).length > 0) {
+          legUpdate.validationState = validationUpdates;
+        }
+        if (Object.keys(legUpdate).length > 0) {
+          updateLeg(leg.id, legUpdate);
         }
       }
 
-      if (!apiAvailable) {
+      if (!apiAvailable && mountedRef.current) {
         alert('Alcuni dati non sono stati verificati: servizio altimetrico non disponibile. Distanza e azimuth sono stati comunque validati.');
       }
     } finally {
@@ -166,7 +194,7 @@ export function ActionBar() {
   };
 
   return (
-    <div className="border-t border-gray-700 p-3 flex gap-2">
+    <div className="border-t border-gray-700 p-3 flex flex-wrap gap-2">
       <button
         onClick={() => handlePDF('summary')}
         className="flex-1 py-2 bg-green-500 text-black rounded font-bold text-xs hover:bg-green-400"
@@ -185,13 +213,15 @@ export function ActionBar() {
       >
         GPX
       </button>
-      <button
-        onClick={handleVerify}
-        disabled={verifying}
-        className="flex-1 py-2 bg-purple-500 text-black rounded font-bold text-xs hover:bg-purple-400 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {verifying ? 'Verificando...' : 'Verifica'}
-      </button>
+      {appMode === 'learn' && (
+        <button
+          onClick={handleVerify}
+          disabled={verifying}
+          className="flex-1 py-2 bg-purple-500 text-black rounded font-bold text-xs hover:bg-purple-400 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {verifying ? 'Verificando...' : 'Verifica'}
+        </button>
+      )}
     </div>
   );
 }

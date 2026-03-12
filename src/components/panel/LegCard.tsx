@@ -8,6 +8,7 @@ import { formatTime } from '@/lib/format';
 
 export function LegCard({ leg }: { leg: Leg }) {
   const updateLeg = useItineraryStore((s) => s.updateLeg);
+  const isTrack = useItineraryStore((s) => s.appMode) === 'track';
 
   return (
     <div className="bg-gray-900 border-l-2 border-green-400 rounded-r-md p-2 ml-3 text-xs">
@@ -20,7 +21,8 @@ export function LegCard({ leg }: { leg: Leg }) {
           step={0.1}
           min={0}
           validation={leg.validationState?.distance}
-          placeholder="3.2"
+          placeholder=""
+          readOnly={isTrack}
         />
         <NumberInput
           label="D+"
@@ -29,7 +31,8 @@ export function LegCard({ leg }: { leg: Leg }) {
           onChange={(v) => updateLeg(leg.id, { elevationGain: v })}
           min={0}
           validation={leg.validationState?.elevationGain}
-          placeholder="420"
+          placeholder=""
+          readOnly={isTrack}
         />
         <NumberInput
           label="D-"
@@ -38,7 +41,8 @@ export function LegCard({ leg }: { leg: Leg }) {
           onChange={(v) => updateLeg(leg.id, { elevationLoss: v })}
           min={0}
           validation={leg.validationState?.elevationLoss}
-          placeholder="80"
+          placeholder=""
+          readOnly={isTrack}
         />
         <NumberInput
           label="Azimuth"
@@ -46,9 +50,10 @@ export function LegCard({ leg }: { leg: Leg }) {
           value={leg.azimuth}
           onChange={(v) => updateLeg(leg.id, { azimuth: v })}
           min={0}
-          max={360}
+          max={359.9}
           validation={leg.validationState?.azimuth}
-          placeholder="245"
+          placeholder=""
+          readOnly={isTrack}
         />
       </div>
       {/* Derived data */}

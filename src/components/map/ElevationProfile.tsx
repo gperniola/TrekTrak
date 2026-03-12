@@ -31,6 +31,13 @@ export function ElevationProfile() {
     );
   }
 
+  const altitudes = data.map((d) => d.altitude);
+  const minAlt = Math.min(...altitudes);
+  const maxAlt = Math.max(...altitudes);
+  const padding = Math.max(10, (maxAlt - minAlt) * 0.1);
+  const yMin = Math.floor((minAlt - padding) / 10) * 10;
+  const yMax = Math.ceil((maxAlt + padding) / 10) * 10;
+
   return (
     <div className="h-full p-2">
       <div className="text-xs text-gray-500 mb-1">Profilo altimetrico</div>
@@ -43,7 +50,7 @@ export function ElevationProfile() {
             </linearGradient>
           </defs>
           <XAxis dataKey="distance" tick={{ fontSize: 10, fill: '#999' }} unit=" km" />
-          <YAxis tick={{ fontSize: 10, fill: '#999' }} unit="m" />
+          <YAxis tick={{ fontSize: 10, fill: '#999' }} unit="m" domain={[yMin, yMax]} />
           <Tooltip
             contentStyle={{ background: '#1a1a2e', border: '1px solid #444', fontSize: 12 }}
             labelStyle={{ color: '#4ade80' }}
@@ -55,9 +62,9 @@ export function ElevationProfile() {
             fill="url(#altGradient)"
             strokeWidth={2}
           />
-          {data.map((point) => (
+          {data.map((point, i) => (
             <ReferenceDot
-              key={`${point.distance}-${point.name}`}
+              key={`ref-${i}`}
               x={point.distance}
               y={point.altitude}
               r={4}

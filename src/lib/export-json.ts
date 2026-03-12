@@ -12,7 +12,7 @@ export function exportItineraryJSON(itinerary: Itinerary): void {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-function validateItinerarySchema(data: unknown): data is Itinerary {
+export function validateItinerarySchema(data: unknown): data is Itinerary {
   if (typeof data !== 'object' || data == null) return false;
   const obj = data as Record<string, unknown>;
   if (typeof obj.id !== 'string') return false;
@@ -24,7 +24,7 @@ function validateItinerarySchema(data: unknown): data is Itinerary {
   const wpIds = new Set<string>();
   for (const wp of obj.waypoints) {
     if (typeof wp !== 'object' || wp == null) return false;
-    if (typeof wp.id !== 'string' || typeof wp.name !== 'string' || typeof wp.order !== 'number') return false;
+    if (typeof wp.id !== 'string' || typeof wp.name !== 'string' || typeof wp.order !== 'number' || !Number.isFinite(wp.order)) return false;
     if (wpIds.has(wp.id)) return false;
     wpIds.add(wp.id);
     if (wp.lat != null && (typeof wp.lat !== 'number' || !Number.isFinite(wp.lat) || wp.lat < -90 || wp.lat > 90)) return false;
@@ -37,10 +37,11 @@ function validateItinerarySchema(data: unknown): data is Itinerary {
     if (typeof leg.id !== 'string' || typeof leg.fromWaypointId !== 'string' || typeof leg.toWaypointId !== 'string') return false;
     if (legIds.has(leg.id)) return false;
     legIds.add(leg.id);
+    if (!wpIds.has(leg.fromWaypointId) || !wpIds.has(leg.toWaypointId)) return false;
     if (leg.distance != null && (typeof leg.distance !== 'number' || !Number.isFinite(leg.distance) || leg.distance < 0)) return false;
     if (leg.elevationGain != null && (typeof leg.elevationGain !== 'number' || !Number.isFinite(leg.elevationGain) || leg.elevationGain < 0)) return false;
     if (leg.elevationLoss != null && (typeof leg.elevationLoss !== 'number' || !Number.isFinite(leg.elevationLoss) || leg.elevationLoss < 0)) return false;
-    if (leg.azimuth != null && (typeof leg.azimuth !== 'number' || !Number.isFinite(leg.azimuth) || leg.azimuth < 0 || leg.azimuth > 360)) return false;
+    if (leg.azimuth != null && (typeof leg.azimuth !== 'number' || !Number.isFinite(leg.azimuth) || leg.azimuth < 0 || leg.azimuth >= 360)) return false;
   }
   return true;
 }

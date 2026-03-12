@@ -13,6 +13,7 @@ interface NumberInputProps {
   max?: number;
   validation?: ValidationResult;
   placeholder?: string;
+  readOnly?: boolean;
 }
 
 export function NumberInput({
@@ -25,6 +26,7 @@ export function NumberInput({
   max,
   validation,
   placeholder,
+  readOnly,
 }: NumberInputProps) {
   return (
     <div className="flex flex-col gap-1">
@@ -37,6 +39,7 @@ export function NumberInput({
         type="number"
         value={value ?? ''}
         onChange={(e) => {
+          if (readOnly) return;
           const v = e.target.value;
           if (v === '') { onChange(null); return; }
           let num = Number(v);
@@ -45,11 +48,17 @@ export function NumberInput({
           if (max != null && num > max) num = max;
           onChange(num);
         }}
+        readOnly={readOnly}
+        tabIndex={readOnly ? -1 : undefined}
         step={step}
         min={min}
         max={max}
         placeholder={placeholder}
-        className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-sm text-white focus:border-green-500 focus:outline-none"
+        className={`bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-sm text-white focus:outline-none ${
+          readOnly
+            ? 'opacity-60 cursor-not-allowed [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]'
+            : 'focus:border-green-500'
+        }`}
       />
     </div>
   );

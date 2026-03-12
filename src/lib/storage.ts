@@ -31,7 +31,11 @@ export function loadItineraries(): Itinerary[] {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
     return parsed.filter(
-      (item: unknown) => item != null && typeof item === 'object' && typeof (item as Record<string, unknown>).id === 'string'
+      (item: unknown) => {
+        if (item == null || typeof item !== 'object') return false;
+        const rec = item as Record<string, unknown>;
+        return typeof rec.id === 'string' && Array.isArray(rec.waypoints) && Array.isArray(rec.legs);
+      }
     ) as Itinerary[];
   } catch {
     return [];
@@ -77,7 +81,7 @@ export function loadSettings(): AppSettings {
         ...DEFAULT_TOLERANCES,
         ...Object.fromEntries(
           Object.entries(parsed.tolerances).filter(
-            ([, v]) => typeof v === 'number' && Number.isFinite(v as number) && (v as number) >= 0
+            ([k, v]) => k in DEFAULT_TOLERANCES && typeof v === 'number' && Number.isFinite(v as number) && (v as number) > 0
           )
         ),
       },

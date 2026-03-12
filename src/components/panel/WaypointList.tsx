@@ -39,6 +39,7 @@ export function WaypointList() {
   const legs = useItineraryStore((s) => s.legs);
   const addWaypoint = useItineraryStore((s) => s.addWaypoint);
   const reorderWaypoints = useItineraryStore((s) => s.reorderWaypoints);
+  const isTrack = useItineraryStore((s) => s.appMode) === 'track';
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -75,18 +76,24 @@ export function WaypointList() {
           ))}
         </SortableContext>
       </DndContext>
-      <button
-        onClick={() => {
-          if (waypoints.length >= maxWaypoints) {
-            alert(`Massimo ${maxWaypoints} waypoint per itinerario`);
-            return;
-          }
-          addWaypoint();
-        }}
-        className="w-full border border-dashed border-gray-600 rounded-lg p-3 text-gray-500 hover:text-green-400 hover:border-green-400 transition text-sm"
-      >
-        + Aggiungi waypoint (o clicca sulla mappa)
-      </button>
+      {isTrack ? (
+        <div className="w-full border border-dashed border-gray-600 rounded-lg p-3 text-gray-500 text-sm text-center">
+          Clicca sulla mappa per aggiungere waypoint
+        </div>
+      ) : (
+        <button
+          onClick={() => {
+            if (waypoints.length >= maxWaypoints) {
+              alert(`Massimo ${maxWaypoints} waypoint per itinerario`);
+              return;
+            }
+            addWaypoint();
+          }}
+          className="w-full border border-dashed border-gray-600 rounded-lg p-3 text-gray-500 hover:text-green-400 hover:border-green-400 transition text-sm"
+        >
+          + Aggiungi waypoint (o clicca sulla mappa)
+        </button>
+      )}
     </div>
   );
 }

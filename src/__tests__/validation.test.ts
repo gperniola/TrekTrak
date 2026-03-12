@@ -83,4 +83,16 @@ describe('percentageTolerance', () => {
     expect(tol.strict).toBe(10);
     expect(tol.loose).toBe(20);
   });
+
+  test('zero reference returns zero tolerances', () => {
+    const tol = percentageTolerance(0, 10);
+    expect(tol.strict).toBe(0);
+    expect(tol.loose).toBe(0);
+  });
+
+  test('small reference returns proportionally small tolerances', () => {
+    const tol = percentageTolerance(1, 10);
+    expect(tol.strict).toBeCloseTo(0.1, 5);
+    expect(tol.loose).toBeCloseTo(0.2, 5);
+  });
 });

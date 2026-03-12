@@ -56,9 +56,10 @@ export function calculateSlope(
   elevationGainM: number,
   elevationLossM: number
 ): number {
-  if (distanceKm === 0) return 0;
-  const maxElevation = Math.max(elevationGainM, elevationLossM);
-  return (maxElevation / (distanceKm * 1000)) * 100;
+  const d = Math.max(0, distanceKm);
+  if (d === 0) return 0;
+  const maxElevation = Math.max(0, elevationGainM, elevationLossM);
+  return (maxElevation / (d * 1000)) * 100;
 }
 
 /**

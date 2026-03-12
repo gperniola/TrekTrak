@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useItineraryStore } from '@/stores/itineraryStore';
-import { saveItinerary, loadItineraries, isStorageNearLimit } from '@/lib/storage';
+import { saveItinerary, isStorageNearLimit } from '@/lib/storage';
 import { SavedItinerariesModal } from './SavedItinerariesModal';
 import { exportItineraryJSON, importItineraryJSON } from '@/lib/export-json';
 
@@ -19,14 +19,14 @@ export function ItineraryHeader() {
 
   const handleSave = () => {
     try {
-      const existing = loadItineraries().find((it) => it.id === itineraryId);
       saveItinerary({
         id: itineraryId,
         name: itineraryName,
-        createdAt: existing?.createdAt ?? createdAt,
+        createdAt,
         updatedAt: new Date().toISOString(),
         waypoints: waypoints.map(({ validationState, ...wp }) => wp),
-        legs: legs.map(({ validationState, estimatedTime, slope, ...leg }) => leg),
+        // Strip derived fields and routeGeometry (large, can be re-fetched from ORS)
+        legs: legs.map(({ validationState, estimatedTime, slope, routeGeometry, ...leg }) => leg),
       });
       if (isStorageNearLimit()) {
         alert('Attenzione: lo spazio di archiviazione locale si sta esaurendo. Esporta i tuoi itinerari in JSON e cancella quelli vecchi.');
@@ -43,7 +43,7 @@ export function ItineraryHeader() {
       createdAt,
       updatedAt: new Date().toISOString(),
       waypoints: waypoints.map(({ validationState, ...wp }) => wp),
-      legs: legs.map(({ validationState, estimatedTime, slope, ...leg }) => leg),
+      legs: legs.map(({ validationState, estimatedTime, slope, routeGeometry, ...leg }) => leg),
     });
   };
 

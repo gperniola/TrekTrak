@@ -6,9 +6,14 @@ export function formatTime(minutes: number): string {
   return `${h}h ${m}m`;
 }
 
+const WINDOWS_RESERVED = /^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i;
+
 export function sanitizeFilename(name: string): string {
-  return name
+  const cleaned = name
+    .trim()
     .replace(/[<>:"/\\|?*\x00-\x1f]/g, '_')
     .replace(/\.+$/, '')
+    .trimEnd()
     .substring(0, 100) || 'trektrak';
+  return WINDOWS_RESERVED.test(cleaned) ? `_${cleaned}` : cleaned;
 }

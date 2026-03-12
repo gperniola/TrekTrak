@@ -7,15 +7,16 @@ import { useItineraryStore } from '@/stores/itineraryStore';
 export function WaypointCard({ waypoint, dragHandleProps }: { waypoint: Waypoint; dragHandleProps?: Record<string, unknown> }) {
   const updateWaypoint = useItineraryStore((s) => s.updateWaypoint);
   const removeWaypoint = useItineraryStore((s) => s.removeWaypoint);
+  const isTrack = useItineraryStore((s) => s.appMode) === 'track';
 
   return (
     <div className="bg-gray-800 border border-gray-700 rounded-lg p-3">
       <div className="flex justify-between items-center mb-2">
-        <span className="text-green-400 font-bold text-sm">
+        <span className="text-green-400 font-bold text-sm truncate">
           {waypoint.order + 1}. {waypoint.name || 'Senza nome'}
         </span>
         <div className="flex gap-1 items-center">
-          <span {...dragHandleProps} className="cursor-grab text-gray-600 hover:text-gray-400 text-xs px-1" title="Trascina per riordinare">
+          <span {...dragHandleProps} className="cursor-grab text-gray-600 hover:text-gray-400 text-xs px-1" title="Trascina per riordinare" aria-label="Trascina per riordinare">
             ☰
           </span>
           <button
@@ -26,6 +27,7 @@ export function WaypointCard({ waypoint, dragHandleProps }: { waypoint: Waypoint
             }}
             className="text-gray-500 hover:text-red-400 text-xs px-1"
             title="Rimuovi"
+            aria-label="Rimuovi waypoint"
           >
             ✗
           </button>
@@ -50,6 +52,7 @@ export function WaypointCard({ waypoint, dragHandleProps }: { waypoint: Waypoint
           min={-90}
           max={90}
           placeholder="46.123"
+          readOnly={isTrack}
         />
         <NumberInput
           label="Lon"
@@ -59,6 +62,7 @@ export function WaypointCard({ waypoint, dragHandleProps }: { waypoint: Waypoint
           min={-180}
           max={180}
           placeholder="11.456"
+          readOnly={isTrack}
         />
         <NumberInput
           label="Alt"
@@ -66,7 +70,8 @@ export function WaypointCard({ waypoint, dragHandleProps }: { waypoint: Waypoint
           value={waypoint.altitude}
           onChange={(v) => updateWaypoint(waypoint.id, { altitude: v })}
           validation={waypoint.validationState?.altitude}
-          placeholder="1450"
+          placeholder=""
+          readOnly={isTrack}
         />
       </div>
     </div>
