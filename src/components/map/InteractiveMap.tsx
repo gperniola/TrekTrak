@@ -310,8 +310,12 @@ export function InteractiveMap() {
       style={{ minHeight: '400px' }}
     >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution={process.env.NEXT_PUBLIC_THUNDERFOREST_API_KEY
+          ? '&copy; <a href="https://www.thunderforest.com/">Thunderforest</a>, &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}
+        url={process.env.NEXT_PUBLIC_THUNDERFOREST_API_KEY
+          ? `https://tile.thunderforest.com/outdoors/{z}/{x}/{y}.png?apikey=${process.env.NEXT_PUBLIC_THUNDERFOREST_API_KEY}`
+          : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'}
       />
       <GeolocateOnMount />
       <MapEvents />
