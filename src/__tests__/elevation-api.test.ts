@@ -9,7 +9,7 @@ beforeEach(() => {
 });
 
 describe('fetchElevation', () => {
-  test('returns elevation from OpenTopoData', async () => {
+  test('returns elevation from proxy', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
@@ -20,30 +20,30 @@ describe('fetchElevation', () => {
     const result = await fetchElevation(46.0, 11.0);
     expect(result).toBeCloseTo(1450.2, 1);
     expect(mockFetch).toHaveBeenCalledTimes(1);
-    expect(mockFetch.mock.calls[0][0]).toContain('opentopodata');
+    expect(mockFetch.mock.calls[0][0]).toContain('/api/elevation');
   });
 
-  test('falls back to Open-Elevation on primary failure', async () => {
-    mockFetch
-      .mockRejectedValueOnce(new Error('timeout'))
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          results: [{ elevation: 1448.0, latitude: 46.0, longitude: 11.0 }],
-        }),
-      } as Response);
-
-    const result = await fetchElevation(46.0, 11.0);
-    expect(result).toBeCloseTo(1448.0, 1);
-    expect(mockFetch).toHaveBeenCalledTimes(2);
-  });
-
-  test('returns null if both APIs fail', async () => {
-    mockFetch
-      .mockRejectedValueOnce(new Error('timeout'))
-      .mockRejectedValueOnce(new Error('timeout'));
+  test('returns null on proxy failure', async () => {
+    mockFetch.mockRejectedValueOnce(new Error('timeout'));
 
     const result = await fetchElevation(46.0, 11.0);
     expect(result).toBeNull();
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  test('returns null if response has no valid elevation', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ results: [{ elevation: null }] }),
+    } as Response);
+
+    const result = await fetchElevation(46.0, 11.0);
+    expect(result).toBeNull();
+  });
+
+  test('returns null for invalid coordinates', async () => {
+    const result = await fetchElevation(NaN, 11.0);
+    expect(result).toBeNull();
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 });
