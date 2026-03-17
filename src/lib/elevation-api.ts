@@ -15,7 +15,7 @@ async function fetchFromProxy(locations: string): Promise<(number | null)[] | nu
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
     const response = await fetch(
-      `${PROXY_URL}?locations=${locations}`,
+      `${PROXY_URL}?locations=${encodeURIComponent(locations)}`,
       { signal: controller.signal }
     );
     if (response.ok) {

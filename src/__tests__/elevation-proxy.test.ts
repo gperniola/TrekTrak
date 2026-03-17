@@ -11,11 +11,17 @@ beforeEach(() => {
 
 describe('elevation-proxy', () => {
   describe('LOCATION_RE validation', () => {
-    test('accepts valid coordinates', () => {
+    test('accepts valid single coordinates', () => {
       expect(LOCATION_RE.test('46.0,11.0')).toBe(true);
       expect(LOCATION_RE.test('-33.8,151.2')).toBe(true);
       expect(LOCATION_RE.test('0,0')).toBe(true);
       expect(LOCATION_RE.test('-90,-180')).toBe(true);
+    });
+
+    test('accepts pipe-separated batch coordinates', () => {
+      expect(LOCATION_RE.test('46.0,11.0|46.1,11.1')).toBe(true);
+      expect(LOCATION_RE.test('46.0,11.0|46.1,11.1|46.2,11.2')).toBe(true);
+      expect(LOCATION_RE.test('-33.8,151.2|-34.0,151.0')).toBe(true);
     });
 
     test('rejects invalid formats', () => {
@@ -23,6 +29,8 @@ describe('elevation-proxy', () => {
       expect(LOCATION_RE.test('46.0')).toBe(false);
       expect(LOCATION_RE.test('')).toBe(false);
       expect(LOCATION_RE.test('46.0,11.0,100')).toBe(false);
+      expect(LOCATION_RE.test('46.0,11.0|cat /etc/passwd')).toBe(false);
+      expect(LOCATION_RE.test('||')).toBe(false);
     });
   });
 
@@ -83,6 +91,18 @@ describe('elevation-proxy', () => {
     test('returns 400 for empty locations', async () => {
       const result = await fetchElevationUpstream('');
 
+      expect(result.status).toBe(400);
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    test('returns 400 for out-of-range coordinates', async () => {
+      const result = await fetchElevationUpstream('91.0,11.0');
+      expect(result.status).toBe(400);
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    test('returns 400 for out-of-range longitude', async () => {
+      const result = await fetchElevationUpstream('46.0,181.0');
       expect(result.status).toBe(400);
       expect(mockFetch).not.toHaveBeenCalled();
     });

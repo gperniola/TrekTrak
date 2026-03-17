@@ -263,9 +263,11 @@ describe('slopeColor', () => {
     expect(slopeColor(100)).toBe('#ef4444');
   });
 
-  test('negative slope returns green', () => {
+  test('negative slope uses absolute value', () => {
     expect(slopeColor(-5)).toBe('#4ade80');
-    expect(slopeColor(-100)).toBe('#4ade80');
+    expect(slopeColor(-15)).toBe('#facc15');
+    expect(slopeColor(-25)).toBe('#fb923c');
+    expect(slopeColor(-100)).toBe('#ef4444');
   });
 });
 

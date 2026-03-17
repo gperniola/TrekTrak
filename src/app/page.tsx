@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { LeftPanel } from '@/components/panel/LeftPanel';
 import { MapWrapper } from '@/components/map/MapWrapper';
 import { ElevationProfile } from '@/components/map/ElevationProfile';
@@ -10,13 +10,51 @@ export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  const drawerRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (!drawerOpen) return;
+
+    // Body scroll lock
+    document.body.style.overflow = 'hidden';
+
+    // Escape key
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setDrawerOpen(false);
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+
+    // Focus trap
+    const drawerEl = drawerRef.current;
+    if (drawerEl) {
+      const focusable = drawerEl.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      first?.focus();
+
+      const trapFocus = (e: KeyboardEvent) => {
+        if (e.key !== 'Tab') return;
+        if (e.shiftKey) {
+          if (document.activeElement === first) { e.preventDefault(); last?.focus(); }
+        } else {
+          if (document.activeElement === last) { e.preventDefault(); first?.focus(); }
+        }
+      };
+      drawerEl.addEventListener('keydown', trapFocus);
+
+      return () => {
+        document.body.style.overflow = '';
+        window.removeEventListener('keydown', handleKeyDown);
+        drawerEl.removeEventListener('keydown', trapFocus);
+      };
+    }
+
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [drawerOpen]);
 
   return (
@@ -56,7 +94,7 @@ export default function Home() {
 
       {/* Mobile drawer — full screen overlay */}
       {drawerOpen && (
-        <div className="lg:hidden fixed inset-0 z-[1100] bg-gray-950 flex flex-col" role="dialog" aria-modal="true" aria-label="Menu navigazione">
+        <div ref={drawerRef} className="lg:hidden fixed inset-0 z-[1100] bg-gray-950 flex flex-col" role="dialog" aria-modal="true" aria-label="Menu navigazione">
           <div className="flex items-center justify-between p-3 border-b border-gray-700">
             <span className="text-sm font-medium text-gray-300">Menu</span>
             <div className="flex items-center gap-3">

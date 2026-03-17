@@ -20,8 +20,15 @@ export type ProxyResult =
   | { status: 200; data: unknown }
   | { status: 400 | 502; error: string };
 
+function validateCoordinateRanges(locations: string): boolean {
+  return locations.split('|').every((pair) => {
+    const [lat, lon] = pair.split(',').map(Number);
+    return lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180;
+  });
+}
+
 export async function fetchElevationUpstream(locations: string): Promise<ProxyResult> {
-  if (!locations || !LOCATION_RE.test(locations)) {
+  if (!locations || !LOCATION_RE.test(locations) || !validateCoordinateRanges(locations)) {
     return { status: 400, error: 'Invalid or missing locations parameter' };
   }
 

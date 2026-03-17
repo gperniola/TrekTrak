@@ -129,8 +129,9 @@ const SLOPE_COLORS = [
 ] as const;
 
 export function slopeColor(slopePercent: number): string {
+  const abs = Math.abs(slopePercent);
   for (const { threshold, color } of SLOPE_COLORS) {
-    if (slopePercent >= threshold) return color;
+    if (abs >= threshold) return color;
   }
   return '#4ade80';
 }

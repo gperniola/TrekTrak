@@ -64,7 +64,7 @@ describe('fetchElevationProfile', () => {
     const result = await fetchElevationProfile([[42.0, 14.0], [42.1, 14.1], [42.2, 14.2]]);
     expect(result).toEqual([100.0, 150.5, 200.0]);
     expect(mockFetch).toHaveBeenCalledTimes(1);
-    expect((mockFetch.mock.calls[0][0] as string)).toContain('|');
+    expect((mockFetch.mock.calls[0][0] as string)).toContain('%7C');
   });
 
   test('returns all nulls on proxy failure', async () => {
