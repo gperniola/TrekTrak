@@ -57,7 +57,7 @@ export default function Home() {
   }, [drawerOpen]);
 
   return (
-    <div className="h-[100dvh] flex flex-col lg:flex-row overflow-hidden">
+    <div className="h-dvh flex flex-col lg:flex-row overflow-hidden">
       {/* Desktop sidebar — hidden on mobile */}
       <div className="hidden lg:flex">
         <LeftPanel />
@@ -66,7 +66,7 @@ export default function Home() {
       {/* Right Panel: Top Bar (mobile) + Map + Elevation Profile */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {/* Mobile top bar */}
-        <div className="lg:hidden shrink-0 bg-gray-900 border-b border-gray-700">
+        <div className="lg:hidden shrink-0 bg-gray-900">
           {/* Row 1: Hamburger | Title | Search */}
           <div className="flex items-center justify-between px-2 py-1">
             <button

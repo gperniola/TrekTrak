@@ -14,7 +14,7 @@ export function ModeSwitch() {
   };
 
   return (
-    <div className="flex items-center px-3 py-2 border-b border-gray-700" role="tablist">
+    <div className="flex items-center px-3 py-2 border-b border-gray-700" role="tablist" aria-label="Modalità app">
       <button
         role="tab"
         aria-selected={!isTrack}
