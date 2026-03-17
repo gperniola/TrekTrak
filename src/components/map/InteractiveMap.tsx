@@ -41,8 +41,9 @@ async function getCachedElevation(
   return result;
 }
 
-const SAMPLE_INTERVAL_M = 20;
-// Max number of elevation sample points per leg. OpenTopoData supports max 100 per GET request.
+function sampleInterval(distanceM: number): number {
+  return distanceM > 500 ? 100 : 20;
+}
 const MAX_SAMPLE_POINTS = 50;
 
 async function autoFillLegClassic(
@@ -62,7 +63,7 @@ async function autoFillLegClassic(
   };
 
   const distanceM = distanceKm * 1000;
-  const numPoints = Math.min(MAX_SAMPLE_POINTS, Math.max(2, Math.ceil(distanceM / SAMPLE_INTERVAL_M)));
+  const numPoints = Math.min(MAX_SAMPLE_POINTS, Math.max(2, Math.ceil(distanceM / sampleInterval(distanceM))));
   const points = interpolatePoints(fromLat, fromLon, toLat, toLon, numPoints);
 
   // Check cache for all points, identify which need fetching
@@ -103,6 +104,18 @@ async function autoFillLegClassic(
   const { gain, loss } = cumulativeElevation(elevations);
   if (gain != null) legUpdate.elevationGain = gain;
   if (loss != null) legUpdate.elevationLoss = loss;
+
+  // Build elevation profile for chart rendering
+  const profileData: { distance: number; altitude: number }[] = [];
+  for (let i = 0; i < points.length; i++) {
+    if (elevations[i] != null) {
+      const pointDist = (i / (points.length - 1)) * distanceKm;
+      profileData.push({ distance: Math.round(pointDist * 1000) / 1000, altitude: elevations[i]! });
+    }
+  }
+  if (profileData.length >= 2) {
+    legUpdate.elevationProfile = profileData;
+  }
 
   if (isStale()) return;
   updateLeg(leg.id, legUpdate);
