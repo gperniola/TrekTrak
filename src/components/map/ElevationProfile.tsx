@@ -3,35 +3,92 @@
 import { useId } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceDot } from 'recharts';
 import { useItineraryStore } from '@/stores/itineraryStore';
+import { slopeColor } from '@/lib/calculations';
+
+interface ProfilePoint {
+  distance: number;
+  altitude: number;
+  name?: string;
+}
+
+function buildGradientStops(data: ProfilePoint[], totalDistance: number) {
+  if (data.length < 2 || totalDistance === 0) return [];
+
+  const stops: { offset: string; color: string }[] = [];
+  for (let i = 0; i < data.length - 1; i++) {
+    const dx = data[i + 1].distance - data[i].distance;
+    const dy = Math.abs(data[i + 1].altitude - data[i].altitude);
+    const slope = dx > 0 ? (dy / (dx * 1000)) * 100 : 0;
+    const color = slopeColor(slope);
+    const offsetStart = data[i].distance / totalDistance;
+    const offsetEnd = data[i + 1].distance / totalDistance;
+
+    // Close previous segment and open new one
+    stops.push({ offset: `${(offsetStart * 100).toFixed(2)}%`, color });
+    stops.push({ offset: `${(offsetEnd * 100).toFixed(2)}%`, color });
+  }
+  return stops;
+}
 
 export function ElevationProfile() {
-  const gradientId = useId();
+  const strokeGradientId = useId();
+  const fillGradientId = useId();
   const waypoints = useItineraryStore((s) => s.waypoints);
   const legs = useItineraryStore((s) => s.legs);
 
-  // Build cumulative distance / altitude data, skip waypoints without altitude
-  let cumulativeDist = 0;
-  const data: { distance: number; altitude: number; name: string }[] = [];
-  waypoints.forEach((wp, i) => {
-    if (i > 0) {
-      const prevWp = waypoints[i - 1];
-      const leg = legs.find(
-        (l) => l.fromWaypointId === prevWp.id && l.toWaypointId === wp.id
-      );
-      if (leg?.distance != null) {
-        cumulativeDist += leg.distance;
+  // Try to build detailed profile from leg elevation data
+  let profileData: ProfilePoint[] = [];
+  let globalDist = 0;
+
+  for (let i = 0; i < legs.length; i++) {
+    const leg = legs[i];
+    if (leg.elevationProfile && leg.elevationProfile.length >= 2) {
+      for (let j = 0; j < leg.elevationProfile.length; j++) {
+        // Skip first point of subsequent legs (same as last point of previous)
+        if (i > 0 && j === 0) continue;
+        const p = leg.elevationProfile[j];
+        profileData.push({
+          distance: parseFloat((globalDist + p.distance).toFixed(2)),
+          altitude: p.altitude,
+        });
+      }
+      globalDist += leg.distance ?? 0;
+    } else if (leg.distance != null) {
+      // Fallback: use waypoint altitudes only
+      const fromWp = waypoints.find((w) => w.id === leg.fromWaypointId);
+      const toWp = waypoints.find((w) => w.id === leg.toWaypointId);
+      if (i === 0 && fromWp?.altitude != null) {
+        profileData.push({ distance: parseFloat(globalDist.toFixed(2)), altitude: fromWp.altitude });
+      }
+      globalDist += leg.distance;
+      if (toWp?.altitude != null) {
+        profileData.push({ distance: parseFloat(globalDist.toFixed(2)), altitude: toWp.altitude });
       }
     }
-    if (wp.altitude != null) {
-      data.push({
-        distance: parseFloat(cumulativeDist.toFixed(2)),
-        altitude: wp.altitude,
-        name: wp.name || `WP${i + 1}`,
-      });
-    }
-  });
+  }
 
-  if (data.length < 2) {
+  // If no legs have profile data, fall back to waypoint-only data
+  if (profileData.length < 2) {
+    profileData = [];
+    let cumulativeDist = 0;
+    waypoints.forEach((wp, i) => {
+      if (i > 0) {
+        const prevWp = waypoints[i - 1];
+        const leg = legs.find(
+          (l) => l.fromWaypointId === prevWp.id && l.toWaypointId === wp.id
+        );
+        if (leg?.distance != null) cumulativeDist += leg.distance;
+      }
+      if (wp.altitude != null) {
+        profileData.push({
+          distance: parseFloat(cumulativeDist.toFixed(2)),
+          altitude: wp.altitude,
+        });
+      }
+    });
+  }
+
+  if (profileData.length < 2) {
     return (
       <div className="h-full flex items-center justify-center text-gray-500 text-sm">
         Aggiungi almeno 2 waypoint con quota per il profilo altimetrico
@@ -39,23 +96,62 @@ export function ElevationProfile() {
     );
   }
 
-  const altitudes = data.map((d) => d.altitude);
+  // Waypoint markers (only at actual waypoint positions)
+  let wpCumulDist = 0;
+  const waypointDots: { distance: number; altitude: number; name: string }[] = [];
+  waypoints.forEach((wp, i) => {
+    if (i > 0) {
+      const prevWp = waypoints[i - 1];
+      const leg = legs.find(
+        (l) => l.fromWaypointId === prevWp.id && l.toWaypointId === wp.id
+      );
+      if (leg?.distance != null) wpCumulDist += leg.distance;
+    }
+    if (wp.altitude != null) {
+      waypointDots.push({
+        distance: parseFloat(wpCumulDist.toFixed(2)),
+        altitude: wp.altitude,
+        name: wp.name || `WP${i + 1}`,
+      });
+    }
+  });
+
+  const altitudes = profileData.map((d) => d.altitude);
   const minAlt = Math.min(...altitudes);
   const maxAlt = Math.max(...altitudes);
   const padding = Math.max(10, (maxAlt - minAlt) * 0.1);
   const yMin = Math.floor((minAlt - padding) / 10) * 10;
   const yMax = Math.ceil((maxAlt + padding) / 10) * 10;
+  const totalDistance = profileData[profileData.length - 1].distance;
+
+  const stops = buildGradientStops(profileData, totalDistance);
+  const hasGradient = stops.length > 0;
 
   return (
     <div className="h-full p-2">
       <div className="text-xs text-gray-500 mb-1">Profilo altimetrico</div>
       <ResponsiveContainer width="100%" height="85%">
-        <AreaChart data={data}>
+        <AreaChart data={profileData}>
           <defs>
-            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#4ade80" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="#4ade80" stopOpacity={0.05} />
-            </linearGradient>
+            {hasGradient ? (
+              <>
+                <linearGradient id={strokeGradientId} x1="0" y1="0" x2="1" y2="0">
+                  {stops.map((s, i) => (
+                    <stop key={`s-${i}`} offset={s.offset} stopColor={s.color} />
+                  ))}
+                </linearGradient>
+                <linearGradient id={fillGradientId} x1="0" y1="0" x2="1" y2="0">
+                  {stops.map((s, i) => (
+                    <stop key={`f-${i}`} offset={s.offset} stopColor={s.color} stopOpacity={0.25} />
+                  ))}
+                </linearGradient>
+              </>
+            ) : (
+              <linearGradient id={fillGradientId} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#4ade80" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#4ade80" stopOpacity={0.05} />
+              </linearGradient>
+            )}
           </defs>
           <XAxis dataKey="distance" tick={{ fontSize: 10, fill: '#999' }} unit=" km" />
           <YAxis tick={{ fontSize: 10, fill: '#999' }} unit="m" domain={[yMin, yMax]} />
@@ -66,11 +162,11 @@ export function ElevationProfile() {
           <Area
             type="monotone"
             dataKey="altitude"
-            stroke="#4ade80"
-            fill={`url(#${gradientId})`}
+            stroke={hasGradient ? `url(#${strokeGradientId})` : '#4ade80'}
+            fill={`url(#${fillGradientId})`}
             strokeWidth={2}
           />
-          {data.map((point, i) => (
+          {waypointDots.map((point, i) => (
             <ReferenceDot
               key={`ref-${i}`}
               x={point.distance}
