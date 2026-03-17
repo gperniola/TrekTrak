@@ -5,6 +5,7 @@ import { LeftPanel } from '@/components/panel/LeftPanel';
 import { MapWrapper } from '@/components/map/MapWrapper';
 import { ElevationProfile } from '@/components/map/ElevationProfile';
 import { ToleranceSettings } from '@/components/settings/ToleranceSettings';
+import { ModeSwitch } from '@/components/panel/ModeSwitch';
 
 export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
@@ -56,36 +57,41 @@ export default function Home() {
   }, [drawerOpen]);
 
   return (
-    <div className="h-screen flex flex-col lg:flex-row">
+    <div className="h-[100dvh] flex flex-col lg:flex-row overflow-hidden">
       {/* Desktop sidebar — hidden on mobile */}
       <div className="hidden lg:flex">
         <LeftPanel />
       </div>
 
       {/* Right Panel: Top Bar (mobile) + Map + Elevation Profile */}
-      <div className="flex-1 flex flex-col min-h-0">
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {/* Mobile top bar */}
-        <div className="lg:hidden flex items-center justify-between px-2 py-1 bg-gray-900 border-b border-gray-700 shrink-0">
-          <button
-            onClick={() => { setSearchOpen(false); setDrawerOpen(true); }}
-            className="p-2 text-lg text-gray-300 hover:text-white min-w-[44px] min-h-[44px] flex items-center justify-center"
-            aria-label="Apri menu"
-          >
-            ☰
-          </button>
-          <h1 className="text-sm font-semibold text-gray-200 tracking-wide">TrekTrak</h1>
-          <button
-            onClick={() => setSearchOpen((p) => !p)}
-            className={`p-2 text-lg hover:text-white min-w-[44px] min-h-[44px] flex items-center justify-center ${searchOpen ? 'text-green-400' : 'text-gray-300'}`}
-            aria-label={searchOpen ? 'Chiudi ricerca' : 'Cerca località'}
-            aria-expanded={searchOpen}
-          >
-            &#128269;
-          </button>
+        <div className="lg:hidden shrink-0 bg-gray-900 border-b border-gray-700">
+          {/* Row 1: Hamburger | Title | Search */}
+          <div className="flex items-center justify-between px-2 py-1">
+            <button
+              onClick={() => { setSearchOpen(false); setDrawerOpen(true); }}
+              className="p-2 text-lg text-gray-300 hover:text-white min-w-[44px] min-h-[44px] flex items-center justify-center"
+              aria-label="Apri menu"
+            >
+              ☰
+            </button>
+            <h1 className="text-sm font-semibold text-gray-200 tracking-wide">TrekTrak</h1>
+            <button
+              onClick={() => setSearchOpen((p) => !p)}
+              className={`p-2 text-lg hover:text-white min-w-[44px] min-h-[44px] flex items-center justify-center ${searchOpen ? 'text-green-400' : 'text-gray-300'}`}
+              aria-label={searchOpen ? 'Chiudi ricerca' : 'Cerca località'}
+              aria-expanded={searchOpen}
+            >
+              &#128269;
+            </button>
+          </div>
+          {/* Row 2: Mode switch (Learn / Track) */}
+          <ModeSwitch />
         </div>
 
         {/* Map */}
-        <div className="flex-1 relative min-h-0">
+        <div className="flex-1 relative min-h-0 overflow-hidden">
           <MapWrapper mobileSearchOpen={searchOpen} />
 
           {/* Settings toggle — desktop only */}
