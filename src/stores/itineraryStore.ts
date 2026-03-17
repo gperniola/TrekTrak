@@ -79,7 +79,7 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
       appMode: mode,
       waypoints: waypoints.map((wp) => ({ ...wp, validationState: undefined })),
       legs: (mode === 'learn'
-        ? legs.map((l) => ({ ...l, validationState: undefined, routeGeometry: undefined }))
+        ? legs.map((l) => ({ ...l, validationState: undefined, routeGeometry: undefined, elevationProfile: undefined }))
         : legs.map((l) => ({ ...l, validationState: undefined }))
       ),
     });
@@ -91,7 +91,7 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
     if (routing === 'classic') {
       set({
         trackRouting: routing,
-        legs: get().legs.map((l) => ({ ...l, routeGeometry: undefined })),
+        legs: get().legs.map((l) => ({ ...l, routeGeometry: undefined, elevationProfile: undefined })),
       });
     } else {
       set({ trackRouting: routing });
@@ -148,7 +148,7 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
         (l) => l.fromWaypointId === reordered[i].id && l.toWaypointId === reordered[i + 1].id
       );
       // Strip routeGeometry from preserved legs (route is stale after removal)
-      const clean = existing ? { ...existing, routeGeometry: undefined } : undefined;
+      const clean = existing ? { ...existing, routeGeometry: undefined, elevationProfile: undefined } : undefined;
       newLegs.push(clean ?? createEmptyLeg(reordered[i].id, reordered[i + 1].id));
     }
     set({ waypoints: reordered, legs: newLegs });
@@ -210,7 +210,7 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
       const existing = legs.find(
         (l) => l.fromWaypointId === reordered[i].id && l.toWaypointId === reordered[i + 1].id
       );
-      const clean = existing ? { ...existing, routeGeometry: undefined } : undefined;
+      const clean = existing ? { ...existing, routeGeometry: undefined, elevationProfile: undefined } : undefined;
       newLegs.push(clean ?? createEmptyLeg(reordered[i].id, reordered[i + 1].id));
     }
     set({ waypoints: reordered, legs: newLegs });
