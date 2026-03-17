@@ -9,11 +9,11 @@ import { ActionBar } from './ActionBar';
 import { ModeSwitch } from './ModeSwitch';
 import { TrackRoutingSwitch } from './TrackRoutingSwitch';
 
-export function LeftPanel() {
+export function LeftPanel({ className }: { className?: string }) {
   const [view, setView] = useState<'edit' | 'table'>('edit');
 
   return (
-    <div className="w-full h-[50vh] lg:h-full lg:w-[380px] flex flex-col bg-gray-900 border-r border-gray-700">
+    <div className={`${className ?? 'w-full h-[50vh] lg:h-full lg:w-[380px]'} flex flex-col bg-gray-900 border-r border-gray-700`}>
       <ModeSwitch />
       <TrackRoutingSwitch />
       <ItineraryHeader />
