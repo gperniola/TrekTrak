@@ -47,7 +47,7 @@ export default function Home() {
 
       {/* Mobile drawer — full screen overlay */}
       {drawerOpen && (
-        <div className="lg:hidden fixed inset-0 z-[1100] bg-gray-950 flex flex-col">
+        <div className="lg:hidden fixed inset-0 z-[1100] bg-gray-950 flex flex-col" role="dialog" aria-modal="true" aria-label="Menu navigazione">
           <div className="flex items-center justify-between p-3 border-b border-gray-700">
             <span className="text-sm font-medium text-gray-300">Menu</span>
             <div className="flex items-center gap-3">

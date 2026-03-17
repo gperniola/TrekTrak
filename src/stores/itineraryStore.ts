@@ -94,7 +94,10 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
         legs: get().legs.map((l) => ({ ...l, routeGeometry: undefined, elevationProfile: undefined })),
       });
     } else {
-      set({ trackRouting: routing });
+      set({
+        trackRouting: routing,
+        legs: get().legs.map((l) => ({ ...l, elevationProfile: undefined })),
+      });
     }
   },
 

@@ -8,24 +8,33 @@ import { slopeColor } from '@/lib/calculations';
 interface ProfilePoint {
   distance: number;
   altitude: number;
-  name?: string;
 }
 
-function buildGradientStops(data: ProfilePoint[], totalDistance: number) {
+interface GradientStop {
+  offset: string;
+  color: string;
+}
+
+function buildGradientStops(data: ProfilePoint[], totalDistance: number): GradientStop[] {
   if (data.length < 2 || totalDistance === 0) return [];
 
-  const stops: { offset: string; color: string }[] = [];
+  const stops: GradientStop[] = [];
+  let prevColor: string | null = null;
   for (let i = 0; i < data.length - 1; i++) {
     const dx = data[i + 1].distance - data[i].distance;
     const dy = Math.abs(data[i + 1].altitude - data[i].altitude);
+    // slope %: dy (m) / dx (km→m) * 100
     const slope = dx > 0 ? (dy / (dx * 1000)) * 100 : 0;
     const color = slopeColor(slope);
-    const offsetStart = data[i].distance / totalDistance;
-    const offsetEnd = data[i + 1].distance / totalDistance;
+    const offsetStart = `${((data[i].distance / totalDistance) * 100).toFixed(2)}%`;
+    const offsetEnd = `${((data[i + 1].distance / totalDistance) * 100).toFixed(2)}%`;
 
-    // Close previous segment and open new one
-    stops.push({ offset: `${(offsetStart * 100).toFixed(2)}%`, color });
-    stops.push({ offset: `${(offsetEnd * 100).toFixed(2)}%`, color });
+    if (color !== prevColor) {
+      // New color — close previous and open new segment
+      stops.push({ offset: offsetStart, color });
+    }
+    stops.push({ offset: offsetEnd, color });
+    prevColor = color;
   }
   return stops;
 }
@@ -67,38 +76,9 @@ export function ElevationProfile() {
     }
   }
 
-  // If no legs have profile data, fall back to waypoint-only data
-  if (profileData.length < 2) {
-    profileData = [];
-    let cumulativeDist = 0;
-    waypoints.forEach((wp, i) => {
-      if (i > 0) {
-        const prevWp = waypoints[i - 1];
-        const leg = legs.find(
-          (l) => l.fromWaypointId === prevWp.id && l.toWaypointId === wp.id
-        );
-        if (leg?.distance != null) cumulativeDist += leg.distance;
-      }
-      if (wp.altitude != null) {
-        profileData.push({
-          distance: parseFloat(cumulativeDist.toFixed(2)),
-          altitude: wp.altitude,
-        });
-      }
-    });
-  }
-
-  if (profileData.length < 2) {
-    return (
-      <div className="h-full flex items-center justify-center text-gray-500 text-sm">
-        Aggiungi almeno 2 waypoint con quota per il profilo altimetrico
-      </div>
-    );
-  }
-
-  // Waypoint markers (only at actual waypoint positions)
-  let wpCumulDist = 0;
+  // Build waypoint positions with cumulative distance (used for fallback + dots)
   const waypointDots: { distance: number; altitude: number; name: string }[] = [];
+  let wpCumulDist = 0;
   waypoints.forEach((wp, i) => {
     if (i > 0) {
       const prevWp = waypoints[i - 1];
@@ -116,9 +96,21 @@ export function ElevationProfile() {
     }
   });
 
-  const altitudes = profileData.map((d) => d.altitude);
-  const minAlt = Math.min(...altitudes);
-  const maxAlt = Math.max(...altitudes);
+  // If no legs have profile data, fall back to waypoint-only data
+  if (profileData.length < 2) {
+    profileData = waypointDots.map(({ name, ...rest }) => rest);
+  }
+
+  if (profileData.length < 2) {
+    return (
+      <div className="h-full flex items-center justify-center text-gray-500 text-sm">
+        Aggiungi almeno 2 waypoint con quota per il profilo altimetrico
+      </div>
+    );
+  }
+
+  const minAlt = profileData.reduce((min, d) => Math.min(min, d.altitude), Infinity);
+  const maxAlt = profileData.reduce((max, d) => Math.max(max, d.altitude), -Infinity);
   const padding = Math.max(10, (maxAlt - minAlt) * 0.1);
   const yMin = Math.floor((minAlt - padding) / 10) * 10;
   const yMax = Math.ceil((maxAlt + padding) / 10) * 10;
