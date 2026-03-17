@@ -46,10 +46,14 @@ export function saveItinerary(itinerary: Itinerary): void {
   initSchema();
   const all = loadItineraries();
   const idx = all.findIndex((it) => it.id === itinerary.id);
+  const cleaned = {
+    ...itinerary,
+    legs: itinerary.legs.map(({ elevationProfile, ...leg }) => leg),
+  };
   if (idx >= 0) {
-    all[idx] = itinerary;
+    all[idx] = cleaned;
   } else {
-    all.push(itinerary);
+    all.push(cleaned);
   }
   try {
     localStorage.setItem(KEYS.itineraries, JSON.stringify(all));

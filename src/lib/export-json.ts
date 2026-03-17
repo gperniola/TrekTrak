@@ -2,7 +2,11 @@ import type { Itinerary } from './types';
 import { sanitizeFilename } from './format';
 
 export function exportItineraryJSON(itinerary: Itinerary): void {
-  const json = JSON.stringify(itinerary, null, 2);
+  const cleaned = {
+    ...itinerary,
+    legs: itinerary.legs.map(({ elevationProfile, ...leg }) => leg),
+  };
+  const json = JSON.stringify(cleaned, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
