@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeEach, jest } from '@jest/globals';
-import { fetchElevation } from '../lib/elevation-api';
+import { fetchElevation, fetchElevationProfile } from '../lib/elevation-api';
 
 const mockFetch = jest.fn() as jest.MockedFunction<typeof fetch>;
 global.fetch = mockFetch;
@@ -45,5 +45,60 @@ describe('fetchElevation', () => {
     const result = await fetchElevation(NaN, 11.0);
     expect(result).toBeNull();
     expect(mockFetch).not.toHaveBeenCalled();
+  });
+});
+
+describe('fetchElevationProfile', () => {
+  test('returns batch elevations from proxy', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        results: [
+          { elevation: 100.0 },
+          { elevation: 150.5 },
+          { elevation: 200.0 },
+        ],
+      }),
+    } as Response);
+
+    const result = await fetchElevationProfile([[42.0, 14.0], [42.1, 14.1], [42.2, 14.2]]);
+    expect(result).toEqual([100.0, 150.5, 200.0]);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect((mockFetch.mock.calls[0][0] as string)).toContain('|');
+  });
+
+  test('returns all nulls on proxy failure', async () => {
+    mockFetch.mockRejectedValueOnce(new Error('timeout'));
+
+    const result = await fetchElevationProfile([[42.0, 14.0], [42.1, 14.1]]);
+    expect(result).toEqual([null, null]);
+  });
+
+  test('returns empty array for empty input', async () => {
+    const result = await fetchElevationProfile([]);
+    expect(result).toEqual([]);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  test('returns all nulls for invalid coordinates', async () => {
+    const result = await fetchElevationProfile([[NaN, 14.0], [42.0, Infinity]]);
+    expect(result).toEqual([null, null]);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  test('handles partial null elevations in response', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        results: [
+          { elevation: 100.0 },
+          { elevation: null },
+          { elevation: 200.0 },
+        ],
+      }),
+    } as Response);
+
+    const result = await fetchElevationProfile([[42.0, 14.0], [42.1, 14.1], [42.2, 14.2]]);
+    expect(result).toEqual([100.0, null, 200.0]);
   });
 });

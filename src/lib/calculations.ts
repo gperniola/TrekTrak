@@ -76,6 +76,52 @@ export function calculateDifficulty(maxSlopePercent: number): DifficultyGrade {
   return 'T1';
 }
 
+/**
+ * Interpolate numPoints equidistant points along a straight line in lat/lon space from A to B.
+ * For short distances this closely approximates the great-circle path.
+ * Returns array of exactly numPoints elements, including A and B as first/last.
+ */
+export function interpolatePoints(
+  lat1: number, lon1: number,
+  lat2: number, lon2: number,
+  numPoints: number
+): [number, number][] {
+  if (numPoints < 2) return [[lat1, lon1], [lat2, lon2]];
+  const points: [number, number][] = [];
+  for (let i = 0; i < numPoints; i++) {
+    const t = i / (numPoints - 1);
+    points.push([
+      lat1 + t * (lat2 - lat1),
+      lon1 + t * (lon2 - lon1),
+    ]);
+  }
+  return points;
+}
+
+/**
+ * Calculate cumulative elevation gain and loss from a profile of elevations.
+ * Returns null values if fewer than 2 valid elevation points are available.
+ */
+export function cumulativeElevation(
+  elevations: (number | null)[]
+): { gain: number | null; loss: number | null } {
+  let gain = 0;
+  let loss = 0;
+  let prev: number | null = null;
+  let validPairs = 0;
+  for (const el of elevations) {
+    if (el != null && prev != null) {
+      const diff = el - prev;
+      if (diff > 0) gain += diff;
+      else loss += -diff;
+      validPairs++;
+    }
+    if (el != null) prev = el;
+  }
+  if (validPairs === 0) return { gain: null, loss: null };
+  return { gain: Math.round(gain), loss: Math.round(loss) };
+}
+
 export function azimuthToCardinal(azimuth: number): string {
   const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
   const normalized = ((azimuth % 360) + 360) % 360;

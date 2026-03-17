@@ -6,6 +6,8 @@ import {
   calculateSlope,
   calculateDifficulty,
   azimuthToCardinal,
+  interpolatePoints,
+  cumulativeElevation,
 } from '../lib/calculations';
 
 describe('haversineDistance', () => {
@@ -153,5 +155,82 @@ describe('azimuthToCardinal', () => {
   });
   test('350 degrees = N', () => {
     expect(azimuthToCardinal(350)).toBe('N');
+  });
+});
+
+describe('interpolatePoints', () => {
+  test('returns start and end for count < 2', () => {
+    const points = interpolatePoints(42.0, 14.0, 43.0, 15.0, 1);
+    expect(points).toHaveLength(2);
+    expect(points[0]).toEqual([42.0, 14.0]);
+    expect(points[1]).toEqual([43.0, 15.0]);
+  });
+
+  test('returns exactly numPoints points', () => {
+    const points = interpolatePoints(42.0, 14.0, 43.0, 15.0, 5);
+    expect(points).toHaveLength(5);
+  });
+
+  test('first and last point match input coordinates', () => {
+    const points = interpolatePoints(42.0, 14.0, 43.0, 15.0, 10);
+    expect(points[0]).toEqual([42.0, 14.0]);
+    expect(points[points.length - 1]).toEqual([43.0, 15.0]);
+  });
+
+  test('midpoint is correct for 3 points', () => {
+    const points = interpolatePoints(40.0, 10.0, 42.0, 12.0, 3);
+    expect(points[1][0]).toBeCloseTo(41.0, 5);
+    expect(points[1][1]).toBeCloseTo(11.0, 5);
+  });
+});
+
+describe('cumulativeElevation', () => {
+  test('flat profile = 0 gain and 0 loss', () => {
+    const { gain, loss } = cumulativeElevation([100, 100, 100, 100]);
+    expect(gain).toBe(0);
+    expect(loss).toBe(0);
+  });
+
+  test('monotonic ascent = only gain', () => {
+    const { gain, loss } = cumulativeElevation([100, 150, 200, 250]);
+    expect(gain).toBe(150);
+    expect(loss).toBe(0);
+  });
+
+  test('monotonic descent = only loss', () => {
+    const { gain, loss } = cumulativeElevation([250, 200, 150, 100]);
+    expect(gain).toBe(0);
+    expect(loss).toBe(150);
+  });
+
+  test('up-down profile accumulates both gain and loss', () => {
+    // 100 → 300 (+200), 300 → 150 (-150), 150 → 200 (+50)
+    const { gain, loss } = cumulativeElevation([100, 300, 150, 200]);
+    expect(gain).toBe(250);
+    expect(loss).toBe(150);
+  });
+
+  test('skips null values', () => {
+    const { gain, loss } = cumulativeElevation([100, null, 200, null, 150]);
+    expect(gain).toBe(100);
+    expect(loss).toBe(50);
+  });
+
+  test('empty array returns null/null', () => {
+    const { gain, loss } = cumulativeElevation([]);
+    expect(gain).toBeNull();
+    expect(loss).toBeNull();
+  });
+
+  test('single value returns null/null', () => {
+    const { gain, loss } = cumulativeElevation([500]);
+    expect(gain).toBeNull();
+    expect(loss).toBeNull();
+  });
+
+  test('all nulls returns null/null', () => {
+    const { gain, loss } = cumulativeElevation([null, null, null]);
+    expect(gain).toBeNull();
+    expect(loss).toBeNull();
   });
 });

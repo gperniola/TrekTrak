@@ -6,8 +6,8 @@ import 'leaflet/dist/leaflet.css';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { useCallback, useEffect, useRef } from 'react';
 import { useMap } from 'react-leaflet';
-import { fetchElevation } from '@/lib/elevation-api';
-import { haversineDistance, forwardAzimuth } from '@/lib/calculations';
+import { fetchElevation, fetchElevationProfile } from '@/lib/elevation-api';
+import { haversineDistance, forwardAzimuth, interpolatePoints, cumulativeElevation } from '@/lib/calculations';
 import { fetchTrailRoute } from '@/lib/routing-api';
 import { LocationSearch } from './LocationSearch';
 import type { Leg } from '@/lib/types';
@@ -41,6 +41,10 @@ async function getCachedElevation(
   return result;
 }
 
+const SAMPLE_INTERVAL_M = 20;
+// Max number of elevation sample points per leg. OpenTopoData supports max 100 per GET request.
+const MAX_SAMPLE_POINTS = 50;
+
 async function autoFillLegClassic(
   leg: Leg,
   fromLat: number, fromLon: number,
@@ -50,39 +54,55 @@ async function autoFillLegClassic(
   isStale: () => boolean,
   elevationCache: Map<string, number | null>
 ) {
+  const distanceKm = haversineDistance(fromLat, fromLon, toLat, toLon);
   const legUpdate: Partial<Leg> = {
-    distance: Math.round(haversineDistance(fromLat, fromLon, toLat, toLon) * 1000) / 1000,
+    distance: Math.round(distanceKm * 1000) / 1000,
     azimuth: Math.round(forwardAzimuth(fromLat, fromLon, toLat, toLon) * 10) / 10,
     routeGeometry: undefined,
   };
 
+  const distanceM = distanceKm * 1000;
+  const numPoints = Math.min(MAX_SAMPLE_POINTS, Math.max(2, Math.ceil(distanceM / SAMPLE_INTERVAL_M)));
+  const points = interpolatePoints(fromLat, fromLon, toLat, toLon, numPoints);
+
+  // Check cache for all points, identify which need fetching
+  const elevations: (number | null)[] = points.map(([lat, lon]) => {
+    const key = `${lat},${lon}`;
+    return elevationCache.has(key) ? (elevationCache.get(key) ?? null) : null;
+  });
+  const uncachedIndices = points
+    .map((_, i) => i)
+    .filter((i) => !elevationCache.has(`${points[i][0]},${points[i][1]}`));
+
+  if (uncachedIndices.length > 0) {
+    const uncachedPoints = uncachedIndices.map((i) => points[i]);
+    const fetched = await fetchElevationProfile(uncachedPoints);
+    if (isStale()) return;
+    for (let j = 0; j < uncachedIndices.length; j++) {
+      const idx = uncachedIndices[j];
+      const [lat, lon] = points[idx];
+      elevationCache.set(`${lat},${lon}`, fetched[j]);
+      elevations[idx] = fetched[j];
+    }
+  }
+
+  // Update waypoint altitudes from first/last sample
   const freshWaypoints = useItineraryStore.getState().waypoints;
   const fromWp = freshWaypoints.find((w) => w.id === leg.fromWaypointId);
   const toWp = freshWaypoints.find((w) => w.id === leg.toWaypointId);
-  let fromAlt = fromWp?.altitude ?? null;
-  let toAlt = toWp?.altitude ?? null;
-
-  if (fromAlt == null) {
-    const fetched = await getCachedElevation(fromLat, fromLon, elevationCache);
-    if (isStale()) return;
-    if (fetched != null) {
-      fromAlt = Math.round(fetched);
-      updateWaypoint(leg.fromWaypointId, { altitude: fromAlt });
-    }
+  const firstEl = elevations[0];
+  const lastEl = elevations[elevations.length - 1];
+  if (fromWp && fromWp.altitude == null && firstEl != null) {
+    updateWaypoint(leg.fromWaypointId, { altitude: Math.round(firstEl) });
   }
-  if (toAlt == null) {
-    const fetched = await getCachedElevation(toLat, toLon, elevationCache);
-    if (isStale()) return;
-    if (fetched != null) {
-      toAlt = Math.round(fetched);
-      updateWaypoint(leg.toWaypointId, { altitude: toAlt });
-    }
+  if (toWp && toWp.altitude == null && lastEl != null) {
+    updateWaypoint(leg.toWaypointId, { altitude: Math.round(lastEl) });
   }
 
-  if (fromAlt != null && toAlt != null) {
-    legUpdate.elevationGain = Math.round(Math.max(0, toAlt - fromAlt));
-    legUpdate.elevationLoss = Math.round(Math.max(0, fromAlt - toAlt));
-  }
+  // Calculate cumulative D+/D- from the full elevation profile
+  const { gain, loss } = cumulativeElevation(elevations);
+  if (gain != null) legUpdate.elevationGain = gain;
+  if (loss != null) legUpdate.elevationLoss = loss;
 
   if (isStale()) return;
   updateLeg(leg.id, legUpdate);
