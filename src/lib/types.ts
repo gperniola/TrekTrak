@@ -62,7 +62,7 @@ export interface AppSettings {
 }
 
 export const DEFAULT_TOLERANCES: ToleranceSettings = {
-  altitude: 20,
+  altitude: 50,
   coordinates: 0.001,
   distance: 10,
   azimuth: 5,

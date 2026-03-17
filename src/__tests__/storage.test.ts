@@ -100,7 +100,7 @@ describe('deleteItinerary', () => {
 describe('settings', () => {
   test('loads default settings when none saved', () => {
     const settings = loadSettings();
-    expect(settings.tolerances.altitude).toBe(20);
+    expect(settings.tolerances.altitude).toBe(50);
     expect(settings.tolerances.azimuth).toBe(5);
   });
 

@@ -8,7 +8,7 @@ beforeEach(() => {
     itineraryName: '',
     waypoints: [],
     legs: [],
-    settings: { tolerances: { altitude: 20, coordinates: 0.001, distance: 10, azimuth: 5, elevationDelta: 15 } },
+    settings: { tolerances: { altitude: 50, coordinates: 0.001, distance: 10, azimuth: 5, elevationDelta: 15 } },
     appMode: 'learn' as AppMode,
     trackRouting: 'classic' as TrackRouting,
   });
@@ -172,7 +172,7 @@ describe('appMode', () => {
     useItineraryStore.getState().addWaypoint();
     const wpId = useItineraryStore.getState().waypoints[0].id;
     useItineraryStore.getState().updateWaypoint(wpId, {
-      validationState: { altitude: { status: 'valid', userValue: 1450, realValue: 1455, delta: 5, tolerance: { strict: 20, loose: 40 } } },
+      validationState: { altitude: { status: 'valid', userValue: 1450, realValue: 1455, delta: 5, tolerance: { strict: 50, loose: 100 } } },
     });
     const legId = useItineraryStore.getState().legs[0].id;
     useItineraryStore.getState().updateLeg(legId, {
@@ -281,7 +281,7 @@ describe('clearAllValidation', () => {
 
     const wpId = useItineraryStore.getState().waypoints[0].id;
     useItineraryStore.getState().updateWaypoint(wpId, {
-      validationState: { altitude: { status: 'error', userValue: 1400, realValue: 1450, delta: 50, tolerance: { strict: 20, loose: 40 } } },
+      validationState: { altitude: { status: 'error', userValue: 1400, realValue: 1450, delta: 50, tolerance: { strict: 50, loose: 100 } } },
     });
     const legId = useItineraryStore.getState().legs[0].id;
     useItineraryStore.getState().updateLeg(legId, {
@@ -315,7 +315,7 @@ describe('updateWaypoint clears stale validation on field edit', () => {
     useItineraryStore.getState().addWaypoint();
     const wpId = useItineraryStore.getState().waypoints[0].id;
     useItineraryStore.getState().updateWaypoint(wpId, {
-      validationState: { altitude: { status: 'valid', userValue: 1450, realValue: 1455, delta: 5, tolerance: { strict: 20, loose: 40 } } },
+      validationState: { altitude: { status: 'valid', userValue: 1450, realValue: 1455, delta: 5, tolerance: { strict: 50, loose: 100 } } },
     });
     expect(useItineraryStore.getState().waypoints[0].validationState).toBeDefined();
 
@@ -328,7 +328,7 @@ describe('updateWaypoint clears stale validation on field edit', () => {
     useItineraryStore.getState().addWaypoint();
     const wpId = useItineraryStore.getState().waypoints[0].id;
     useItineraryStore.getState().updateWaypoint(wpId, {
-      validationState: { altitude: { status: 'valid', userValue: 1450, realValue: 1455, delta: 5, tolerance: { strict: 20, loose: 40 } } },
+      validationState: { altitude: { status: 'valid', userValue: 1450, realValue: 1455, delta: 5, tolerance: { strict: 50, loose: 100 } } },
     });
 
     useItineraryStore.getState().updateWaypoint(wpId, { lat: 46.5 });
@@ -339,7 +339,7 @@ describe('updateWaypoint clears stale validation on field edit', () => {
     useItineraryStore.getState().addWaypoint();
     const wpId = useItineraryStore.getState().waypoints[0].id;
     useItineraryStore.getState().updateWaypoint(wpId, {
-      validationState: { altitude: { status: 'valid', userValue: 1450, realValue: 1455, delta: 5, tolerance: { strict: 20, loose: 40 } } },
+      validationState: { altitude: { status: 'valid', userValue: 1450, realValue: 1455, delta: 5, tolerance: { strict: 50, loose: 100 } } },
     });
 
     useItineraryStore.getState().updateWaypoint(wpId, { name: 'New Name' });
@@ -390,7 +390,7 @@ describe('resetItinerary', () => {
 describe('loadItinerary', () => {
   test('loads itinerary and strips validation state', () => {
     const waypoints = [
-      { id: 'wp1', name: 'A', lat: 46.0, lon: 11.0, altitude: 1000, order: 0, validationState: { altitude: { status: 'valid' as const, userValue: 1000, realValue: 1005, delta: 5, tolerance: { strict: 20, loose: 40 } } } },
+      { id: 'wp1', name: 'A', lat: 46.0, lon: 11.0, altitude: 1000, order: 0, validationState: { altitude: { status: 'valid' as const, userValue: 1000, realValue: 1005, delta: 5, tolerance: { strict: 50, loose: 100 } } } },
       { id: 'wp2', name: 'B', lat: 46.01, lon: 11.01, altitude: 1200, order: 1 },
     ];
     const legs = [
