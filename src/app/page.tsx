@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { LeftPanel } from '@/components/panel/LeftPanel';
 import { MapWrapper } from '@/components/map/MapWrapper';
 import { ElevationProfile } from '@/components/map/ElevationProfile';
@@ -9,22 +9,20 @@ import { ToleranceSettings } from '@/components/settings/ToleranceSettings';
 export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const drawerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!drawerOpen) return;
 
-    // Body scroll lock
     document.body.style.overflow = 'hidden';
 
-    // Escape key
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setDrawerOpen(false);
     };
     window.addEventListener('keydown', handleKeyDown);
 
-    // Focus trap
     const drawerEl = drawerRef.current;
     if (drawerEl) {
       const focusable = drawerEl.querySelectorAll<HTMLElement>(
@@ -64,21 +62,32 @@ export default function Home() {
         <LeftPanel />
       </div>
 
-      {/* Right Panel: Map + Elevation Profile */}
-      <div className="flex-1 flex flex-col">
-        <div className="flex-1 relative">
-          <MapWrapper />
-
-          {/* Hamburger — mobile only */}
+      {/* Right Panel: Top Bar (mobile) + Map + Elevation Profile */}
+      <div className="flex-1 flex flex-col min-h-0">
+        {/* Mobile top bar */}
+        <div className="lg:hidden flex items-center justify-between px-3 py-2 bg-gray-900 border-b border-gray-700 shrink-0">
           <button
             onClick={() => setDrawerOpen(true)}
-            className="lg:hidden absolute top-3 left-3 z-[1000] bg-gray-800/90 px-2.5 py-1.5 rounded text-lg text-gray-300 hover:text-white"
+            className="text-lg text-gray-300 hover:text-white"
             aria-label="Apri menu"
           >
             ☰
           </button>
+          <span className="text-sm font-semibold text-gray-200 tracking-wide">TrekTrak</span>
+          <button
+            onClick={() => setSearchOpen((p) => !p)}
+            className={`text-lg hover:text-white ${searchOpen ? 'text-green-400' : 'text-gray-300'}`}
+            aria-label={searchOpen ? 'Chiudi ricerca' : 'Cerca località'}
+          >
+            &#128269;
+          </button>
+        </div>
 
-          {/* Settings toggle — desktop only (on mobile it's inside the drawer) */}
+        {/* Map */}
+        <div className="flex-1 relative min-h-0">
+          <MapWrapper mobileSearchOpen={searchOpen} />
+
+          {/* Settings toggle — desktop only */}
           <button
             onClick={() => setShowSettings(true)}
             className="hidden lg:block absolute top-3 left-3 z-[1000] bg-gray-800/90 px-2 py-1 rounded text-xs text-gray-400 hover:text-white"
@@ -87,7 +96,9 @@ export default function Home() {
             Impostazioni
           </button>
         </div>
-        <div className="h-[100px] lg:h-[120px] bg-gray-900 border-t border-gray-700">
+
+        {/* Elevation Profile */}
+        <div className="h-[100px] lg:h-[120px] bg-gray-900 border-t border-gray-700 shrink-0">
           <ElevationProfile />
         </div>
       </div>

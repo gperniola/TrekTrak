@@ -8,7 +8,7 @@ import { searchLocation, type GeocodingResult } from '@/lib/geocoding-api';
 const LISTBOX_ID = 'location-search-listbox';
 const DEBOUNCE_MS = 400;
 
-export function LocationSearch() {
+export function LocationSearch({ mobileSearchOpen }: { mobileSearchOpen?: boolean }) {
   const map = useMap();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<GeocodingResult[]>([]);
@@ -151,7 +151,9 @@ export function LocationSearch() {
   return (
     <div
       ref={containerRef}
-      className="absolute top-[70px] lg:top-3 right-3 z-[1001] w-72 max-w-[calc(100%-1.5rem)]"
+      className={`absolute z-[1001] w-72 max-w-[calc(100%-1.5rem)] ${
+        mobileSearchOpen ? 'top-2 left-1/2 -translate-x-1/2 w-[calc(100%-1rem)]' : 'hidden lg:block'
+      } lg:block lg:top-3 lg:right-3 lg:left-auto lg:translate-x-0 lg:w-72`}
     >
       <div className="relative">
         <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none">
