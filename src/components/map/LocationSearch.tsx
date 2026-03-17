@@ -151,7 +151,7 @@ export function LocationSearch() {
   return (
     <div
       ref={containerRef}
-      className="absolute top-3 right-3 z-[1001] w-72 max-w-[calc(100%-1.5rem)]"
+      className="absolute top-[70px] lg:top-3 right-3 z-[1001] w-72 max-w-[calc(100%-1.5rem)]"
     >
       <div className="relative">
         <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none">
