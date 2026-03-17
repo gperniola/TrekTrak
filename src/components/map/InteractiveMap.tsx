@@ -107,7 +107,7 @@ async function autoFillLegClassic(
   for (let i = 0; i < points.length; i++) {
     if (elevations[i] != null) {
       const pointDist = (i / (points.length - 1)) * distanceKm;
-      profileData.push({ distance: Math.round(pointDist * 1000) / 1000, altitude: elevations[i]! });
+      profileData.push({ distance: Math.round(pointDist * 10000) / 10000, altitude: elevations[i]! });
     }
   }
   if (profileData.length >= 2) {

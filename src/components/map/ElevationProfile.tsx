@@ -23,7 +23,7 @@ export function ElevationProfile() {
         if (i > 0 && j === 0) continue;
         const p = leg.elevationProfile[j];
         profileData.push({
-          distance: parseFloat((globalDist + p.distance).toFixed(2)),
+          distance: parseFloat((globalDist + p.distance).toFixed(4)),
           altitude: p.altitude,
         });
       }
@@ -33,11 +33,11 @@ export function ElevationProfile() {
       const fromWp = waypoints.find((w) => w.id === leg.fromWaypointId);
       const toWp = waypoints.find((w) => w.id === leg.toWaypointId);
       if (i === 0 && fromWp?.altitude != null) {
-        profileData.push({ distance: parseFloat(globalDist.toFixed(2)), altitude: fromWp.altitude });
+        profileData.push({ distance: parseFloat(globalDist.toFixed(4)), altitude: fromWp.altitude });
       }
       globalDist += leg.distance;
       if (toWp?.altitude != null) {
-        profileData.push({ distance: parseFloat(globalDist.toFixed(2)), altitude: toWp.altitude });
+        profileData.push({ distance: parseFloat(globalDist.toFixed(4)), altitude: toWp.altitude });
       }
     }
   }
@@ -55,7 +55,7 @@ export function ElevationProfile() {
     }
     if (wp.altitude != null) {
       waypointDots.push({
-        distance: parseFloat(wpCumulDist.toFixed(2)),
+        distance: parseFloat(wpCumulDist.toFixed(4)),
         altitude: wp.altitude,
         name: wp.name || `WP${i + 1}`,
       });

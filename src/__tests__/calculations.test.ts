@@ -347,6 +347,22 @@ describe('buildGradientStops', () => {
     expect(stops).toHaveLength(3);
   });
 
+  test('uniform slope produces consistent color across all segments', () => {
+    // Simulate 10 points over 0.2km with uniform 5m/segment gain (~22.7% slope = orange)
+    const numPoints = 10;
+    const distanceKm = 0.2;
+    const data = Array.from({ length: numPoints }, (_, i) => ({
+      distance: Math.round((i / (numPoints - 1)) * distanceKm * 10000) / 10000,
+      altitude: 500 + i * 5,
+    }));
+    const totalDistance = data[data.length - 1].distance;
+    const stops = buildGradientStops(data, totalDistance);
+    // All segments should be orange (#fb923c) — no yellow artifacts from rounding
+    for (const stop of stops) {
+      expect(stop.color).toBe('#fb923c');
+    }
+  });
+
   test('offsets are clamped to 0-100%', () => {
     const data = [
       { distance: 0, altitude: 1000 },
