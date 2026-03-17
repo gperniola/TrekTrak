@@ -151,8 +151,10 @@ export function LocationSearch({ mobileSearchOpen }: { mobileSearchOpen?: boolea
   return (
     <div
       ref={containerRef}
-      className={`absolute z-[1001] w-72 max-w-[calc(100%-1.5rem)] ${
-        mobileSearchOpen ? 'top-2 left-1/2 -translate-x-1/2 w-[calc(100%-1rem)]' : 'hidden lg:block'
+      className={`absolute z-[1001] max-w-[calc(100%-1.5rem)] ${
+        mobileSearchOpen
+          ? 'top-2 left-1/2 -translate-x-1/2 w-[calc(100%-1rem)]'
+          : 'hidden lg:block w-72'
       } lg:block lg:top-3 lg:right-3 lg:left-auto lg:translate-x-0 lg:w-72`}
     >
       <div className="relative">

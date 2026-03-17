@@ -65,19 +65,20 @@ export default function Home() {
       {/* Right Panel: Top Bar (mobile) + Map + Elevation Profile */}
       <div className="flex-1 flex flex-col min-h-0">
         {/* Mobile top bar */}
-        <div className="lg:hidden flex items-center justify-between px-3 py-2 bg-gray-900 border-b border-gray-700 shrink-0">
+        <div className="lg:hidden flex items-center justify-between px-2 py-1 bg-gray-900 border-b border-gray-700 shrink-0">
           <button
-            onClick={() => setDrawerOpen(true)}
-            className="text-lg text-gray-300 hover:text-white"
+            onClick={() => { setSearchOpen(false); setDrawerOpen(true); }}
+            className="p-2 text-lg text-gray-300 hover:text-white min-w-[44px] min-h-[44px] flex items-center justify-center"
             aria-label="Apri menu"
           >
             ☰
           </button>
-          <span className="text-sm font-semibold text-gray-200 tracking-wide">TrekTrak</span>
+          <h1 className="text-sm font-semibold text-gray-200 tracking-wide">TrekTrak</h1>
           <button
             onClick={() => setSearchOpen((p) => !p)}
-            className={`text-lg hover:text-white ${searchOpen ? 'text-green-400' : 'text-gray-300'}`}
+            className={`p-2 text-lg hover:text-white min-w-[44px] min-h-[44px] flex items-center justify-center ${searchOpen ? 'text-green-400' : 'text-gray-300'}`}
             aria-label={searchOpen ? 'Chiudi ricerca' : 'Cerca località'}
+            aria-expanded={searchOpen}
           >
             &#128269;
           </button>
@@ -106,18 +107,18 @@ export default function Home() {
       {/* Mobile drawer — full screen overlay */}
       {drawerOpen && (
         <div ref={drawerRef} className="lg:hidden fixed inset-0 z-[1100] bg-gray-950 flex flex-col" role="dialog" aria-modal="true" aria-label="Menu navigazione">
-          <div className="flex items-center justify-between p-3 border-b border-gray-700">
-            <span className="text-sm font-medium text-gray-300">Menu</span>
-            <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between px-2 py-1 border-b border-gray-700">
+            <span className="text-sm font-medium text-gray-300 px-2">Menu</span>
+            <div className="flex items-center gap-1">
               <button
                 onClick={() => { setDrawerOpen(false); setShowSettings(true); }}
-                className="text-xs text-gray-400 hover:text-white"
+                className="px-3 py-2 text-xs text-gray-400 hover:text-white min-h-[44px] flex items-center"
               >
                 Impostazioni
               </button>
               <button
                 onClick={() => setDrawerOpen(false)}
-                className="text-gray-400 hover:text-white text-xl leading-none"
+                className="p-2 text-gray-400 hover:text-white text-xl leading-none min-w-[44px] min-h-[44px] flex items-center justify-center"
                 aria-label="Chiudi menu"
               >
                 ✕
