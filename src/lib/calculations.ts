@@ -135,6 +135,41 @@ export function slopeColor(slopePercent: number): string {
   return '#4ade80';
 }
 
+export function sampleInterval(distanceM: number): number {
+  return distanceM > 500 ? 100 : 20;
+}
+
+export interface GradientStop {
+  offset: string;
+  color: string;
+}
+
+export function buildGradientStops(
+  data: { distance: number; altitude: number }[],
+  totalDistance: number
+): GradientStop[] {
+  if (data.length < 2 || totalDistance === 0) return [];
+
+  const stops: GradientStop[] = [];
+  let prevColor: string | null = null;
+  for (let i = 0; i < data.length - 1; i++) {
+    const dx = data[i + 1].distance - data[i].distance;
+    const dy = Math.abs(data[i + 1].altitude - data[i].altitude);
+    // slope %: dy (m) / dx (km→m) * 100
+    const slope = dx > 0 ? (dy / (dx * 1000)) * 100 : 0;
+    const color = slopeColor(slope);
+    const offsetStart = `${Math.min(100, Math.max(0, (data[i].distance / totalDistance) * 100)).toFixed(2)}%`;
+    const offsetEnd = `${Math.min(100, Math.max(0, (data[i + 1].distance / totalDistance) * 100)).toFixed(2)}%`;
+
+    if (color !== prevColor) {
+      stops.push({ offset: offsetStart, color });
+    }
+    stops.push({ offset: offsetEnd, color });
+    prevColor = color;
+  }
+  return stops;
+}
+
 export function azimuthToCardinal(azimuth: number): string {
   const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
   const normalized = ((azimuth % 360) + 360) % 360;

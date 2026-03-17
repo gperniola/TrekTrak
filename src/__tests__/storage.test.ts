@@ -58,6 +58,29 @@ describe('saveItinerary and loadItineraries', () => {
     saveItinerary(makeItinerary('2', 'Route B'));
     expect(loadItineraries()).toHaveLength(2);
   });
+
+  test('strips elevationProfile from legs when saving', () => {
+    const it: Itinerary = {
+      ...makeItinerary('1', 'Profile Test'),
+      legs: [{
+        id: 'leg1',
+        fromWaypointId: 'wp1',
+        toWaypointId: 'wp2',
+        distance: 2,
+        elevationGain: 100,
+        elevationLoss: 0,
+        azimuth: 45,
+        elevationProfile: [
+          { distance: 0, altitude: 1000 },
+          { distance: 2, altitude: 1100 },
+        ],
+      }],
+    };
+    saveItinerary(it);
+    const loaded = loadItineraries();
+    expect(loaded[0].legs[0]).not.toHaveProperty('elevationProfile');
+    expect(loaded[0].legs[0].distance).toBe(2);
+  });
 });
 
 describe('deleteItinerary', () => {

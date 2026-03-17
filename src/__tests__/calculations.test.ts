@@ -9,6 +9,8 @@ import {
   interpolatePoints,
   cumulativeElevation,
   slopeColor,
+  sampleInterval,
+  buildGradientStops,
 } from '../lib/calculations';
 
 describe('haversineDistance', () => {
@@ -259,5 +261,100 @@ describe('slopeColor', () => {
     expect(slopeColor(30)).toBe('#ef4444');
     expect(slopeColor(50)).toBe('#ef4444');
     expect(slopeColor(100)).toBe('#ef4444');
+  });
+
+  test('negative slope returns green', () => {
+    expect(slopeColor(-5)).toBe('#4ade80');
+    expect(slopeColor(-100)).toBe('#4ade80');
+  });
+});
+
+describe('sampleInterval', () => {
+  test('returns 20 for distances <= 500m', () => {
+    expect(sampleInterval(0)).toBe(20);
+    expect(sampleInterval(250)).toBe(20);
+    expect(sampleInterval(500)).toBe(20);
+  });
+
+  test('returns 100 for distances > 500m', () => {
+    expect(sampleInterval(501)).toBe(100);
+    expect(sampleInterval(1000)).toBe(100);
+    expect(sampleInterval(10000)).toBe(100);
+  });
+});
+
+describe('buildGradientStops', () => {
+  test('returns empty array for fewer than 2 points', () => {
+    expect(buildGradientStops([{ distance: 0, altitude: 100 }], 1)).toEqual([]);
+    expect(buildGradientStops([], 1)).toEqual([]);
+  });
+
+  test('returns empty array when totalDistance is 0', () => {
+    const data = [
+      { distance: 0, altitude: 100 },
+      { distance: 0, altitude: 200 },
+    ];
+    expect(buildGradientStops(data, 0)).toEqual([]);
+  });
+
+  test('flat terrain produces green stops', () => {
+    const data = [
+      { distance: 0, altitude: 1000 },
+      { distance: 1, altitude: 1000 },
+    ];
+    const stops = buildGradientStops(data, 1);
+    expect(stops.length).toBeGreaterThan(0);
+    for (const stop of stops) {
+      expect(stop.color).toBe('#4ade80');
+    }
+  });
+
+  test('steep ascent produces red stops', () => {
+    // 500m gain over 1km = 50% slope => red
+    const data = [
+      { distance: 0, altitude: 1000 },
+      { distance: 1, altitude: 1500 },
+    ];
+    const stops = buildGradientStops(data, 1);
+    expect(stops.length).toBeGreaterThan(0);
+    for (const stop of stops) {
+      expect(stop.color).toBe('#ef4444');
+    }
+  });
+
+  test('color transitions produce stops with multiple colors', () => {
+    const data = [
+      { distance: 0, altitude: 1000 },
+      { distance: 1, altitude: 1000 },   // flat = green
+      { distance: 2, altitude: 1500 },   // 500m/1km = 50% = red
+    ];
+    const stops = buildGradientStops(data, 2);
+    const colors = new Set(stops.map((s) => s.color));
+    expect(colors.has('#4ade80')).toBe(true);
+    expect(colors.has('#ef4444')).toBe(true);
+  });
+
+  test('adjacent same-color segments are deduplicated', () => {
+    const data = [
+      { distance: 0, altitude: 1000 },
+      { distance: 1, altitude: 1000 },
+      { distance: 2, altitude: 1000 },
+    ];
+    const stops = buildGradientStops(data, 2);
+    // First segment: start + end = 2, second: only end = 1 (dedup)
+    expect(stops).toHaveLength(3);
+  });
+
+  test('offsets are clamped to 0-100%', () => {
+    const data = [
+      { distance: 0, altitude: 1000 },
+      { distance: 5, altitude: 1000 },
+    ];
+    const stops = buildGradientStops(data, 5);
+    for (const stop of stops) {
+      const pct = parseFloat(stop.offset);
+      expect(pct).toBeGreaterThanOrEqual(0);
+      expect(pct).toBeLessThanOrEqual(100);
+    }
   });
 });

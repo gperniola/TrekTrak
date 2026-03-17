@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { LeftPanel } from '@/components/panel/LeftPanel';
 import { MapWrapper } from '@/components/map/MapWrapper';
 import { ElevationProfile } from '@/components/map/ElevationProfile';
@@ -9,6 +9,15 @@ import { ToleranceSettings } from '@/components/settings/ToleranceSettings';
 export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setDrawerOpen(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [drawerOpen]);
 
   return (
     <div className="h-screen flex flex-col lg:flex-row">

@@ -483,3 +483,60 @@ describe('loadItinerary', () => {
     expect(wps[49].order).toBe(49);
   });
 });
+
+describe('elevationProfile clearing', () => {
+  function setupWithProfile() {
+    useItineraryStore.getState().setAppMode('track');
+    useItineraryStore.getState().addWaypoint();
+    useItineraryStore.getState().addWaypoint();
+    const legId = useItineraryStore.getState().legs[0].id;
+    useItineraryStore.getState().updateLeg(legId, {
+      elevationProfile: [
+        { distance: 0, altitude: 1000 },
+        { distance: 1, altitude: 1100 },
+      ],
+    });
+    expect(useItineraryStore.getState().legs[0].elevationProfile).toBeDefined();
+  }
+
+  test('setAppMode to learn clears elevationProfile', () => {
+    setupWithProfile();
+    useItineraryStore.getState().setAppMode('learn');
+    expect(useItineraryStore.getState().legs[0].elevationProfile).toBeUndefined();
+  });
+
+  test('setTrackRouting to classic clears elevationProfile', () => {
+    useItineraryStore.getState().setAppMode('track');
+    useItineraryStore.getState().setTrackRouting('guided');
+    useItineraryStore.getState().addWaypoint();
+    useItineraryStore.getState().addWaypoint();
+    const legId = useItineraryStore.getState().legs[0].id;
+    useItineraryStore.getState().updateLeg(legId, {
+      elevationProfile: [{ distance: 0, altitude: 1000 }, { distance: 1, altitude: 1100 }],
+    });
+    useItineraryStore.getState().setTrackRouting('classic');
+    expect(useItineraryStore.getState().legs[0].elevationProfile).toBeUndefined();
+  });
+
+  test('setTrackRouting to guided clears elevationProfile', () => {
+    setupWithProfile();
+    useItineraryStore.getState().setTrackRouting('guided');
+    expect(useItineraryStore.getState().legs[0].elevationProfile).toBeUndefined();
+  });
+
+  test('removeWaypoint clears elevationProfile from preserved legs', () => {
+    useItineraryStore.getState().setAppMode('track');
+    useItineraryStore.getState().addWaypoint();
+    useItineraryStore.getState().addWaypoint();
+    useItineraryStore.getState().addWaypoint();
+    const legId = useItineraryStore.getState().legs[0].id;
+    useItineraryStore.getState().updateLeg(legId, {
+      elevationProfile: [{ distance: 0, altitude: 1000 }, { distance: 1, altitude: 1100 }],
+    });
+    const middleWpId = useItineraryStore.getState().waypoints[1].id;
+    useItineraryStore.getState().removeWaypoint(middleWpId);
+    for (const leg of useItineraryStore.getState().legs) {
+      expect(leg.elevationProfile).toBeUndefined();
+    }
+  });
+});

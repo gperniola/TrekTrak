@@ -2,7 +2,9 @@ const OPENTOPO_URL = 'https://api.opentopodata.org/v1/eudem25m';
 const OPEN_ELEVATION_URL = 'https://api.open-elevation.com/api/v1/lookup';
 const TIMEOUT_MS = 5000;
 
-export const LOCATION_RE = /^-?\d{1,3}(\.\d+)?,-?\d{1,3}(\.\d+)?$/;
+// Matches one or more pipe-separated "lat,lon" pairs (e.g. "46.0,11.0|46.1,11.1")
+const COORD_PAIR = '-?\\d{1,3}(\\.\\d+)?,-?\\d{1,3}(\\.\\d+)?';
+export const LOCATION_RE = new RegExp(`^${COORD_PAIR}(\\|${COORD_PAIR})*$`);
 
 async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response> {
   const controller = new AbortController();

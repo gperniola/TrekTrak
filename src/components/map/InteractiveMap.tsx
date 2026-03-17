@@ -7,7 +7,7 @@ import { useItineraryStore } from '@/stores/itineraryStore';
 import { useCallback, useEffect, useRef } from 'react';
 import { useMap } from 'react-leaflet';
 import { fetchElevation, fetchElevationProfile } from '@/lib/elevation-api';
-import { haversineDistance, forwardAzimuth, interpolatePoints, cumulativeElevation } from '@/lib/calculations';
+import { haversineDistance, forwardAzimuth, interpolatePoints, cumulativeElevation, sampleInterval } from '@/lib/calculations';
 import { fetchTrailRoute } from '@/lib/routing-api';
 import { LocationSearch } from './LocationSearch';
 import type { Leg } from '@/lib/types';
@@ -41,9 +41,6 @@ async function getCachedElevation(
   return result;
 }
 
-function sampleInterval(distanceM: number): number {
-  return distanceM > 500 ? 100 : 20;
-}
 const MAX_SAMPLE_POINTS = 50;
 
 async function autoFillLegClassic(

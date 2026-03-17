@@ -3,41 +3,7 @@
 import { useId } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceDot } from 'recharts';
 import { useItineraryStore } from '@/stores/itineraryStore';
-import { slopeColor } from '@/lib/calculations';
-
-interface ProfilePoint {
-  distance: number;
-  altitude: number;
-}
-
-interface GradientStop {
-  offset: string;
-  color: string;
-}
-
-function buildGradientStops(data: ProfilePoint[], totalDistance: number): GradientStop[] {
-  if (data.length < 2 || totalDistance === 0) return [];
-
-  const stops: GradientStop[] = [];
-  let prevColor: string | null = null;
-  for (let i = 0; i < data.length - 1; i++) {
-    const dx = data[i + 1].distance - data[i].distance;
-    const dy = Math.abs(data[i + 1].altitude - data[i].altitude);
-    // slope %: dy (m) / dx (km→m) * 100
-    const slope = dx > 0 ? (dy / (dx * 1000)) * 100 : 0;
-    const color = slopeColor(slope);
-    const offsetStart = `${((data[i].distance / totalDistance) * 100).toFixed(2)}%`;
-    const offsetEnd = `${((data[i + 1].distance / totalDistance) * 100).toFixed(2)}%`;
-
-    if (color !== prevColor) {
-      // New color — close previous and open new segment
-      stops.push({ offset: offsetStart, color });
-    }
-    stops.push({ offset: offsetEnd, color });
-    prevColor = color;
-  }
-  return stops;
-}
+import { buildGradientStops } from '@/lib/calculations';
 
 export function ElevationProfile() {
   const strokeGradientId = useId();
