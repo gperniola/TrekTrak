@@ -76,7 +76,7 @@ export default function Home() {
             >
               ☰
             </button>
-            <h1 className="text-sm font-semibold text-gray-200 tracking-wide">TrekTrak</h1>
+            <h1 className="text-base font-bold text-green-400">&#9650; TrekTrak</h1>
             <button
               onClick={() => setSearchOpen((p) => !p)}
               className={`p-2 text-lg hover:text-white min-w-[44px] min-h-[44px] flex items-center justify-center ${searchOpen ? 'text-green-400' : 'text-gray-300'}`}

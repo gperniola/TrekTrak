@@ -57,8 +57,7 @@ export function ItineraryHeader() {
 
   return (
     <div className="border-b border-gray-700">
-      <div className="p-3 flex items-center justify-between">
-        <span className="text-lg font-bold text-green-400">&#9650; TrekTrak</span>
+      <div className="p-3 flex items-center justify-end gap-1">
         <div className="flex gap-1">
           <button onClick={handleSave} className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600" aria-label="Salva itinerario">
             Salva
