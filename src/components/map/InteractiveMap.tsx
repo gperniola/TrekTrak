@@ -1,6 +1,6 @@
 'use client';
 
-import { MapContainer, TileLayer, Marker, Polyline, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Polyline, useMapEvents, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useItineraryStore } from '@/stores/itineraryStore';
@@ -336,8 +336,9 @@ export function InteractiveMap() {
     <MapContainer
       center={DEFAULT_CENTER}
       zoom={DEFAULT_ZOOM}
+      zoomControl={false}
       className="h-full w-full"
-      style={{ minHeight: '400px' }}
+      style={{ minHeight: '200px' }}
     >
       <TileLayer
         attribution={process.env.NEXT_PUBLIC_THUNDERFOREST_API_KEY
@@ -347,6 +348,7 @@ export function InteractiveMap() {
           ? `https://tile.thunderforest.com/outdoors/{z}/{x}/{y}.png?apikey=${process.env.NEXT_PUBLIC_THUNDERFOREST_API_KEY}`
           : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'}
       />
+      <ZoomControl position="topright" />
       <GeolocateOnMount />
       <MapEvents />
       <LocationSearch />

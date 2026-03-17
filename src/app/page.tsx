@@ -87,7 +87,7 @@ export default function Home() {
             Impostazioni
           </button>
         </div>
-        <div className="h-[120px] bg-gray-900 border-t border-gray-700">
+        <div className="h-[80px] lg:h-[120px] bg-gray-900 border-t border-gray-700">
           <ElevationProfile />
         </div>
       </div>
