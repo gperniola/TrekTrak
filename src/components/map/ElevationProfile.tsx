@@ -111,11 +111,12 @@ export function ElevationProfile() {
               </linearGradient>
             )}
           </defs>
-          <XAxis dataKey="distance" tick={{ fontSize: 10, fill: '#999' }} unit=" km" />
+          <XAxis dataKey="distance" tick={{ fontSize: 10, fill: '#999' }} unit=" km" tickFormatter={(v: number) => v.toFixed(2)} />
           <YAxis tick={{ fontSize: 10, fill: '#999' }} unit="m" domain={[yMin, yMax]} />
           <Tooltip
             contentStyle={{ background: '#1a1a2e', border: '1px solid #444', fontSize: 12 }}
             labelStyle={{ color: '#4ade80' }}
+            labelFormatter={(v: number) => `${v.toFixed(2)} km`}
           />
           <Area
             type="monotone"
