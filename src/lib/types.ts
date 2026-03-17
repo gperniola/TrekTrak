@@ -29,6 +29,7 @@ export interface Leg {
   elevationLoss: number | null;
   azimuth: number | null;
   routeGeometry?: [number, number][];
+  elevationProfile?: { distance: number; altitude: number }[];
   estimatedTime?: number;
   slope?: number;
   validationState?: {

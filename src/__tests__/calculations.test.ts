@@ -8,6 +8,7 @@ import {
   azimuthToCardinal,
   interpolatePoints,
   cumulativeElevation,
+  slopeColor,
 } from '../lib/calculations';
 
 describe('haversineDistance', () => {
@@ -232,5 +233,31 @@ describe('cumulativeElevation', () => {
     const { gain, loss } = cumulativeElevation([null, null, null]);
     expect(gain).toBeNull();
     expect(loss).toBeNull();
+  });
+});
+
+describe('slopeColor', () => {
+  test('flat terrain returns green', () => {
+    expect(slopeColor(0)).toBe('#4ade80');
+    expect(slopeColor(5)).toBe('#4ade80');
+    expect(slopeColor(9.9)).toBe('#4ade80');
+  });
+
+  test('moderate slope returns yellow', () => {
+    expect(slopeColor(10)).toBe('#facc15');
+    expect(slopeColor(15)).toBe('#facc15');
+    expect(slopeColor(19.9)).toBe('#facc15');
+  });
+
+  test('steep slope returns orange', () => {
+    expect(slopeColor(20)).toBe('#fb923c');
+    expect(slopeColor(25)).toBe('#fb923c');
+    expect(slopeColor(29.9)).toBe('#fb923c');
+  });
+
+  test('very steep slope returns red', () => {
+    expect(slopeColor(30)).toBe('#ef4444');
+    expect(slopeColor(50)).toBe('#ef4444');
+    expect(slopeColor(100)).toBe('#ef4444');
   });
 });

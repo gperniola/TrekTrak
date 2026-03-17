@@ -122,6 +122,19 @@ export function cumulativeElevation(
   return { gain: Math.round(gain), loss: Math.round(loss) };
 }
 
+const SLOPE_COLORS = [
+  { threshold: 30, color: '#ef4444' },
+  { threshold: 20, color: '#fb923c' },
+  { threshold: 10, color: '#facc15' },
+] as const;
+
+export function slopeColor(slopePercent: number): string {
+  for (const { threshold, color } of SLOPE_COLORS) {
+    if (slopePercent >= threshold) return color;
+  }
+  return '#4ade80';
+}
+
 export function azimuthToCardinal(azimuth: number): string {
   const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
   const normalized = ((azimuth % 360) + 360) % 360;
