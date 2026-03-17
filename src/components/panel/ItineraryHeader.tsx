@@ -58,31 +58,29 @@ export function ItineraryHeader() {
   return (
     <div className="border-b border-gray-700">
       <div className="p-3 flex items-center justify-end gap-1">
-        <div className="flex gap-1">
-          <button onClick={handleSave} className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600" aria-label="Salva itinerario">
-            Salva
-          </button>
-          <button onClick={() => setShowSaved(true)} className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600" aria-label="Carica itinerario">
-            Carica
-          </button>
-          <button
-            onClick={() => {
-              if (waypoints.length === 0 || confirm('Creare un nuovo itinerario? Le modifiche non salvate andranno perse.')) {
-                resetItinerary();
-              }
-            }}
-            className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600"
-            aria-label="Nuovo itinerario"
-          >
-            Nuovo
-          </button>
-          <button onClick={handleExportJSON} className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600" title="Esporta JSON" aria-label="Esporta JSON">
-            ↓
-          </button>
-          <button onClick={handleImportJSON} className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600" title="Importa JSON" aria-label="Importa JSON">
-            ↑
-          </button>
-        </div>
+        <button onClick={handleSave} className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600" aria-label="Salva itinerario">
+          Salva
+        </button>
+        <button onClick={() => setShowSaved(true)} className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600" aria-label="Carica itinerario">
+          Carica
+        </button>
+        <button
+          onClick={() => {
+            if (waypoints.length === 0 || confirm('Creare un nuovo itinerario? Le modifiche non salvate andranno perse.')) {
+              resetItinerary();
+            }
+          }}
+          className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600"
+          aria-label="Nuovo itinerario"
+        >
+          Nuovo
+        </button>
+        <button onClick={handleExportJSON} className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600" title="Esporta JSON" aria-label="Esporta JSON">
+          ↓
+        </button>
+        <button onClick={handleImportJSON} className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600" title="Importa JSON" aria-label="Importa JSON">
+          ↑
+        </button>
       </div>
       <div className="px-3 pb-3">
         <input
