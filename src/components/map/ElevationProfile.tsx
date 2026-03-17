@@ -12,7 +12,7 @@ export function ElevationProfile() {
   const legs = useItineraryStore((s) => s.legs);
 
   // Try to build detailed profile from leg elevation data
-  let profileData: ProfilePoint[] = [];
+  let profileData: { distance: number; altitude: number }[] = [];
   let globalDist = 0;
 
   for (let i = 0; i < legs.length; i++) {
