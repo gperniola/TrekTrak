@@ -242,22 +242,25 @@ describe('slopeColor', () => {
   test('flat terrain returns green', () => {
     expect(slopeColor(0)).toBe('#4ade80');
     expect(slopeColor(5)).toBe('#4ade80');
-    expect(slopeColor(9.9)).toBe('#4ade80');
+    expect(slopeColor(9)).toBe('#4ade80');
   });
 
-  test('moderate slope returns yellow', () => {
+  test('moderate slope returns yellow (with 0.5% epsilon)', () => {
+    expect(slopeColor(9.5)).toBe('#facc15');
     expect(slopeColor(10)).toBe('#facc15');
     expect(slopeColor(15)).toBe('#facc15');
-    expect(slopeColor(19.9)).toBe('#facc15');
+    expect(slopeColor(19)).toBe('#facc15');
   });
 
-  test('steep slope returns orange', () => {
+  test('steep slope returns orange (with 0.5% epsilon)', () => {
+    expect(slopeColor(19.5)).toBe('#fb923c');
     expect(slopeColor(20)).toBe('#fb923c');
     expect(slopeColor(25)).toBe('#fb923c');
-    expect(slopeColor(29.9)).toBe('#fb923c');
+    expect(slopeColor(29)).toBe('#fb923c');
   });
 
-  test('very steep slope returns red', () => {
+  test('very steep slope returns red (with 0.5% epsilon)', () => {
+    expect(slopeColor(29.5)).toBe('#ef4444');
     expect(slopeColor(30)).toBe('#ef4444');
     expect(slopeColor(50)).toBe('#ef4444');
     expect(slopeColor(100)).toBe('#ef4444');
@@ -360,6 +363,25 @@ describe('buildGradientStops', () => {
     // All segments should be orange (#fb923c) — no yellow artifacts from rounding
     for (const stop of stops) {
       expect(stop.color).toBe('#fb923c');
+    }
+  });
+
+  test('DEM noise on uniform slope does not produce wrong colors', () => {
+    // 20 points over 2km, uniform 15% slope + ±4m noise
+    // Without smoothing, noise pushes some segments to orange (20%+)
+    // With smoothing, all should stay yellow (10-20%)
+    const n = 20;
+    const dKm = 2.0;
+    const noise = [0, 3, -2, 4, -1, 2, -3, 1, -4, 2, 3, -2, 1, -3, 4, -1, 2, -2, 3, -1];
+    const data = Array.from({ length: n }, (_, i) => ({
+      distance: Math.round((i / (n - 1)) * dKm * 10000) / 10000,
+      altitude: 500 + (0.15 * (i / (n - 1)) * dKm * 1000) + noise[i],
+    }));
+    const totalDistance = data[data.length - 1].distance;
+    const stops = buildGradientStops(data, totalDistance);
+    // After smoothing, should all be yellow (#facc15) — no orange artifacts
+    for (const stop of stops) {
+      expect(stop.color).toBe('#facc15');
     }
   });
 

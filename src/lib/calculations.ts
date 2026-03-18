@@ -128,10 +128,12 @@ const SLOPE_COLORS = [
   { threshold: 10, color: '#facc15' },
 ] as const;
 
+const SLOPE_EPSILON = 0.5; // half-percent tolerance to avoid threshold oscillation
+
 export function slopeColor(slopePercent: number): string {
   const abs = Math.abs(slopePercent);
   for (const { threshold, color } of SLOPE_COLORS) {
-    if (abs >= threshold) return color;
+    if (abs >= threshold - SLOPE_EPSILON) return color;
   }
   return '#4ade80';
 }
@@ -145,17 +147,41 @@ export interface GradientStop {
   color: string;
 }
 
+/**
+ * Smooth altitude values with a weighted moving average to reduce DEM noise.
+ * Window size 5 with weights [1, 2, 3, 2, 1]. Preserves first and last values.
+ */
+function smoothAltitudes(data: { distance: number; altitude: number }[]): number[] {
+  const altitudes = data.map((d) => d.altitude);
+  if (altitudes.length <= 4) return altitudes;
+  const smoothed = [...altitudes];
+  for (let i = 2; i < altitudes.length - 2; i++) {
+    smoothed[i] = (
+      altitudes[i - 2] + 2 * altitudes[i - 1] + 3 * altitudes[i] + 2 * altitudes[i + 1] + altitudes[i + 2]
+    ) / 9;
+  }
+  // Smooth edges with a 3-point window
+  if (altitudes.length > 2) {
+    smoothed[1] = (altitudes[0] + 2 * altitudes[1] + altitudes[2]) / 4;
+    smoothed[altitudes.length - 2] = (
+      altitudes[altitudes.length - 3] + 2 * altitudes[altitudes.length - 2] + altitudes[altitudes.length - 1]
+    ) / 4;
+  }
+  return smoothed;
+}
+
 export function buildGradientStops(
   data: { distance: number; altitude: number }[],
   totalDistance: number
 ): GradientStop[] {
   if (data.length < 2 || totalDistance === 0) return [];
 
+  const smoothed = smoothAltitudes(data);
   const stops: GradientStop[] = [];
   let prevColor: string | null = null;
   for (let i = 0; i < data.length - 1; i++) {
     const dx = data[i + 1].distance - data[i].distance;
-    const dy = Math.abs(data[i + 1].altitude - data[i].altitude);
+    const dy = Math.abs(smoothed[i + 1] - smoothed[i]);
     // slope %: dy (m) / dx (km→m) * 100
     const slope = dx > 0 ? (dy / (dx * 1000)) * 100 : 0;
     const color = slopeColor(slope);
