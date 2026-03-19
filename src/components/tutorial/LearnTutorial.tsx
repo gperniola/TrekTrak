@@ -7,6 +7,7 @@ interface TutorialStep {
   title: string;
   text: string;
   icon: string;
+  showDrawer?: boolean;
 }
 
 const STEPS: TutorialStep[] = [
@@ -22,18 +23,21 @@ const STEPS: TutorialStep[] = [
   },
   {
     title: 'Inserisci i dati manualmente',
-    text: 'In modalità Learn, inserisci tu i valori di distanza, dislivello e azimuth (la direzione rispetto al Nord) per ogni tratta — come faresti con carta e bussola.',
+    text: 'Apri il menu (☰) per vedere i waypoint e le tratte. In modalità Learn, inserisci tu i valori di distanza, dislivello e azimuth (la direzione rispetto al Nord) — come faresti con carta e bussola.',
     icon: '✏️',
+    showDrawer: true,
   },
   {
     title: 'Verifica i calcoli',
-    text: 'Premi "Verifica" per confrontare i tuoi valori con quelli calcolati dall\'app. Le icone colorate mostrano se sei preciso (✓), vicino (~) o lontano (✗).',
+    text: 'In fondo al menu trovi il pulsante "Verifica": premilo per confrontare i tuoi valori con quelli calcolati dall\'app. Le icone colorate mostrano se sei preciso (✓), vicino (~) o lontano (✗).',
     icon: '✅',
+    showDrawer: true,
   },
   {
     title: 'Tocca le icone di validazione',
     text: 'Dopo la verifica, tocca le icone ✓/~/✗ accanto ai campi per vedere il valore esatto calcolato e lo scarto dal tuo.',
     icon: '🔍',
+    showDrawer: true,
   },
   {
     title: 'Profilo altimetrico',
@@ -42,7 +46,11 @@ const STEPS: TutorialStep[] = [
   },
 ];
 
-export function LearnTutorial() {
+interface LearnTutorialProps {
+  onDrawerChange?: (open: boolean) => void;
+}
+
+export function LearnTutorial({ onDrawerChange }: LearnTutorialProps) {
   const [step, setStep] = useState<number | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
 
@@ -55,6 +63,15 @@ export function LearnTutorial() {
     }
     setStep(0);
   }, []);
+
+  // Sync drawer with current step
+  useEffect(() => {
+    if (step === null) {
+      onDrawerChange?.(false);
+      return;
+    }
+    onDrawerChange?.(STEPS[step].showDrawer ?? false);
+  }, [step, onDrawerChange]);
 
   // Escape key, focus trap, body scroll lock
   useEffect(() => {
@@ -105,30 +122,36 @@ export function LearnTutorial() {
     }
   }
 
-  const handleNext = () => {
-    if (step === null) return;
-    if (step < STEPS.length - 1) {
-      setStep(step + 1);
-    } else {
+  function changeStep(newStep: number | null) {
+    if (newStep === null || newStep < 0 || newStep >= STEPS.length) {
       markSeen();
       setStep(null);
+    } else {
+      setStep(newStep);
     }
+  }
+
+  const handleNext = () => {
+    if (step === null) return;
+    changeStep(step < STEPS.length - 1 ? step + 1 : null);
   };
 
-  const handleClose = () => {
-    markSeen();
-    setStep(null);
-  };
+  const handleClose = () => changeStep(null);
 
   if (step === null) return null;
 
   const current = STEPS[step];
   const isLast = step === STEPS.length - 1;
+  const drawerVisible = current.showDrawer ?? false;
 
   return (
     <div
-      className="fixed inset-0 z-[1400] flex items-center justify-center p-4 bg-black/60"
-      onClick={handleClose}
+      className={`fixed inset-0 z-[1400] flex p-4 ${
+        drawerVisible
+          ? 'items-end justify-center pointer-events-none'
+          : 'items-center justify-center bg-black/60'
+      }`}
+      onClick={drawerVisible ? undefined : handleClose}
     >
       <div
         ref={dialogRef}
@@ -137,7 +160,9 @@ export function LearnTutorial() {
         aria-label="Tutorial modalità Learn"
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
-        className="bg-gray-900 border border-gray-700 rounded-xl max-w-sm w-full p-5 shadow-2xl outline-none overflow-y-auto max-h-[calc(100vh-2rem)]"
+        className={`pointer-events-auto bg-gray-900 border border-gray-700 rounded-xl max-w-sm w-full p-5 shadow-2xl outline-none overflow-y-auto max-h-[calc(100vh-2rem)] ${
+          drawerVisible ? 'mb-2' : ''
+        }`}
       >
         <div className="text-3xl mb-3">{current.icon}</div>
         <h2 className="text-base font-bold text-green-400 mb-2">{current.title}</h2>
@@ -165,7 +190,7 @@ export function LearnTutorial() {
           <div className="flex gap-2">
             {step > 0 && (
               <button
-                onClick={() => setStep(step - 1)}
+                onClick={() => changeStep(step - 1)}
                 className="px-3 min-h-[44px] bg-gray-700 rounded text-xs text-gray-300 hover:bg-gray-600"
               >
                 Indietro

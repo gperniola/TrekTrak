@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { LeftPanel } from '@/components/panel/LeftPanel';
 import { MapWrapper } from '@/components/map/MapWrapper';
 import { ElevationProfile } from '@/components/map/ElevationProfile';
@@ -14,6 +14,7 @@ export default function Home() {
   const [searchOpen, setSearchOpen] = useState(false);
 
   const drawerRef = useRef<HTMLDivElement>(null);
+  const handleTutorialDrawer = useCallback((open: boolean) => setDrawerOpen(open), []);
 
   useEffect(() => {
     if (!drawerOpen) return;
@@ -142,7 +143,7 @@ export default function Home() {
       {showSettings && <ToleranceSettings onClose={() => setShowSettings(false)} />}
 
       {/* First-visit tutorial */}
-      <LearnTutorial />
+      <LearnTutorial onDrawerChange={handleTutorialDrawer} />
     </div>
   );
 }
