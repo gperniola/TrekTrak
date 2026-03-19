@@ -6,6 +6,7 @@ import { MapWrapper } from '@/components/map/MapWrapper';
 import { ElevationProfile } from '@/components/map/ElevationProfile';
 import { ToleranceSettings } from '@/components/settings/ToleranceSettings';
 import { ModeSwitch } from '@/components/panel/ModeSwitch';
+import { LearnTutorial } from '@/components/tutorial/LearnTutorial';
 
 export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
@@ -139,6 +140,9 @@ export default function Home() {
 
       {/* Settings Modal */}
       {showSettings && <ToleranceSettings onClose={() => setShowSettings(false)} />}
+
+      {/* First-visit tutorial */}
+      <LearnTutorial />
     </div>
   );
 }

@@ -48,7 +48,7 @@ export function LegCard({ leg }: { leg: Leg }) {
           readOnly={isTrack}
         />
         <NumberInput
-          label="Azimuth"
+          label="Azim."
           unit="°"
           value={leg.azimuth}
           onChange={(v) => updateLeg(leg.id, { azimuth: v })}
