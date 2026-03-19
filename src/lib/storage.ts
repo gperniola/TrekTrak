@@ -3,11 +3,12 @@ import { DEFAULT_TOLERANCES } from './types';
 
 export const SCHEMA_VERSION = 1;
 
-const KEYS = {
+export const KEYS = {
   itineraries: 'trektrak_itineraries',
   settings: 'trektrak_settings',
   learningHistory: 'trektrak_learning_history',
   schema: 'trektrak_schema_version',
+  tutorialSeen: 'trektrak_tutorial_seen',
 } as const;
 
 const STORAGE_WARNING_BYTES = 4 * 1024 * 1024; // 4MB
