@@ -12,6 +12,7 @@ interface NumberInputProps {
   min?: number;
   max?: number;
   validation?: ValidationResult;
+  validationFieldType?: string;
   placeholder?: string;
   readOnly?: boolean;
 }
@@ -25,6 +26,7 @@ export function NumberInput({
   min,
   max,
   validation,
+  validationFieldType,
   placeholder,
   readOnly,
 }: NumberInputProps) {
@@ -33,7 +35,7 @@ export function NumberInput({
       <label className="text-xs text-gray-400 uppercase flex items-center gap-1">
         {label}
         {unit && <span className="text-gray-500">({unit})</span>}
-        <ValidationBadge result={validation} />
+        <ValidationBadge result={validation} fieldType={validationFieldType} />
       </label>
       <input
         type="number"

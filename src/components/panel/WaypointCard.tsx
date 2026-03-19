@@ -71,6 +71,7 @@ export function WaypointCard({ waypoint, dragHandleProps }: { waypoint: Waypoint
           value={waypoint.altitude}
           onChange={(v) => updateWaypoint(waypoint.id, { altitude: v })}
           validation={waypoint.validationState?.altitude}
+          validationFieldType="altitude"
           placeholder=""
           readOnly={isTrack}
         />

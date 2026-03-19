@@ -21,6 +21,7 @@ export function LegCard({ leg }: { leg: Leg }) {
           step={0.1}
           min={0}
           validation={leg.validationState?.distance}
+          validationFieldType="distance"
           placeholder=""
           readOnly={isTrack}
         />
@@ -31,6 +32,7 @@ export function LegCard({ leg }: { leg: Leg }) {
           onChange={(v) => updateLeg(leg.id, { elevationGain: v })}
           min={0}
           validation={leg.validationState?.elevationGain}
+          validationFieldType="elevation"
           placeholder=""
           readOnly={isTrack}
         />
@@ -41,6 +43,7 @@ export function LegCard({ leg }: { leg: Leg }) {
           onChange={(v) => updateLeg(leg.id, { elevationLoss: v })}
           min={0}
           validation={leg.validationState?.elevationLoss}
+          validationFieldType="elevation"
           placeholder=""
           readOnly={isTrack}
         />
@@ -52,6 +55,7 @@ export function LegCard({ leg }: { leg: Leg }) {
           min={0}
           max={359.9}
           validation={leg.validationState?.azimuth}
+          validationFieldType="azimuth"
           placeholder=""
           readOnly={isTrack}
         />
