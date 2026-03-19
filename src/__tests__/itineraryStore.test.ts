@@ -199,6 +199,29 @@ describe('appMode', () => {
 
     expect(useItineraryStore.getState().legs[0].routeGeometry).toBeUndefined();
   });
+
+  test('switching to learn clears altitude and all leg computed fields', () => {
+    useItineraryStore.getState().setAppMode('track');
+    useItineraryStore.getState().addWaypoint();
+    useItineraryStore.getState().addWaypoint();
+    const wpId = useItineraryStore.getState().waypoints[0].id;
+    useItineraryStore.getState().updateWaypoint(wpId, { altitude: 1450 });
+    const legId = useItineraryStore.getState().legs[0].id;
+    useItineraryStore.getState().updateLeg(legId, {
+      distance: 3.2, azimuth: 245, elevationGain: 200, elevationLoss: 50,
+    });
+
+    useItineraryStore.getState().setAppMode('learn');
+
+    expect(useItineraryStore.getState().waypoints[0].altitude).toBeNull();
+    const leg = useItineraryStore.getState().legs[0];
+    expect(leg.distance).toBeNull();
+    expect(leg.azimuth).toBeNull();
+    expect(leg.elevationGain).toBeNull();
+    expect(leg.elevationLoss).toBeNull();
+    expect(leg.estimatedTime).toBeUndefined();
+    expect(leg.slope).toBeUndefined();
+  });
 });
 
 describe('trackRouting', () => {

@@ -79,7 +79,7 @@ export function generateSummaryPDF(data: PdfData): jsPDF {
   waypoints.forEach((wp) => {
     if (y > 270) { doc.addPage(); y = 20; }
     doc.text(
-      `${wp.order + 1}. ${wp.name || 'Senza nome'} — Lat: ${wp.lat ?? '-'}, Lon: ${wp.lon ?? '-'}, Alt: ${wp.altitude ?? '-'}m`,
+      `${wp.order + 1}. ${wp.name || `Waypoint ${wp.order + 1}`} — Lat: ${wp.lat ?? '-'}, Lon: ${wp.lon ?? '-'}, Alt: ${wp.altitude ?? '-'}m`,
       14, y
     );
     y += 6;

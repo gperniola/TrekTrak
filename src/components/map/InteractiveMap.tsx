@@ -230,10 +230,29 @@ async function autoFillTrackData(waypointId: string) {
 async function autoFillAllTrackData() {
   const store = useItineraryStore.getState();
   if (store.appMode !== 'track') return;
-  const waypoints = store.waypoints.filter((w) => w.lat != null && w.lon != null);
-  for (const wp of waypoints) {
+  // Process only the "from" waypoint of each leg to avoid double-processing shared legs
+  const processed = new Set<string>();
+  const { waypoints, legs } = store;
+  for (const leg of legs) {
     if (useItineraryStore.getState().appMode !== 'track') return;
-    await autoFillTrackData(wp.id);
+    if (!processed.has(leg.fromWaypointId)) {
+      const wp = waypoints.find((w) => w.id === leg.fromWaypointId);
+      if (wp && wp.lat != null && wp.lon != null) {
+        await autoFillTrackData(wp.id);
+        processed.add(wp.id);
+      }
+    }
+  }
+  // Process the last waypoint (only a "to", never a "from" for its inbound leg)
+  if (legs.length > 0) {
+    const lastLeg = legs[legs.length - 1];
+    if (!processed.has(lastLeg.toWaypointId)) {
+      const wp = waypoints.find((w) => w.id === lastLeg.toWaypointId);
+      if (wp && wp.lat != null && wp.lon != null) {
+        if (useItineraryStore.getState().appMode !== 'track') return;
+        await autoFillTrackData(wp.id);
+      }
+    }
   }
 }
 

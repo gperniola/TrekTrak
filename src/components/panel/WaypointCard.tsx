@@ -22,7 +22,7 @@ export function WaypointCard({ waypoint, dragHandleProps }: { waypoint: Waypoint
           </span>
           <button
             onClick={() => setEditing((p) => !p)}
-            className="text-gray-500 hover:text-gray-300 text-xs shrink-0"
+            className="text-gray-500 hover:text-gray-300 text-sm shrink-0 min-w-[28px] min-h-[28px] flex items-center justify-center"
             aria-label="Modifica nome"
             title="Modifica nome"
           >
@@ -54,7 +54,7 @@ export function WaypointCard({ waypoint, dragHandleProps }: { waypoint: Waypoint
             value={waypoint.name}
             onChange={(e) => updateWaypoint(waypoint.id, { name: e.target.value })}
             onBlur={() => setEditing(false)}
-            onKeyDown={(e) => { if (e.key === 'Enter') setEditing(false); }}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Escape') setEditing(false); }}
             maxLength={100}
             placeholder="Nome waypoint..."
             aria-label={`Nome waypoint ${waypoint.order + 1}`}

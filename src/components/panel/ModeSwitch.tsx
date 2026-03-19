@@ -9,8 +9,14 @@ export function ModeSwitch() {
 
   const isTrack = appMode === 'track';
 
+  const waypoints = useItineraryStore((s) => s.waypoints);
+
   const handleToggle = (mode: AppMode) => {
-    if (mode !== appMode) setAppMode(mode);
+    if (mode === appMode) return;
+    if (mode === 'learn' && waypoints.some((wp) => wp.altitude != null || wp.lat != null)) {
+      if (!confirm('Passare a Learn cancellerà tutti i dati calcolati (altitudine, distanza, azimuth, D+/D-). Continuare?')) return;
+    }
+    setAppMode(mode);
   };
 
   return (

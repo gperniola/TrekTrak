@@ -30,9 +30,9 @@ export function ItineraryTable() {
             <th className="px-2 py-1">Da</th>
             <th className="px-2 py-1">A</th>
             <th className="px-2 py-1">Dist</th>
+            <th className="px-2 py-1">Az</th>
             <th className="px-2 py-1">D+</th>
             <th className="px-2 py-1">D-</th>
-            <th className="px-2 py-1">Az</th>
             <th className="px-2 py-1">Tempo</th>
             <th className="px-2 py-1">Pend</th>
           </tr>
@@ -44,12 +44,12 @@ export function ItineraryTable() {
             return (
               <tr key={leg.id} className="border-b border-gray-800">
                 <td className="px-2 py-1">{i + 1}</td>
-                <td className="px-2 py-1">{from?.name || `WP${i + 1}`}</td>
-                <td className="px-2 py-1">{to?.name || `WP${i + 2}`}</td>
+                <td className="px-2 py-1">{from?.name || `Waypoint ${(from?.order ?? i) + 1}`}</td>
+                <td className="px-2 py-1">{to?.name || `Waypoint ${(to?.order ?? i + 1) + 1}`}</td>
                 <td className="px-2 py-1">{leg.distance?.toFixed(1) ?? '-'}</td>
+                <td className="px-2 py-1">{leg.azimuth != null ? `${leg.azimuth}° ${azimuthToCardinal(leg.azimuth)}` : '-'}</td>
                 <td className="px-2 py-1 text-red-400">{leg.elevationGain ?? '-'}</td>
                 <td className="px-2 py-1 text-blue-400">{leg.elevationLoss ?? '-'}</td>
-                <td className="px-2 py-1">{leg.azimuth != null ? `${leg.azimuth}° ${azimuthToCardinal(leg.azimuth)}` : '-'}</td>
                 <td className="px-2 py-1">{leg.estimatedTime != null ? formatTime(leg.estimatedTime) : '-'}</td>
                 <td className="px-2 py-1">{leg.slope != null ? `${leg.slope.toFixed(1)}%` : '-'}</td>
               </tr>
@@ -58,9 +58,9 @@ export function ItineraryTable() {
           <tr className="font-bold bg-gray-900">
             <td className="px-2 py-1" colSpan={3}>Totale</td>
             <td className="px-2 py-1">{totalDist.toFixed(1)}</td>
+            <td className="px-2 py-1">-</td>
             <td className="px-2 py-1 text-red-400">{totalGain}</td>
             <td className="px-2 py-1 text-blue-400">{totalLoss}</td>
-            <td className="px-2 py-1">-</td>
             <td className="px-2 py-1">{formatTime(totalTime)}</td>
             <td className="px-2 py-1">-</td>
           </tr>

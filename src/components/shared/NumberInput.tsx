@@ -35,7 +35,7 @@ export function NumberInput({
       <div className="flex items-center gap-1">
         <span className="text-xs text-amber-400 uppercase font-medium">
           {label}
-          {unit && <span className="text-amber-500/70"> ({unit})</span>}
+          {unit && <span className="text-amber-500"> ({unit})</span>}
         </span>
         <ValidationBadge result={validation} fieldType={validationFieldType} />
       </div>
