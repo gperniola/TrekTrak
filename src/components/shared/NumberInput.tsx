@@ -1,7 +1,7 @@
 'use client';
 
 import type { ValidationResult } from '@/lib/types';
-import { ValidationBadge } from '@/components/validation/ValidationBadge';
+import { ValidationBadge, type ValidationFieldType } from '@/components/validation/ValidationBadge';
 
 interface NumberInputProps {
   label: string;
@@ -12,7 +12,7 @@ interface NumberInputProps {
   min?: number;
   max?: number;
   validation?: ValidationResult;
-  validationFieldType?: string;
+  validationFieldType?: ValidationFieldType;
   placeholder?: string;
   readOnly?: boolean;
 }
@@ -32,11 +32,13 @@ export function NumberInput({
 }: NumberInputProps) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-xs text-gray-400 uppercase flex items-center gap-1">
-        {label}
-        {unit && <span className="text-gray-500">({unit})</span>}
+      <div className="flex items-center gap-1">
+        <span className="text-xs text-gray-400 uppercase">
+          {label}
+          {unit && <span className="text-gray-500"> ({unit})</span>}
+        </span>
         <ValidationBadge result={validation} fieldType={validationFieldType} />
-      </label>
+      </div>
       <input
         type="number"
         value={value ?? ''}
@@ -56,6 +58,7 @@ export function NumberInput({
         min={min}
         max={max}
         placeholder={placeholder}
+        aria-label={`${label}${unit ? ` (${unit})` : ''}`}
         className={`bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-sm text-white focus:outline-none ${
           readOnly
             ? 'opacity-60 cursor-not-allowed [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]'

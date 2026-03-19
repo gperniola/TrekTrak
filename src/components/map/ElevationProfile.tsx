@@ -116,7 +116,7 @@ export function ElevationProfile() {
           <Tooltip
             contentStyle={{ background: '#1a1a2e', border: '1px solid #444', fontSize: 12 }}
             labelStyle={{ color: '#4ade80' }}
-            labelFormatter={(v: number) => `${v.toFixed(2)} km`}
+            labelFormatter={(v) => `${Number(v).toFixed(2)} km`}
           />
           <Area
             type="monotone"
