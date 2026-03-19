@@ -26,6 +26,18 @@ export function LegCard({ leg }: { leg: Leg }) {
           readOnly={isTrack}
         />
         <NumberInput
+          label="Azim."
+          unit="°"
+          value={leg.azimuth}
+          onChange={(v) => updateLeg(leg.id, { azimuth: v })}
+          min={0}
+          max={359.9}
+          validation={leg.validationState?.azimuth}
+          validationFieldType="azimuth"
+          placeholder=""
+          readOnly={isTrack}
+        />
+        <NumberInput
           label="D+"
           unit="m"
           value={leg.elevationGain}
@@ -44,18 +56,6 @@ export function LegCard({ leg }: { leg: Leg }) {
           min={0}
           validation={leg.validationState?.elevationLoss}
           validationFieldType="elevation"
-          placeholder=""
-          readOnly={isTrack}
-        />
-        <NumberInput
-          label="Azim."
-          unit="°"
-          value={leg.azimuth}
-          onChange={(v) => updateLeg(leg.id, { azimuth: v })}
-          min={0}
-          max={359.9}
-          validation={leg.validationState?.azimuth}
-          validationFieldType="azimuth"
           placeholder=""
           readOnly={isTrack}
         />

@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import type { Waypoint } from '@/lib/types';
 import { NumberInput } from '@/components/shared/NumberInput';
 import { useItineraryStore } from '@/stores/itineraryStore';
@@ -8,20 +9,33 @@ export function WaypointCard({ waypoint, dragHandleProps }: { waypoint: Waypoint
   const updateWaypoint = useItineraryStore((s) => s.updateWaypoint);
   const removeWaypoint = useItineraryStore((s) => s.removeWaypoint);
   const isTrack = useItineraryStore((s) => s.appMode) === 'track';
+  const [editing, setEditing] = useState(false);
+
+  const displayName = waypoint.name || `Waypoint ${waypoint.order + 1}`;
 
   return (
     <div className="bg-gray-800 border border-gray-700 rounded-lg p-3">
       <div className="flex justify-between items-center mb-2">
-        <span className="text-green-400 font-bold text-sm truncate">
-          {waypoint.order + 1}. {waypoint.name || 'Senza nome'}
-        </span>
-        <div className="flex gap-1 items-center">
+        <div className="flex items-center gap-1 min-w-0">
+          <span className="text-green-400 font-bold text-sm truncate">
+            {waypoint.order + 1}. {displayName}
+          </span>
+          <button
+            onClick={() => setEditing((p) => !p)}
+            className="text-gray-500 hover:text-gray-300 text-xs shrink-0"
+            aria-label="Modifica nome"
+            title="Modifica nome"
+          >
+            ✎
+          </button>
+        </div>
+        <div className="flex gap-1 items-center shrink-0">
           <span {...dragHandleProps} className="cursor-grab text-gray-600 hover:text-gray-400 text-xs px-1" title="Trascina per riordinare" aria-label="Trascina per riordinare">
             ☰
           </span>
           <button
             onClick={() => {
-              if (confirm(`Rimuovere waypoint "${waypoint.name || 'Senza nome'}"?`)) {
+              if (confirm(`Rimuovere waypoint "${displayName}"?`)) {
                 removeWaypoint(waypoint.id);
               }
             }}
@@ -33,17 +47,22 @@ export function WaypointCard({ waypoint, dragHandleProps }: { waypoint: Waypoint
           </button>
         </div>
       </div>
-      <div className="mb-2">
-        <input
-          type="text"
-          value={waypoint.name}
-          onChange={(e) => updateWaypoint(waypoint.id, { name: e.target.value })}
-          maxLength={100}
-          placeholder="Nome waypoint..."
-          aria-label={`Nome waypoint ${waypoint.order + 1}`}
-          className="w-full bg-gray-900 border border-gray-600 rounded px-2 py-1 text-sm text-white focus:border-green-500 focus:outline-none"
-        />
-      </div>
+      {editing && (
+        <div className="mb-2">
+          <input
+            type="text"
+            value={waypoint.name}
+            onChange={(e) => updateWaypoint(waypoint.id, { name: e.target.value })}
+            onBlur={() => setEditing(false)}
+            onKeyDown={(e) => { if (e.key === 'Enter') setEditing(false); }}
+            maxLength={100}
+            placeholder="Nome waypoint..."
+            aria-label={`Nome waypoint ${waypoint.order + 1}`}
+            autoFocus
+            className="w-full bg-gray-900 border border-gray-600 rounded px-2 py-1 text-sm text-white focus:border-green-500 focus:outline-none"
+          />
+        </div>
+      )}
       <div className="grid grid-cols-3 gap-2">
         <NumberInput
           label="Lat"

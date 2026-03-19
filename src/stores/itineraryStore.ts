@@ -74,15 +74,32 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
   setAppMode: (mode) => {
     if (mode === get().appMode) return;
     const { waypoints, legs } = get();
-    // Atomic update: clear validation + set mode + clear routeGeometry if switching to learn
-    set({
-      appMode: mode,
-      waypoints: waypoints.map((wp) => ({ ...wp, validationState: undefined })),
-      legs: (mode === 'learn'
-        ? legs.map((l) => ({ ...l, validationState: undefined, routeGeometry: undefined, elevationProfile: undefined }))
-        : legs.map((l) => ({ ...l, validationState: undefined }))
-      ),
-    });
+    if (mode === 'learn') {
+      // Switching to learn: clear all computed values, keep only coordinates
+      set({
+        appMode: mode,
+        waypoints: waypoints.map((wp) => ({ ...wp, altitude: null, validationState: undefined })),
+        legs: legs.map((l) => ({
+          ...l,
+          distance: null,
+          elevationGain: null,
+          elevationLoss: null,
+          azimuth: null,
+          estimatedTime: undefined,
+          slope: undefined,
+          routeGeometry: undefined,
+          elevationProfile: undefined,
+          validationState: undefined,
+        })),
+      });
+    } else {
+      // Switching to track: clear validation (auto-fill will be triggered by the UI)
+      set({
+        appMode: mode,
+        waypoints: waypoints.map((wp) => ({ ...wp, validationState: undefined })),
+        legs: legs.map((l) => ({ ...l, validationState: undefined })),
+      });
+    }
   },
 
   setTrackRouting: (routing) => {
@@ -108,7 +125,7 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
     if (waypoints.length >= 50) return;
     const newWp: Waypoint = {
       id: generateId(),
-      name: '',
+      name: `Waypoint ${waypoints.length + 1}`,
       lat: null,
       lon: null,
       altitude: null,
@@ -127,7 +144,7 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
     if (waypoints.length >= 50) return;
     const newWp: Waypoint = {
       id: generateId(),
-      name: '',
+      name: `Waypoint ${waypoints.length + 1}`,
       lat,
       lon,
       altitude: null,

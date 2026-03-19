@@ -227,6 +227,16 @@ async function autoFillTrackData(waypointId: string) {
   }
 }
 
+async function autoFillAllTrackData() {
+  const store = useItineraryStore.getState();
+  if (store.appMode !== 'track') return;
+  const waypoints = store.waypoints.filter((w) => w.lat != null && w.lon != null);
+  for (const wp of waypoints) {
+    if (useItineraryStore.getState().appMode !== 'track') return;
+    await autoFillTrackData(wp.id);
+  }
+}
+
 // Chieti, Italy - default center
 const DEFAULT_CENTER: [number, number] = [42.351, 14.168];
 const DEFAULT_ZOOM = 13;
@@ -250,6 +260,20 @@ function GeolocateOnMount() {
     );
     return () => { unmounted = true; map.off('movestart', onMove); };
   }, [map]);
+
+  return null;
+}
+
+function TrackModeAutoFill() {
+  const appMode = useItineraryStore((s) => s.appMode);
+  const prevMode = useRef(appMode);
+
+  useEffect(() => {
+    if (prevMode.current !== 'track' && appMode === 'track') {
+      autoFillAllTrackData();
+    }
+    prevMode.current = appMode;
+  }, [appMode]);
 
   return null;
 }
@@ -348,6 +372,7 @@ export function InteractiveMap({ mobileSearchOpen }: { mobileSearchOpen?: boolea
           : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'}
       />
       <GeolocateOnMount />
+      <TrackModeAutoFill />
       <MapEvents />
       <LocationSearch mobileSearchOpen={mobileSearchOpen} />
 
