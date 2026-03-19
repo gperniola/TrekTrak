@@ -15,6 +15,7 @@ interface NumberInputProps {
   validationFieldType?: ValidationFieldType;
   placeholder?: string;
   readOnly?: boolean;
+  highlight?: boolean;
 }
 
 export function NumberInput({
@@ -29,13 +30,14 @@ export function NumberInput({
   validationFieldType,
   placeholder,
   readOnly,
+  highlight,
 }: NumberInputProps) {
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-center gap-1">
-        <span className="text-xs text-amber-400 uppercase font-medium">
+        <span className={`text-xs uppercase ${highlight ? 'text-amber-400 font-medium' : 'text-gray-400'}`}>
           {label}
-          {unit && <span className="text-amber-500"> ({unit})</span>}
+          {unit && <span className={highlight ? 'text-amber-500' : 'text-gray-500'}> ({unit})</span>}
         </span>
         <ValidationBadge result={validation} fieldType={validationFieldType} />
       </div>

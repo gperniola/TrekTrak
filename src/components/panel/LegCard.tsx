@@ -24,6 +24,7 @@ export function LegCard({ leg }: { leg: Leg }) {
           validationFieldType="distance"
           placeholder=""
           readOnly={isTrack}
+          highlight
         />
         <NumberInput
           label="Azim."
@@ -36,6 +37,7 @@ export function LegCard({ leg }: { leg: Leg }) {
           validationFieldType="azimuth"
           placeholder=""
           readOnly={isTrack}
+          highlight
         />
         <NumberInput
           label="D+"
@@ -47,6 +49,7 @@ export function LegCard({ leg }: { leg: Leg }) {
           validationFieldType="elevation"
           placeholder=""
           readOnly={isTrack}
+          highlight
         />
         <NumberInput
           label="D-"
@@ -58,6 +61,7 @@ export function LegCard({ leg }: { leg: Leg }) {
           validationFieldType="elevation"
           placeholder=""
           readOnly={isTrack}
+          highlight
         />
       </div>
       {/* Derived data */}
