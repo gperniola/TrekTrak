@@ -81,34 +81,13 @@ export function ActionBar() {
         return result;
       };
 
-      // Read fresh state from store after clearing
       const currentState = useItineraryStore.getState();
       const currentWaypoints = currentState.waypoints;
       const currentLegs = currentState.legs;
 
-      // Validate or auto-fill waypoint altitudes
-      for (const wp of currentWaypoints) {
-        if (isStale()) break;
-        if (wp.lat == null || wp.lon == null) continue;
-        const realAlt = await getCachedElevation(wp.lat, wp.lon);
-        if (realAlt == null) {
-          apiAvailable = false;
-          continue;
-        }
-        if (wp.altitude != null) {
-          const result = validateValue(wp.altitude, realAlt, {
-            strict: tol.altitude,
-            loose: tol.altitude * 2,
-          });
-          updateWaypoint(wp.id, {
-            validationState: { altitude: result },
-          });
-        } else {
-          updateWaypoint(wp.id, { altitude: Math.round(realAlt) });
-        }
-      }
-
-      // Validate leg data
+      // --- Phase 1: Validate legs (distance, azimuth, D+/D-) ---
+      // Legs are processed first so that profile endpoint elevations populate the cache,
+      // avoiding redundant single-point API calls in the waypoint phase.
       for (const leg of currentLegs) {
         if (isStale()) break;
         const from = currentWaypoints.find((w) => w.id === leg.fromWaypointId);
@@ -118,22 +97,18 @@ export function ActionBar() {
         const validationUpdates: Partial<NonNullable<typeof leg.validationState>> = {};
         const fieldUpdates: Partial<Leg> = {};
 
-        // Distance: validate if user entered, auto-fill if empty
+        // Distance
         const realDist = haversineDistance(from.lat, from.lon, to.lat, to.lon);
         if (leg.distance != null) {
           const distTol = realDist > 0
             ? percentageTolerance(realDist, tol.distance)
             : { strict: tol.distance / 100, loose: (tol.distance / 100) * 2 };
-          validationUpdates.distance = validateValue(
-            leg.distance,
-            realDist,
-            distTol
-          );
+          validationUpdates.distance = validateValue(leg.distance, realDist, distTol);
         } else {
           fieldUpdates.distance = Math.round(realDist * 1000) / 1000;
         }
 
-        // Azimuth: validate if user entered, auto-fill if empty
+        // Azimuth
         const realAz = forwardAzimuth(from.lat, from.lon, to.lat, to.lon);
         if (leg.azimuth != null) {
           validationUpdates.azimuth = validateAzimuth(leg.azimuth, realAz, {
@@ -144,49 +119,39 @@ export function ActionBar() {
           fieldUpdates.azimuth = Math.round(realAz * 10) / 10;
         }
 
-        // Elevation gain/loss: sample elevation profile along the leg (same as Track mode)
+        // Elevation D+/D-: sample profile along the leg (same as Track mode)
         const distM = realDist * 1000;
         const numPoints = Math.min(50, Math.max(2, Math.ceil(distM / sampleInterval(distM))));
         const profilePoints = interpolatePoints(from.lat, from.lon, to.lat, to.lon, numPoints);
         const profileElevations = await fetchElevationProfile(profilePoints);
         if (isStale()) break;
 
-        const { gain: cGain, loss: cLoss } = cumulativeElevation(profileElevations);
-        if (cGain == null || cLoss == null) {
+        // Cache endpoint elevations for the waypoint phase
+        const firstAlt = profileElevations[0];
+        const lastAlt = profileElevations[profileElevations.length - 1];
+        if (firstAlt != null) elevationCache.set(`${from.lat},${from.lon}`, firstAlt);
+        if (lastAlt != null) elevationCache.set(`${to.lat},${to.lon}`, lastAlt);
+
+        const { gain: realGain, loss: realLoss } = cumulativeElevation(profileElevations);
+        if (realGain == null || realLoss == null) {
           apiAvailable = false;
         } else {
-          const realGain = cGain;
-          const realLoss = cLoss;
           if (leg.elevationGain != null) {
             const elevGainTol = realGain > 0
               ? percentageTolerance(realGain, tol.elevationDelta)
               : { strict: tol.elevationDelta / 100, loose: (tol.elevationDelta / 100) * 2 };
-            validationUpdates.elevationGain = validateValue(
-              leg.elevationGain,
-              realGain,
-              elevGainTol
-            );
+            validationUpdates.elevationGain = validateValue(leg.elevationGain, realGain, elevGainTol);
           } else {
-            fieldUpdates.elevationGain = Math.round(realGain);
+            fieldUpdates.elevationGain = realGain;
           }
           if (leg.elevationLoss != null) {
             const elevLossTol = realLoss > 0
               ? percentageTolerance(realLoss, tol.elevationDelta)
               : { strict: tol.elevationDelta / 100, loose: (tol.elevationDelta / 100) * 2 };
-            validationUpdates.elevationLoss = validateValue(
-              leg.elevationLoss,
-              realLoss,
-              elevLossTol
-            );
+            validationUpdates.elevationLoss = validateValue(leg.elevationLoss, realLoss, elevLossTol);
           } else {
-            fieldUpdates.elevationLoss = Math.round(realLoss);
+            fieldUpdates.elevationLoss = realLoss;
           }
-
-          // Also update waypoint altitudes from the profile endpoints
-          const firstAlt = profileElevations[0];
-          const lastAlt = profileElevations[profileElevations.length - 1];
-          if (firstAlt != null) elevationCache.set(`${from.lat},${from.lon}`, firstAlt);
-          if (lastAlt != null) elevationCache.set(`${to.lat},${to.lon}`, lastAlt);
         }
 
         const legUpdate: Partial<Leg> = { ...fieldUpdates };
@@ -195,6 +160,29 @@ export function ActionBar() {
         }
         if (Object.keys(legUpdate).length > 0) {
           updateLeg(leg.id, legUpdate);
+        }
+      }
+
+      // --- Phase 2: Validate waypoint altitudes ---
+      // Most waypoints already have their elevation cached from profile endpoints above.
+      // Only orphan waypoints (not connected to any leg) will trigger a new API call.
+      for (const wp of currentWaypoints) {
+        if (isStale()) break;
+        if (wp.lat == null || wp.lon == null) continue;
+        const realAlt = await getCachedElevation(wp.lat, wp.lon);
+        if (realAlt == null) {
+          apiAvailable = false;
+          continue;
+        }
+        if (wp.altitude != null) {
+          updateWaypoint(wp.id, {
+            validationState: { altitude: validateValue(wp.altitude, realAlt, {
+              strict: tol.altitude,
+              loose: tol.altitude * 2,
+            }) },
+          });
+        } else {
+          updateWaypoint(wp.id, { altitude: Math.round(realAlt) });
         }
       }
 
