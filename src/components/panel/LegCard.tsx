@@ -65,7 +65,8 @@ export function LegCard({ leg }: { leg: Leg }) {
         />
       </div>
       {/* Derived data */}
-      <div className="flex gap-3 mt-2 text-gray-400">
+      <div className="flex flex-wrap gap-3 mt-2 text-gray-400">
+        <span className="text-gray-500 italic">✈ linea d&apos;aria</span>
         {leg.estimatedTime != null && (
           <span>Tempo: {formatTime(leg.estimatedTime)}</span>
         )}

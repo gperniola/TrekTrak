@@ -61,13 +61,13 @@ const STEPS: TutorialStep[] = [
   },
   {
     title: 'Inserisci i dati manualmente',
-    text: 'Apri il menu (☰) per vedere waypoint e tratte. In modalità Learn, inserisci tu i valori di distanza, dislivello e azimuth (la direzione rispetto al Nord).',
+    text: 'Apri il menu (☰) per vedere waypoint e tratte. In modalità Learn, inserisci tu i valori di distanza in linea d\'aria, dislivello e azimuth (la direzione rispetto al Nord).',
     icon: '✏️',
     mockup: <MenuMockup highlight="fields" />,
   },
   {
     title: 'Verifica i calcoli',
-    text: 'In fondo al menu trovi il pulsante "Verifica": premilo per confrontare i tuoi valori con quelli calcolati dall\'app.',
+    text: 'In fondo al menu trovi il pulsante "Verifica": premilo per confrontare i tuoi valori con quelli calcolati dall\'app. Le distanze sono calcolate in linea d\'aria tra i waypoint.',
     icon: '✅',
     mockup: <MenuMockup highlight="verify" />,
   },
