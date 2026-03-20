@@ -8,6 +8,7 @@ import { downloadGPX } from '@/lib/export-gpx';
 import { calculateDifficulty, haversineDistance, forwardAzimuth, interpolatePoints, cumulativeElevation, sampleInterval } from '@/lib/calculations';
 import { fetchElevation, fetchElevationProfile } from '@/lib/elevation-api';
 import { validateValue, validateAzimuth, percentageTolerance } from '@/lib/validation';
+import { fetchTrailRoute } from '@/lib/routing-api';
 
 
 export function ActionBar() {
@@ -84,10 +85,9 @@ export function ActionBar() {
       const currentState = useItineraryStore.getState();
       const currentWaypoints = currentState.waypoints;
       const currentLegs = currentState.legs;
+      const useTrailRouting = currentState.settings.mapDisplay.trailRouting;
 
       // --- Phase 1: Validate legs (distance, azimuth, D+/D-) ---
-      // Legs are processed first so that profile endpoint elevations populate the cache,
-      // avoiding redundant single-point API calls in the waypoint phase.
       for (const leg of currentLegs) {
         if (isStale()) break;
         const from = currentWaypoints.find((w) => w.id === leg.fromWaypointId);
@@ -97,18 +97,7 @@ export function ActionBar() {
         const validationUpdates: Partial<NonNullable<typeof leg.validationState>> = {};
         const fieldUpdates: Partial<Leg> = {};
 
-        // Distance
-        const realDist = haversineDistance(from.lat, from.lon, to.lat, to.lon);
-        if (leg.distance != null) {
-          const distTol = realDist > 0
-            ? percentageTolerance(realDist, tol.distance)
-            : { strict: tol.distance / 100, loose: (tol.distance / 100) * 2 };
-          validationUpdates.distance = validateValue(leg.distance, realDist, distTol);
-        } else {
-          fieldUpdates.distance = Math.round(realDist * 1000) / 1000;
-        }
-
-        // Azimuth
+        // Azimuth (always straight-line, regardless of routing mode)
         const realAz = forwardAzimuth(from.lat, from.lon, to.lat, to.lon);
         if (leg.azimuth != null) {
           validationUpdates.azimuth = validateAzimuth(leg.azimuth, realAz, {
@@ -119,23 +108,26 @@ export function ActionBar() {
           fieldUpdates.azimuth = Math.round(realAz * 10) / 10;
         }
 
-        // Elevation D+/D-: sample profile along the leg (same as Track mode)
-        const distM = realDist * 1000;
-        const numPoints = Math.min(95, Math.max(2, Math.ceil(distM / sampleInterval(distM))));
-        const profilePoints = interpolatePoints(from.lat, from.lon, to.lat, to.lon, numPoints);
-        const profileElevations = await fetchElevationProfile(profilePoints);
+        // Try ORS trail routing if enabled
+        const trailRoute = useTrailRouting
+          ? await fetchTrailRoute(from.lat, from.lon, to.lat, to.lon)
+          : null;
         if (isStale()) break;
 
-        // Cache endpoint elevations for the waypoint phase
-        const firstAlt = profileElevations[0];
-        const lastAlt = profileElevations[profileElevations.length - 1];
-        if (firstAlt != null) elevationCache.set(`${from.lat},${from.lon}`, firstAlt);
-        if (lastAlt != null) elevationCache.set(`${to.lat},${to.lon}`, lastAlt);
+        if (trailRoute) {
+          // --- Trail routing: use ORS distance, D+/D-, and elevations ---
+          const realDist = trailRoute.distanceKm;
+          if (leg.distance != null) {
+            const distTol = realDist > 0
+              ? percentageTolerance(realDist, tol.distance)
+              : { strict: tol.distance / 100, loose: (tol.distance / 100) * 2 };
+            validationUpdates.distance = validateValue(leg.distance, realDist, distTol);
+          } else {
+            fieldUpdates.distance = Math.round(realDist * 1000) / 1000;
+          }
 
-        const { gain: realGain, loss: realLoss } = cumulativeElevation(profileElevations);
-        if (realGain == null || realLoss == null) {
-          apiAvailable = false;
-        } else {
+          const realGain = Math.round(trailRoute.ascent);
+          const realLoss = Math.round(trailRoute.descent);
           if (leg.elevationGain != null) {
             const elevGainTol = realGain > 0
               ? percentageTolerance(realGain, tol.elevationDelta)
@@ -151,6 +143,54 @@ export function ActionBar() {
             validationUpdates.elevationLoss = validateValue(leg.elevationLoss, realLoss, elevLossTol);
           } else {
             fieldUpdates.elevationLoss = realLoss;
+          }
+
+          // Cache endpoint altitudes from ORS
+          if (trailRoute.fromElevation != null) elevationCache.set(`${from.lat},${from.lon}`, trailRoute.fromElevation);
+          if (trailRoute.toElevation != null) elevationCache.set(`${to.lat},${to.lon}`, trailRoute.toElevation);
+        } else {
+          // --- Classic: straight-line distance + DEM elevation sampling ---
+          const realDist = haversineDistance(from.lat, from.lon, to.lat, to.lon);
+          if (leg.distance != null) {
+            const distTol = realDist > 0
+              ? percentageTolerance(realDist, tol.distance)
+              : { strict: tol.distance / 100, loose: (tol.distance / 100) * 2 };
+            validationUpdates.distance = validateValue(leg.distance, realDist, distTol);
+          } else {
+            fieldUpdates.distance = Math.round(realDist * 1000) / 1000;
+          }
+
+          const distM = realDist * 1000;
+          const numPoints = Math.min(95, Math.max(2, Math.ceil(distM / sampleInterval(distM))));
+          const profilePoints = interpolatePoints(from.lat, from.lon, to.lat, to.lon, numPoints);
+          const profileElevations = await fetchElevationProfile(profilePoints);
+          if (isStale()) break;
+
+          const firstAlt = profileElevations[0];
+          const lastAlt = profileElevations[profileElevations.length - 1];
+          if (firstAlt != null) elevationCache.set(`${from.lat},${from.lon}`, firstAlt);
+          if (lastAlt != null) elevationCache.set(`${to.lat},${to.lon}`, lastAlt);
+
+          const { gain: realGain, loss: realLoss } = cumulativeElevation(profileElevations);
+          if (realGain == null || realLoss == null) {
+            apiAvailable = false;
+          } else {
+            if (leg.elevationGain != null) {
+              const elevGainTol = realGain > 0
+                ? percentageTolerance(realGain, tol.elevationDelta)
+                : { strict: tol.elevationDelta / 100, loose: (tol.elevationDelta / 100) * 2 };
+              validationUpdates.elevationGain = validateValue(leg.elevationGain, realGain, elevGainTol);
+            } else {
+              fieldUpdates.elevationGain = realGain;
+            }
+            if (leg.elevationLoss != null) {
+              const elevLossTol = realLoss > 0
+                ? percentageTolerance(realLoss, tol.elevationDelta)
+                : { strict: tol.elevationDelta / 100, loose: (tol.elevationDelta / 100) * 2 };
+              validationUpdates.elevationLoss = validateValue(leg.elevationLoss, realLoss, elevLossTol);
+            } else {
+              fieldUpdates.elevationLoss = realLoss;
+            }
           }
         }
 

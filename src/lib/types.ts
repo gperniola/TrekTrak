@@ -59,10 +59,12 @@ export interface ToleranceSettings {
 
 export interface MapDisplaySettings {
   coloredPath: boolean;
+  trailRouting: boolean;
 }
 
 export const DEFAULT_MAP_DISPLAY: MapDisplaySettings = {
   coloredPath: false,
+  trailRouting: false,
 };
 
 export interface AppSettings {

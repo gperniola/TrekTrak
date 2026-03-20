@@ -2,18 +2,40 @@
 
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { saveSettings } from '@/lib/storage';
+import { isRoutingAvailable } from '@/lib/routing-api';
 import { useEffect } from 'react';
+
+function ToggleSwitch({ checked, onChange, label }: { checked: boolean; onChange: () => void; label: string }) {
+  return (
+    <button
+      onClick={onChange}
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ml-3 focus-visible:ring-2 focus-visible:ring-green-400 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900 ${
+        checked ? 'bg-green-600' : 'bg-gray-600'
+      }`}
+    >
+      <span
+        className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200 ${
+          checked ? 'translate-x-5' : ''
+        }`}
+      />
+    </button>
+  );
+}
 
 export function MapSettings({ onClose }: { onClose: () => void }) {
   const settings = useItineraryStore((s) => s.settings);
   const updateSettings = useItineraryStore((s) => s.updateSettings);
   const appMode = useItineraryStore((s) => s.appMode);
-  const coloredPath = settings.mapDisplay.coloredPath;
+  const { coloredPath, trailRouting } = settings.mapDisplay;
+  const orsAvailable = isRoutingAvailable();
 
-  const toggle = () => {
+  const toggleSetting = (key: 'coloredPath' | 'trailRouting') => {
     const newSettings = {
       ...settings,
-      mapDisplay: { ...settings.mapDisplay, coloredPath: !coloredPath },
+      mapDisplay: { ...settings.mapDisplay, [key]: !settings.mapDisplay[key] },
     };
     updateSettings(newSettings);
     saveSettings(newSettings);
@@ -50,6 +72,32 @@ export function MapSettings({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
+        {/* Trail routing toggle */}
+        <div className="flex items-center justify-between py-3 border-t border-gray-700">
+          <div>
+            <div className="text-sm text-gray-300">Percorso su sentiero</div>
+            <div className="text-[10px] text-gray-500 mt-0.5">
+              Calcola distanza e tracciato lungo i sentieri (OpenRouteService)
+            </div>
+            {!orsAvailable && (
+              <div className="text-[10px] text-red-400 mt-1">
+                API key ORS non configurata
+              </div>
+            )}
+            {orsAvailable && trailRouting && (
+              <div className="text-[10px] text-green-400 mt-1">
+                Distanza, D+/D- e tracciato calcolati lungo il sentiero
+              </div>
+            )}
+          </div>
+          <ToggleSwitch
+            checked={trailRouting}
+            onChange={() => toggleSetting('trailRouting')}
+            label="Percorso su sentiero"
+          />
+        </div>
+
+        {/* Colored path toggle */}
         <div className="flex items-center justify-between py-3 border-t border-gray-700">
           <div>
             <div className="text-sm text-gray-300">Percorso colorato</div>
@@ -62,20 +110,11 @@ export function MapSettings({ onClose }: { onClose: () => void }) {
               </div>
             )}
           </div>
-          <button
-            onClick={toggle}
-            role="switch"
-            aria-checked={coloredPath}
-            className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ml-3 focus-visible:ring-2 focus-visible:ring-green-400 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900 ${
-              coloredPath ? 'bg-green-600' : 'bg-gray-600'
-            }`}
-          >
-            <span
-              className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200 ${
-                coloredPath ? 'translate-x-5' : ''
-              }`}
-            />
-          </button>
+          <ToggleSwitch
+            checked={coloredPath}
+            onChange={() => toggleSetting('coloredPath')}
+            label="Percorso colorato"
+          />
         </div>
       </div>
     </div>

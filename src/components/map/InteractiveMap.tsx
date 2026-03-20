@@ -166,26 +166,24 @@ async function autoFillLegGuided(
 
 async function autoFillTrackData(waypointId: string) {
   const generation = ++autoFillGeneration;
-  const capturedRouting = useItineraryStore.getState().trackRouting;
+  const store = useItineraryStore.getState();
+  const useTrailRouting = store.settings.mapDisplay.trailRouting;
   const isStale = () =>
     autoFillGeneration !== generation ||
-    useItineraryStore.getState().appMode !== 'track' ||
-    useItineraryStore.getState().trackRouting !== capturedRouting;
+    useItineraryStore.getState().appMode !== 'track';
 
-  const store = useItineraryStore.getState();
   const { updateWaypoint, updateLeg } = store;
   const waypoints = store.waypoints;
   const legs = store.legs;
-  const isGuided = capturedRouting === 'guided';
   const routingWarnings: string[] = [];
   const elevationCache = new Map<string, number | null>();
 
   const wp = waypoints.find((w) => w.id === waypointId);
   if (!wp || wp.lat == null || wp.lon == null) return;
 
-  // In classic mode, fetch elevation for this waypoint (cached for reuse in leg processing)
-  // In guided mode, defer to ORS-provided elevation in autoFillLegGuided for consistency
-  if (!isGuided) {
+  // In classic mode, fetch elevation for this waypoint
+  // In trail routing mode, defer to ORS-provided elevation for consistency
+  if (!useTrailRouting) {
     const currentWp = useItineraryStore.getState().waypoints.find((w) => w.id === wp.id);
     if (currentWp && currentWp.altitude == null) {
       const wpElevation = await getCachedElevation(wp.lat, wp.lon, elevationCache);
@@ -209,7 +207,7 @@ async function autoFillTrackData(waypointId: string) {
     if (!fromWp || !toWp) continue;
     if (fromWp.lat == null || fromWp.lon == null || toWp.lat == null || toWp.lon == null) continue;
 
-    if (isGuided) {
+    if (useTrailRouting) {
       await autoFillLegGuided(
         leg, fromWp.lat, fromWp.lon, toWp.lat, toWp.lon,
         fromWp.name, toWp.name,
