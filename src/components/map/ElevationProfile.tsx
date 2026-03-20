@@ -1,15 +1,40 @@
 'use client';
 
-import { useId } from 'react';
+import { useId, useState, useRef, useEffect } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceDot } from 'recharts';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { buildGradientStops } from '@/lib/calculations';
+
+const ESTIMATED_TOOLTIP = 'Questo profilo è basato solo sulle quote inserite ai waypoint. Non tiene conto del terreno reale tra un punto e l\'altro: salite e discese intermedie non sono rappresentate.';
 
 export function ElevationProfile() {
   const strokeGradientId = useId();
   const fillGradientId = useId();
   const waypoints = useItineraryStore((s) => s.waypoints);
   const legs = useItineraryStore((s) => s.legs);
+  const appMode = useItineraryStore((s) => s.appMode);
+
+  const isEstimated = appMode === 'learn';
+
+  // Tooltip state for "stimato" label
+  const [tipOpen, setTipOpen] = useState(false);
+  const tipRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (!tipOpen) return;
+    const close = (e: MouseEvent | TouchEvent) => {
+      if (tipRef.current && !tipRef.current.contains(e.target as Node)) setTipOpen(false);
+    };
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setTipOpen(false); };
+    document.addEventListener('mousedown', close);
+    document.addEventListener('touchstart', close);
+    document.addEventListener('keydown', esc);
+    return () => {
+      document.removeEventListener('mousedown', close);
+      document.removeEventListener('touchstart', close);
+      document.removeEventListener('keydown', esc);
+    };
+  }, [tipOpen]);
 
   // Try to build detailed profile from leg elevation data
   let profileData: { distance: number; altitude: number }[] = [];
@@ -69,7 +94,7 @@ export function ElevationProfile() {
 
   if (profileData.length < 2) {
     return (
-      <div className="h-full flex items-center justify-center text-gray-500 text-sm">
+      <div className={`h-full flex items-center justify-center text-gray-500 text-sm ${isEstimated ? 'bg-red-950/30' : ''}`}>
         Aggiungi almeno 2 waypoint con quota per il profilo altimetrico
       </div>
     );
@@ -86,8 +111,27 @@ export function ElevationProfile() {
   const hasGradient = stops.length > 0;
 
   return (
-    <div className="h-full p-2">
-      <div className="text-xs text-gray-500 mb-1">Profilo altimetrico</div>
+    <div className={`h-full p-2 ${isEstimated ? 'bg-red-950/30' : ''}`}>
+      <div className="text-xs mb-1 flex items-center gap-1">
+        <span className="text-gray-500">Profilo altimetrico</span>
+        {isEstimated && (
+          <span ref={tipRef} className="relative inline-flex">
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setTipOpen((p) => !p); }}
+              className="text-red-400 font-bold cursor-pointer"
+              aria-label="Info profilo stimato"
+            >
+              stimato
+            </button>
+            {tipOpen && (
+              <div role="tooltip" className="absolute left-0 bottom-6 z-[1300] bg-gray-800 border border-gray-600 rounded px-2.5 py-1.5 text-[10px] text-gray-300 shadow-lg max-w-[220px] leading-tight">
+                {ESTIMATED_TOOLTIP}
+              </div>
+            )}
+          </span>
+        )}
+      </div>
       <ResponsiveContainer width="100%" height="85%">
         <AreaChart data={profileData}>
           <defs>
