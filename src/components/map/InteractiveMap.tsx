@@ -343,33 +343,46 @@ function ColoredLegSegments({ leg, fromLat, fromLon, toLat, toLon }: {
     );
   }
 
-  // Smooth altitudes to match the elevation chart gradient colors
+  // Smooth altitudes to match the elevation chart gradient colors.
+  // Group consecutive same-color segments into single Polylines so the
+  // dashArray pattern flows correctly instead of restarting per segment.
   const smoothed = smoothAltitudes(profile);
-  const segments: JSX.Element[] = [];
+
+  type ColorGroup = { color: string; positions: [number, number][] };
+  const groups: ColorGroup[] = [];
+
   for (let i = 0; i < profile.length - 1; i++) {
     const t1 = profile[i].distance / totalDist;
     const t2 = profile[i + 1].distance / totalDist;
-    const lat1 = fromLat + t1 * (toLat - fromLat);
-    const lon1 = fromLon + t1 * (toLon - fromLon);
-    const lat2 = fromLat + t2 * (toLat - fromLat);
-    const lon2 = fromLon + t2 * (toLon - fromLon);
+    const p1: [number, number] = [fromLat + t1 * (toLat - fromLat), fromLon + t1 * (toLon - fromLon)];
+    const p2: [number, number] = [fromLat + t2 * (toLat - fromLat), fromLon + t2 * (toLon - fromLon)];
 
     const dx = profile[i + 1].distance - profile[i].distance;
     const dy = Math.abs(smoothed[i + 1] - smoothed[i]);
     const slope = dx > 0 ? (dy / (dx * 1000)) * 100 : 0;
     const color = slopeColor(slope);
 
-    segments.push(
-      <Polyline
-        key={`${i}`}
-        positions={[[lat1, lon1], [lat2, lon2]]}
-        color={color}
-        weight={3}
-        dashArray="6 4"
-      />
-    );
+    const lastGroup = groups[groups.length - 1];
+    if (lastGroup && lastGroup.color === color) {
+      lastGroup.positions.push(p2);
+    } else {
+      groups.push({ color, positions: [p1, p2] });
+    }
   }
-  return <>{segments}</>;
+
+  return (
+    <>
+      {groups.map((g, i) => (
+        <Polyline
+          key={`${i}`}
+          positions={g.positions}
+          color={g.color}
+          weight={3}
+          dashArray="8 4"
+        />
+      ))}
+    </>
+  );
 }
 
 function LegPolylines() {
