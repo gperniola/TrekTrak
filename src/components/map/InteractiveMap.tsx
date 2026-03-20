@@ -41,7 +41,7 @@ async function getCachedElevation(
   return result;
 }
 
-const MAX_SAMPLE_POINTS = 50;
+const MAX_SAMPLE_POINTS = 100;
 
 async function autoFillLegClassic(
   leg: Leg,

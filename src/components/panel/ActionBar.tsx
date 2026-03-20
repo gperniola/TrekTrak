@@ -121,7 +121,7 @@ export function ActionBar() {
 
         // Elevation D+/D-: sample profile along the leg (same as Track mode)
         const distM = realDist * 1000;
-        const numPoints = Math.min(50, Math.max(2, Math.ceil(distM / sampleInterval(distM))));
+        const numPoints = Math.min(100, Math.max(2, Math.ceil(distM / sampleInterval(distM))));
         const profilePoints = interpolatePoints(from.lat, from.lon, to.lat, to.lon, numPoints);
         const profileElevations = await fetchElevationProfile(profilePoints);
         if (isStale()) break;
