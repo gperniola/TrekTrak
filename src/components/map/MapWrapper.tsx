@@ -7,6 +7,10 @@ const InteractiveMap = dynamic(
   { ssr: false, loading: () => <div className="h-full w-full bg-gray-800 flex items-center justify-center text-gray-500">Caricamento mappa...</div> }
 );
 
-export function MapWrapper({ mobileSearchOpen }: { mobileSearchOpen?: boolean }) {
-  return <InteractiveMap mobileSearchOpen={mobileSearchOpen} />;
+export function MapWrapper({ mobileSearchOpen, compassActive, onCompassDeactivate }: {
+  mobileSearchOpen?: boolean;
+  compassActive?: boolean;
+  onCompassDeactivate?: () => void;
+}) {
+  return <InteractiveMap mobileSearchOpen={mobileSearchOpen} compassActive={compassActive} onCompassDeactivate={onCompassDeactivate} />;
 }

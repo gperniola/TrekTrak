@@ -17,6 +17,7 @@ export default function Home() {
   const [showMapSettings, setShowMapSettings] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [compassActive, setCompassActive] = useState(false);
 
   // Hydrate settings from localStorage on mount
   useEffect(() => {
@@ -108,12 +109,12 @@ export default function Home() {
             </div>
           </div>
           {/* Row 2: Mode switch (Learn / Track) */}
-          <ModeSwitch />
+          <ModeSwitch compassActive={compassActive} onCompassToggle={() => setCompassActive((p) => !p)} />
         </div>
 
         {/* Map */}
         <div className="flex-1 relative min-h-0 overflow-hidden">
-          <MapWrapper mobileSearchOpen={searchOpen} />
+          <MapWrapper mobileSearchOpen={searchOpen} compassActive={compassActive} onCompassDeactivate={() => setCompassActive(false)} />
 
           {/* Settings toggles — desktop only */}
           <div className="hidden lg:flex absolute top-3 left-3 z-[1000] gap-1">

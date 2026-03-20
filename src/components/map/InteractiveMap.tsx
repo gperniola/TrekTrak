@@ -10,6 +10,7 @@ import { fetchElevation, fetchElevationProfile } from '@/lib/elevation-api';
 import { haversineDistance, forwardAzimuth, interpolatePoints, cumulativeElevation, sampleInterval, slopeColor, smoothAltitudes } from '@/lib/calculations';
 import { fetchTrailRoute } from '@/lib/routing-api';
 import { LocationSearch } from './LocationSearch';
+import { CompassOverlay } from './CompassTool';
 import type { Leg } from '@/lib/types';
 
 // Icon cache to avoid recreating on every render
@@ -466,7 +467,11 @@ function LegPolylines() {
   );
 }
 
-export function InteractiveMap({ mobileSearchOpen }: { mobileSearchOpen?: boolean }) {
+export function InteractiveMap({ mobileSearchOpen, compassActive, onCompassDeactivate }: {
+  mobileSearchOpen?: boolean;
+  compassActive?: boolean;
+  onCompassDeactivate?: () => void;
+}) {
   const waypoints = useItineraryStore((s) => s.waypoints);
   const updateWaypointPosition = useItineraryStore((s) => s.updateWaypointPosition);
 
@@ -517,6 +522,7 @@ export function InteractiveMap({ mobileSearchOpen }: { mobileSearchOpen?: boolea
       ))}
 
       <LegPolylines />
+      <CompassOverlay active={!!compassActive} onDeactivate={onCompassDeactivate ?? (() => {})} />
     </MapContainer>
   );
 }
