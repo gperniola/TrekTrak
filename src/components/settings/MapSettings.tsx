@@ -5,20 +5,21 @@ import { saveSettings } from '@/lib/storage';
 import { isRoutingAvailable } from '@/lib/routing-api';
 import { useEffect } from 'react';
 
-function ToggleSwitch({ checked, onChange, label }: { checked: boolean; onChange: () => void; label: string }) {
+function ToggleSwitch({ checked, onChange, label, disabled }: { checked: boolean; onChange: () => void; label: string; disabled?: boolean }) {
   return (
     <button
-      onClick={onChange}
+      onClick={disabled ? undefined : onChange}
       role="switch"
       aria-checked={checked}
       aria-label={label}
+      disabled={disabled}
       className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ml-3 focus-visible:ring-2 focus-visible:ring-green-400 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900 ${
-        checked ? 'bg-green-600' : 'bg-gray-600'
+        disabled ? 'bg-gray-700 opacity-50 cursor-not-allowed' : checked ? 'bg-green-600' : 'bg-gray-600'
       }`}
     >
       <span
         className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200 ${
-          checked ? 'translate-x-5' : ''
+          checked && !disabled ? 'translate-x-5' : ''
         }`}
       />
     </button>
@@ -91,9 +92,10 @@ export function MapSettings({ onClose }: { onClose: () => void }) {
             )}
           </div>
           <ToggleSwitch
-            checked={trailRouting}
+            checked={trailRouting && orsAvailable}
             onChange={() => toggleSetting('trailRouting')}
             label="Percorso su sentiero"
+            disabled={!orsAvailable}
           />
         </div>
 

@@ -1,6 +1,6 @@
 import { describe, expect, test, beforeEach } from '@jest/globals';
 import { useItineraryStore } from '../stores/itineraryStore';
-import type { AppMode, TrackRouting } from '../lib/types';
+import type { AppMode } from '../lib/types';
 
 beforeEach(() => {
   useItineraryStore.setState({
@@ -10,7 +10,6 @@ beforeEach(() => {
     legs: [],
     settings: { tolerances: { altitude: 50, coordinates: 0.001, distance: 10, azimuth: 5, elevationDelta: 15 }, mapDisplay: { coloredPath: false, trailRouting: false } },
     appMode: 'learn' as AppMode,
-    trackRouting: 'classic' as TrackRouting,
   });
 });
 
@@ -224,36 +223,6 @@ describe('appMode', () => {
   });
 });
 
-describe('trackRouting', () => {
-  test('defaults to classic', () => {
-    expect(useItineraryStore.getState().trackRouting).toBe('classic');
-  });
-
-  test('switches to guided', () => {
-    useItineraryStore.getState().setTrackRouting('guided');
-    expect(useItineraryStore.getState().trackRouting).toBe('guided');
-  });
-
-  test('no-op when setting same routing', () => {
-    useItineraryStore.getState().setTrackRouting('classic');
-    expect(useItineraryStore.getState().trackRouting).toBe('classic');
-  });
-
-  test('clears routeGeometry when switching to classic', () => {
-    useItineraryStore.getState().setTrackRouting('guided');
-    useItineraryStore.getState().addWaypoint();
-    useItineraryStore.getState().addWaypoint();
-    const legId = useItineraryStore.getState().legs[0].id;
-    useItineraryStore.getState().updateLeg(legId, {
-      routeGeometry: [[46.0, 11.0], [46.01, 11.01]],
-    });
-
-    useItineraryStore.getState().setTrackRouting('classic');
-
-    expect(useItineraryStore.getState().legs[0].routeGeometry).toBeUndefined();
-  });
-});
-
 describe('routeGeometry cleanup on structural changes', () => {
   test('removeWaypoint strips routeGeometry from preserved legs', () => {
     // Setup: 3 waypoints, 2 legs
@@ -398,8 +367,6 @@ describe('resetItinerary', () => {
     useItineraryStore.getState().addWaypoint();
     useItineraryStore.getState().setItineraryName('Test');
     useItineraryStore.getState().setAppMode('track');
-    useItineraryStore.getState().setTrackRouting('guided');
-
     useItineraryStore.getState().resetItinerary();
 
     expect(useItineraryStore.getState().waypoints).toHaveLength(0);
@@ -407,7 +374,8 @@ describe('resetItinerary', () => {
     expect(useItineraryStore.getState().itineraryName).toBe('');
     // Mode and settings are preserved on reset
     expect(useItineraryStore.getState().appMode).toBe('track');
-    expect(useItineraryStore.getState().trackRouting).toBe('classic');
+    expect(useItineraryStore.getState().settings.tolerances.altitude).toBe(50);
+    expect(useItineraryStore.getState().settings.mapDisplay.coloredPath).toBe(false);
   });
 });
 
@@ -526,25 +494,6 @@ describe('elevationProfile clearing', () => {
   test('setAppMode to learn clears elevationProfile', () => {
     setupWithProfile();
     useItineraryStore.getState().setAppMode('learn');
-    expect(useItineraryStore.getState().legs[0].elevationProfile).toBeUndefined();
-  });
-
-  test('setTrackRouting to classic clears elevationProfile', () => {
-    useItineraryStore.getState().setAppMode('track');
-    useItineraryStore.getState().setTrackRouting('guided');
-    useItineraryStore.getState().addWaypoint();
-    useItineraryStore.getState().addWaypoint();
-    const legId = useItineraryStore.getState().legs[0].id;
-    useItineraryStore.getState().updateLeg(legId, {
-      elevationProfile: [{ distance: 0, altitude: 1000 }, { distance: 1, altitude: 1100 }],
-    });
-    useItineraryStore.getState().setTrackRouting('classic');
-    expect(useItineraryStore.getState().legs[0].elevationProfile).toBeUndefined();
-  });
-
-  test('setTrackRouting to guided clears elevationProfile', () => {
-    setupWithProfile();
-    useItineraryStore.getState().setTrackRouting('guided');
     expect(useItineraryStore.getState().legs[0].elevationProfile).toBeUndefined();
   });
 

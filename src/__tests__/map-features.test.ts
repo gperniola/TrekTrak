@@ -1,4 +1,4 @@
-import { describe, expect, test } from '@jest/globals';
+import { describe, expect, test, beforeEach } from '@jest/globals';
 import {
   slopeColor,
   sampleInterval,
@@ -152,7 +152,7 @@ describe('mapDisplay settings persistence', () => {
   test('saves and loads coloredPath=true', () => {
     const settings: AppSettings = {
       tolerances: { ...DEFAULT_TOLERANCES },
-      mapDisplay: { coloredPath: true },
+      mapDisplay: { coloredPath: true, trailRouting: false },
     };
     saveSettings(settings);
     const loaded = loadSettings();
@@ -198,7 +198,7 @@ describe('mapDisplay settings persistence', () => {
   test('toggle preserves tolerances', () => {
     const initial: AppSettings = {
       tolerances: { altitude: 30, coordinates: 0.002, distance: 15, azimuth: 10, elevationDelta: 20 },
-      mapDisplay: { coloredPath: false },
+      mapDisplay: { coloredPath: false, trailRouting: false },
     };
     saveSettings(initial);
 

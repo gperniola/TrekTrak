@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Waypoint, Leg, AppSettings, AppMode, TrackRouting } from '../lib/types';
+import type { Waypoint, Leg, AppSettings, AppMode } from '../lib/types';
 import { DEFAULT_TOLERANCES, DEFAULT_MAP_DISPLAY } from '../lib/types';
 import { calculateMunterTime, calculateSlope } from '../lib/calculations';
 
@@ -39,10 +39,8 @@ interface ItineraryState {
   legs: Leg[];
   settings: AppSettings;
   appMode: AppMode;
-  trackRouting: TrackRouting;
 
   setAppMode: (mode: AppMode) => void;
-  setTrackRouting: (routing: TrackRouting) => void;
   setItineraryName: (name: string) => void;
   addWaypoint: () => void;
   addWaypointAtPosition: (lat: number, lon: number) => void;
@@ -65,7 +63,6 @@ const initialState = {
   legs: [] as Leg[],
   settings: { tolerances: { ...DEFAULT_TOLERANCES }, mapDisplay: { ...DEFAULT_MAP_DISPLAY } } as AppSettings,
   appMode: 'learn' as AppMode,
-  trackRouting: 'classic' as TrackRouting,
 };
 
 export const useItineraryStore = create<ItineraryState>()((set, get) => ({
@@ -98,22 +95,6 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
         appMode: mode,
         waypoints: waypoints.map((wp) => ({ ...wp, validationState: undefined })),
         legs: legs.map((l) => ({ ...l, validationState: undefined })),
-      });
-    }
-  },
-
-  setTrackRouting: (routing) => {
-    if (routing === get().trackRouting) return;
-    // Clear route geometry when switching to classic
-    if (routing === 'classic') {
-      set({
-        trackRouting: routing,
-        legs: get().legs.map((l) => ({ ...l, routeGeometry: undefined, elevationProfile: undefined })),
-      });
-    } else {
-      set({
-        trackRouting: routing,
-        legs: get().legs.map((l) => ({ ...l, elevationProfile: undefined })),
       });
     }
   },
@@ -229,8 +210,8 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
       const existing = legs.find(
         (l) => l.fromWaypointId === reordered[i].id && l.toWaypointId === reordered[i + 1].id
       );
-      const clean = existing ? { ...existing, routeGeometry: undefined, elevationProfile: undefined } : undefined;
-      newLegs.push(clean ?? createEmptyLeg(reordered[i].id, reordered[i + 1].id));
+      // Preserve route data for legs whose from/to waypoints haven't changed
+      newLegs.push(existing ? { ...existing, validationState: undefined } : createEmptyLeg(reordered[i].id, reordered[i + 1].id));
     }
     set({ waypoints: reordered, legs: newLegs });
   },
@@ -255,7 +236,6 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
       legs: [],
       settings,
       appMode,
-      trackRouting: 'classic' as TrackRouting,
     });
   },
 

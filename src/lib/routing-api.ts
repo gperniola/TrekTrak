@@ -1,3 +1,5 @@
+import { haversineDistance } from './calculations';
+
 const ORS_API_KEY = process.env.NEXT_PUBLIC_ORS_API_KEY ?? '';
 const ORS_URL = 'https://api.openrouteservice.org/v2/directions/foot-hiking/geojson';
 const TIMEOUT_MS = 8000;
@@ -44,7 +46,14 @@ export async function fetchTrailRoute(
       signal: controller.signal,
     });
 
-    if (!response.ok) return null;
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        console.error('[ORS] Invalid API key');
+      } else if (response.status === 429) {
+        console.warn('[ORS] Rate limit exceeded');
+      }
+      return null;
+    }
 
     const data = await response.json();
     const feature = data?.features?.[0];
@@ -63,44 +72,51 @@ export async function fetchTrailRoute(
       (c: number[]) => [c[1], c[0]] as [number, number]
     );
 
-    // Extract elevation from first/last coordinate (ORS includes it with elevation: true)
+    // Extract elevation from first/last coordinate
     const firstCoord = coords[0];
     const lastCoord = coords[coords.length - 1];
     const fromElevation = firstCoord?.length >= 3 ? firstCoord[2] : null;
     const toElevation = lastCoord?.length >= 3 ? lastCoord[2] : null;
 
-    // Build elevation profile from ORS coordinates (which include elevation)
-    const totalDistKm = summary.distance / 1000;
+    // Build elevation profile from ORS coordinates
+    const orsDistKm = summary.distance / 1000;
     const elevationProfile: { distance: number; altitude: number }[] = [];
     let cumulDist = 0;
     for (let i = 0; i < coords.length; i++) {
       if (i > 0) {
         const [lon1, lat1] = coords[i - 1];
         const [lon2, lat2] = coords[i];
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLon = (lon2 - lon1) * Math.PI / 180;
-        const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
-        cumulDist += 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        cumulDist += haversineDistance(lat1, lon1, lat2, lon2);
       }
       const elev = coords[i].length >= 3 ? coords[i][2] : null;
       if (elev != null) {
-        elevationProfile.push({
-          distance: Math.round(cumulDist * 10000) / 10000,
-          altitude: elev,
-        });
+        elevationProfile.push({ distance: cumulDist, altitude: elev });
+      }
+    }
+
+    // Scale profile distances to match ORS summary distance (haversine sum may differ)
+    if (cumulDist > 0 && elevationProfile.length > 0) {
+      const scale = orsDistKm / cumulDist;
+      for (const p of elevationProfile) {
+        p.distance = Math.round(p.distance * scale * 10000) / 10000;
       }
     }
 
     return {
       geometry,
-      distanceKm: totalDistKm,
+      distanceKm: orsDistKm,
       ascent: seg0?.ascent ?? summary.ascent ?? 0,
       descent: seg0?.descent ?? summary.descent ?? 0,
       fromElevation,
       toElevation,
       elevationProfile,
     };
-  } catch {
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      console.warn('[ORS] Request timed out');
+    } else {
+      console.warn('[ORS] Route fetch failed:', err);
+    }
     return null;
   } finally {
     clearTimeout(timer);

@@ -315,7 +315,8 @@ function MapEvents() {
   useMapEvents({
     click(e) {
       // Ignore right-click (some browsers may emit click for contextmenu)
-      if ((e.originalEvent as MouseEvent).button !== 0) return;
+      const btn = (e.originalEvent as MouseEvent).button;
+      if (btn != null && btn !== 0) return;
       if (useItineraryStore.getState().waypoints.length >= 50) return;
       addWaypointAtPosition(e.latlng.lat, e.latlng.lng);
 
