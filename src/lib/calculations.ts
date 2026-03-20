@@ -151,7 +151,7 @@ export interface GradientStop {
  * Smooth altitude values with a weighted moving average to reduce DEM noise.
  * Window size 5 with weights [1, 2, 3, 2, 1]. Preserves first and last values.
  */
-function smoothAltitudes(data: { distance: number; altitude: number }[]): number[] {
+export function smoothAltitudes(data: { distance: number; altitude: number }[]): number[] {
   const altitudes = data.map((d) => d.altitude);
   if (altitudes.length <= 4) return altitudes;
   const smoothed = [...altitudes];

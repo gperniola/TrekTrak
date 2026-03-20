@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 export function MapSettings({ onClose }: { onClose: () => void }) {
   const settings = useItineraryStore((s) => s.settings);
   const updateSettings = useItineraryStore((s) => s.updateSettings);
+  const appMode = useItineraryStore((s) => s.appMode);
   const coloredPath = settings.mapDisplay.coloredPath;
 
   const toggle = () => {
@@ -52,18 +53,25 @@ export function MapSettings({ onClose }: { onClose: () => void }) {
         <div className="flex items-center justify-between py-3 border-t border-gray-700">
           <div>
             <div className="text-sm text-gray-300">Percorso colorato</div>
-            <div className="text-[10px] text-gray-500 mt-0.5">Colora la linea del percorso in base alla pendenza</div>
+            <div className="text-[10px] text-gray-500 mt-0.5">
+              Colora la linea del percorso in base alla pendenza
+            </div>
+            {appMode === 'learn' && coloredPath && (
+              <div className="text-[10px] text-amber-400 mt-1">
+                Disponibile in modalità Track con profilo calcolato
+              </div>
+            )}
           </div>
           <button
             onClick={toggle}
             role="switch"
             aria-checked={coloredPath}
-            className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ml-3 ${
+            className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ml-3 focus-visible:ring-2 focus-visible:ring-green-400 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900 ${
               coloredPath ? 'bg-green-600' : 'bg-gray-600'
             }`}
           >
             <span
-              className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+              className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200 ${
                 coloredPath ? 'translate-x-5' : ''
               }`}
             />

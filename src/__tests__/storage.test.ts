@@ -107,9 +107,11 @@ describe('settings', () => {
   test('saves and loads custom settings', () => {
     const custom: AppSettings = {
       tolerances: { altitude: 30, coordinates: 0.002, distance: 15, azimuth: 10, elevationDelta: 20 },
+      mapDisplay: { coloredPath: true },
     };
     saveSettings(custom);
     expect(loadSettings().tolerances.altitude).toBe(30);
+    expect(loadSettings().mapDisplay.coloredPath).toBe(true);
   });
 });
 

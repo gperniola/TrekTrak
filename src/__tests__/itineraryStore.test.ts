@@ -8,7 +8,7 @@ beforeEach(() => {
     itineraryName: '',
     waypoints: [],
     legs: [],
-    settings: { tolerances: { altitude: 50, coordinates: 0.001, distance: 10, azimuth: 5, elevationDelta: 15 } },
+    settings: { tolerances: { altitude: 50, coordinates: 0.001, distance: 10, azimuth: 5, elevationDelta: 15 }, mapDisplay: { coloredPath: false } },
     appMode: 'learn' as AppMode,
     trackRouting: 'classic' as TrackRouting,
   });

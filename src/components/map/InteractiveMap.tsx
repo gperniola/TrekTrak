@@ -7,7 +7,7 @@ import { useItineraryStore } from '@/stores/itineraryStore';
 import { useCallback, useEffect, useRef } from 'react';
 import { useMap } from 'react-leaflet';
 import { fetchElevation, fetchElevationProfile } from '@/lib/elevation-api';
-import { haversineDistance, forwardAzimuth, interpolatePoints, cumulativeElevation, sampleInterval, slopeColor } from '@/lib/calculations';
+import { haversineDistance, forwardAzimuth, interpolatePoints, cumulativeElevation, sampleInterval, slopeColor, smoothAltitudes } from '@/lib/calculations';
 import { fetchTrailRoute } from '@/lib/routing-api';
 import { LocationSearch } from './LocationSearch';
 import type { Leg } from '@/lib/types';
@@ -321,7 +321,6 @@ function ColoredLegSegments({ leg, fromLat, fromLon, toLat, toLon }: {
 }) {
   const profile = leg.elevationProfile;
   if (!profile || profile.length < 2) {
-    // No profile data — fall back to gray dashed
     return (
       <Polyline
         positions={[[fromLat, fromLon], [toLat, toLon]]}
@@ -332,7 +331,6 @@ function ColoredLegSegments({ leg, fromLat, fromLon, toLat, toLon }: {
     );
   }
 
-  // Generate colored segments based on slope between consecutive profile points
   const totalDist = profile[profile.length - 1].distance;
   if (totalDist === 0) {
     return (
@@ -340,12 +338,13 @@ function ColoredLegSegments({ leg, fromLat, fromLon, toLat, toLon }: {
         positions={[[fromLat, fromLon], [toLat, toLon]]}
         color="#4ade80"
         weight={3}
-        dashArray="8 4"
       />
     );
   }
 
-  const segments: React.ReactNode[] = [];
+  // Smooth altitudes to match the elevation chart gradient colors
+  const smoothed = smoothAltitudes(profile);
+  const segments: JSX.Element[] = [];
   for (let i = 0; i < profile.length - 1; i++) {
     const t1 = profile[i].distance / totalDist;
     const t2 = profile[i + 1].distance / totalDist;
@@ -355,7 +354,7 @@ function ColoredLegSegments({ leg, fromLat, fromLon, toLat, toLon }: {
     const lon2 = fromLon + t2 * (toLon - fromLon);
 
     const dx = profile[i + 1].distance - profile[i].distance;
-    const dy = Math.abs(profile[i + 1].altitude - profile[i].altitude);
+    const dy = Math.abs(smoothed[i + 1] - smoothed[i]);
     const slope = dx > 0 ? (dy / (dx * 1000)) * 100 : 0;
     const color = slopeColor(slope);
 
@@ -365,7 +364,6 @@ function ColoredLegSegments({ leg, fromLat, fromLon, toLat, toLon }: {
         positions={[[lat1, lon1], [lat2, lon2]]}
         color={color}
         weight={3}
-        dashArray="8 4"
       />
     );
   }

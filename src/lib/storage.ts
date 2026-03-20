@@ -97,7 +97,7 @@ export function loadSettings(): AppSettings {
       },
     };
   } catch {
-    return { tolerances: { ...DEFAULT_TOLERANCES } };
+    return { tolerances: { ...DEFAULT_TOLERANCES }, mapDisplay: { ...DEFAULT_MAP_DISPLAY } };
   }
 }
 
