@@ -1,5 +1,5 @@
 import type { Itinerary, AppSettings } from './types';
-import { DEFAULT_TOLERANCES } from './types';
+import { DEFAULT_TOLERANCES, DEFAULT_MAP_DISPLAY } from './types';
 
 export const SCHEMA_VERSION = 1;
 
@@ -77,10 +77,10 @@ export function loadSettings(): AppSettings {
   initSchema();
   try {
     const raw = localStorage.getItem(KEYS.settings);
-    if (!raw) return { tolerances: { ...DEFAULT_TOLERANCES } };
+    if (!raw) return { tolerances: { ...DEFAULT_TOLERANCES }, mapDisplay: { ...DEFAULT_MAP_DISPLAY } };
     const parsed = JSON.parse(raw);
     if (typeof parsed?.tolerances !== 'object' || parsed.tolerances == null) {
-      return { tolerances: { ...DEFAULT_TOLERANCES } };
+      return { tolerances: { ...DEFAULT_TOLERANCES }, mapDisplay: { ...DEFAULT_MAP_DISPLAY } };
     }
     return {
       tolerances: {
@@ -90,6 +90,10 @@ export function loadSettings(): AppSettings {
             ([k, v]) => k in DEFAULT_TOLERANCES && typeof v === 'number' && Number.isFinite(v as number) && (v as number) > 0
           )
         ),
+      },
+      mapDisplay: {
+        ...DEFAULT_MAP_DISPLAY,
+        ...(typeof parsed?.mapDisplay === 'object' && parsed.mapDisplay != null ? parsed.mapDisplay : {}),
       },
     };
   } catch {

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { Waypoint, Leg, AppSettings, AppMode, TrackRouting } from '../lib/types';
-import { DEFAULT_TOLERANCES } from '../lib/types';
+import { DEFAULT_TOLERANCES, DEFAULT_MAP_DISPLAY } from '../lib/types';
 import { calculateMunterTime, calculateSlope } from '../lib/calculations';
 
 function generateId(): string {
@@ -63,7 +63,7 @@ const initialState = {
   createdAt: new Date().toISOString(),
   waypoints: [] as Waypoint[],
   legs: [] as Leg[],
-  settings: { tolerances: { ...DEFAULT_TOLERANCES } } as AppSettings,
+  settings: { tolerances: { ...DEFAULT_TOLERANCES }, mapDisplay: { ...DEFAULT_MAP_DISPLAY } } as AppSettings,
   appMode: 'learn' as AppMode,
   trackRouting: 'classic' as TrackRouting,
 };
@@ -252,7 +252,7 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
     createdAt: new Date().toISOString(),
     waypoints: [],
     legs: [],
-    settings: { tolerances: { ...DEFAULT_TOLERANCES } },
+    settings: { tolerances: { ...DEFAULT_TOLERANCES }, mapDisplay: { ...DEFAULT_MAP_DISPLAY } },
     appMode: 'learn' as AppMode,
     trackRouting: 'classic' as TrackRouting,
   }),

@@ -7,7 +7,7 @@ import { useItineraryStore } from '@/stores/itineraryStore';
 import { useCallback, useEffect, useRef } from 'react';
 import { useMap } from 'react-leaflet';
 import { fetchElevation, fetchElevationProfile } from '@/lib/elevation-api';
-import { haversineDistance, forwardAzimuth, interpolatePoints, cumulativeElevation, sampleInterval } from '@/lib/calculations';
+import { haversineDistance, forwardAzimuth, interpolatePoints, cumulativeElevation, sampleInterval, slopeColor } from '@/lib/calculations';
 import { fetchTrailRoute } from '@/lib/routing-api';
 import { LocationSearch } from './LocationSearch';
 import type { Leg } from '@/lib/types';
@@ -316,9 +316,67 @@ function MapEvents() {
   return null;
 }
 
+function ColoredLegSegments({ leg, fromLat, fromLon, toLat, toLon }: {
+  leg: Leg; fromLat: number; fromLon: number; toLat: number; toLon: number;
+}) {
+  const profile = leg.elevationProfile;
+  if (!profile || profile.length < 2) {
+    // No profile data — fall back to gray dashed
+    return (
+      <Polyline
+        positions={[[fromLat, fromLon], [toLat, toLon]]}
+        color="#9ca3af"
+        weight={2}
+        dashArray="8 4"
+      />
+    );
+  }
+
+  // Generate colored segments based on slope between consecutive profile points
+  const totalDist = profile[profile.length - 1].distance;
+  if (totalDist === 0) {
+    return (
+      <Polyline
+        positions={[[fromLat, fromLon], [toLat, toLon]]}
+        color="#4ade80"
+        weight={3}
+        dashArray="8 4"
+      />
+    );
+  }
+
+  const segments: React.ReactNode[] = [];
+  for (let i = 0; i < profile.length - 1; i++) {
+    const t1 = profile[i].distance / totalDist;
+    const t2 = profile[i + 1].distance / totalDist;
+    const lat1 = fromLat + t1 * (toLat - fromLat);
+    const lon1 = fromLon + t1 * (toLon - fromLon);
+    const lat2 = fromLat + t2 * (toLat - fromLat);
+    const lon2 = fromLon + t2 * (toLon - fromLon);
+
+    const dx = profile[i + 1].distance - profile[i].distance;
+    const dy = Math.abs(profile[i + 1].altitude - profile[i].altitude);
+    const slope = dx > 0 ? (dy / (dx * 1000)) * 100 : 0;
+    const color = slopeColor(slope);
+
+    segments.push(
+      <Polyline
+        key={`${i}`}
+        positions={[[lat1, lon1], [lat2, lon2]]}
+        color={color}
+        weight={3}
+        dashArray="8 4"
+      />
+    );
+  }
+  return <>{segments}</>;
+}
+
 function LegPolylines() {
   const waypoints = useItineraryStore((s) => s.waypoints);
   const legs = useItineraryStore((s) => s.legs);
+  const coloredPath = useItineraryStore((s) => s.settings.mapDisplay.coloredPath);
+
   return (
     <>
       {legs.map((leg) => {
@@ -328,7 +386,6 @@ function LegPolylines() {
         if (fromWp.lat == null || fromWp.lon == null || toWp.lat == null || toWp.lon == null) return null;
 
         if (leg.routeGeometry && leg.routeGeometry.length >= 2) {
-          // Trail route from API
           return (
             <Polyline
               key={leg.id}
@@ -339,7 +396,19 @@ function LegPolylines() {
           );
         }
 
-        // Straight line fallback
+        if (coloredPath) {
+          return (
+            <ColoredLegSegments
+              key={leg.id}
+              leg={leg}
+              fromLat={fromWp.lat}
+              fromLon={fromWp.lon}
+              toLat={toWp.lat!}
+              toLon={toWp.lon!}
+            />
+          );
+        }
+
         return (
           <Polyline
             key={leg.id}

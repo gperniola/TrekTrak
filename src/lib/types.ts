@@ -57,8 +57,17 @@ export interface ToleranceSettings {
   elevationDelta: number;
 }
 
+export interface MapDisplaySettings {
+  coloredPath: boolean;
+}
+
+export const DEFAULT_MAP_DISPLAY: MapDisplaySettings = {
+  coloredPath: false,
+};
+
 export interface AppSettings {
   tolerances: ToleranceSettings;
+  mapDisplay: MapDisplaySettings;
 }
 
 export const DEFAULT_TOLERANCES: ToleranceSettings = {

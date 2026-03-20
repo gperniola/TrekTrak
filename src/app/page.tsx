@@ -8,9 +8,11 @@ import { ToleranceSettings } from '@/components/settings/ToleranceSettings';
 import { ModeSwitch } from '@/components/panel/ModeSwitch';
 import { LearnTutorial } from '@/components/tutorial/LearnTutorial';
 import { WhatsNew } from '@/components/tutorial/WhatsNew';
+import { MapSettings } from '@/components/settings/MapSettings';
 
 export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
+  const [showMapSettings, setShowMapSettings] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -79,14 +81,23 @@ export default function Home() {
               ☰
             </button>
             <h1 className="text-base font-bold text-green-400">&#9650; TrekTrak</h1>
-            <button
-              onClick={() => setSearchOpen((p) => !p)}
-              className={`p-2 text-lg hover:text-white min-w-[44px] min-h-[44px] flex items-center justify-center ${searchOpen ? 'text-green-400' : 'text-gray-300'}`}
-              aria-label={searchOpen ? 'Chiudi ricerca' : 'Cerca località'}
-              aria-expanded={searchOpen}
-            >
-              &#128269;
-            </button>
+            <div className="flex items-center">
+              <button
+                onClick={() => setSearchOpen((p) => !p)}
+                className={`p-2 text-lg hover:text-white min-w-[44px] min-h-[44px] flex items-center justify-center ${searchOpen ? 'text-green-400' : 'text-gray-300'}`}
+                aria-label={searchOpen ? 'Chiudi ricerca' : 'Cerca località'}
+                aria-expanded={searchOpen}
+              >
+                &#128269;
+              </button>
+              <button
+                onClick={() => setShowMapSettings(true)}
+                className="p-2 text-lg text-gray-300 hover:text-white min-w-[44px] min-h-[44px] flex items-center justify-center"
+                aria-label="Impostazioni mappa"
+              >
+                &#9881;
+              </button>
+            </div>
           </div>
           {/* Row 2: Mode switch (Learn / Track) */}
           <ModeSwitch />
@@ -96,14 +107,23 @@ export default function Home() {
         <div className="flex-1 relative min-h-0 overflow-hidden">
           <MapWrapper mobileSearchOpen={searchOpen} />
 
-          {/* Settings toggle — desktop only */}
-          <button
-            onClick={() => setShowSettings(true)}
-            className="hidden lg:block absolute top-3 left-3 z-[1000] bg-gray-800/90 px-2 py-1 rounded text-xs text-gray-400 hover:text-white"
-            aria-label="Apri impostazioni"
-          >
+          {/* Settings toggles — desktop only */}
+          <div className="hidden lg:flex absolute top-3 left-3 z-[1000] gap-1">
+            <button
+              onClick={() => setShowSettings(true)}
+              className="bg-gray-800/90 px-2 py-1 rounded text-xs text-gray-400 hover:text-white"
+              aria-label="Apri impostazioni tolleranze"
+            >
             Impostazioni
-          </button>
+            </button>
+            <button
+              onClick={() => setShowMapSettings(true)}
+              className="bg-gray-800/90 px-2 py-1 rounded text-xs text-gray-400 hover:text-white"
+              aria-label="Impostazioni mappa"
+            >
+              Mappa &#9881;
+            </button>
+          </div>
         </div>
 
         {/* Elevation Profile */}
@@ -139,8 +159,9 @@ export default function Home() {
         </div>
       )}
 
-      {/* Settings Modal */}
+      {/* Settings Modals */}
       {showSettings && <ToleranceSettings onClose={() => setShowSettings(false)} />}
+      {showMapSettings && <MapSettings onClose={() => setShowMapSettings(false)} />}
 
       {/* First-visit tutorial */}
       <LearnTutorial />
