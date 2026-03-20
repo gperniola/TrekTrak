@@ -41,7 +41,8 @@ async function getCachedElevation(
   return result;
 }
 
-const MAX_SAMPLE_POINTS = 100;
+// OpenTopoData API limit is 100 locations per GET; use 95 for safety margin
+const MAX_SAMPLE_POINTS = 95;
 
 async function autoFillLegClassic(
   leg: Leg,

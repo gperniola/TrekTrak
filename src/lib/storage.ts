@@ -93,7 +93,11 @@ export function loadSettings(): AppSettings {
       },
       mapDisplay: {
         ...DEFAULT_MAP_DISPLAY,
-        ...(typeof parsed?.mapDisplay === 'object' && parsed.mapDisplay != null ? parsed.mapDisplay : {}),
+        ...Object.fromEntries(
+          Object.entries(
+            typeof parsed?.mapDisplay === 'object' && parsed.mapDisplay != null ? parsed.mapDisplay : {}
+          ).filter(([k, v]) => k in DEFAULT_MAP_DISPLAY && typeof v === 'boolean')
+        ),
       },
     };
   } catch {

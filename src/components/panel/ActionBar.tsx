@@ -8,7 +8,7 @@ import { downloadGPX } from '@/lib/export-gpx';
 import { calculateDifficulty, haversineDistance, forwardAzimuth, interpolatePoints, cumulativeElevation, sampleInterval } from '@/lib/calculations';
 import { fetchElevation, fetchElevationProfile } from '@/lib/elevation-api';
 import { validateValue, validateAzimuth, percentageTolerance } from '@/lib/validation';
-import { formatTime } from '@/lib/format';
+
 
 export function ActionBar() {
   const itineraryName = useItineraryStore((s) => s.itineraryName);
@@ -121,7 +121,7 @@ export function ActionBar() {
 
         // Elevation D+/D-: sample profile along the leg (same as Track mode)
         const distM = realDist * 1000;
-        const numPoints = Math.min(100, Math.max(2, Math.ceil(distM / sampleInterval(distM))));
+        const numPoints = Math.min(95, Math.max(2, Math.ceil(distM / sampleInterval(distM))));
         const profilePoints = interpolatePoints(from.lat, from.lon, to.lat, to.lon, numPoints);
         const profileElevations = await fetchElevationProfile(profilePoints);
         if (isStale()) break;

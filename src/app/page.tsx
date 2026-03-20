@@ -9,12 +9,20 @@ import { ModeSwitch } from '@/components/panel/ModeSwitch';
 import { LearnTutorial } from '@/components/tutorial/LearnTutorial';
 import { WhatsNew } from '@/components/tutorial/WhatsNew';
 import { MapSettings } from '@/components/settings/MapSettings';
+import { loadSettings } from '@/lib/storage';
+import { useItineraryStore } from '@/stores/itineraryStore';
 
 export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
   const [showMapSettings, setShowMapSettings] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+
+  // Hydrate settings from localStorage on mount
+  useEffect(() => {
+    const persisted = loadSettings();
+    useItineraryStore.getState().updateSettings(persisted);
+  }, []);
 
   const drawerRef = useRef<HTMLDivElement>(null);
 
@@ -121,7 +129,7 @@ export default function Home() {
               className="bg-gray-800/90 px-2 py-1 rounded text-xs text-gray-400 hover:text-white"
               aria-label="Impostazioni mappa"
             >
-              Mappa &#9881;
+              Mappa &#9881;&#xFE0F;
             </button>
           </div>
         </div>
