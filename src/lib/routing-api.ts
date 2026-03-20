@@ -9,6 +9,7 @@ export interface TrailRouteResult {
   descent: number;
   fromElevation: number | null;
   toElevation: number | null;
+  elevationProfile: { distance: number; altitude: number }[];
 }
 
 export function isRoutingAvailable(): boolean {
@@ -64,13 +65,36 @@ export async function fetchTrailRoute(
     const fromElevation = firstCoord?.length >= 3 ? firstCoord[2] : null;
     const toElevation = lastCoord?.length >= 3 ? lastCoord[2] : null;
 
+    // Build elevation profile from ORS coordinates (which include elevation)
+    const totalDistKm = summary.distance / 1000;
+    const elevationProfile: { distance: number; altitude: number }[] = [];
+    let cumulDist = 0;
+    for (let i = 0; i < coords.length; i++) {
+      if (i > 0) {
+        const [lon1, lat1] = coords[i - 1];
+        const [lon2, lat2] = coords[i];
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+        cumulDist += 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      }
+      const elev = coords[i].length >= 3 ? coords[i][2] : null;
+      if (elev != null) {
+        elevationProfile.push({
+          distance: Math.round(cumulDist * 10000) / 10000,
+          altitude: elev,
+        });
+      }
+    }
+
     return {
       geometry,
-      distanceKm: summary.distance / 1000,
+      distanceKm: totalDistKm,
       ascent: summary.ascent ?? 0,
       descent: summary.descent ?? 0,
       fromElevation,
       toElevation,
+      elevationProfile,
     };
   } catch {
     return null;

@@ -140,6 +140,7 @@ async function autoFillLegGuided(
       elevationGain: Math.round(route.ascent),
       elevationLoss: Math.round(route.descent),
       routeGeometry: route.geometry,
+      elevationProfile: route.elevationProfile.length >= 2 ? route.elevationProfile : undefined,
     };
 
     // Fill waypoint altitudes from ORS route data (same elevation source as D+/D-)
@@ -284,14 +285,26 @@ function GeolocateOnMount() {
 
 function TrackModeAutoFill() {
   const appMode = useItineraryStore((s) => s.appMode);
+  const trailRouting = useItineraryStore((s) => s.settings.mapDisplay.trailRouting);
   const prevMode = useRef(appMode);
+  const prevTrailRouting = useRef(trailRouting);
 
   useEffect(() => {
-    if (prevMode.current !== 'track' && appMode === 'track') {
+    const modeChanged = prevMode.current !== 'track' && appMode === 'track';
+    const routingChanged = appMode === 'track' && prevTrailRouting.current !== trailRouting;
+
+    if (modeChanged || routingChanged) {
+      // Clear stale route geometry and elevation profiles before recalculating
+      const store = useItineraryStore.getState();
+      store.legs.forEach((leg) => {
+        store.updateLeg(leg.id, { routeGeometry: undefined, elevationProfile: undefined });
+      });
       autoFillAllTrackData();
     }
+
     prevMode.current = appMode;
-  }, [appMode]);
+    prevTrailRouting.current = trailRouting;
+  }, [appMode, trailRouting]);
 
   return null;
 }
