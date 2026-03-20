@@ -338,6 +338,7 @@ function ColoredLegSegments({ leg, fromLat, fromLon, toLat, toLon }: {
         positions={[[fromLat, fromLon], [toLat, toLon]]}
         color="#4ade80"
         weight={3}
+        dashArray="6 4"
       />
     );
   }
@@ -364,6 +365,7 @@ function ColoredLegSegments({ leg, fromLat, fromLon, toLat, toLon }: {
         positions={[[lat1, lon1], [lat2, lon2]]}
         color={color}
         weight={3}
+        dashArray="6 4"
       />
     );
   }
@@ -397,7 +399,7 @@ function LegPolylines() {
         if (coloredPath) {
           return (
             <ColoredLegSegments
-              key={leg.id}
+              key={`${leg.id}-colored`}
               leg={leg}
               fromLat={fromWp.lat}
               fromLon={fromWp.lon}
@@ -409,7 +411,7 @@ function LegPolylines() {
 
         return (
           <Polyline
-            key={leg.id}
+            key={`${leg.id}-gray`}
             positions={[
               [fromWp.lat, fromWp.lon],
               [toWp.lat, toWp.lon],
