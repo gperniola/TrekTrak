@@ -7,6 +7,7 @@ import { ElevationProfile } from '@/components/map/ElevationProfile';
 import { ToleranceSettings } from '@/components/settings/ToleranceSettings';
 import { ModeSwitch } from '@/components/panel/ModeSwitch';
 import { LearnTutorial } from '@/components/tutorial/LearnTutorial';
+import { WhatsNew } from '@/components/tutorial/WhatsNew';
 
 export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
@@ -143,6 +144,9 @@ export default function Home() {
 
       {/* First-visit tutorial */}
       <LearnTutorial />
+
+      {/* What's New popup (shown once per version, after tutorial) */}
+      <WhatsNew />
     </div>
   );
 }

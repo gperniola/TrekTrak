@@ -9,6 +9,7 @@ export const KEYS = {
   learningHistory: 'trektrak_learning_history',
   schema: 'trektrak_schema_version',
   tutorialSeen: 'trektrak_tutorial_seen',
+  whatsNewVersion: 'trektrak_whatsnew_version',
 } as const;
 
 const STORAGE_WARNING_BYTES = 4 * 1024 * 1024; // 4MB
