@@ -3,23 +3,103 @@
 import { useState, useEffect, useRef } from 'react';
 import { KEYS } from '@/lib/storage';
 
+interface ReleaseStep {
+  title: string;
+  text: string;
+  icon: string;
+  mockup?: React.ReactNode;
+}
+
+interface Release {
+  version: string;
+  date: string;
+  steps: ReleaseStep[];
+}
+
+function TrailRoutingMockup() {
+  return (
+    <div className="mt-3 rounded-lg border border-gray-600 overflow-hidden">
+      <div className="bg-gray-800 p-2 flex items-center justify-between text-xs">
+        <div>
+          <div className="text-gray-300 font-medium">Percorso su sentiero</div>
+          <div className="text-[9px] text-green-400">Attivo — distanze lungo i sentieri reali</div>
+        </div>
+        <div className="w-9 h-5 bg-green-600 rounded-full relative">
+          <div className="absolute top-0.5 right-0.5 w-4 h-4 bg-white rounded-full" />
+        </div>
+      </div>
+      <div className="bg-gray-900 p-2">
+        <div className="flex items-center gap-2 text-[9px] text-gray-400">
+          <span className="text-green-400">━━━</span> sentiero reale
+          <span className="text-gray-500">╌╌╌</span> linea d&apos;aria
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ColoredPathMockup() {
+  return (
+    <div className="mt-3 rounded-lg border border-gray-600 overflow-hidden">
+      <div className="bg-gray-800 p-2 flex items-center justify-between text-xs">
+        <div>
+          <div className="text-gray-300 font-medium">Percorso colorato</div>
+          <div className="text-[9px] text-green-400">Attivo — colori per pendenza</div>
+        </div>
+        <div className="w-9 h-5 bg-green-600 rounded-full relative">
+          <div className="absolute top-0.5 right-0.5 w-4 h-4 bg-white rounded-full" />
+        </div>
+      </div>
+      <div className="bg-gray-900 p-2 flex items-center gap-1">
+        <div className="h-1 flex-1 rounded bg-green-400" />
+        <div className="h-1 flex-[0.5] rounded bg-yellow-400" />
+        <div className="h-1 flex-[0.7] rounded bg-orange-400" />
+        <div className="h-1 flex-[0.3] rounded bg-red-400" />
+        <div className="h-1 flex-[0.5] rounded bg-yellow-400" />
+        <div className="h-1 flex-1 rounded bg-green-400" />
+      </div>
+      <div className="bg-gray-900 px-2 pb-2 flex justify-between text-[8px] text-gray-500">
+        <span>piano</span>
+        <span>moderato</span>
+        <span>ripido</span>
+        <span>molto ripido</span>
+      </div>
+    </div>
+  );
+}
+
 /**
- * Release notes shown once per version. Add new entries at the TOP of the array.
- * The component compares the latest version here with the one stored in localStorage.
+ * Release notes shown once per version with step-by-step visual walkthrough.
+ * Add new entries at the TOP of the array.
  */
-const RELEASES: { version: string; date: string; items: string[] }[] = [
+const RELEASES: Release[] = [
+  {
+    version: '0.2.0',
+    date: '2026-03-20',
+    steps: [
+      {
+        title: 'Percorso su sentiero',
+        text: 'Attiva l\'opzione nelle impostazioni mappa (⚙️) per calcolare distanza e dislivelli lungo i sentieri reali invece che in linea d\'aria. Il tracciato segue i sentieri sulla mappa.',
+        icon: '🥾',
+        mockup: <TrailRoutingMockup />,
+      },
+      {
+        title: 'Percorso colorato',
+        text: 'La linea del percorso sulla mappa ora può essere colorata in base alla pendenza: verde (piano), giallo (moderato), arancione (ripido), rosso (molto ripido). Attivalo dalle impostazioni mappa (⚙️).',
+        icon: '🌈',
+        mockup: <ColoredPathMockup />,
+      },
+    ],
+  },
   {
     version: '0.1.0',
     date: '2026-03-20',
-    items: [
-      'Profilo altimetrico colorato per pendenza (verde/giallo/arancio/rosso)',
-      'Menu mobile a schermo intero con drawer',
-      'Barra superiore con ricerca località e switch Learn/Track',
-      'Validazione D+/D- con campionatura elevazione cumulativa',
-      'Tutorial interattivo per la modalità Learn',
-      'Icone ⓘ informative su tutti i campi',
-      'Popup valore calcolato al tap sulle icone di validazione',
-      'Profilo "stimato" evidenziato in modalità Learn',
+    steps: [
+      {
+        title: 'Benvenuto in TrekTrak!',
+        text: 'Prima release con profilo altimetrico colorato, menu mobile, tutorial interattivo, validazione cumulativa e molto altro.',
+        icon: '🎉',
+      },
     ],
   },
 ];
@@ -27,25 +107,26 @@ const RELEASES: { version: string; date: string; items: string[] }[] = [
 const CURRENT_VERSION = RELEASES[0].version;
 
 export function WhatsNew() {
-  const [open, setOpen] = useState(false);
-  const [displayVersion, setDisplayVersion] = useState<string | null>(null);
+  const [step, setStep] = useState<number | null>(null);
+  const [release, setRelease] = useState<Release | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     try {
       const seen = localStorage.getItem(KEYS.whatsNewVersion);
       if (seen === CURRENT_VERSION) return;
-      // Also skip if tutorial hasn't been seen yet (let tutorial go first)
       if (!localStorage.getItem(KEYS.tutorialSeen)) return;
-      setDisplayVersion(CURRENT_VERSION);
-      setOpen(true);
+      const rel = RELEASES.find((r) => r.version === CURRENT_VERSION);
+      if (!rel) return;
+      setRelease(rel);
+      setStep(0);
     } catch {
       // localStorage unavailable
     }
   }, []);
 
   useEffect(() => {
-    if (!open) return;
+    if (step === null) return;
 
     document.body.style.overflow = 'hidden';
 
@@ -77,10 +158,10 @@ export function WhatsNew() {
       window.removeEventListener('keydown', handleKey);
       dialogEl?.removeEventListener('keydown', trapFocus);
     };
-  }, [open]);
+  }, [step]);
 
   function handleClose() {
-    setOpen(false);
+    setStep(null);
     try {
       localStorage.setItem(KEYS.whatsNewVersion, CURRENT_VERSION);
     } catch {
@@ -88,10 +169,20 @@ export function WhatsNew() {
     }
   }
 
-  if (!open || !displayVersion) return null;
+  function handleNext() {
+    if (step === null || !release) return;
+    if (step < release.steps.length - 1) {
+      setStep(step + 1);
+    } else {
+      handleClose();
+    }
+  }
 
-  const release = RELEASES.find((r) => r.version === displayVersion);
-  if (!release) return null;
+  if (step === null || !release) return null;
+
+  const current = release.steps[step];
+  const isLast = step === release.steps.length - 1;
+  const isSingleStep = release.steps.length === 1;
 
   return (
     <div
@@ -107,27 +198,60 @@ export function WhatsNew() {
         onClick={(e) => e.stopPropagation()}
         className="bg-gray-900 border border-gray-700 rounded-xl max-w-sm w-full p-5 shadow-2xl outline-none overflow-y-auto max-h-[calc(100vh-2rem)]"
       >
-        <div className="text-3xl mb-3">🎉</div>
-        <h2 className="text-base font-bold text-green-400 mb-1">
-          Novità v{release.version}
-        </h2>
-        <p className="text-[10px] text-gray-500 mb-3">{release.date}</p>
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-3xl">{current.icon}</span>
+          <div>
+            <h2 className="text-base font-bold text-green-400">{current.title}</h2>
+            <p className="text-[10px] text-gray-500">Novità v{release.version}</p>
+          </div>
+        </div>
 
-        <ul className="space-y-2 mb-4">
-          {release.items.map((item, i) => (
-            <li key={i} className="flex gap-2 text-sm text-gray-300">
-              <span className="text-green-400 shrink-0">•</span>
-              <span>{item}</span>
-            </li>
-          ))}
-        </ul>
+        <p className="text-sm text-gray-300 leading-relaxed">{current.text}</p>
 
-        <button
-          onClick={handleClose}
-          className="w-full py-2 min-h-[44px] bg-green-600 rounded text-sm text-white font-bold hover:bg-green-500"
-        >
-          Ho capito!
-        </button>
+        {current.mockup}
+
+        {/* Step indicator (only for multi-step releases) */}
+        {!isSingleStep && (
+          <>
+            <div className="flex justify-center gap-1.5 mt-4 mb-4" aria-hidden="true">
+              {release.steps.map((_, i) => (
+                <div
+                  key={i}
+                  className={`w-2 h-2 rounded-full ${i === step ? 'bg-green-400' : 'bg-gray-600'}`}
+                />
+              ))}
+            </div>
+            <span className="sr-only">Novità {step + 1} di {release.steps.length}</span>
+          </>
+        )}
+
+        {/* Actions */}
+        <div className={`flex items-center ${isSingleStep ? 'mt-4' : ''} ${!isSingleStep ? 'justify-between' : 'justify-center'}`}>
+          {!isSingleStep && (
+            <button
+              onClick={handleClose}
+              className="px-3 min-h-[44px] text-xs text-gray-400 hover:text-gray-200"
+            >
+              Salta
+            </button>
+          )}
+          <div className="flex gap-2">
+            {!isSingleStep && step > 0 && (
+              <button
+                onClick={() => setStep(step - 1)}
+                className="px-3 min-h-[44px] bg-gray-700 rounded text-xs text-gray-300 hover:bg-gray-600"
+              >
+                Indietro
+              </button>
+            )}
+            <button
+              onClick={isSingleStep ? handleClose : handleNext}
+              className="px-4 min-h-[44px] bg-green-600 rounded text-xs text-white font-bold hover:bg-green-500"
+            >
+              {isLast || isSingleStep ? 'Ho capito!' : 'Avanti'}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
