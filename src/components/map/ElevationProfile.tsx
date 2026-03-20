@@ -5,7 +5,7 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceD
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { buildGradientStops } from '@/lib/calculations';
 
-const ESTIMATED_TOOLTIP = 'Questo profilo è basato solo sulle quote inserite ai waypoint. Non tiene conto del terreno reale tra un punto e l\'altro: salite e discese intermedie non sono rappresentate.';
+const ESTIMATED_TOOLTIP = 'Profilo basato solo sulle quote ai waypoint: non riflette salite e discese intermedie.';
 
 export function ElevationProfile() {
   const strokeGradientId = useId();
@@ -94,7 +94,7 @@ export function ElevationProfile() {
 
   if (profileData.length < 2) {
     return (
-      <div className={`h-full flex items-center justify-center text-gray-500 text-sm ${isEstimated ? 'bg-red-950/30' : ''}`}>
+      <div className="h-full flex items-center justify-center text-gray-400 text-sm">
         Aggiungi almeno 2 waypoint con quota per il profilo altimetrico
       </div>
     );
@@ -111,21 +111,22 @@ export function ElevationProfile() {
   const hasGradient = stops.length > 0;
 
   return (
-    <div className={`h-full p-2 ${isEstimated ? 'bg-red-950/30' : ''}`}>
+    <div className={`h-full p-2 ${isEstimated ? 'bg-amber-950/25' : ''}`}>
       <div className="text-xs mb-1 flex items-center gap-1">
-        <span className="text-gray-500">Profilo altimetrico</span>
+        <span className="text-gray-400">Profilo altimetrico</span>
         {isEstimated && (
           <span ref={tipRef} className="relative inline-flex">
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setTipOpen((p) => !p); }}
-              className="text-red-400 font-bold cursor-pointer"
+              className="text-amber-400 font-bold cursor-pointer underline decoration-dotted underline-offset-2 px-1 py-0.5 -mx-1 -my-0.5"
               aria-label="Info profilo stimato"
+              aria-expanded={tipOpen}
             >
-              stimato
+              stimato ⓘ
             </button>
             {tipOpen && (
-              <div role="tooltip" className="absolute left-0 bottom-6 z-[1300] bg-gray-800 border border-gray-600 rounded px-2.5 py-1.5 text-[10px] text-gray-300 shadow-lg max-w-[220px] leading-tight">
+              <div role="status" aria-live="polite" className="absolute left-0 top-6 z-[1300] bg-gray-800 border border-gray-600 rounded px-2.5 py-1.5 text-[10px] text-gray-300 shadow-lg max-w-[220px] leading-tight">
                 {ESTIMATED_TOOLTIP}
               </div>
             )}
