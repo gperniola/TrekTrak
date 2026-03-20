@@ -314,6 +314,8 @@ function MapEvents() {
 
   useMapEvents({
     click(e) {
+      // Ignore right-click (some browsers may emit click for contextmenu)
+      if ((e.originalEvent as MouseEvent).button !== 0) return;
       if (useItineraryStore.getState().waypoints.length >= 50) return;
       addWaypointAtPosition(e.latlng.lat, e.latlng.lng);
 
@@ -322,6 +324,9 @@ function MapEvents() {
         const newWp = newState.waypoints[newState.waypoints.length - 1];
         if (newWp) autoFillTrackData(newWp.id);
       }
+    },
+    contextmenu() {
+      // Prevent right-click from adding waypoints
     },
   });
 

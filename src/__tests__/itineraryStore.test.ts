@@ -405,7 +405,8 @@ describe('resetItinerary', () => {
     expect(useItineraryStore.getState().waypoints).toHaveLength(0);
     expect(useItineraryStore.getState().legs).toHaveLength(0);
     expect(useItineraryStore.getState().itineraryName).toBe('');
-    expect(useItineraryStore.getState().appMode).toBe('learn');
+    // Mode and settings are preserved on reset
+    expect(useItineraryStore.getState().appMode).toBe('track');
     expect(useItineraryStore.getState().trackRouting).toBe('classic');
   });
 });

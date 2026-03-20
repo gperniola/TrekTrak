@@ -167,9 +167,8 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
       const existing = legs.find(
         (l) => l.fromWaypointId === reordered[i].id && l.toWaypointId === reordered[i + 1].id
       );
-      // Strip routeGeometry from preserved legs (route is stale after removal)
-      const clean = existing ? { ...existing, routeGeometry: undefined, elevationProfile: undefined } : undefined;
-      newLegs.push(clean ?? createEmptyLeg(reordered[i].id, reordered[i + 1].id));
+      // Preserve route data for legs whose from/to waypoints haven't changed
+      newLegs.push(existing ? { ...existing, validationState: undefined } : createEmptyLeg(reordered[i].id, reordered[i + 1].id));
     }
     set({ waypoints: reordered, legs: newLegs });
   },
@@ -246,16 +245,19 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
 
   updateSettings: (settings) => set({ settings }),
 
-  resetItinerary: () => set({
-    itineraryId: generateId(),
-    itineraryName: '',
-    createdAt: new Date().toISOString(),
-    waypoints: [],
-    legs: [],
-    settings: { tolerances: { ...DEFAULT_TOLERANCES }, mapDisplay: { ...DEFAULT_MAP_DISPLAY } },
-    appMode: 'learn' as AppMode,
-    trackRouting: 'classic' as TrackRouting,
-  }),
+  resetItinerary: () => {
+    const { appMode, settings } = get();
+    set({
+      itineraryId: generateId(),
+      itineraryName: '',
+      createdAt: new Date().toISOString(),
+      waypoints: [],
+      legs: [],
+      settings,
+      appMode,
+      trackRouting: 'classic' as TrackRouting,
+    });
+  },
 
   loadItinerary: (id, name, waypoints, legs, createdAt) => {
     // Sort by order field before re-indexing to respect imported ordering (NaN-safe)

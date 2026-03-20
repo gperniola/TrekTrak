@@ -52,7 +52,9 @@ export function ElevationProfile() {
           altitude: p.altitude,
         });
       }
-      globalDist += leg.distance ?? 0;
+      // Use the profile's own last distance for continuity (may differ slightly from leg.distance)
+      const profileEnd = leg.elevationProfile[leg.elevationProfile.length - 1].distance;
+      globalDist += profileEnd;
     } else if (leg.distance != null) {
       // Fallback: use waypoint altitudes only
       const fromWp = waypoints.find((w) => w.id === leg.fromWaypointId);
