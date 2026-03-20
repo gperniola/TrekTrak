@@ -48,6 +48,31 @@ function MenuMockup({ highlight }: { highlight?: 'fields' | 'verify' | 'badges' 
   );
 }
 
+function SettingsMockup() {
+  return (
+    <div className="mt-3 bg-gray-800 rounded-lg border border-gray-600 p-3 text-xs space-y-2">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-gray-300 font-medium">Percorso su sentiero</div>
+          <div className="text-[9px] text-gray-500">Distanza e D+/D- lungo i sentieri reali</div>
+        </div>
+        <div className="w-9 h-5 bg-green-600 rounded-full relative">
+          <div className="absolute top-0.5 right-0.5 w-4 h-4 bg-white rounded-full" />
+        </div>
+      </div>
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-gray-300 font-medium">Percorso colorato</div>
+          <div className="text-[9px] text-gray-500">Colora la linea per pendenza</div>
+        </div>
+        <div className="w-9 h-5 bg-green-600 rounded-full relative">
+          <div className="absolute top-0.5 right-0.5 w-4 h-4 bg-white rounded-full" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const STEPS: TutorialStep[] = [
   {
     title: 'Benvenuto in TrekTrak!',
@@ -81,6 +106,12 @@ const STEPS: TutorialStep[] = [
     title: 'Profilo altimetrico',
     text: 'Il grafico in basso mostra il profilo di elevazione colorato per pendenza: verde (piano), giallo (moderato), arancione (ripido), rosso (molto ripido).',
     icon: '📊',
+  },
+  {
+    title: 'Impostazioni mappa',
+    text: 'Tocca l\'icona ⚙️ per accedere alle impostazioni mappa. Puoi attivare il percorso colorato per pendenza sulla mappa e il tracciamento su sentiero che calcola distanze e dislivelli lungo i sentieri reali.',
+    icon: '⚙️',
+    mockup: <SettingsMockup />,
   },
 ];
 
