@@ -310,11 +310,12 @@ function TrackModeAutoFill() {
   return null;
 }
 
-function MapEvents() {
+function MapEvents({ compassActive }: { compassActive?: boolean }) {
   const addWaypointAtPosition = useItineraryStore((s) => s.addWaypointAtPosition);
 
   useMapEvents({
     click(e) {
+      if (compassActive) return; // Suppress waypoint placement in compass mode
       // Ignore right-click (some browsers may emit click for contextmenu)
       const btn = (e.originalEvent as MouseEvent).button;
       if (btn != null && btn !== 0) return;
@@ -506,7 +507,7 @@ export function InteractiveMap({ mobileSearchOpen, compassActive, onCompassDeact
       />
       <GeolocateOnMount />
       <TrackModeAutoFill />
-      <MapEvents />
+      <MapEvents compassActive={compassActive} />
       <LocationSearch mobileSearchOpen={mobileSearchOpen} />
 
       {validWaypoints.map((wp) => (

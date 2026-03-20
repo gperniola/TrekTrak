@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { LeftPanel } from '@/components/panel/LeftPanel';
 import { MapWrapper } from '@/components/map/MapWrapper';
 import { ElevationProfile } from '@/components/map/ElevationProfile';
@@ -18,6 +18,8 @@ export default function Home() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [compassActive, setCompassActive] = useState(false);
+  const handleCompassToggle = useCallback(() => setCompassActive((p) => !p), []);
+  const handleCompassDeactivate = useCallback(() => setCompassActive(false), []);
 
   // Hydrate settings from localStorage on mount
   useEffect(() => {
@@ -73,7 +75,7 @@ export default function Home() {
     <div className="h-dvh flex flex-col lg:flex-row overflow-hidden">
       {/* Desktop sidebar — hidden on mobile */}
       <div className="hidden lg:flex">
-        <LeftPanel />
+        <LeftPanel compassActive={compassActive} onCompassToggle={handleCompassToggle} />
       </div>
 
       {/* Right Panel: Top Bar (mobile) + Map + Elevation Profile */}
@@ -109,12 +111,12 @@ export default function Home() {
             </div>
           </div>
           {/* Row 2: Mode switch (Learn / Track) */}
-          <ModeSwitch compassActive={compassActive} onCompassToggle={() => setCompassActive((p) => !p)} />
+          <ModeSwitch compassActive={compassActive} onCompassToggle={handleCompassToggle} />
         </div>
 
         {/* Map */}
         <div className="flex-1 relative min-h-0 overflow-hidden">
-          <MapWrapper mobileSearchOpen={searchOpen} compassActive={compassActive} onCompassDeactivate={() => setCompassActive(false)} />
+          <MapWrapper mobileSearchOpen={searchOpen} compassActive={compassActive} onCompassDeactivate={handleCompassDeactivate} />
 
           {/* Settings toggles — desktop only */}
           <div className="hidden lg:flex absolute top-3 left-3 z-[1000] gap-1">
