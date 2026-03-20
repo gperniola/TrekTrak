@@ -139,7 +139,7 @@ export function slopeColor(slopePercent: number): string {
 }
 
 export function sampleInterval(distanceM: number): number {
-  return distanceM > 500 ? 100 : 20;
+  return distanceM > 500 ? 50 : 20;
 }
 
 export interface GradientStop {

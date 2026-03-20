@@ -281,10 +281,10 @@ describe('sampleInterval', () => {
     expect(sampleInterval(500)).toBe(20);
   });
 
-  test('returns 100 for distances > 500m', () => {
-    expect(sampleInterval(501)).toBe(100);
-    expect(sampleInterval(1000)).toBe(100);
-    expect(sampleInterval(10000)).toBe(100);
+  test('returns 50 for distances > 500m', () => {
+    expect(sampleInterval(501)).toBe(50);
+    expect(sampleInterval(1000)).toBe(50);
+    expect(sampleInterval(10000)).toBe(50);
   });
 });
 
