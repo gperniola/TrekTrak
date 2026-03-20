@@ -5,10 +5,9 @@ import type { Leg } from '@/lib/types';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { downloadPDF } from '@/lib/export-pdf';
 import { downloadGPX } from '@/lib/export-gpx';
-import { calculateDifficulty } from '@/lib/calculations';
-import { fetchElevation } from '@/lib/elevation-api';
+import { calculateDifficulty, haversineDistance, forwardAzimuth, interpolatePoints, cumulativeElevation, sampleInterval } from '@/lib/calculations';
+import { fetchElevation, fetchElevationProfile } from '@/lib/elevation-api';
 import { validateValue, validateAzimuth, percentageTolerance } from '@/lib/validation';
-import { haversineDistance, forwardAzimuth } from '@/lib/calculations';
 import { formatTime } from '@/lib/format';
 
 export function ActionBar() {
@@ -145,15 +144,19 @@ export function ActionBar() {
           fieldUpdates.azimuth = Math.round(realAz * 10) / 10;
         }
 
-        // Elevation gain/loss: validate or auto-fill (uses cached API results)
-        const fromAlt = await getCachedElevation(from.lat, from.lon);
-        const toAlt = await getCachedElevation(to.lat, to.lon);
-        if (fromAlt == null || toAlt == null) {
-          if (fromAlt == null && from.lat != null) apiAvailable = false;
-          if (toAlt == null && to.lat != null) apiAvailable = false;
+        // Elevation gain/loss: sample elevation profile along the leg (same as Track mode)
+        const distM = realDist * 1000;
+        const numPoints = Math.min(50, Math.max(2, Math.ceil(distM / sampleInterval(distM))));
+        const profilePoints = interpolatePoints(from.lat, from.lon, to.lat, to.lon, numPoints);
+        const profileElevations = await fetchElevationProfile(profilePoints);
+        if (isStale()) break;
+
+        const { gain: cGain, loss: cLoss } = cumulativeElevation(profileElevations);
+        if (cGain == null || cLoss == null) {
+          apiAvailable = false;
         } else {
-          const realGain = Math.max(0, toAlt - fromAlt);
-          const realLoss = Math.max(0, fromAlt - toAlt);
+          const realGain = cGain;
+          const realLoss = cLoss;
           if (leg.elevationGain != null) {
             const elevGainTol = realGain > 0
               ? percentageTolerance(realGain, tol.elevationDelta)
@@ -178,6 +181,12 @@ export function ActionBar() {
           } else {
             fieldUpdates.elevationLoss = Math.round(realLoss);
           }
+
+          // Also update waypoint altitudes from the profile endpoints
+          const firstAlt = profileElevations[0];
+          const lastAlt = profileElevations[profileElevations.length - 1];
+          if (firstAlt != null) elevationCache.set(`${from.lat},${from.lon}`, firstAlt);
+          if (lastAlt != null) elevationCache.set(`${to.lat},${to.lon}`, lastAlt);
         }
 
         const legUpdate: Partial<Leg> = { ...fieldUpdates };
