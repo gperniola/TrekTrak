@@ -51,8 +51,12 @@ export async function fetchTrailRoute(
     if (!feature) return null;
 
     const summary = feature.properties?.summary;
+    const segments = feature.properties?.segments;
     const coords = feature.geometry?.coordinates;
     if (!summary || !Array.isArray(coords)) return null;
+
+    // ORS puts ascent/descent in segments, not in summary
+    const seg0 = Array.isArray(segments) && segments.length > 0 ? segments[0] : null;
 
     // ORS returns [lon, lat, elevation] - convert to [lat, lon] for Leaflet
     const geometry: [number, number][] = coords.map(
@@ -90,8 +94,8 @@ export async function fetchTrailRoute(
     return {
       geometry,
       distanceKm: totalDistKm,
-      ascent: summary.ascent ?? 0,
-      descent: summary.descent ?? 0,
+      ascent: seg0?.ascent ?? summary.ascent ?? 0,
+      descent: seg0?.descent ?? summary.descent ?? 0,
       fromElevation,
       toElevation,
       elevationProfile,

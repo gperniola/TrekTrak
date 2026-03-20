@@ -332,42 +332,50 @@ function ColoredLegSegments({ leg, fromLat, fromLon, toLat, toLon }: {
   leg: Leg; fromLat: number; fromLon: number; toLat: number; toLon: number;
 }) {
   const profile = leg.elevationProfile;
+  const hasRoute = leg.routeGeometry && leg.routeGeometry.length >= 2;
+
   if (!profile || profile.length < 2) {
-    return (
-      <Polyline
-        positions={[[fromLat, fromLon], [toLat, toLon]]}
-        color="#9ca3af"
-        weight={2}
-        dashArray="8 4"
-      />
-    );
+    // No profile data — fall back to appropriate non-colored style
+    if (hasRoute) {
+      return <Polyline positions={leg.routeGeometry!} color="#4ade80" weight={4} />;
+    }
+    return <Polyline positions={[[fromLat, fromLon], [toLat, toLon]]} color="#9ca3af" weight={2} dashArray="8 4" />;
   }
 
   const totalDist = profile[profile.length - 1].distance;
   if (totalDist === 0) {
-    return (
-      <Polyline
-        positions={[[fromLat, fromLon], [toLat, toLon]]}
-        color="#4ade80"
-        weight={3}
-        dashArray="6 4"
-      />
-    );
+    const pos: [number, number][] = hasRoute ? leg.routeGeometry! : [[fromLat, fromLon], [toLat, toLon]];
+    return <Polyline positions={pos} color="#4ade80" weight={3} />;
   }
 
   // Smooth altitudes to match the elevation chart gradient colors.
-  // Group consecutive same-color segments into single Polylines so the
-  // dashArray pattern flows correctly instead of restarting per segment.
   const smoothed = smoothAltitudes(profile);
 
   type ColorGroup = { color: string; positions: [number, number][] };
   const groups: ColorGroup[] = [];
 
+  // Use route geometry positions if available, otherwise interpolate straight line
+  const getPosition = (t: number): [number, number] => {
+    if (hasRoute) {
+      // Map t (0-1) to the route geometry by index fraction
+      const geo = leg.routeGeometry!;
+      const idx = t * (geo.length - 1);
+      const lo = Math.floor(idx);
+      const hi = Math.min(lo + 1, geo.length - 1);
+      const frac = idx - lo;
+      return [
+        geo[lo][0] + frac * (geo[hi][0] - geo[lo][0]),
+        geo[lo][1] + frac * (geo[hi][1] - geo[lo][1]),
+      ];
+    }
+    return [fromLat + t * (toLat - fromLat), fromLon + t * (toLon - fromLon)];
+  };
+
   for (let i = 0; i < profile.length - 1; i++) {
     const t1 = profile[i].distance / totalDist;
     const t2 = profile[i + 1].distance / totalDist;
-    const p1: [number, number] = [fromLat + t1 * (toLat - fromLat), fromLon + t1 * (toLon - fromLon)];
-    const p2: [number, number] = [fromLat + t2 * (toLat - fromLat), fromLon + t2 * (toLon - fromLon)];
+    const p1 = getPosition(t1);
+    const p2 = getPosition(t2);
 
     const dx = profile[i + 1].distance - profile[i].distance;
     const dy = Math.abs(smoothed[i + 1] - smoothed[i]);
@@ -389,8 +397,8 @@ function ColoredLegSegments({ leg, fromLat, fromLon, toLat, toLon }: {
           key={`${i}`}
           positions={g.positions}
           color={g.color}
-          weight={3}
-          dashArray="8 4"
+          weight={hasRoute ? 4 : 3}
+          dashArray={hasRoute ? undefined : '8 4'}
         />
       ))}
     </>
@@ -410,6 +418,20 @@ function LegPolylines() {
         if (!fromWp || !toWp) return null;
         if (fromWp.lat == null || fromWp.lon == null || toWp.lat == null || toWp.lon == null) return null;
 
+        if (coloredPath) {
+          // Colored path works for both straight-line and route geometry
+          return (
+            <ColoredLegSegments
+              key={`${leg.id}-colored-${leg.routeGeometry ? 'route' : 'line'}`}
+              leg={leg}
+              fromLat={fromWp.lat}
+              fromLon={fromWp.lon}
+              toLat={toWp.lat!}
+              toLon={toWp.lon!}
+            />
+          );
+        }
+
         if (leg.routeGeometry && leg.routeGeometry.length >= 2) {
           return (
             <Polyline
@@ -417,19 +439,6 @@ function LegPolylines() {
               positions={leg.routeGeometry}
               color="#4ade80"
               weight={4}
-            />
-          );
-        }
-
-        if (coloredPath) {
-          return (
-            <ColoredLegSegments
-              key={`${leg.id}-colored`}
-              leg={leg}
-              fromLat={fromWp.lat}
-              fromLon={fromWp.lon}
-              toLat={toWp.lat!}
-              toLon={toWp.lon!}
             />
           );
         }
