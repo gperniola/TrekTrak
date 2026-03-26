@@ -4,7 +4,7 @@ import { MapContainer, TileLayer, Marker, Polyline, useMapEvents } from 'react-l
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useItineraryStore } from '@/stores/itineraryStore';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useMap } from 'react-leaflet';
 import { fetchElevation, fetchElevationProfile } from '@/lib/elevation-api';
 import { haversineDistance, forwardAzimuth, interpolatePoints, cumulativeElevation, sampleInterval, slopeColor, smoothAltitudes, distanceToPosition, positionToDistance } from '@/lib/calculations';
@@ -13,6 +13,9 @@ import { LocationSearch } from './LocationSearch';
 import { CompassOverlay } from './CompassTool';
 import { RulerTool } from './RulerTool';
 import { CoordinateGrid } from './CoordinateGrid';
+import { QuizMarkers } from './QuizMarkers';
+import { setQuizMapBounds } from '@/components/quiz/QuizOverlay';
+import type { QuizPoint } from '@/lib/quiz';
 import { MyLocationButton } from './MyLocationButton';
 import type { Leg, BaseMapDef } from '@/lib/types';
 import { BASE_MAPS, HIKING_TRAILS_OVERLAY } from '@/lib/types';
@@ -320,12 +323,12 @@ function TrackModeAutoFill() {
   return null;
 }
 
-function MapEvents({ compassActive, rulerActive }: { compassActive?: boolean; rulerActive?: boolean }) {
+function MapEvents({ compassActive, rulerActive, quizActive }: { compassActive?: boolean; rulerActive?: boolean; quizActive?: boolean }) {
   const addWaypointAtPosition = useItineraryStore((s) => s.addWaypointAtPosition);
 
   useMapEvents({
     click(e) {
-      if (compassActive || rulerActive) return; // Suppress waypoint placement in compass/ruler mode
+      if (compassActive || rulerActive || quizActive) return; // Suppress waypoint placement in compass/ruler/quiz mode
       // Ignore right-click (some browsers may emit click for contextmenu)
       const btn = (e.originalEvent as MouseEvent).button;
       if (btn != null && btn !== 0) return;
@@ -570,12 +573,47 @@ function LegPolylineHoverEvents() {
   );
 }
 
-export function InteractiveMap({ mobileSearchOpen, compassActive, onCompassDeactivate, rulerActive, onRulerDeactivate }: {
+function QuizBoundsSync({ quizActive }: { quizActive?: boolean }) {
+  const map = useMap();
+  const [quizPoints, setQuizPoints] = useState<{ a: QuizPoint | null; b: QuizPoint | null }>({ a: null, b: null });
+
+  useEffect(() => {
+    if (!quizActive) {
+      setQuizMapBounds(null);
+      setQuizPoints({ a: null, b: null });
+      return;
+    }
+    const updateBounds = () => {
+      const b = map.getBounds();
+      setQuizMapBounds({ north: b.getNorth(), south: b.getSouth(), east: b.getEast(), west: b.getWest() });
+    };
+    updateBounds();
+    map.on('moveend', updateBounds);
+
+    const handlePoints = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      setQuizPoints(detail);
+    };
+    window.addEventListener('quiz-points', handlePoints);
+
+    return () => {
+      map.off('moveend', updateBounds);
+      window.removeEventListener('quiz-points', handlePoints);
+      setQuizMapBounds(null);
+    };
+  }, [quizActive, map]);
+
+  if (!quizActive) return null;
+  return <QuizMarkers pointA={quizPoints.a} pointB={quizPoints.b} />;
+}
+
+export function InteractiveMap({ mobileSearchOpen, compassActive, onCompassDeactivate, rulerActive, onRulerDeactivate, quizActive }: {
   mobileSearchOpen?: boolean;
   compassActive?: boolean;
   onCompassDeactivate?: () => void;
   rulerActive?: boolean;
   onRulerDeactivate?: () => void;
+  quizActive?: boolean;
 }) {
   const waypoints = useItineraryStore((s) => s.waypoints);
   const updateWaypointPosition = useItineraryStore((s) => s.updateWaypointPosition);
@@ -626,7 +664,7 @@ export function InteractiveMap({ mobileSearchOpen, compassActive, onCompassDeact
       {showCoordinateGrid && <CoordinateGrid />}
       <GeolocateOnMount />
       <TrackModeAutoFill />
-      <MapEvents compassActive={compassActive} rulerActive={rulerActive} />
+      <MapEvents compassActive={compassActive} rulerActive={rulerActive} quizActive={quizActive} />
       <LocationSearch mobileSearchOpen={mobileSearchOpen} />
 
       {validWaypoints.map((wp) => (
@@ -647,6 +685,7 @@ export function InteractiveMap({ mobileSearchOpen, compassActive, onCompassDeact
       <MyLocationButton hidden={compassActive} />
       <CompassOverlay active={!!compassActive} onDeactivate={onCompassDeactivate ?? (() => {})} />
       <RulerTool active={!!rulerActive} onDeactivate={onRulerDeactivate ?? (() => {})} />
+      <QuizBoundsSync quizActive={quizActive} />
     </MapContainer>
   );
 }

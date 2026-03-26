@@ -9,6 +9,7 @@ import { ModeSwitch } from '@/components/panel/ModeSwitch';
 import { LearnTutorial } from '@/components/tutorial/LearnTutorial';
 import { WhatsNew } from '@/components/tutorial/WhatsNew';
 import { MapSettings } from '@/components/settings/MapSettings';
+import { QuizOverlay } from '@/components/quiz/QuizOverlay';
 import { loadSettings } from '@/lib/storage';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { decodeItinerary } from '@/lib/share-url';
@@ -20,20 +21,27 @@ export default function Home() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [compassActive, setCompassActive] = useState(false);
   const [rulerActive, setRulerActive] = useState(false);
+  const [quizActive, setQuizActive] = useState(false);
   const handleCompassToggle = useCallback(() => {
     setCompassActive((p) => {
-      if (!p) setRulerActive(false);
+      if (!p) { setRulerActive(false); setQuizActive(false); }
       return !p;
     });
   }, []);
   const handleCompassDeactivate = useCallback(() => setCompassActive(false), []);
   const handleRulerToggle = useCallback(() => {
     setRulerActive((p) => {
-      if (!p) setCompassActive(false);
+      if (!p) { setCompassActive(false); setQuizActive(false); }
       return !p;
     });
   }, []);
   const handleRulerDeactivate = useCallback(() => setRulerActive(false), []);
+  const handleQuizToggle = useCallback(() => {
+    setQuizActive((p) => {
+      if (!p) { setCompassActive(false); setRulerActive(false); }
+      return !p;
+    });
+  }, []);
 
   // Hydrate settings from localStorage on mount
   useEffect(() => {
@@ -102,7 +110,7 @@ export default function Home() {
     <div className="h-dvh flex flex-col lg:flex-row overflow-hidden">
       {/* Desktop sidebar — hidden on mobile */}
       <div className="hidden lg:flex">
-        <LeftPanel compassActive={compassActive} onCompassToggle={handleCompassToggle} rulerActive={rulerActive} onRulerToggle={handleRulerToggle} />
+        <LeftPanel compassActive={compassActive} onCompassToggle={handleCompassToggle} rulerActive={rulerActive} onRulerToggle={handleRulerToggle} quizActive={quizActive} onQuizToggle={handleQuizToggle} />
       </div>
 
       {/* Right Panel: Top Bar (mobile) + Map + Elevation Profile */}
@@ -138,12 +146,12 @@ export default function Home() {
             </div>
           </div>
           {/* Row 2: Mode switch (Learn / Track) */}
-          <ModeSwitch compassActive={compassActive} onCompassToggle={handleCompassToggle} rulerActive={rulerActive} onRulerToggle={handleRulerToggle} />
+          <ModeSwitch compassActive={compassActive} onCompassToggle={handleCompassToggle} rulerActive={rulerActive} onRulerToggle={handleRulerToggle} quizActive={quizActive} onQuizToggle={handleQuizToggle} />
         </div>
 
         {/* Map */}
         <div className="flex-1 relative min-h-0 overflow-hidden">
-          <MapWrapper mobileSearchOpen={searchOpen} compassActive={compassActive} onCompassDeactivate={handleCompassDeactivate} rulerActive={rulerActive} onRulerDeactivate={handleRulerDeactivate} />
+          <MapWrapper mobileSearchOpen={searchOpen} compassActive={compassActive} onCompassDeactivate={handleCompassDeactivate} rulerActive={rulerActive} onRulerDeactivate={handleRulerDeactivate} quizActive={quizActive} />
 
           {/* Settings toggles — desktop only */}
           <div className="hidden lg:flex absolute top-3 left-3 z-[1000] gap-1">
@@ -198,7 +206,7 @@ export default function Home() {
             </div>
           </div>
           <div className="flex-1 overflow-hidden">
-            <LeftPanel className="w-full h-full" compassActive={compassActive} onCompassToggle={handleCompassToggle} rulerActive={rulerActive} onRulerToggle={handleRulerToggle} />
+            <LeftPanel className="w-full h-full" compassActive={compassActive} onCompassToggle={handleCompassToggle} rulerActive={rulerActive} onRulerToggle={handleRulerToggle} quizActive={quizActive} onQuizToggle={handleQuizToggle} />
           </div>
         </div>
       )}
@@ -206,6 +214,8 @@ export default function Home() {
       {/* Settings Modals */}
       {showSettings && <ToleranceSettings onClose={() => setShowSettings(false)} />}
       {showMapSettings && <MapSettings onClose={() => setShowMapSettings(false)} />}
+
+      {quizActive && <QuizOverlay onClose={() => setQuizActive(false)} />}
 
       {/* First-visit tutorial */}
       <LearnTutorial />

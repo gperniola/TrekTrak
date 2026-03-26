@@ -10,6 +10,7 @@ export const KEYS = {
   schema: 'trektrak_schema_version',
   tutorialSeen: 'trektrak_tutorial_seen',
   whatsNewVersion: 'trektrak_whatsnew_version',
+  quizHistory: 'trektrak_quiz_history',
 } as const;
 
 const STORAGE_WARNING_BYTES = 4 * 1024 * 1024; // 4MB
