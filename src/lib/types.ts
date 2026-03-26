@@ -140,7 +140,7 @@ export const DEFAULT_MAP_DISPLAY: MapDisplaySettings = {
   trailRouting: false,
   sampleInterval: 50,
   baseMap: 'thunderforest-outdoors',
-  showHikingTrails: false,
+  showHikingTrails: true,
 };
 
 export interface AppSettings {
