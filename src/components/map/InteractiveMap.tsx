@@ -267,6 +267,7 @@ async function autoFillAllTrackData() {
 // Chieti, Italy - default center
 const DEFAULT_CENTER: [number, number] = [42.351, 14.168];
 const DEFAULT_ZOOM = 13;
+const MAX_ZOOM = 19;
 
 function GeolocateOnMount() {
   const map = useMap();
@@ -513,18 +514,22 @@ export function InteractiveMap({ mobileSearchOpen, compassActive, onCompassDeact
       center={DEFAULT_CENTER}
       zoom={DEFAULT_ZOOM}
       zoomControl={false}
+      maxZoom={MAX_ZOOM}
       className="h-full w-full"
     >
       <TileLayer
         key={baseMapId}
         attribution={baseMap.attribution}
         url={baseMap.url}
-        maxZoom={baseMap.maxZoom}
+        maxNativeZoom={baseMap.maxNativeZoom}
+        maxZoom={MAX_ZOOM}
       />
       {showHikingTrails && (
         <TileLayer
           url={HIKING_TRAILS_OVERLAY.url}
           attribution={HIKING_TRAILS_OVERLAY.attribution}
+          maxNativeZoom={17}
+          maxZoom={MAX_ZOOM}
           opacity={0.8}
         />
       )}

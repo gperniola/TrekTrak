@@ -75,7 +75,8 @@ export interface BaseMapDef {
   url: string;
   attribution: string;
   available: boolean;
-  maxZoom?: number;
+  /** Maximum zoom level at which the tile server provides tiles */
+  maxNativeZoom: number;
 }
 
 // Static process.env references so Next.js can inline them at build time.
@@ -90,6 +91,7 @@ export const BASE_MAPS: BaseMapDef[] = [
     url: `https://tile.thunderforest.com/outdoors/{z}/{x}/{y}.png?apikey=${TF_KEY}`,
     attribution: '&copy; <a href="https://www.thunderforest.com/">Thunderforest</a>, &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     available: TF_KEY.length > 0,
+    maxNativeZoom: 22,
   },
   {
     id: 'opentopomap',
@@ -98,7 +100,7 @@ export const BASE_MAPS: BaseMapDef[] = [
     url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
     attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)',
     available: true,
-    maxZoom: 17,
+    maxNativeZoom: 17,
   },
   {
     id: 'cyclosm',
@@ -107,6 +109,7 @@ export const BASE_MAPS: BaseMapDef[] = [
     url: 'https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png',
     attribution: '<a href="https://github.com/cyclosm/cyclosm-cartocss-style/releases">CyclOSM</a> | Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     available: true,
+    maxNativeZoom: 20,
   },
   {
     id: 'osm',
@@ -115,6 +118,7 @@ export const BASE_MAPS: BaseMapDef[] = [
     url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     available: true,
+    maxNativeZoom: 19,
   },
 ];
 
