@@ -24,7 +24,7 @@ export function OfflineBanner() {
 
   return (
     <div
-      className="fixed top-0 left-0 right-0 z-[1050] bg-amber-600 text-black text-xs text-center py-1 font-medium"
+      className="shrink-0 bg-amber-600 text-black text-xs text-center py-1 font-medium"
       role="status"
       aria-live="polite"
     >
