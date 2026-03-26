@@ -74,6 +74,42 @@ function ColoredPathMockup() {
  */
 const RELEASES: Release[] = [
   {
+    version: '0.3.0',
+    date: '2026-03-26',
+    steps: [
+      {
+        title: '4 mappe + sentieri',
+        text: 'Scegli tra Thunderforest Outdoors, OpenTopoMap, CyclOSM e OpenStreetMap dalle impostazioni mappa. L\'overlay Waymarked Trails mostra i sentieri escursionistici CAI e GR.',
+        icon: '🗺️',
+      },
+      {
+        title: 'Quiz cartografico',
+        text: 'Testa le tue competenze! Premi il pulsante "?" per avviare un quiz con 5 domande su altitudine, distanza e azimuth. Punteggio 0-100 con storico delle sessioni.',
+        icon: '❓',
+      },
+      {
+        title: 'Righello e griglia',
+        text: 'Usa il righello (↕) per misurare distanza, azimuth e dislivello tra due punti qualsiasi. Attiva la griglia coordinate dalle impostazioni per una lettura piu\' facile.',
+        icon: '📐',
+      },
+      {
+        title: 'Profilo interattivo',
+        text: 'Il profilo altimetrico ora e\' bidirezionale: hover sul grafico mostra il punto sulla mappa e viceversa. Click sul grafico centra la mappa sul punto.',
+        icon: '📊',
+      },
+      {
+        title: 'Condividi e meteo',
+        text: '"Copia link" genera un URL con l\'itinerario compresso. "Meteo" apre le previsioni Meteoblue per la zona. Posizione GPS con pulsante mirino sulla mappa.',
+        icon: '🔗',
+      },
+      {
+        title: 'Offline e PWA',
+        text: 'L\'app e\' ora installabile e funziona offline! I tile mappa delle zone visitate vengono salvati automaticamente. Installa dal browser per l\'uso sul campo.',
+        icon: '📱',
+      },
+    ],
+  },
+  {
     version: '0.2.0',
     date: '2026-03-20',
     steps: [

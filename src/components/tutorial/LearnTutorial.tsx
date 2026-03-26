@@ -73,45 +73,62 @@ function SettingsMockup() {
   );
 }
 
+function ToolbarMockup() {
+  return (
+    <div className="mt-3 bg-gray-800 rounded-lg border border-gray-600 p-2 flex items-center gap-1 text-xs">
+      <span className="px-2 py-1 bg-amber-600 text-white rounded font-bold">◎</span>
+      <span className="px-2 py-1 bg-blue-600 text-white rounded font-bold">↕</span>
+      <span className="px-2 py-1 bg-purple-500 text-white rounded font-bold">?</span>
+      <span className="flex-1 py-1 text-center bg-purple-600 text-white rounded font-bold">Learn</span>
+      <span className="flex-1 py-1 text-center bg-gray-700 text-gray-400 rounded">Track</span>
+    </div>
+  );
+}
+
 const STEPS: TutorialStep[] = [
   {
     title: 'Benvenuto in TrekTrak!',
-    text: 'Impara la cartografia manuale creando itinerari escursionistici. Questa guida ti mostra come usare la modalità Learn. Puoi anche esplorare la modalità Track, che calcola automaticamente i valori per te.',
+    text: 'Impara la cartografia manuale creando itinerari escursionistici. Questa guida ti mostra come usare le funzionalita\' principali.',
     icon: '🗺️',
   },
   {
     title: 'Aggiungi waypoint',
-    text: 'Clicca o tocca la mappa per posizionare i waypoint del tuo itinerario. Ogni waypoint rappresenta un punto di passaggio.',
+    text: 'Clicca o tocca la mappa per posizionare i waypoint del tuo itinerario. Ogni waypoint rappresenta un punto di passaggio. Puoi trascinare i marker per riposizionarli.',
     icon: '📍',
   },
   {
-    title: 'Inserisci i dati manualmente',
-    text: 'Apri il menu (☰) per vedere waypoint e tratte. In modalità Learn, inserisci tu i valori di distanza in linea d\'aria, dislivello e azimuth (la direzione rispetto al Nord).',
+    title: 'Learn e Track',
+    text: 'In modalita\' Learn inserisci manualmente distanza, dislivello e azimuth, poi usa "Verifica" per confrontare con i dati reali. In modalita\' Track i valori vengono calcolati automaticamente.',
     icon: '✏️',
     mockup: <MenuMockup highlight="fields" />,
   },
   {
-    title: 'Verifica i calcoli',
-    text: 'In fondo al menu trovi il pulsante "Verifica": premilo per confrontare i tuoi valori con quelli calcolati dall\'app. Le distanze sono calcolate in linea d\'aria tra i waypoint.',
+    title: 'Verifica e feedback',
+    text: 'Premi "Verifica" per confrontare i tuoi valori. Appaiono icone colorate: ✓ preciso (verde), ~ vicino (giallo), ✗ lontano (rosso). Toccale per vedere il valore esatto e lo scostamento.',
     icon: '✅',
-    mockup: <MenuMockup highlight="verify" />,
-  },
-  {
-    title: 'Tocca le icone di validazione',
-    text: 'Dopo la verifica, appaiono icone colorate accanto ai campi: ✓ preciso, ~ vicino, ✗ lontano. Toccale per vedere il valore esatto.',
-    icon: '🔍',
     mockup: <MenuMockup highlight="badges" />,
   },
   {
-    title: 'Profilo altimetrico',
-    text: 'Il grafico in basso mostra il profilo di elevazione colorato per pendenza: verde (piano), giallo (moderato), arancione (ripido), rosso (molto ripido).',
-    icon: '📊',
+    title: 'Strumenti mappa',
+    text: 'Nella barra in alto trovi tre strumenti: la Bussola (◎) per azimuth in tempo reale col GPS, il Righello (↕) per misurare distanza e quota tra due punti, e il Quiz (?) per testare le tue competenze.',
+    icon: '🧭',
+    mockup: <ToolbarMockup />,
   },
   {
     title: 'Impostazioni mappa',
-    text: 'Tocca l\'icona ⚙️ per accedere alle impostazioni mappa. Puoi attivare il percorso colorato per pendenza sulla mappa e il tracciamento su sentiero che calcola distanze e dislivelli lungo i sentieri reali.',
+    text: 'Tocca ⚙️ per scegliere tra 4 mappe diverse, attivare i sentieri escursionistici, la griglia coordinate, il percorso colorato per pendenza e il tracciamento su sentiero.',
     icon: '⚙️',
     mockup: <SettingsMockup />,
+  },
+  {
+    title: 'Profilo interattivo',
+    text: 'Il grafico in basso mostra il profilo altimetrico colorato per pendenza. Passa il dito sul grafico per vedere il punto sulla mappa, e viceversa. Clicca sul grafico per centrare la mappa.',
+    icon: '📊',
+  },
+  {
+    title: 'Condividi e usa offline',
+    text: 'Usa "Copia link" per condividere un itinerario via URL. L\'app funziona anche offline: naviga la mappa con rete e i tile saranno disponibili senza connessione. Installa l\'app dal browser per l\'uso sul campo.',
+    icon: '📱',
   },
 ];
 
