@@ -1,5 +1,5 @@
 import type { Itinerary, AppSettings } from './types';
-import { DEFAULT_TOLERANCES, DEFAULT_MAP_DISPLAY } from './types';
+import { DEFAULT_TOLERANCES, DEFAULT_MAP_DISPLAY, BASE_MAPS, SAMPLE_INTERVAL_OPTIONS } from './types';
 
 export const SCHEMA_VERSION = 1;
 
@@ -96,7 +96,12 @@ export function loadSettings(): AppSettings {
         ...Object.fromEntries(
           Object.entries(
             typeof parsed?.mapDisplay === 'object' && parsed.mapDisplay != null ? parsed.mapDisplay : {}
-          ).filter(([k, v]) => k in DEFAULT_MAP_DISPLAY && typeof v === 'boolean')
+          ).filter(([k, v]) => {
+            if (!(k in DEFAULT_MAP_DISPLAY)) return false;
+            if (k === 'sampleInterval') return typeof v === 'number' && SAMPLE_INTERVAL_OPTIONS.some((o) => o.value === v);
+            if (k === 'baseMap') return typeof v === 'string' && BASE_MAPS.some((m) => m.id === v);
+            return typeof v === 'boolean';
+          })
         ),
       },
     };

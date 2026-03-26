@@ -286,6 +286,18 @@ describe('sampleInterval', () => {
     expect(sampleInterval(1000)).toBe(50);
     expect(sampleInterval(10000)).toBe(50);
   });
+
+  test('uses userInterval when provided and positive', () => {
+    expect(sampleInterval(5000, 100)).toBe(100);
+    expect(sampleInterval(5000, 200)).toBe(200);
+    expect(sampleInterval(100, 20)).toBe(20);
+  });
+
+  test('falls back to heuristic for invalid userInterval', () => {
+    expect(sampleInterval(5000, 0)).toBe(50);
+    expect(sampleInterval(5000, -10)).toBe(50);
+    expect(sampleInterval(300, undefined)).toBe(20);
+  });
 });
 
 describe('buildGradientStops', () => {

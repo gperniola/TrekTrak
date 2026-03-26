@@ -30,6 +30,9 @@ async function fetchFromProxy(locations: string): Promise<(number | null)[] | nu
   return null;
 }
 
+// OpenTopoData API limit is 100 locations per GET; use 95 for safety margin
+const BATCH_SIZE = 95;
+
 export async function fetchElevationProfile(
   points: [number, number][]
 ): Promise<(number | null)[]> {
@@ -38,9 +41,28 @@ export async function fetchElevationProfile(
     return points.map(() => null);
   }
 
-  const locations = points.map(([lat, lon]) => `${lat},${lon}`).join('|');
-  const result = await fetchFromProxy(locations);
-  return result ?? points.map(() => null);
+  // Single batch — no splitting needed
+  if (points.length <= BATCH_SIZE) {
+    const locations = points.map(([lat, lon]) => `${lat},${lon}`).join('|');
+    const result = await fetchFromProxy(locations);
+    return result ?? points.map(() => null);
+  }
+
+  // Multi-batch for large point sets (long legs).
+  // Batches are sequential to respect OpenTopoData rate limits (1 req/s for free tier).
+  // Failed batches degrade gracefully to null entries.
+  const allResults: (number | null)[] = new Array(points.length).fill(null);
+  for (let start = 0; start < points.length; start += BATCH_SIZE) {
+    const batch = points.slice(start, start + BATCH_SIZE);
+    const locations = batch.map(([lat, lon]) => `${lat},${lon}`).join('|');
+    const result = await fetchFromProxy(locations);
+    if (result) {
+      for (let j = 0; j < result.length; j++) {
+        allResults[start + j] = result[j];
+      }
+    }
+  }
+  return allResults;
 }
 
 export async function fetchElevation(lat: number, lon: number): Promise<number | null> {

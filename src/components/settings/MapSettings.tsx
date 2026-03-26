@@ -4,6 +4,8 @@ import { useItineraryStore } from '@/stores/itineraryStore';
 import { saveSettings } from '@/lib/storage';
 import { isRoutingAvailable } from '@/lib/routing-api';
 import { useEffect } from 'react';
+import { SAMPLE_INTERVAL_OPTIONS, BASE_MAPS } from '@/lib/types';
+import type { SampleIntervalOption, BaseMapId } from '@/lib/types';
 
 function ToggleSwitch({ checked, onChange, label, disabled }: { checked: boolean; onChange: () => void; label: string; disabled?: boolean }) {
   return (
@@ -33,7 +35,7 @@ export function MapSettings({ onClose }: { onClose: () => void }) {
   const { coloredPath, trailRouting } = settings.mapDisplay;
   const orsAvailable = isRoutingAvailable();
 
-  const toggleSetting = (key: 'coloredPath' | 'trailRouting') => {
+  const toggleSetting = (key: 'coloredPath' | 'trailRouting' | 'showHikingTrails') => {
     const newSettings = {
       ...settings,
       mapDisplay: { ...settings.mapDisplay, [key]: !settings.mapDisplay[key] },
@@ -71,6 +73,58 @@ export function MapSettings({ onClose }: { onClose: () => void }) {
           >
             ✕
           </button>
+        </div>
+
+        {/* Base map selector */}
+        <div className="py-3 border-t border-gray-700">
+          <div className="text-sm text-gray-300 mb-1">Mappa di base</div>
+          <div className="space-y-1">
+            {BASE_MAPS.map((m) => (
+              <label
+                key={m.id}
+                className={`flex items-start gap-2 px-2 py-1.5 rounded cursor-pointer transition-colors ${
+                  settings.mapDisplay.baseMap === m.id ? 'bg-gray-800' : 'hover:bg-gray-800/50'
+                } ${!m.available ? 'opacity-40 cursor-not-allowed' : ''}`}
+              >
+                <input
+                  type="radio"
+                  name="baseMap"
+                  value={m.id}
+                  checked={settings.mapDisplay.baseMap === m.id}
+                  disabled={!m.available}
+                  onChange={() => {
+                    const newSettings = {
+                      ...settings,
+                      mapDisplay: { ...settings.mapDisplay, baseMap: m.id as BaseMapId },
+                    };
+                    updateSettings(newSettings);
+                    saveSettings(newSettings);
+                  }}
+                  className="mt-0.5 accent-green-500"
+                />
+                <div>
+                  <div className="text-xs text-gray-200">{m.label}</div>
+                  <div className="text-[10px] text-gray-500">{m.description}</div>
+                  {!m.available && <div className="text-[10px] text-red-400">API key richiesta</div>}
+                </div>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Hiking trails overlay */}
+        <div className="flex items-center justify-between py-3 border-t border-gray-700">
+          <div>
+            <div className="text-sm text-gray-300">Sentieri escursionistici</div>
+            <div className="text-[10px] text-gray-500 mt-0.5">
+              Overlay Waymarked Trails — percorsi CAI, GR e sentieri ufficiali
+            </div>
+          </div>
+          <ToggleSwitch
+            checked={settings.mapDisplay.showHikingTrails}
+            onChange={() => toggleSetting('showHikingTrails')}
+            label="Sentieri escursionistici"
+          />
         </div>
 
         {/* Trail routing toggle */}
@@ -117,6 +171,33 @@ export function MapSettings({ onClose }: { onClose: () => void }) {
             onChange={() => toggleSetting('coloredPath')}
             label="Percorso colorato"
           />
+        </div>
+
+        {/* Sample interval selector */}
+        <div className="py-3 border-t border-gray-700">
+          <div className="text-sm text-gray-300 mb-1">Campionatura altimetrica</div>
+          <div className="text-[10px] text-gray-500 mb-2">
+            Intervallo tra i punti di campionamento per il calcolo del profilo altimetrico.
+            Valori bassi = più dettaglio, più lento. Valori alti = meno dettaglio, più veloce.
+          </div>
+          <select
+            value={settings.mapDisplay.sampleInterval}
+            onChange={(e) => {
+              const val = Number(e.target.value) as SampleIntervalOption;
+              const newSettings = {
+                ...settings,
+                mapDisplay: { ...settings.mapDisplay, sampleInterval: val },
+              };
+              updateSettings(newSettings);
+              saveSettings(newSettings);
+            }}
+            className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-sm text-gray-200 focus:border-green-500 focus:outline-none"
+            aria-label="Intervallo campionatura"
+          >
+            {SAMPLE_INTERVAL_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
         </div>
       </div>
     </div>

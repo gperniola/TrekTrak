@@ -161,7 +161,8 @@ export function ActionBar() {
           }
 
           const distM = realDist * 1000;
-          const numPoints = Math.min(95, Math.max(2, Math.ceil(distM / sampleInterval(distM))));
+          const userInterval = useItineraryStore.getState().settings.mapDisplay.sampleInterval;
+          const numPoints = Math.max(2, Math.ceil(distM / sampleInterval(distM, userInterval)));
           const profilePoints = interpolatePoints(from.lat, from.lon, to.lat, to.lon, numPoints);
           const profileElevations = await fetchElevationProfile(profilePoints);
           if (isStale()) break;

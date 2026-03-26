@@ -63,6 +63,11 @@ export function WaypointCard({ waypoint, dragHandleProps }: { waypoint: Waypoint
           />
         </div>
       )}
+      {waypoint.order === 0 && (
+        <div className="text-[10px] text-gray-500 mb-1" title="World Geodetic System 1984 — EPSG:4326">
+          Coordinate: <span className="text-gray-400 font-medium">WGS84</span> — gradi decimali
+        </div>
+      )}
       <div className="grid grid-cols-3 gap-2">
         <NumberInput
           label="Lat"
@@ -73,7 +78,7 @@ export function WaypointCard({ waypoint, dragHandleProps }: { waypoint: Waypoint
           max={90}
           placeholder="46.123"
           readOnly={isTrack}
-          info="Latitudine in gradi decimali (-90 a 90)"
+          info="Latitudine WGS84 in gradi decimali (-90 a 90)"
         />
         <NumberInput
           label="Lon"
@@ -84,7 +89,7 @@ export function WaypointCard({ waypoint, dragHandleProps }: { waypoint: Waypoint
           max={180}
           placeholder="11.456"
           readOnly={isTrack}
-          info="Longitudine in gradi decimali (-180 a 180)"
+          info="Longitudine WGS84 in gradi decimali (-180 a 180)"
         />
         <NumberInput
           label="Alt"

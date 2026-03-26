@@ -57,14 +57,86 @@ export interface ToleranceSettings {
   elevationDelta: number;
 }
 
+export type SampleIntervalOption = 20 | 50 | 100 | 200;
+
+export const SAMPLE_INTERVAL_OPTIONS: { value: SampleIntervalOption; label: string }[] = [
+  { value: 20, label: '20 m — Alta risoluzione' },
+  { value: 50, label: '50 m — Default' },
+  { value: 100, label: '100 m — Media risoluzione' },
+  { value: 200, label: '200 m — Bassa risoluzione' },
+];
+
+export type BaseMapId = 'thunderforest-outdoors' | 'opentopomap' | 'cyclosm' | 'osm';
+
+export interface BaseMapDef {
+  id: BaseMapId;
+  label: string;
+  description: string;
+  url: string;
+  attribution: string;
+  available: boolean;
+  maxZoom?: number;
+}
+
+// Static process.env references so Next.js can inline them at build time.
+// Dynamic process.env[var] does NOT work in the client bundle.
+const TF_KEY = process.env.NEXT_PUBLIC_THUNDERFOREST_API_KEY ?? '';
+
+export const BASE_MAPS: BaseMapDef[] = [
+  {
+    id: 'thunderforest-outdoors',
+    label: 'Thunderforest Outdoors',
+    description: 'Sentieri, curve di livello, rifugi',
+    url: `https://tile.thunderforest.com/outdoors/{z}/{x}/{y}.png?apikey=${TF_KEY}`,
+    attribution: '&copy; <a href="https://www.thunderforest.com/">Thunderforest</a>, &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    available: TF_KEY.length > 0,
+  },
+  {
+    id: 'opentopomap',
+    label: 'OpenTopoMap',
+    description: 'Mappa topografica con curve di livello dettagliate',
+    url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+    attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)',
+    available: true,
+    maxZoom: 17,
+  },
+  {
+    id: 'cyclosm',
+    label: 'CyclOSM',
+    description: 'Sentieri, superfici, fonti d\'acqua',
+    url: 'https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png',
+    attribution: '<a href="https://github.com/cyclosm/cyclosm-cartocss-style/releases">CyclOSM</a> | Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    available: true,
+  },
+  {
+    id: 'osm',
+    label: 'OpenStreetMap',
+    description: 'Mappa standard — sempre disponibile',
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    available: true,
+  },
+];
+
+export const HIKING_TRAILS_OVERLAY = {
+  url: 'https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png',
+  attribution: '&copy; <a href="https://waymarkedtrails.org">Waymarked Trails</a>',
+};
+
 export interface MapDisplaySettings {
   coloredPath: boolean;
   trailRouting: boolean;
+  sampleInterval: SampleIntervalOption;
+  baseMap: BaseMapId;
+  showHikingTrails: boolean;
 }
 
 export const DEFAULT_MAP_DISPLAY: MapDisplaySettings = {
   coloredPath: false,
   trailRouting: false,
+  sampleInterval: 50,
+  baseMap: 'thunderforest-outdoors',
+  showHikingTrails: false,
 };
 
 export interface AppSettings {

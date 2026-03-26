@@ -126,17 +126,19 @@ describe('sample interval and max points', () => {
     expect(sampleInterval(5000)).toBe(50);
   });
 
-  test('5km leg produces <=95 sample points', () => {
+  test('5km leg produces correct uncapped sample points', () => {
     const distM = 5000;
-    const numPoints = Math.min(95, Math.max(2, Math.ceil(distM / sampleInterval(distM))));
-    expect(numPoints).toBeLessThanOrEqual(95);
+    const numPoints = Math.max(2, Math.ceil(distM / sampleInterval(distM)));
+    // 5000m / 50m = 100 points — no longer capped at 95
+    expect(numPoints).toBe(100);
     expect(numPoints).toBeGreaterThanOrEqual(2);
   });
 
-  test('10km leg is capped at 95 points', () => {
+  test('10km leg produces correct uncapped sample points', () => {
     const distM = 10000;
-    const numPoints = Math.min(95, Math.max(2, Math.ceil(distM / sampleInterval(distM))));
-    expect(numPoints).toBe(95);
+    const numPoints = Math.max(2, Math.ceil(distM / sampleInterval(distM)));
+    // 10000m / 50m = 200 points — handled by multi-batch fetching
+    expect(numPoints).toBe(200);
   });
 });
 
@@ -152,7 +154,7 @@ describe('mapDisplay settings persistence', () => {
   test('saves and loads coloredPath=true', () => {
     const settings: AppSettings = {
       tolerances: { ...DEFAULT_TOLERANCES },
-      mapDisplay: { coloredPath: true, trailRouting: false },
+      mapDisplay: { coloredPath: true, trailRouting: false, sampleInterval: 50, baseMap: 'thunderforest-outdoors', showHikingTrails: false },
     };
     saveSettings(settings);
     const loaded = loadSettings();
@@ -198,7 +200,7 @@ describe('mapDisplay settings persistence', () => {
   test('toggle preserves tolerances', () => {
     const initial: AppSettings = {
       tolerances: { altitude: 30, coordinates: 0.002, distance: 15, azimuth: 10, elevationDelta: 20 },
-      mapDisplay: { coloredPath: false, trailRouting: false },
+      mapDisplay: { coloredPath: false, trailRouting: false, sampleInterval: 50, baseMap: 'thunderforest-outdoors', showHikingTrails: false },
     };
     saveSettings(initial);
 

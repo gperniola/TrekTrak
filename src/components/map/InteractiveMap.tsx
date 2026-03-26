@@ -11,7 +11,9 @@ import { haversineDistance, forwardAzimuth, interpolatePoints, cumulativeElevati
 import { fetchTrailRoute } from '@/lib/routing-api';
 import { LocationSearch } from './LocationSearch';
 import { CompassOverlay } from './CompassTool';
-import type { Leg } from '@/lib/types';
+import { MyLocationButton } from './MyLocationButton';
+import type { Leg, BaseMapDef } from '@/lib/types';
+import { BASE_MAPS, HIKING_TRAILS_OVERLAY } from '@/lib/types';
 
 // Icon cache to avoid recreating on every render
 const iconCache = new Map<number, L.DivIcon>();
@@ -42,9 +44,6 @@ async function getCachedElevation(
   return result;
 }
 
-// OpenTopoData API limit is 100 locations per GET; use 95 for safety margin
-const MAX_SAMPLE_POINTS = 95;
-
 async function autoFillLegClassic(
   leg: Leg,
   fromLat: number, fromLon: number,
@@ -61,8 +60,16 @@ async function autoFillLegClassic(
     routeGeometry: undefined,
   };
 
+  // Skip elevation profile for zero/near-zero distance legs (< 1m)
   const distanceM = distanceKm * 1000;
-  const numPoints = Math.min(MAX_SAMPLE_POINTS, Math.max(2, Math.ceil(distanceM / sampleInterval(distanceM))));
+  if (distanceM < 1) {
+    if (isStale()) return;
+    updateLeg(leg.id, legUpdate);
+    return;
+  }
+
+  const userInterval = useItineraryStore.getState().settings.mapDisplay.sampleInterval;
+  const numPoints = Math.max(2, Math.ceil(distanceM / sampleInterval(distanceM, userInterval)));
   const points = interpolatePoints(fromLat, fromLon, toLat, toLon, numPoints);
 
   // Check cache for all points, identify which need fetching
@@ -468,6 +475,13 @@ function LegPolylines() {
   );
 }
 
+function resolveBaseMap(chosen: string): BaseMapDef {
+  const def = BASE_MAPS.find((m) => m.id === chosen && m.available);
+  if (def) return def;
+  // Fallback: first available map (OpenTopoMap or OSM)
+  return BASE_MAPS.find((m) => m.available) ?? BASE_MAPS[BASE_MAPS.length - 1];
+}
+
 export function InteractiveMap({ mobileSearchOpen, compassActive, onCompassDeactivate }: {
   mobileSearchOpen?: boolean;
   compassActive?: boolean;
@@ -475,6 +489,8 @@ export function InteractiveMap({ mobileSearchOpen, compassActive, onCompassDeact
 }) {
   const waypoints = useItineraryStore((s) => s.waypoints);
   const updateWaypointPosition = useItineraryStore((s) => s.updateWaypointPosition);
+  const baseMapId = useItineraryStore((s) => s.settings.mapDisplay.baseMap);
+  const showHikingTrails = useItineraryStore((s) => s.settings.mapDisplay.showHikingTrails);
 
   const validWaypoints = waypoints.filter((wp) => wp.lat != null && wp.lon != null);
 
@@ -490,6 +506,8 @@ export function InteractiveMap({ mobileSearchOpen, compassActive, onCompassDeact
     [updateWaypointPosition]
   );
 
+  const baseMap = resolveBaseMap(baseMapId);
+
   return (
     <MapContainer
       center={DEFAULT_CENTER}
@@ -498,13 +516,18 @@ export function InteractiveMap({ mobileSearchOpen, compassActive, onCompassDeact
       className="h-full w-full"
     >
       <TileLayer
-        attribution={process.env.NEXT_PUBLIC_THUNDERFOREST_API_KEY
-          ? '&copy; <a href="https://www.thunderforest.com/">Thunderforest</a>, &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}
-        url={process.env.NEXT_PUBLIC_THUNDERFOREST_API_KEY
-          ? `https://tile.thunderforest.com/outdoors/{z}/{x}/{y}.png?apikey=${process.env.NEXT_PUBLIC_THUNDERFOREST_API_KEY}`
-          : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'}
+        key={baseMapId}
+        attribution={baseMap.attribution}
+        url={baseMap.url}
+        maxZoom={baseMap.maxZoom}
       />
+      {showHikingTrails && (
+        <TileLayer
+          url={HIKING_TRAILS_OVERLAY.url}
+          attribution={HIKING_TRAILS_OVERLAY.attribution}
+          opacity={0.8}
+        />
+      )}
       <GeolocateOnMount />
       <TrackModeAutoFill />
       <MapEvents compassActive={compassActive} />
@@ -523,6 +546,7 @@ export function InteractiveMap({ mobileSearchOpen, compassActive, onCompassDeact
       ))}
 
       <LegPolylines />
+      <MyLocationButton hidden={compassActive} />
       <CompassOverlay active={!!compassActive} onDeactivate={onCompassDeactivate ?? (() => {})} />
     </MapContainer>
   );

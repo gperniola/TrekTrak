@@ -138,7 +138,13 @@ export function slopeColor(slopePercent: number): string {
   return '#4ade80';
 }
 
-export function sampleInterval(distanceM: number): number {
+/**
+ * Return the sampling interval in meters.
+ * When a user-chosen interval is provided, it is used directly.
+ * Otherwise falls back to the legacy adaptive heuristic.
+ */
+export function sampleInterval(distanceM: number, userInterval?: number): number {
+  if (userInterval != null && userInterval > 0) return userInterval;
   return distanceM > 500 ? 50 : 20;
 }
 
