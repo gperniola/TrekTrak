@@ -8,10 +8,12 @@ import { SummaryBar } from './SummaryBar';
 import { ActionBar } from './ActionBar';
 import { ModeSwitch } from './ModeSwitch';
 
-export function LeftPanel({ className, compassActive, onCompassToggle }: {
+export function LeftPanel({ className, compassActive, onCompassToggle, rulerActive, onRulerToggle }: {
   className?: string;
   compassActive?: boolean;
   onCompassToggle?: () => void;
+  rulerActive?: boolean;
+  onRulerToggle?: () => void;
 }) {
   const [view, setView] = useState<'edit' | 'table'>('edit');
 
@@ -20,7 +22,7 @@ export function LeftPanel({ className, compassActive, onCompassToggle }: {
       <div className="hidden lg:block px-3 py-2 border-b border-gray-700">
         <span className="text-lg font-bold text-green-400">&#9650; TrekTrak</span>
       </div>
-      <ModeSwitch compassActive={compassActive} onCompassToggle={onCompassToggle} />
+      <ModeSwitch compassActive={compassActive} onCompassToggle={onCompassToggle} rulerActive={rulerActive} onRulerToggle={onRulerToggle} />
       <ItineraryHeader />
       <div className="flex border-b border-gray-700" role="tablist">
         <button

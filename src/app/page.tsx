@@ -19,8 +19,21 @@ export default function Home() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [compassActive, setCompassActive] = useState(false);
-  const handleCompassToggle = useCallback(() => setCompassActive((p) => !p), []);
+  const [rulerActive, setRulerActive] = useState(false);
+  const handleCompassToggle = useCallback(() => {
+    setCompassActive((p) => {
+      if (!p) setRulerActive(false);
+      return !p;
+    });
+  }, []);
   const handleCompassDeactivate = useCallback(() => setCompassActive(false), []);
+  const handleRulerToggle = useCallback(() => {
+    setRulerActive((p) => {
+      if (!p) setCompassActive(false);
+      return !p;
+    });
+  }, []);
+  const handleRulerDeactivate = useCallback(() => setRulerActive(false), []);
 
   // Hydrate settings from localStorage on mount
   useEffect(() => {
@@ -89,7 +102,7 @@ export default function Home() {
     <div className="h-dvh flex flex-col lg:flex-row overflow-hidden">
       {/* Desktop sidebar — hidden on mobile */}
       <div className="hidden lg:flex">
-        <LeftPanel compassActive={compassActive} onCompassToggle={handleCompassToggle} />
+        <LeftPanel compassActive={compassActive} onCompassToggle={handleCompassToggle} rulerActive={rulerActive} onRulerToggle={handleRulerToggle} />
       </div>
 
       {/* Right Panel: Top Bar (mobile) + Map + Elevation Profile */}
@@ -125,12 +138,12 @@ export default function Home() {
             </div>
           </div>
           {/* Row 2: Mode switch (Learn / Track) */}
-          <ModeSwitch compassActive={compassActive} onCompassToggle={handleCompassToggle} />
+          <ModeSwitch compassActive={compassActive} onCompassToggle={handleCompassToggle} rulerActive={rulerActive} onRulerToggle={handleRulerToggle} />
         </div>
 
         {/* Map */}
         <div className="flex-1 relative min-h-0 overflow-hidden">
-          <MapWrapper mobileSearchOpen={searchOpen} compassActive={compassActive} onCompassDeactivate={handleCompassDeactivate} />
+          <MapWrapper mobileSearchOpen={searchOpen} compassActive={compassActive} onCompassDeactivate={handleCompassDeactivate} rulerActive={rulerActive} onRulerDeactivate={handleRulerDeactivate} />
 
           {/* Settings toggles — desktop only */}
           <div className="hidden lg:flex absolute top-3 left-3 z-[1000] gap-1">
@@ -185,7 +198,7 @@ export default function Home() {
             </div>
           </div>
           <div className="flex-1 overflow-hidden">
-            <LeftPanel className="w-full h-full" />
+            <LeftPanel className="w-full h-full" compassActive={compassActive} onCompassToggle={handleCompassToggle} rulerActive={rulerActive} onRulerToggle={handleRulerToggle} />
           </div>
         </div>
       )}

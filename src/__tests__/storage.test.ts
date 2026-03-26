@@ -107,7 +107,7 @@ describe('settings', () => {
   test('saves and loads custom settings', () => {
     const custom: AppSettings = {
       tolerances: { altitude: 30, coordinates: 0.002, distance: 15, azimuth: 10, elevationDelta: 20 },
-      mapDisplay: { coloredPath: true, trailRouting: true, sampleInterval: 50, baseMap: 'thunderforest-outdoors', showHikingTrails: false },
+      mapDisplay: { coloredPath: true, trailRouting: true, sampleInterval: 50, baseMap: 'thunderforest-outdoors', showHikingTrails: false, showCoordinateGrid: false },
     };
     saveSettings(custom);
     expect(loadSettings().tolerances.altitude).toBe(30);

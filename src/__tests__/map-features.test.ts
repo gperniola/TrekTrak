@@ -154,7 +154,7 @@ describe('mapDisplay settings persistence', () => {
   test('saves and loads coloredPath=true', () => {
     const settings: AppSettings = {
       tolerances: { ...DEFAULT_TOLERANCES },
-      mapDisplay: { coloredPath: true, trailRouting: false, sampleInterval: 50, baseMap: 'thunderforest-outdoors', showHikingTrails: false },
+      mapDisplay: { coloredPath: true, trailRouting: false, sampleInterval: 50, baseMap: 'thunderforest-outdoors', showHikingTrails: false, showCoordinateGrid: false },
     };
     saveSettings(settings);
     const loaded = loadSettings();
@@ -200,7 +200,7 @@ describe('mapDisplay settings persistence', () => {
   test('toggle preserves tolerances', () => {
     const initial: AppSettings = {
       tolerances: { altitude: 30, coordinates: 0.002, distance: 15, azimuth: 10, elevationDelta: 20 },
-      mapDisplay: { coloredPath: false, trailRouting: false, sampleInterval: 50, baseMap: 'thunderforest-outdoors', showHikingTrails: false },
+      mapDisplay: { coloredPath: false, trailRouting: false, sampleInterval: 50, baseMap: 'thunderforest-outdoors', showHikingTrails: false, showCoordinateGrid: false },
     };
     saveSettings(initial);
 

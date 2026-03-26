@@ -8,7 +8,7 @@ beforeEach(() => {
     itineraryName: '',
     waypoints: [],
     legs: [],
-    settings: { tolerances: { altitude: 50, coordinates: 0.001, distance: 10, azimuth: 5, elevationDelta: 15 }, mapDisplay: { coloredPath: false, trailRouting: false, sampleInterval: 50, baseMap: 'thunderforest-outdoors', showHikingTrails: false } },
+    settings: { tolerances: { altitude: 50, coordinates: 0.001, distance: 10, azimuth: 5, elevationDelta: 15 }, mapDisplay: { coloredPath: false, trailRouting: false, sampleInterval: 50, baseMap: 'thunderforest-outdoors', showHikingTrails: false, showCoordinateGrid: false } },
     appMode: 'learn' as AppMode,
   });
 });

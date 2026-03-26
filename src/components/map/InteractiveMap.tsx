@@ -11,6 +11,8 @@ import { haversineDistance, forwardAzimuth, interpolatePoints, cumulativeElevati
 import { fetchTrailRoute } from '@/lib/routing-api';
 import { LocationSearch } from './LocationSearch';
 import { CompassOverlay } from './CompassTool';
+import { RulerTool } from './RulerTool';
+import { CoordinateGrid } from './CoordinateGrid';
 import { MyLocationButton } from './MyLocationButton';
 import type { Leg, BaseMapDef } from '@/lib/types';
 import { BASE_MAPS, HIKING_TRAILS_OVERLAY } from '@/lib/types';
@@ -318,12 +320,12 @@ function TrackModeAutoFill() {
   return null;
 }
 
-function MapEvents({ compassActive }: { compassActive?: boolean }) {
+function MapEvents({ compassActive, rulerActive }: { compassActive?: boolean; rulerActive?: boolean }) {
   const addWaypointAtPosition = useItineraryStore((s) => s.addWaypointAtPosition);
 
   useMapEvents({
     click(e) {
-      if (compassActive) return; // Suppress waypoint placement in compass mode
+      if (compassActive || rulerActive) return; // Suppress waypoint placement in compass/ruler mode
       // Ignore right-click (some browsers may emit click for contextmenu)
       const btn = (e.originalEvent as MouseEvent).button;
       if (btn != null && btn !== 0) return;
@@ -568,15 +570,18 @@ function LegPolylineHoverEvents() {
   );
 }
 
-export function InteractiveMap({ mobileSearchOpen, compassActive, onCompassDeactivate }: {
+export function InteractiveMap({ mobileSearchOpen, compassActive, onCompassDeactivate, rulerActive, onRulerDeactivate }: {
   mobileSearchOpen?: boolean;
   compassActive?: boolean;
   onCompassDeactivate?: () => void;
+  rulerActive?: boolean;
+  onRulerDeactivate?: () => void;
 }) {
   const waypoints = useItineraryStore((s) => s.waypoints);
   const updateWaypointPosition = useItineraryStore((s) => s.updateWaypointPosition);
   const baseMapId = useItineraryStore((s) => s.settings.mapDisplay.baseMap);
   const showHikingTrails = useItineraryStore((s) => s.settings.mapDisplay.showHikingTrails);
+  const showCoordinateGrid = useItineraryStore((s) => s.settings.mapDisplay.showCoordinateGrid);
 
   const validWaypoints = waypoints.filter((wp) => wp.lat != null && wp.lon != null);
 
@@ -618,9 +623,10 @@ export function InteractiveMap({ mobileSearchOpen, compassActive, onCompassDeact
           opacity={0.8}
         />
       )}
+      {showCoordinateGrid && <CoordinateGrid />}
       <GeolocateOnMount />
       <TrackModeAutoFill />
-      <MapEvents compassActive={compassActive} />
+      <MapEvents compassActive={compassActive} rulerActive={rulerActive} />
       <LocationSearch mobileSearchOpen={mobileSearchOpen} />
 
       {validWaypoints.map((wp) => (
@@ -640,6 +646,7 @@ export function InteractiveMap({ mobileSearchOpen, compassActive, onCompassDeact
       <ProfileHoverMarker />
       <MyLocationButton hidden={compassActive} />
       <CompassOverlay active={!!compassActive} onDeactivate={onCompassDeactivate ?? (() => {})} />
+      <RulerTool active={!!rulerActive} onDeactivate={onRulerDeactivate ?? (() => {})} />
     </MapContainer>
   );
 }

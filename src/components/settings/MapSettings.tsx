@@ -35,7 +35,7 @@ export function MapSettings({ onClose }: { onClose: () => void }) {
   const { coloredPath, trailRouting } = settings.mapDisplay;
   const orsAvailable = isRoutingAvailable();
 
-  const toggleSetting = (key: 'coloredPath' | 'trailRouting' | 'showHikingTrails') => {
+  const toggleSetting = (key: 'coloredPath' | 'trailRouting' | 'showHikingTrails' | 'showCoordinateGrid') => {
     const newSettings = {
       ...settings,
       mapDisplay: { ...settings.mapDisplay, [key]: !settings.mapDisplay[key] },
@@ -124,6 +124,21 @@ export function MapSettings({ onClose }: { onClose: () => void }) {
             checked={settings.mapDisplay.showHikingTrails}
             onChange={() => toggleSetting('showHikingTrails')}
             label="Sentieri escursionistici"
+          />
+        </div>
+
+        {/* Coordinate grid toggle */}
+        <div className="flex items-center justify-between py-3 border-t border-gray-700">
+          <div>
+            <div className="text-sm text-gray-300">Griglia coordinate</div>
+            <div className="text-[10px] text-gray-500 mt-0.5">
+              Overlay con griglia in gradi decimali (WGS84)
+            </div>
+          </div>
+          <ToggleSwitch
+            checked={settings.mapDisplay.showCoordinateGrid}
+            onChange={() => toggleSetting('showCoordinateGrid')}
+            label="Griglia coordinate"
           />
         </div>
 

@@ -133,6 +133,7 @@ export interface MapDisplaySettings {
   sampleInterval: SampleIntervalOption;
   baseMap: BaseMapId;
   showHikingTrails: boolean;
+  showCoordinateGrid: boolean;
 }
 
 export const DEFAULT_MAP_DISPLAY: MapDisplaySettings = {
@@ -141,6 +142,7 @@ export const DEFAULT_MAP_DISPLAY: MapDisplaySettings = {
   sampleInterval: 50,
   baseMap: 'thunderforest-outdoors',
   showHikingTrails: true,
+  showCoordinateGrid: false,
 };
 
 export interface AppSettings {
