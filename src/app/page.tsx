@@ -11,6 +11,7 @@ import { WhatsNew } from '@/components/tutorial/WhatsNew';
 import { MapSettings } from '@/components/settings/MapSettings';
 import { loadSettings } from '@/lib/storage';
 import { useItineraryStore } from '@/stores/itineraryStore';
+import { decodeItinerary } from '@/lib/share-url';
 
 export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
@@ -25,6 +26,19 @@ export default function Home() {
   useEffect(() => {
     const persisted = loadSettings();
     useItineraryStore.getState().updateSettings(persisted);
+  }, []);
+
+  // Load itinerary from URL hash if present
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash.startsWith('#data=')) return;
+    const decoded = decodeItinerary(hash);
+    if (decoded) {
+      const store = useItineraryStore.getState();
+      const id = Math.random().toString(36).substring(2, 11);
+      store.loadItinerary(id, decoded.name, decoded.waypoints, decoded.legs);
+    }
+    history.replaceState(null, '', window.location.pathname);
   }, []);
 
   const drawerRef = useRef<HTMLDivElement>(null);

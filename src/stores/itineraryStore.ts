@@ -53,6 +53,13 @@ interface ItineraryState {
   updateSettings: (settings: AppSettings) => void;
   resetItinerary: () => void;
   loadItinerary: (id: string, name: string, waypoints: Waypoint[], legs: Leg[], createdAt?: string) => void;
+
+  profileHover: { distance: number; source: 'chart' | 'map' } | null;
+  setProfileHover: (distance: number, source: 'chart' | 'map') => void;
+  clearProfileHover: () => void;
+  profileFlyTo: number | null;
+  setProfileFlyTo: (distance: number) => void;
+  clearProfileFlyTo: () => void;
 }
 
 const initialState = {
@@ -63,6 +70,8 @@ const initialState = {
   legs: [] as Leg[],
   settings: { tolerances: { ...DEFAULT_TOLERANCES }, mapDisplay: { ...DEFAULT_MAP_DISPLAY } } as AppSettings,
   appMode: 'learn' as AppMode,
+  profileHover: null as { distance: number; source: 'chart' | 'map' } | null,
+  profileFlyTo: null as number | null,
 };
 
 export const useItineraryStore = create<ItineraryState>()((set, get) => ({
@@ -236,6 +245,8 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
       legs: [],
       settings,
       appMode,
+      profileHover: null,
+      profileFlyTo: null,
     });
   },
 
@@ -268,6 +279,13 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
       createdAt: createdAt ?? new Date().toISOString(),
       waypoints: cleanWaypoints,
       legs: newLegs,
+      profileHover: null,
+      profileFlyTo: null,
     });
   },
+
+  setProfileHover: (distance, source) => set({ profileHover: { distance, source } }),
+  clearProfileHover: () => set({ profileHover: null }),
+  setProfileFlyTo: (distance) => set({ profileFlyTo: distance }),
+  clearProfileFlyTo: () => set({ profileFlyTo: null }),
 }));

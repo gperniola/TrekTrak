@@ -7,7 +7,7 @@ import { useItineraryStore } from '@/stores/itineraryStore';
 import { useCallback, useEffect, useRef } from 'react';
 import { useMap } from 'react-leaflet';
 import { fetchElevation, fetchElevationProfile } from '@/lib/elevation-api';
-import { haversineDistance, forwardAzimuth, interpolatePoints, cumulativeElevation, sampleInterval, slopeColor, smoothAltitudes } from '@/lib/calculations';
+import { haversineDistance, forwardAzimuth, interpolatePoints, cumulativeElevation, sampleInterval, slopeColor, smoothAltitudes, distanceToPosition, positionToDistance } from '@/lib/calculations';
 import { fetchTrailRoute } from '@/lib/routing-api';
 import { LocationSearch } from './LocationSearch';
 import { CompassOverlay } from './CompassTool';
@@ -483,6 +483,91 @@ function resolveBaseMap(chosen: string): BaseMapDef {
   return BASE_MAPS.find((m) => m.available) ?? BASE_MAPS[BASE_MAPS.length - 1];
 }
 
+const profileHoverIcon = L.divIcon({
+  className: '',
+  html: '<div style="width:12px;height:12px;background:#facc15;border-radius:50%;border:2px solid #fff;box-shadow:0 0 6px rgba(250,204,21,0.6);"></div>',
+  iconSize: [12, 12],
+  iconAnchor: [6, 6],
+});
+
+function ProfileHoverMarker() {
+  const profileHover = useItineraryStore((s) => s.profileHover);
+  const profileFlyTo = useItineraryStore((s) => s.profileFlyTo);
+  const clearProfileFlyTo = useItineraryStore((s) => s.clearProfileFlyTo);
+  const waypoints = useItineraryStore((s) => s.waypoints);
+  const legs = useItineraryStore((s) => s.legs);
+  const map = useMap();
+
+  // Handle click-to-fly from chart
+  useEffect(() => {
+    if (profileFlyTo == null) return;
+    const flyPos = distanceToPosition(profileFlyTo, waypoints, legs);
+    if (flyPos) map.flyTo(flyPos, Math.max(map.getZoom(), 15), { duration: 0.8 });
+    clearProfileFlyTo();
+  }, [profileFlyTo, waypoints, legs, map, clearProfileFlyTo]);
+
+  if (!profileHover || profileHover.source !== 'chart') return null;
+
+  const pos = distanceToPosition(profileHover.distance, waypoints, legs);
+  if (!pos) return null;
+
+  return (
+    <Marker
+      position={pos}
+      icon={profileHoverIcon}
+      interactive={false}
+    />
+  );
+}
+
+function LegPolylineHoverEvents() {
+  const waypoints = useItineraryStore((s) => s.waypoints);
+  const legs = useItineraryStore((s) => s.legs);
+  const setProfileHover = useItineraryStore((s) => s.setProfileHover);
+  const clearProfileHover = useItineraryStore((s) => s.clearProfileHover);
+  const lastHoverTime = useRef(0);
+
+  const handleMouseMove = useCallback((e: L.LeafletMouseEvent) => {
+    const now = Date.now();
+    if (now - lastHoverTime.current < 60) return;
+    lastHoverTime.current = now;
+    const { lat, lng } = e.latlng;
+    const dist = positionToDistance(lat, lng, waypoints, legs);
+    if (dist != null) setProfileHover(dist, 'map');
+  }, [waypoints, legs, setProfileHover]);
+
+  const handleMouseOut = useCallback(() => {
+    clearProfileHover();
+  }, [clearProfileHover]);
+
+  return (
+    <>
+      {legs.map((leg) => {
+        const from = waypoints.find((w) => w.id === leg.fromWaypointId);
+        const to = waypoints.find((w) => w.id === leg.toWaypointId);
+        if (!from || !to || from.lat == null || from.lon == null || to.lat == null || to.lon == null) return null;
+
+        const positions: [number, number][] = leg.routeGeometry && leg.routeGeometry.length >= 2
+          ? leg.routeGeometry
+          : [[from.lat, from.lon], [to.lat, to.lon]];
+
+        return (
+          <Polyline
+            key={`hover-${leg.id}`}
+            positions={positions}
+            color="transparent"
+            weight={20}
+            eventHandlers={{
+              mousemove: handleMouseMove,
+              mouseout: handleMouseOut,
+            }}
+          />
+        );
+      })}
+    </>
+  );
+}
+
 export function InteractiveMap({ mobileSearchOpen, compassActive, onCompassDeactivate }: {
   mobileSearchOpen?: boolean;
   compassActive?: boolean;
@@ -551,6 +636,8 @@ export function InteractiveMap({ mobileSearchOpen, compassActive, onCompassDeact
       ))}
 
       <LegPolylines />
+      <LegPolylineHoverEvents />
+      <ProfileHoverMarker />
       <MyLocationButton hidden={compassActive} />
       <CompassOverlay active={!!compassActive} onDeactivate={onCompassDeactivate ?? (() => {})} />
     </MapContainer>

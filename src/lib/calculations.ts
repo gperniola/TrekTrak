@@ -1,4 +1,4 @@
-import type { DifficultyGrade } from './types';
+import type { DifficultyGrade, Waypoint, Leg } from './types';
 
 const EARTH_RADIUS_KM = 6371;
 
@@ -128,12 +128,10 @@ const SLOPE_COLORS = [
   { threshold: 10, color: '#facc15' },
 ] as const;
 
-const SLOPE_EPSILON = 0.5; // half-percent tolerance to avoid threshold oscillation
-
 export function slopeColor(slopePercent: number): string {
   const abs = Math.abs(slopePercent);
   for (const { threshold, color } of SLOPE_COLORS) {
-    if (abs >= threshold - SLOPE_EPSILON) return color;
+    if (abs >= threshold) return color;
   }
   return '#4ade80';
 }
@@ -208,4 +206,88 @@ export function azimuthToCardinal(azimuth: number): string {
   const normalized = ((azimuth % 360) + 360) % 360;
   const index = Math.round(normalized / 45) % 8;
   return directions[index];
+}
+
+/**
+ * Given a cumulative distance (km) along the itinerary, return the [lat, lon]
+ * position by interpolating along the legs (straight-line between waypoints).
+ */
+export function distanceToPosition(
+  distance: number,
+  waypoints: Waypoint[],
+  legs: Leg[]
+): [number, number] | null {
+  if (waypoints.length === 0 || distance < 0) return null;
+  if (waypoints.length === 1) {
+    if (distance === 0 && waypoints[0].lat != null && waypoints[0].lon != null) {
+      return [waypoints[0].lat, waypoints[0].lon];
+    }
+    return null;
+  }
+
+  let cumulative = 0;
+  for (const leg of legs) {
+    const from = waypoints.find((w) => w.id === leg.fromWaypointId);
+    const to = waypoints.find((w) => w.id === leg.toWaypointId);
+    if (!from || !to || from.lat == null || from.lon == null || to.lat == null || to.lon == null) continue;
+    const legDist = leg.distance ?? 0;
+    if (legDist <= 0) continue;
+
+    if (distance <= cumulative + legDist + 0.0001) {
+      const t = Math.max(0, Math.min(1, (distance - cumulative) / legDist));
+      return [
+        from.lat + t * (to.lat - from.lat),
+        from.lon + t * (to.lon - from.lon),
+      ];
+    }
+    cumulative += legDist;
+  }
+  return null;
+}
+
+/**
+ * Given a [lat, lon] position, find the closest point on the itinerary path
+ * and return its cumulative distance (km) from the start.
+ */
+export function positionToDistance(
+  lat: number, lon: number,
+  waypoints: Waypoint[],
+  legs: Leg[]
+): number | null {
+  if (waypoints.length < 2 || legs.length === 0) return null;
+
+  let bestDist = Infinity;
+  let bestCumulative = 0;
+  let cumulative = 0;
+
+  for (const leg of legs) {
+    const from = waypoints.find((w) => w.id === leg.fromWaypointId);
+    const to = waypoints.find((w) => w.id === leg.toWaypointId);
+    if (!from || !to || from.lat == null || from.lon == null || to.lat == null || to.lon == null) continue;
+    const legDist = leg.distance ?? 0;
+    if (legDist <= 0) continue;
+
+    // Project point onto the line segment from→to using equirectangular correction
+    const cosLat = Math.cos(((from.lat + to.lat) / 2) * Math.PI / 180);
+    const dx = to.lat - from.lat;
+    const dy = (to.lon - from.lon) * cosLat;
+    const pxLat = lat - from.lat;
+    const pxLon = (lon - from.lon) * cosLat;
+    const lenSq = dx * dx + dy * dy;
+    let t = 0;
+    if (lenSq > 0) {
+      t = Math.max(0, Math.min(1, (pxLat * dx + pxLon * dy) / lenSq));
+    }
+    const projLat = from.lat + t * (to.lat - from.lat);
+    const projLon = from.lon + t * (to.lon - from.lon);
+
+    const dist = haversineDistance(lat, lon, projLat, projLon);
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestCumulative = cumulative + t * legDist;
+    }
+    cumulative += legDist;
+  }
+
+  return bestDist < Infinity ? bestCumulative : null;
 }

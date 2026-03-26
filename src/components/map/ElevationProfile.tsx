@@ -1,7 +1,7 @@
 'use client';
 
-import { useId, useState, useRef, useEffect } from 'react';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceDot } from 'recharts';
+import { useId, useState, useRef, useEffect, useCallback } from 'react';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceDot, ReferenceLine } from 'recharts';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { buildGradientStops } from '@/lib/calculations';
 
@@ -13,6 +13,10 @@ export function ElevationProfile() {
   const waypoints = useItineraryStore((s) => s.waypoints);
   const legs = useItineraryStore((s) => s.legs);
   const appMode = useItineraryStore((s) => s.appMode);
+  const profileHover = useItineraryStore((s) => s.profileHover);
+  const setProfileHover = useItineraryStore((s) => s.setProfileHover);
+  const clearProfileHover = useItineraryStore((s) => s.clearProfileHover);
+  const setProfileFlyTo = useItineraryStore((s) => s.setProfileFlyTo);
 
   const isEstimated = appMode === 'learn';
 
@@ -112,6 +116,25 @@ export function ElevationProfile() {
   const stops = buildGradientStops(profileData, totalDistance);
   const hasGradient = stops.length > 0;
 
+  const lastHoverTime = useRef(0);
+
+  const handleChartMouseMove = useCallback((state: { activeLabel?: string | number }) => {
+    const now = Date.now();
+    if (now - lastHoverTime.current < 60) return;
+    lastHoverTime.current = now;
+    const dist = state?.activeLabel;
+    if (dist != null && typeof dist === 'number') setProfileHover(dist, 'chart');
+  }, [setProfileHover]);
+
+  const handleChartMouseLeave = useCallback(() => {
+    clearProfileHover();
+  }, [clearProfileHover]);
+
+  const handleChartClick = useCallback((state: { activeLabel?: string | number }) => {
+    const dist = state?.activeLabel;
+    if (dist != null && typeof dist === 'number') setProfileFlyTo(dist);
+  }, [setProfileFlyTo]);
+
   return (
     <div className={`h-full p-2 ${isEstimated ? 'bg-amber-950/25' : ''}`}>
       <div className="text-xs mb-1 flex items-center gap-1">
@@ -136,7 +159,7 @@ export function ElevationProfile() {
         )}
       </div>
       <ResponsiveContainer width="100%" height="85%">
-        <AreaChart data={profileData}>
+        <AreaChart data={profileData} onMouseMove={handleChartMouseMove} onMouseLeave={handleChartMouseLeave} onClick={handleChartClick}>
           <defs>
             {hasGradient ? (
               <>
@@ -183,6 +206,14 @@ export function ElevationProfile() {
               strokeWidth={1}
             />
           ))}
+          {profileHover && profileHover.source === 'map' && (
+            <ReferenceLine
+              x={profileHover.distance}
+              stroke="#facc15"
+              strokeWidth={2}
+              strokeDasharray="4 2"
+            />
+          )}
         </AreaChart>
       </ResponsiveContainer>
     </div>

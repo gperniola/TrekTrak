@@ -11,6 +11,8 @@ import {
   slopeColor,
   sampleInterval,
   buildGradientStops,
+  distanceToPosition,
+  positionToDistance,
 } from '../lib/calculations';
 
 describe('haversineDistance', () => {
@@ -245,22 +247,23 @@ describe('slopeColor', () => {
     expect(slopeColor(9)).toBe('#4ade80');
   });
 
-  test('moderate slope returns yellow (with 0.5% epsilon)', () => {
-    expect(slopeColor(9.5)).toBe('#facc15');
+  test('moderate slope returns yellow (exact threshold)', () => {
+    expect(slopeColor(9.5)).toBe('#4ade80'); // below 10% = green
+    expect(slopeColor(9.99)).toBe('#4ade80');
     expect(slopeColor(10)).toBe('#facc15');
     expect(slopeColor(15)).toBe('#facc15');
-    expect(slopeColor(19)).toBe('#facc15');
+    expect(slopeColor(19.99)).toBe('#facc15');
   });
 
-  test('steep slope returns orange (with 0.5% epsilon)', () => {
-    expect(slopeColor(19.5)).toBe('#fb923c');
+  test('steep slope returns orange (exact threshold)', () => {
+    expect(slopeColor(19.99)).toBe('#facc15'); // below 20% = yellow
     expect(slopeColor(20)).toBe('#fb923c');
     expect(slopeColor(25)).toBe('#fb923c');
-    expect(slopeColor(29)).toBe('#fb923c');
+    expect(slopeColor(29.99)).toBe('#fb923c');
   });
 
-  test('very steep slope returns red (with 0.5% epsilon)', () => {
-    expect(slopeColor(29.5)).toBe('#ef4444');
+  test('very steep slope returns red (exact threshold)', () => {
+    expect(slopeColor(29.99)).toBe('#fb923c'); // below 30% = orange
     expect(slopeColor(30)).toBe('#ef4444');
     expect(slopeColor(50)).toBe('#ef4444');
     expect(slopeColor(100)).toBe('#ef4444');
@@ -407,6 +410,112 @@ describe('buildGradientStops', () => {
       const pct = parseFloat(stop.offset);
       expect(pct).toBeGreaterThanOrEqual(0);
       expect(pct).toBeLessThanOrEqual(100);
+    }
+  });
+});
+
+describe('distanceToPosition', () => {
+  const wps = [
+    { id: 'a', name: 'A', lat: 46.0, lon: 11.0, altitude: null, order: 0 },
+    { id: 'b', name: 'B', lat: 46.1, lon: 11.0, altitude: null, order: 1 },
+    { id: 'c', name: 'C', lat: 46.1, lon: 11.1, altitude: null, order: 2 },
+  ];
+  const lgs = [
+    { id: 'l1', fromWaypointId: 'a', toWaypointId: 'b', distance: 11.119, elevationGain: null, elevationLoss: null, azimuth: null },
+    { id: 'l2', fromWaypointId: 'b', toWaypointId: 'c', distance: 7.762, elevationGain: null, elevationLoss: null, azimuth: null },
+  ];
+
+  test('returns first waypoint position at distance 0', () => {
+    const pos = distanceToPosition(0, wps, lgs);
+    expect(pos).not.toBeNull();
+    expect(pos![0]).toBeCloseTo(46.0, 4);
+    expect(pos![1]).toBeCloseTo(11.0, 4);
+  });
+
+  test('returns last waypoint position at total distance', () => {
+    const total = 11.119 + 7.762;
+    const pos = distanceToPosition(total, wps, lgs);
+    expect(pos).not.toBeNull();
+    expect(pos![0]).toBeCloseTo(46.1, 4);
+    expect(pos![1]).toBeCloseTo(11.1, 4);
+  });
+
+  test('returns midpoint of first leg at half its distance', () => {
+    const pos = distanceToPosition(11.119 / 2, wps, lgs);
+    expect(pos).not.toBeNull();
+    expect(pos![0]).toBeCloseTo(46.05, 2);
+    expect(pos![1]).toBeCloseTo(11.0, 2);
+  });
+
+  test('returns null for negative distance', () => {
+    expect(distanceToPosition(-1, wps, lgs)).toBeNull();
+  });
+
+  test('returns null for distance beyond total', () => {
+    expect(distanceToPosition(100, wps, lgs)).toBeNull();
+  });
+
+  test('returns null for empty waypoints', () => {
+    expect(distanceToPosition(0, [], [])).toBeNull();
+  });
+
+  test('interpolates correctly into the second leg', () => {
+    // Distance = 11.119 (full first leg) + 3.881 (half of second leg)
+    const pos = distanceToPosition(11.119 + 7.762 / 2, wps, lgs);
+    expect(pos).not.toBeNull();
+    expect(pos![0]).toBeCloseTo(46.1, 2); // lat stays at 46.1 (second leg goes east)
+    expect(pos![1]).toBeCloseTo(11.05, 2); // lon midpoint of 11.0→11.1
+  });
+});
+
+describe('positionToDistance', () => {
+  const wps = [
+    { id: 'a', name: 'A', lat: 46.0, lon: 11.0, altitude: null, order: 0 },
+    { id: 'b', name: 'B', lat: 46.1, lon: 11.0, altitude: null, order: 1 },
+  ];
+  const lgs = [
+    { id: 'l1', fromWaypointId: 'a', toWaypointId: 'b', distance: 11.119, elevationGain: null, elevationLoss: null, azimuth: null },
+  ];
+
+  test('returns 0 for position at first waypoint', () => {
+    const d = positionToDistance(46.0, 11.0, wps, lgs);
+    expect(d).not.toBeNull();
+    expect(d!).toBeCloseTo(0, 1);
+  });
+
+  test('returns total distance for position at last waypoint', () => {
+    const d = positionToDistance(46.1, 11.0, wps, lgs);
+    expect(d).not.toBeNull();
+    expect(d!).toBeCloseTo(11.119, 0);
+  });
+
+  test('returns approximately half distance for midpoint', () => {
+    const d = positionToDistance(46.05, 11.0, wps, lgs);
+    expect(d).not.toBeNull();
+    expect(d!).toBeCloseTo(11.119 / 2, 0);
+  });
+
+  test('returns null for empty waypoints', () => {
+    expect(positionToDistance(46.0, 11.0, [], [])).toBeNull();
+  });
+
+  test('roundtrip: positionToDistance(distanceToPosition(d)) ≈ d', () => {
+    const multiWps = [
+      { id: 'a', name: 'A', lat: 46.0, lon: 11.0, altitude: null, order: 0 },
+      { id: 'b', name: 'B', lat: 46.1, lon: 11.0, altitude: null, order: 1 },
+      { id: 'c', name: 'C', lat: 46.1, lon: 11.1, altitude: null, order: 2 },
+    ];
+    const multiLgs = [
+      { id: 'l1', fromWaypointId: 'a', toWaypointId: 'b', distance: 11.119, elevationGain: null, elevationLoss: null, azimuth: null },
+      { id: 'l2', fromWaypointId: 'b', toWaypointId: 'c', distance: 7.762, elevationGain: null, elevationLoss: null, azimuth: null },
+    ];
+    for (const d of [0, 5, 11.119, 15, 11.119 + 7.762]) {
+      const pos = distanceToPosition(d, multiWps, multiLgs);
+      if (pos) {
+        const roundtrip = positionToDistance(pos[0], pos[1], multiWps, multiLgs);
+        expect(roundtrip).not.toBeNull();
+        expect(roundtrip!).toBeCloseTo(d, 0);
+      }
     }
   });
 });

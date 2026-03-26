@@ -9,6 +9,8 @@ import { calculateDifficulty, haversineDistance, forwardAzimuth, interpolatePoin
 import { fetchElevation, fetchElevationProfile } from '@/lib/elevation-api';
 import { validateValue, validateAzimuth, percentageTolerance } from '@/lib/validation';
 import { fetchTrailRoute } from '@/lib/routing-api';
+import { buildMeteoUrl } from '@/lib/meteo';
+import { encodeItinerary } from '@/lib/share-url';
 
 
 export function ActionBar() {
@@ -19,6 +21,7 @@ export function ActionBar() {
   const updateLeg = useItineraryStore((s) => s.updateLeg);
   const appMode = useItineraryStore((s) => s.appMode);
   const [verifying, setVerifying] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   const verifyingRef = useRef(false);
   const mountedRef = useRef(true);
   const verifyGenerationRef = useRef(0);
@@ -236,6 +239,21 @@ export function ActionBar() {
     }
   };
 
+  const handleShareLink = () => {
+    const hash = encodeItinerary(itineraryName, waypoints, legs);
+    if (!hash) {
+      alert('Itinerario troppo grande per la condivisione via link. Usa Export JSON.');
+      return;
+    }
+    const url = `${window.location.origin}${window.location.pathname}${hash}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    }).catch(() => {
+      alert('Impossibile copiare il link. Copia manualmente:\n' + url);
+    });
+  };
+
   return (
     <div className="border-t border-gray-700 p-3 flex flex-wrap gap-2">
       <button
@@ -255,6 +273,24 @@ export function ActionBar() {
         className="flex-1 py-2 bg-blue-500 text-black rounded font-bold text-xs hover:bg-blue-400"
       >
         GPX
+      </button>
+      {(() => {
+        const meteoUrl = buildMeteoUrl(waypoints);
+        return meteoUrl ? (
+          <button
+            onClick={() => window.open(meteoUrl, '_blank')}
+            className="flex-1 py-2 bg-cyan-600 text-black rounded font-bold text-xs hover:bg-cyan-500"
+          >
+            Meteo
+          </button>
+        ) : null;
+      })()}
+      <button
+        onClick={handleShareLink}
+        disabled={waypoints.length < 2}
+        className="flex-1 py-2 bg-amber-500 text-black rounded font-bold text-xs hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {linkCopied ? 'Copiato!' : 'Copia link'}
       </button>
       {appMode === 'learn' && (
         <button
