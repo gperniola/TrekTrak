@@ -4,3 +4,9 @@ out/
 .env
 .env.local
 .superpowers/
+
+# next-pwa generated files
+public/sw.js
+public/workbox-*.js
+public/sw.js.map
+public/workbox-*.js.map

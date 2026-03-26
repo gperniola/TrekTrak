@@ -13,6 +13,7 @@ import { QuizOverlay } from '@/components/quiz/QuizOverlay';
 import { loadSettings } from '@/lib/storage';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { decodeItinerary } from '@/lib/share-url';
+import { OfflineBanner } from '@/components/shared/OfflineBanner';
 
 export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
@@ -108,6 +109,7 @@ export default function Home() {
 
   return (
     <div className="h-dvh flex flex-col lg:flex-row overflow-hidden">
+      <OfflineBanner />
       {/* Desktop sidebar — hidden on mobile */}
       <div className="hidden lg:flex">
         <LeftPanel compassActive={compassActive} onCompassToggle={handleCompassToggle} rulerActive={rulerActive} onRulerToggle={handleRulerToggle} quizActive={quizActive} onQuizToggle={handleQuizToggle} />
