@@ -9,6 +9,7 @@ import { useMap } from 'react-leaflet';
 import { fetchElevation, fetchElevationProfile } from '@/lib/elevation-api';
 import { haversineDistance, forwardAzimuth, interpolatePoints, cumulativeElevation, sampleInterval, slopeColor, smoothAltitudes, distanceToPosition, positionToDistance } from '@/lib/calculations';
 import { fetchTrailRoute } from '@/lib/routing-api';
+import { reverseGeocode } from '@/lib/reverse-geocoding-api';
 import { LocationSearch } from './LocationSearch';
 import { CompassOverlay } from './CompassTool';
 import { RulerTool } from './RulerTool';
@@ -328,18 +329,30 @@ function MapEvents({ compassActive, rulerActive, quizActive }: { compassActive?:
 
   useMapEvents({
     click(e) {
-      if (compassActive || rulerActive || quizActive) return; // Suppress waypoint placement in compass/ruler/quiz mode
-      // Ignore right-click (some browsers may emit click for contextmenu)
+      if (compassActive || rulerActive || quizActive) return;
       const btn = (e.originalEvent as MouseEvent).button;
       if (btn != null && btn !== 0) return;
       if (useItineraryStore.getState().waypoints.length >= 50) return;
       addWaypointAtPosition(e.latlng.lat, e.latlng.lng);
 
       const newState = useItineraryStore.getState();
+      const newWp = newState.waypoints[newState.waypoints.length - 1];
+      if (!newWp) return;
+
       if (newState.appMode === 'track') {
-        const newWp = newState.waypoints[newState.waypoints.length - 1];
-        if (newWp) autoFillTrackData(newWp.id);
+        autoFillTrackData(newWp.id);
       }
+
+      // Auto-name: fetch reverse geocode, apply only if name still default
+      const wpId = newWp.id;
+      const defaultName = newWp.name;
+      reverseGeocode(e.latlng.lat, e.latlng.lng).then((name) => {
+        if (!name) return;
+        const current = useItineraryStore.getState().waypoints.find((w) => w.id === wpId);
+        if (current && current.name === defaultName) {
+          useItineraryStore.getState().updateWaypoint(wpId, { name });
+        }
+      });
     },
     contextmenu() {
       // Prevent right-click from adding waypoints

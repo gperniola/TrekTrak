@@ -1,6 +1,7 @@
 import { describe, expect, test, beforeEach } from '@jest/globals';
-import { azimuthDelta, calculateQuizScore, generateRandomPoint, generateQuestionSet, saveQuizSession, loadQuizHistory } from '../lib/quiz';
+import { azimuthDelta, calculateQuizScore, generateRandomPoint, generateQuestionSet, saveQuizSession, loadQuizHistory, pickQuizPoint } from '../lib/quiz';
 import type { QuizSession } from '../lib/quiz';
+import type { HikingPOI } from '../lib/overpass-api';
 
 describe('azimuthDelta', () => {
   test('same angle = 0', () => { expect(azimuthDelta(90, 90)).toBe(0); });
@@ -60,5 +61,30 @@ describe('quiz history persistence', () => {
     const history = loadQuizHistory();
     expect(history).toHaveLength(50);
     expect(history[0].average).toBe(5);
+  });
+});
+
+describe('pickQuizPoint', () => {
+  const bounds = { north: 42.5, south: 42.0, east: 13.5, west: 13.0 };
+
+  test('returns a POI from the list when available', () => {
+    const pois: HikingPOI[] = [
+      { lat: 42.1, lon: 13.2, name: 'Peak', type: 'peak' },
+      { lat: 42.3, lon: 13.4, name: 'Hut', type: 'alpine_hut' },
+    ];
+    const point = pickQuizPoint(bounds, pois);
+    expect(point).not.toBeNull();
+    const matches = pois.some((p) => p.lat === point!.lat && p.lon === point!.lon);
+    expect(matches).toBe(true);
+  });
+
+  test('filters POIs outside bounds', () => {
+    const pois: HikingPOI[] = [{ lat: 99.0, lon: 99.0, type: 'peak' }];
+    const point = pickQuizPoint(bounds, pois);
+    expect(point).toBeNull();
+  });
+
+  test('returns null for empty POI list', () => {
+    expect(pickQuizPoint(bounds, [])).toBeNull();
   });
 });

@@ -4,9 +4,11 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { QuizQuestionView } from './QuizQuestion';
 import { QuizSummary } from './QuizSummary';
 import type { QuizQuestion, QuizAnswer, QuestionType, QuizPoint } from '@/lib/quiz';
-import { generateRandomPoint, generateQuestionSet, saveQuizSession } from '@/lib/quiz';
+import { generateRandomPoint, generateQuestionSet, saveQuizSession, pickQuizPoint } from '@/lib/quiz';
 import { haversineDistance, forwardAzimuth } from '@/lib/calculations';
 import { fetchElevation } from '@/lib/elevation-api';
+import { fetchHikingPOIs } from '@/lib/overpass-api';
+import type { HikingPOI } from '@/lib/overpass-api';
 
 type QuizPhase = 'loading' | 'question' | 'summary';
 
@@ -19,13 +21,15 @@ function emitQuizPoints(a: QuizPoint | null, b: QuizPoint | null) {
   window.dispatchEvent(new CustomEvent('quiz-points', { detail: { a, b } }));
 }
 
-async function buildQuestion(type: QuestionType): Promise<QuizQuestion | null> {
+async function buildQuestion(type: QuestionType, pois: HikingPOI[]): Promise<QuizQuestion | null> {
   const bounds = mapBoundsRef;
   if (!bounds) return null;
 
+  const getPoint = (): QuizPoint => pickQuizPoint(bounds, pois) ?? generateRandomPoint(bounds, 0.1);
+
   if (type === 'altitude') {
     for (let attempt = 0; attempt < 3; attempt++) {
-      const p = generateRandomPoint(bounds, 0.1);
+      const p = getPoint();
       const alt = await fetchElevation(p.lat, p.lon);
       if (alt != null) {
         return {
@@ -41,12 +45,12 @@ async function buildQuestion(type: QuestionType): Promise<QuizQuestion | null> {
   }
 
   // distance or azimuth — need two points with min 0.5km distance
-  const pointA = generateRandomPoint(bounds, 0.1);
+  const pointA = getPoint();
   let pointB: QuizPoint;
   let dist: number;
   let attempts = 0;
   do {
-    pointB = generateRandomPoint(bounds, 0.1);
+    pointB = getPoint();
     dist = haversineDistance(pointA.lat, pointA.lon, pointB.lat, pointB.lon);
     attempts++;
   } while (dist < 0.5 && attempts < 10);
@@ -99,10 +103,11 @@ export function QuizOverlay({ onClose }: { onClose: () => void }) {
     const bounds = mapBoundsRef;
     if (!bounds) { onClose(); return; }
 
+    const pois = await fetchHikingPOIs(bounds);
     const types = generateQuestionSet(bounds);
     const built: QuizQuestion[] = [];
     for (const type of types) {
-      const q = await buildQuestion(type);
+      const q = await buildQuestion(type, pois);
       if (!mountedRef.current) return;
       if (q) built.push(q);
     }

@@ -1,4 +1,5 @@
 import { KEYS } from './storage';
+import type { HikingPOI } from './overpass-api';
 
 export type QuestionType = 'altitude' | 'distance' | 'azimuth';
 
@@ -70,6 +71,19 @@ export function generateRandomPoint(
   const lat = bounds.south + mLat + Math.random() * (latRange - 2 * mLat);
   const lon = bounds.west + mLon + Math.random() * (lonRange - 2 * mLon);
   return { lat, lon };
+}
+
+export function pickQuizPoint(
+  bounds: { north: number; south: number; east: number; west: number },
+  pois: HikingPOI[]
+): QuizPoint | null {
+  const inBounds = pois.filter(
+    (p) => p.lat >= bounds.south && p.lat <= bounds.north &&
+           p.lon >= bounds.west && p.lon <= bounds.east
+  );
+  if (inBounds.length === 0) return null;
+  const pick = inBounds[Math.floor(Math.random() * inBounds.length)];
+  return { lat: pick.lat, lon: pick.lon };
 }
 
 export function generateQuestionSet(
