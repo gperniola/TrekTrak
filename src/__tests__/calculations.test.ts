@@ -519,3 +519,137 @@ describe('positionToDistance', () => {
     }
   });
 });
+
+// --- Tests for routeGeometry code path ---
+
+describe('distanceToPosition with routeGeometry', () => {
+  // L-shaped trail: A→corner→B instead of straight A→B
+  const wps = [
+    { id: 'a', name: 'A', lat: 46.0, lon: 11.0, altitude: null, order: 0 },
+    { id: 'b', name: 'B', lat: 46.1, lon: 11.1, altitude: null, order: 1 },
+  ];
+  // L-shaped route: go north then east (through 46.1, 11.0)
+  const routeGeometry: [number, number][] = [
+    [46.0, 11.0],
+    [46.1, 11.0],   // corner
+    [46.1, 11.1],
+  ];
+  const lgs = [
+    {
+      id: 'l1', fromWaypointId: 'a', toWaypointId: 'b',
+      distance: 18.5, elevationGain: null, elevationLoss: null, azimuth: null,
+      routeGeometry,
+    },
+  ];
+
+  test('returns start of trail at distance 0', () => {
+    const pos = distanceToPosition(0, wps, lgs);
+    expect(pos).not.toBeNull();
+    expect(pos![0]).toBeCloseTo(46.0, 3);
+    expect(pos![1]).toBeCloseTo(11.0, 3);
+  });
+
+  test('returns end of trail at total distance', () => {
+    const pos = distanceToPosition(18.5, wps, lgs);
+    expect(pos).not.toBeNull();
+    expect(pos![0]).toBeCloseTo(46.1, 3);
+    expect(pos![1]).toBeCloseTo(11.1, 3);
+  });
+
+  test('midpoint follows trail, not straight line', () => {
+    const pos = distanceToPosition(18.5 / 2, wps, lgs);
+    expect(pos).not.toBeNull();
+    // At roughly half distance on the L-shape, should be near the corner (46.1, 11.0),
+    // NOT on the straight diagonal (≈46.05, 11.05)
+    const distFromCorner = Math.abs(pos![0] - 46.1) + Math.abs(pos![1] - 11.0);
+    const distFromDiagonal = Math.abs(pos![0] - 46.05) + Math.abs(pos![1] - 11.05);
+    expect(distFromCorner).toBeLessThan(distFromDiagonal);
+  });
+
+  test('routeGeometry with 2 points behaves like straight line', () => {
+    const straightRoute: [number, number][] = [[46.0, 11.0], [46.1, 11.0]];
+    const straightLgs = [{
+      id: 'l1', fromWaypointId: 'a', toWaypointId: 'b',
+      distance: 11.119, elevationGain: null, elevationLoss: null, azimuth: null,
+      routeGeometry: straightRoute,
+    }];
+    const straightWps = [
+      { id: 'a', name: 'A', lat: 46.0, lon: 11.0, altitude: null, order: 0 },
+      { id: 'b', name: 'B', lat: 46.1, lon: 11.0, altitude: null, order: 1 },
+    ];
+    const pos = distanceToPosition(11.119 / 2, straightWps, straightLgs);
+    expect(pos).not.toBeNull();
+    expect(pos![0]).toBeCloseTo(46.05, 2);
+    expect(pos![1]).toBeCloseTo(11.0, 2);
+  });
+});
+
+describe('positionToDistance with routeGeometry', () => {
+  const wps = [
+    { id: 'a', name: 'A', lat: 46.0, lon: 11.0, altitude: null, order: 0 },
+    { id: 'b', name: 'B', lat: 46.1, lon: 11.1, altitude: null, order: 1 },
+  ];
+  const routeGeometry: [number, number][] = [
+    [46.0, 11.0],
+    [46.1, 11.0],
+    [46.1, 11.1],
+  ];
+  const lgs = [
+    {
+      id: 'l1', fromWaypointId: 'a', toWaypointId: 'b',
+      distance: 18.5, elevationGain: null, elevationLoss: null, azimuth: null,
+      routeGeometry,
+    },
+  ];
+
+  test('returns 0 at start', () => {
+    const d = positionToDistance(46.0, 11.0, wps, lgs);
+    expect(d).not.toBeNull();
+    expect(d!).toBeCloseTo(0, 1);
+  });
+
+  test('returns total distance at end', () => {
+    const d = positionToDistance(46.1, 11.1, wps, lgs);
+    expect(d).not.toBeNull();
+    expect(d!).toBeCloseTo(18.5, 0);
+  });
+
+  test('point near corner projects onto trail, not straight line', () => {
+    // Point at the L-shaped corner (46.1, 11.0) is on the trail
+    const d = positionToDistance(46.1, 11.0, wps, lgs);
+    expect(d).not.toBeNull();
+    // Should be near the first segment's length (~11 km), not near diagonal midpoint (~9 km)
+    expect(d!).toBeGreaterThan(9);
+    expect(d!).toBeLessThan(14);
+  });
+});
+
+describe('roundtrip with routeGeometry', () => {
+  const wps = [
+    { id: 'a', name: 'A', lat: 46.0, lon: 11.0, altitude: null, order: 0 },
+    { id: 'b', name: 'B', lat: 46.1, lon: 11.1, altitude: null, order: 1 },
+  ];
+  const routeGeometry: [number, number][] = [
+    [46.0, 11.0],
+    [46.1, 11.0],
+    [46.1, 11.1],
+  ];
+  const lgs = [
+    {
+      id: 'l1', fromWaypointId: 'a', toWaypointId: 'b',
+      distance: 18.5, elevationGain: null, elevationLoss: null, azimuth: null,
+      routeGeometry,
+    },
+  ];
+
+  test('positionToDistance(distanceToPosition(d)) ≈ d with routeGeometry', () => {
+    for (const d of [0, 5, 9, 14, 18.5]) {
+      const pos = distanceToPosition(d, wps, lgs);
+      if (pos) {
+        const roundtrip = positionToDistance(pos[0], pos[1], wps, lgs);
+        expect(roundtrip).not.toBeNull();
+        expect(roundtrip!).toBeCloseTo(d, 0);
+      }
+    }
+  });
+});

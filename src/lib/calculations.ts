@@ -234,7 +234,15 @@ export function distanceToPosition(
     if (legDist <= 0) continue;
 
     if (distance <= cumulative + legDist + 0.0001) {
-      const t = Math.max(0, Math.min(1, (distance - cumulative) / legDist));
+      const remaining = distance - cumulative;
+
+      // Use routeGeometry when available for accurate trail positioning
+      if (leg.routeGeometry && leg.routeGeometry.length >= 2) {
+        return interpolateAlongPolyline(leg.routeGeometry, remaining, legDist);
+      }
+
+      // Fallback: linear interpolation between endpoints
+      const t = Math.max(0, Math.min(1, remaining / legDist));
       return [
         from.lat + t * (to.lat - from.lat),
         from.lon + t * (to.lon - from.lon),
@@ -243,6 +251,46 @@ export function distanceToPosition(
     cumulative += legDist;
   }
   return null;
+}
+
+/** Compute the total haversine length of a polyline. */
+function polylineLength(coords: [number, number][]): number {
+  let len = 0;
+  for (let i = 0; i < coords.length - 1; i++) {
+    len += haversineDistance(coords[i][0], coords[i][1], coords[i + 1][0], coords[i + 1][1]);
+  }
+  return len;
+}
+
+/** Interpolate a position along a polyline at a given distance (km).
+ *  `totalDist` is the ORS-reported leg distance which may differ from the
+ *  haversine sum of the polyline vertices, so we scale internally. */
+function interpolateAlongPolyline(
+  coords: [number, number][],
+  targetDist: number,
+  totalDist: number
+): [number, number] {
+  if (targetDist <= 0) return coords[0];
+  if (targetDist >= totalDist) return coords[coords.length - 1];
+
+  // Scale target from ORS-distance space to haversine-polyline space
+  const polyLen = polylineLength(coords);
+  if (polyLen <= 0) return coords[0];
+  const scaledTarget = targetDist * (polyLen / totalDist);
+
+  let walked = 0;
+  for (let i = 0; i < coords.length - 1; i++) {
+    const segLen = haversineDistance(coords[i][0], coords[i][1], coords[i + 1][0], coords[i + 1][1]);
+    if (walked + segLen >= scaledTarget - 0.0001) {
+      const t = segLen > 0 ? Math.max(0, Math.min(1, (scaledTarget - walked) / segLen)) : 0;
+      return [
+        coords[i][0] + t * (coords[i + 1][0] - coords[i][0]),
+        coords[i][1] + t * (coords[i + 1][1] - coords[i][1]),
+      ];
+    }
+    walked += segLen;
+  }
+  return coords[coords.length - 1];
 }
 
 /**
@@ -267,24 +315,55 @@ export function positionToDistance(
     const legDist = leg.distance ?? 0;
     if (legDist <= 0) continue;
 
-    // Project point onto the line segment from→to using equirectangular correction
-    const cosLat = Math.cos(((from.lat + to.lat) / 2) * Math.PI / 180);
-    const dx = to.lat - from.lat;
-    const dy = (to.lon - from.lon) * cosLat;
-    const pxLat = lat - from.lat;
-    const pxLon = (lon - from.lon) * cosLat;
-    const lenSq = dx * dx + dy * dy;
-    let t = 0;
-    if (lenSq > 0) {
-      t = Math.max(0, Math.min(1, (pxLat * dx + pxLon * dy) / lenSq));
-    }
-    const projLat = from.lat + t * (to.lat - from.lat);
-    const projLon = from.lon + t * (to.lon - from.lon);
+    if (leg.routeGeometry && leg.routeGeometry.length >= 2) {
+      // Project onto each segment of the route polyline
+      const polyLen = polylineLength(leg.routeGeometry);
+      const scale = polyLen > 0 ? legDist / polyLen : 1;
+      let walked = 0;
+      for (let i = 0; i < leg.routeGeometry.length - 1; i++) {
+        const a = leg.routeGeometry[i];
+        const b = leg.routeGeometry[i + 1];
+        const segLen = haversineDistance(a[0], a[1], b[0], b[1]);
 
-    const dist = haversineDistance(lat, lon, projLat, projLon);
-    if (dist < bestDist) {
-      bestDist = dist;
-      bestCumulative = cumulative + t * legDist;
+        const cosL = Math.cos(((a[0] + b[0]) / 2) * Math.PI / 180);
+        const dx = b[0] - a[0];
+        const dy = (b[1] - a[1]) * cosL;
+        const pxLat = lat - a[0];
+        const pxLon = (lon - a[1]) * cosL;
+        const lenSq = dx * dx + dy * dy;
+        let t = 0;
+        if (lenSq > 0) {
+          t = Math.max(0, Math.min(1, (pxLat * dx + pxLon * dy) / lenSq));
+        }
+        const projLat = a[0] + t * (b[0] - a[0]);
+        const projLon = a[1] + t * (b[1] - a[1]);
+        const dist = haversineDistance(lat, lon, projLat, projLon);
+        if (dist < bestDist) {
+          bestDist = dist;
+          // Scale from haversine-polyline space back to ORS-distance space
+          bestCumulative = cumulative + (walked + t * segLen) * scale;
+        }
+        walked += segLen;
+      }
+    } else {
+      // Fallback: project onto straight line between endpoints
+      const cosLat = Math.cos(((from.lat + to.lat) / 2) * Math.PI / 180);
+      const dx = to.lat - from.lat;
+      const dy = (to.lon - from.lon) * cosLat;
+      const pxLat = lat - from.lat;
+      const pxLon = (lon - from.lon) * cosLat;
+      const lenSq = dx * dx + dy * dy;
+      let t = 0;
+      if (lenSq > 0) {
+        t = Math.max(0, Math.min(1, (pxLat * dx + pxLon * dy) / lenSq));
+      }
+      const projLat = from.lat + t * (to.lat - from.lat);
+      const projLon = from.lon + t * (to.lon - from.lon);
+      const dist = haversineDistance(lat, lon, projLat, projLon);
+      if (dist < bestDist) {
+        bestDist = dist;
+        bestCumulative = cumulative + t * legDist;
+      }
     }
     cumulative += legDist;
   }
