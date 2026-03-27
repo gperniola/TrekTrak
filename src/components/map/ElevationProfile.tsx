@@ -23,6 +23,7 @@ export function ElevationProfile() {
   // Tooltip state for "stimato" label
   const [tipOpen, setTipOpen] = useState(false);
   const tipRef = useRef<HTMLSpanElement>(null);
+  const lastHoverTime = useRef(0);
 
   useEffect(() => {
     if (!tipOpen) return;
@@ -39,6 +40,23 @@ export function ElevationProfile() {
       document.removeEventListener('keydown', esc);
     };
   }, [tipOpen]);
+
+  const handleChartMouseMove = useCallback((state: { activeLabel?: string | number }) => {
+    const now = Date.now();
+    if (now - lastHoverTime.current < 60) return;
+    lastHoverTime.current = now;
+    const dist = state?.activeLabel;
+    if (dist != null && typeof dist === 'number') setProfileHover(dist, 'chart');
+  }, [setProfileHover]);
+
+  const handleChartMouseLeave = useCallback(() => {
+    clearProfileHover();
+  }, [clearProfileHover]);
+
+  const handleChartClick = useCallback((state: { activeLabel?: string | number }) => {
+    const dist = state?.activeLabel;
+    if (dist != null && typeof dist === 'number') setProfileFlyTo(dist);
+  }, [setProfileFlyTo]);
 
   // Try to build detailed profile from leg elevation data
   let profileData: { distance: number; altitude: number }[] = [];
@@ -115,25 +133,6 @@ export function ElevationProfile() {
 
   const stops = buildGradientStops(profileData, totalDistance);
   const hasGradient = stops.length > 0;
-
-  const lastHoverTime = useRef(0);
-
-  const handleChartMouseMove = useCallback((state: { activeLabel?: string | number }) => {
-    const now = Date.now();
-    if (now - lastHoverTime.current < 60) return;
-    lastHoverTime.current = now;
-    const dist = state?.activeLabel;
-    if (dist != null && typeof dist === 'number') setProfileHover(dist, 'chart');
-  }, [setProfileHover]);
-
-  const handleChartMouseLeave = useCallback(() => {
-    clearProfileHover();
-  }, [clearProfileHover]);
-
-  const handleChartClick = useCallback((state: { activeLabel?: string | number }) => {
-    const dist = state?.activeLabel;
-    if (dist != null && typeof dist === 'number') setProfileFlyTo(dist);
-  }, [setProfileFlyTo]);
 
   return (
     <div className={`h-full p-2 ${isEstimated ? 'bg-amber-950/25' : ''}`}>
