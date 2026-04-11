@@ -74,6 +74,27 @@ function ColoredPathMockup() {
  */
 const RELEASES: Release[] = [
   {
+    version: '0.4.0',
+    date: '2026-04-11',
+    steps: [
+      {
+        title: 'Suggerimenti didattici',
+        text: 'Dopo la verifica, clicca sui badge colorati (✓ ~ ✗) per ricevere consigli personalizzati su come migliorare. Il suggerimento si adatta all\'entità dell\'errore.',
+        icon: '💡',
+      },
+      {
+        title: 'Report Progresso',
+        text: 'Traccia il tuo miglioramento nel tempo con il nuovo pannello Progresso (📊). Visualizza grafici di andamento, statistiche per categoria, e confronta verifiche e quiz.',
+        icon: '📊',
+      },
+      {
+        title: 'Feedback Verifica',
+        text: 'Ora vedi subito un riepilogo dei risultati dopo ogni verifica: quanti campi corretti, approssimati, o errati. Il badge appare con un\'animazione per catturare l\'attenzione.',
+        icon: '✅',
+      },
+    ],
+  },
+  {
     version: '0.3.0',
     date: '2026-03-26',
     steps: [
