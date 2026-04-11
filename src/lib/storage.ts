@@ -1,4 +1,4 @@
-import type { Itinerary, AppSettings } from './types';
+import type { Itinerary, AppSettings, ValidationSession } from './types';
 import { DEFAULT_TOLERANCES, DEFAULT_MAP_DISPLAY, BASE_MAPS, SAMPLE_INTERVAL_OPTIONS } from './types';
 
 export const SCHEMA_VERSION = 1;
@@ -135,4 +135,39 @@ export function getStorageUsage(): number {
 
 export function isStorageNearLimit(): boolean {
   return getStorageUsage() > STORAGE_WARNING_BYTES;
+}
+
+const MAX_VALIDATION_SESSIONS = 100;
+
+export function loadValidationHistory(): ValidationSession[] {
+  try {
+    const raw = localStorage.getItem(KEYS.learningHistory);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed;
+  } catch {
+    return [];
+  }
+}
+
+export function saveValidationSession(session: ValidationSession): void {
+  try {
+    const history = loadValidationHistory();
+    history.push(session);
+    const trimmed = history.length > MAX_VALIDATION_SESSIONS
+      ? history.slice(history.length - MAX_VALIDATION_SESSIONS)
+      : history;
+    localStorage.setItem(KEYS.learningHistory, JSON.stringify(trimmed));
+  } catch {
+    // storage write failed
+  }
+}
+
+export function clearValidationHistory(): void {
+  try {
+    localStorage.removeItem(KEYS.learningHistory);
+  } catch {
+    // storage unavailable
+  }
 }
