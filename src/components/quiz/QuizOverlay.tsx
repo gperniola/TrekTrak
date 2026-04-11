@@ -79,7 +79,7 @@ async function buildQuestion(type: QuestionType, pois: HikingPOI[]): Promise<Qui
   };
 }
 
-export function QuizOverlay({ onClose }: { onClose: () => void }) {
+export function QuizOverlay({ onClose, onOpenProgress }: { onClose: () => void; onOpenProgress?: () => void }) {
   const [phase, setPhase] = useState<QuizPhase>('loading');
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -166,6 +166,7 @@ export function QuizOverlay({ onClose }: { onClose: () => void }) {
           average={average}
           onNewSession={startSession}
           onClose={onClose}
+          onOpenProgress={onOpenProgress}
         />
       )}
     </div>

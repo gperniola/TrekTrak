@@ -8,7 +8,7 @@ import { SummaryBar } from './SummaryBar';
 import { ActionBar } from './ActionBar';
 import { ModeSwitch } from './ModeSwitch';
 
-export function LeftPanel({ className, compassActive, onCompassToggle, rulerActive, onRulerToggle, quizActive, onQuizToggle }: {
+export function LeftPanel({ className, compassActive, onCompassToggle, rulerActive, onRulerToggle, quizActive, onQuizToggle, onOpenProgress }: {
   className?: string;
   compassActive?: boolean;
   onCompassToggle?: () => void;
@@ -16,6 +16,7 @@ export function LeftPanel({ className, compassActive, onCompassToggle, rulerActi
   onRulerToggle?: () => void;
   quizActive?: boolean;
   onQuizToggle?: () => void;
+  onOpenProgress?: () => void;
 }) {
   const [view, setView] = useState<'edit' | 'table'>('edit');
 
@@ -46,7 +47,7 @@ export function LeftPanel({ className, compassActive, onCompassToggle, rulerActi
       </div>
       {view === 'edit' ? <WaypointList /> : <ItineraryTable />}
       <SummaryBar />
-      <ActionBar />
+      <ActionBar onOpenProgress={onOpenProgress} />
     </div>
   );
 }

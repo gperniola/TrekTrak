@@ -10,6 +10,7 @@ import { LearnTutorial } from '@/components/tutorial/LearnTutorial';
 import { WhatsNew } from '@/components/tutorial/WhatsNew';
 import { MapSettings } from '@/components/settings/MapSettings';
 import { QuizOverlay } from '@/components/quiz/QuizOverlay';
+import { ProgressOverlay } from '@/components/panel/ProgressOverlay';
 import { loadSettings } from '@/lib/storage';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { decodeItinerary } from '@/lib/share-url';
@@ -23,6 +24,7 @@ export default function Home() {
   const [compassActive, setCompassActive] = useState(false);
   const [rulerActive, setRulerActive] = useState(false);
   const [quizActive, setQuizActive] = useState(false);
+  const [progressOpen, setProgressOpen] = useState(false);
   const handleCompassToggle = useCallback(() => {
     setCompassActive((p) => {
       if (!p) { setRulerActive(false); setQuizActive(false); }
@@ -42,6 +44,11 @@ export default function Home() {
       if (!p) { setCompassActive(false); setRulerActive(false); }
       return !p;
     });
+  }, []);
+
+  const handleOpenProgress = useCallback(() => {
+    setQuizActive(false);
+    setProgressOpen(true);
   }, []);
 
   // Hydrate settings from localStorage on mount
@@ -112,7 +119,7 @@ export default function Home() {
       <OfflineBanner />
       {/* Desktop sidebar — hidden on mobile */}
       <div className="hidden lg:flex">
-        <LeftPanel compassActive={compassActive} onCompassToggle={handleCompassToggle} rulerActive={rulerActive} onRulerToggle={handleRulerToggle} quizActive={quizActive} onQuizToggle={handleQuizToggle} />
+        <LeftPanel compassActive={compassActive} onCompassToggle={handleCompassToggle} rulerActive={rulerActive} onRulerToggle={handleRulerToggle} quizActive={quizActive} onQuizToggle={handleQuizToggle} onOpenProgress={handleOpenProgress} />
       </div>
 
       {/* Right Panel: Top Bar (mobile) + Map + Elevation Profile */}
@@ -208,7 +215,7 @@ export default function Home() {
             </div>
           </div>
           <div className="flex-1 overflow-hidden">
-            <LeftPanel className="w-full h-full" compassActive={compassActive} onCompassToggle={handleCompassToggle} rulerActive={rulerActive} onRulerToggle={handleRulerToggle} quizActive={quizActive} onQuizToggle={handleQuizToggle} />
+            <LeftPanel className="w-full h-full" compassActive={compassActive} onCompassToggle={handleCompassToggle} rulerActive={rulerActive} onRulerToggle={handleRulerToggle} quizActive={quizActive} onQuizToggle={handleQuizToggle} onOpenProgress={handleOpenProgress} />
           </div>
         </div>
       )}
@@ -217,7 +224,9 @@ export default function Home() {
       {showSettings && <ToleranceSettings onClose={() => setShowSettings(false)} />}
       {showMapSettings && <MapSettings onClose={() => setShowMapSettings(false)} />}
 
-      {quizActive && <QuizOverlay onClose={() => setQuizActive(false)} />}
+      {quizActive && <QuizOverlay onClose={() => setQuizActive(false)} onOpenProgress={handleOpenProgress} />}
+
+      {progressOpen && <ProgressOverlay onClose={() => setProgressOpen(false)} />}
 
       {/* First-visit tutorial */}
       <LearnTutorial />

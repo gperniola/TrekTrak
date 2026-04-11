@@ -16,11 +16,12 @@ function averageByType(answers: { type: QuestionType; score: number }[], type: Q
   return Math.round(filtered.reduce((sum, a) => sum + a.score, 0) / filtered.length);
 }
 
-export function QuizSummary({ answers, average, onNewSession, onClose }: {
+export function QuizSummary({ answers, average, onNewSession, onClose, onOpenProgress }: {
   answers: QuizAnswer[];
   average: number;
   onNewSession: () => void;
   onClose: () => void;
+  onOpenProgress?: () => void;
 }) {
   const [showHistory, setShowHistory] = useState(false);
   const scoreColor = average >= 70 ? 'text-green-400' : average >= 40 ? 'text-amber-400' : 'text-red-400';
@@ -50,6 +51,14 @@ export function QuizSummary({ answers, average, onNewSession, onClose }: {
         <button onClick={onClose} className="flex-1 py-2 bg-gray-600 text-white rounded font-bold text-xs hover:bg-gray-500">Chiudi</button>
       </div>
       {showHistory && <HistoryView />}
+      {onOpenProgress && (
+        <button
+          onClick={onOpenProgress}
+          className="w-full text-blue-400 hover:text-blue-300 text-sm underline text-center mt-2"
+        >
+          Vedi report completo →
+        </button>
+      )}
     </div>
   );
 }
