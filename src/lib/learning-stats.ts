@@ -160,7 +160,7 @@ export function computeCategoryStats(
         bySession.set(session.date, [...(bySession.get(session.date) ?? []), avg]);
       }
     }
-    const sessionAvgs = [...bySession.values()].map((arr) => Math.round(arr.reduce((s, v) => s + v, 0) / arr.length));
+    const sessionAvgs = Array.from(bySession.values()).map((arr: number[]) => Math.round(arr.reduce((s: number, v: number) => s + v, 0) / arr.length));
     stats[cat].recentDeltas = sessionAvgs.slice(-10);
   }
 
