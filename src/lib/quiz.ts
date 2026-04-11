@@ -119,3 +119,11 @@ export function loadQuizHistory(): QuizSession[] {
     return parsed;
   } catch { return []; }
 }
+
+export function clearQuizHistory(): void {
+  try {
+    localStorage.removeItem(KEYS.quizHistory);
+  } catch {
+    // storage unavailable
+  }
+}

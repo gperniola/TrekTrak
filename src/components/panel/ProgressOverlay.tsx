@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { loadValidationHistory, clearValidationHistory, KEYS } from '@/lib/storage';
-import { loadQuizHistory } from '@/lib/quiz';
+import { loadValidationHistory, clearValidationHistory } from '@/lib/storage';
+import { loadQuizHistory, clearQuizHistory } from '@/lib/quiz';
 import type { QuizSession } from '@/lib/quiz';
 import type { ValidationSession } from '@/lib/types';
 import {
@@ -74,7 +74,7 @@ export function ProgressOverlay({ onClose }: { onClose: () => void }) {
 
   const handleReset = () => {
     clearValidationHistory();
-    try { localStorage.removeItem(KEYS.quizHistory); } catch { /* */ }
+    clearQuizHistory();
     setValidations([]);
     setQuizzes([]);
     setConfirmReset(false);
@@ -130,6 +130,11 @@ export function ProgressOverlay({ onClose }: { onClose: () => void }) {
             </div>
 
             {/* Section 2: Trend Chart */}
+            {trendData.length > 0 && trendData.length < 3 && (
+              <div className="text-gray-500 text-xs text-center py-3">
+                Completa almeno 3 sessioni per visualizzare il grafico di andamento.
+              </div>
+            )}
             {trendData.length >= 3 && (
               <div>
                 <div className="text-xs text-gray-400 font-medium mb-2">Andamento nel tempo</div>
@@ -169,7 +174,7 @@ export function ProgressOverlay({ onClose }: { onClose: () => void }) {
             {/* Section 3: Category Breakdown */}
             <div>
               <div className="text-xs text-gray-400 font-medium mb-2">Dettaglio per categoria</div>
-              <div className="grid grid-cols-5 gap-1 text-center">
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-1 text-center">
                 {(Object.keys(CATEGORY_LABELS) as CategoryField[]).map((cat) => {
                   const s = catStats[cat];
                   return (

@@ -316,6 +316,8 @@ export function ActionBar({ onOpenProgress }: { onOpenProgress?: () => void }) {
     <div className="border-t border-gray-700 p-3 space-y-2">
       {verifyBanner && (
         <div
+          role="status"
+          aria-live="polite"
           onClick={() => setVerifyBanner(null)}
           className="bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-center cursor-pointer transition-opacity duration-300"
         >
