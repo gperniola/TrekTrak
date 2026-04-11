@@ -48,7 +48,7 @@ export function LegCard({ leg }: { leg: Leg }) {
           onChange={(v) => updateLeg(leg.id, { elevationGain: v })}
           min={0}
           validation={leg.validationState?.elevationGain}
-          validationFieldType="elevation"
+          validationFieldType="elevationGain"
           placeholder=""
           readOnly={isTrack}
           highlight
@@ -61,7 +61,7 @@ export function LegCard({ leg }: { leg: Leg }) {
           onChange={(v) => updateLeg(leg.id, { elevationLoss: v })}
           min={0}
           validation={leg.validationState?.elevationLoss}
-          validationFieldType="elevation"
+          validationFieldType="elevationLoss"
           placeholder=""
           readOnly={isTrack}
           highlight

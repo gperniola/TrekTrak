@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import type { ValidationResult } from '@/lib/types';
 
-export type ValidationFieldType = 'altitude' | 'distance' | 'azimuth' | 'elevation';
+export type ValidationFieldType = 'altitude' | 'distance' | 'azimuth' | 'elevation' | 'elevationGain' | 'elevationLoss';
 
 const STATUS_STYLES = {
   unverified: 'bg-gray-600 text-gray-300',

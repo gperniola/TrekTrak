@@ -161,3 +161,16 @@ export const DEFAULT_TOLERANCES: ToleranceSettings = {
 export type DifficultyGrade = 'T1' | 'T2' | 'T3' | 'T4' | 'T5' | 'T6';
 
 export type AppMode = 'learn' | 'track';
+
+export interface ValidationSessionResult {
+  field: 'altitude' | 'distance' | 'elevationGain' | 'elevationLoss' | 'azimuth';
+  status: 'valid' | 'warning' | 'error';
+  delta: number;
+  tolerance: { strict: number; loose: number };
+}
+
+export interface ValidationSession {
+  date: string;
+  itineraryName: string;
+  results: ValidationSessionResult[];
+}
