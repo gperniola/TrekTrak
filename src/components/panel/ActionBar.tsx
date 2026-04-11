@@ -11,9 +11,11 @@ import { validateValue, validateAzimuth, percentageTolerance } from '@/lib/valid
 import { fetchTrailRoute } from '@/lib/routing-api';
 import { buildMeteoUrl } from '@/lib/meteo';
 import { encodeItinerary } from '@/lib/share-url';
+import { saveValidationSession } from '@/lib/storage';
+import type { ValidationSessionResult } from '@/lib/types';
 
 
-export function ActionBar() {
+export function ActionBar({ onOpenProgress }: { onOpenProgress?: () => void }) {
   const itineraryName = useItineraryStore((s) => s.itineraryName);
   const waypoints = useItineraryStore((s) => s.waypoints);
   const legs = useItineraryStore((s) => s.legs);
@@ -26,6 +28,7 @@ export function ActionBar() {
   const mountedRef = useRef(true);
   const verifyGenerationRef = useRef(0);
   useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; verifyGenerationRef.current++; }; }, []);
+  const [verifyBanner, setVerifyBanner] = useState<{ valid: number; warning: number; error: number } | null>(null);
 
   const totalDistance = legs.reduce((sum, l) => sum + (l.distance ?? 0), 0);
   const totalGain = legs.reduce((sum, l) => sum + (l.elevationGain ?? 0), 0);
@@ -233,6 +236,61 @@ export function ActionBar() {
       if (!apiAvailable && mountedRef.current) {
         alert('Alcuni dati non sono stati verificati: servizio altimetrico non disponibile. Distanza e azimuth sono stati comunque validati.');
       }
+
+      // --- Collect results and save validation session ---
+      if (mountedRef.current && !isStale()) {
+        const finalState = useItineraryStore.getState();
+        const sessionResults: ValidationSessionResult[] = [];
+        let validCount = 0;
+        let warningCount = 0;
+        let errorCount = 0;
+
+        for (const wp of finalState.waypoints) {
+          const altV = wp.validationState?.altitude;
+          if (altV && altV.status !== 'unverified') {
+            sessionResults.push({
+              field: 'altitude',
+              status: altV.status,
+              delta: altV.delta ?? 0,
+              tolerance: altV.tolerance,
+            });
+            if (altV.status === 'valid') validCount++;
+            else if (altV.status === 'warning') warningCount++;
+            else errorCount++;
+          }
+        }
+        for (const leg of finalState.legs) {
+          const fields = [
+            { key: 'distance' as const, v: leg.validationState?.distance },
+            { key: 'elevationGain' as const, v: leg.validationState?.elevationGain },
+            { key: 'elevationLoss' as const, v: leg.validationState?.elevationLoss },
+            { key: 'azimuth' as const, v: leg.validationState?.azimuth },
+          ];
+          for (const { key, v } of fields) {
+            if (v && v.status !== 'unverified') {
+              sessionResults.push({
+                field: key,
+                status: v.status,
+                delta: v.delta ?? 0,
+                tolerance: v.tolerance,
+              });
+              if (v.status === 'valid') validCount++;
+              else if (v.status === 'warning') warningCount++;
+              else errorCount++;
+            }
+          }
+        }
+
+        if (sessionResults.length > 0) {
+          saveValidationSession({
+            date: new Date().toISOString(),
+            itineraryName: finalState.itineraryName,
+            results: sessionResults,
+          });
+          setVerifyBanner({ valid: validCount, warning: warningCount, error: errorCount });
+          setTimeout(() => { if (mountedRef.current) setVerifyBanner(null); }, 4000);
+        }
+      }
     } finally {
       verifyingRef.current = false;
       if (mountedRef.current) setVerifying(false);
@@ -255,52 +313,75 @@ export function ActionBar() {
   };
 
   return (
-    <div className="border-t border-gray-700 p-3 flex flex-wrap gap-2">
-      <button
-        onClick={() => handlePDF('summary')}
-        className="flex-1 py-2 bg-green-500 text-black rounded font-bold text-xs hover:bg-green-400"
-      >
-        PDF Sintetico
-      </button>
-      <button
-        onClick={() => handlePDF('roadbook')}
-        className="flex-1 py-2 bg-green-600 text-black rounded font-bold text-xs hover:bg-green-500"
-      >
-        PDF Roadbook
-      </button>
-      <button
-        onClick={handleGPX}
-        className="flex-1 py-2 bg-blue-500 text-black rounded font-bold text-xs hover:bg-blue-400"
-      >
-        GPX
-      </button>
-      {(() => {
-        const meteoUrl = buildMeteoUrl(waypoints);
-        return meteoUrl ? (
-          <button
-            onClick={() => window.open(meteoUrl, '_blank')}
-            className="flex-1 py-2 bg-cyan-600 text-black rounded font-bold text-xs hover:bg-cyan-500"
-          >
-            Meteo
-          </button>
-        ) : null;
-      })()}
-      <button
-        onClick={handleShareLink}
-        disabled={waypoints.length < 2}
-        className="flex-1 py-2 bg-amber-500 text-black rounded font-bold text-xs hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {linkCopied ? 'Copiato!' : 'Copia link'}
-      </button>
-      {appMode === 'learn' && (
-        <button
-          onClick={handleVerify}
-          disabled={verifying}
-          className="flex-1 py-2 bg-purple-500 text-black rounded font-bold text-xs hover:bg-purple-400 disabled:opacity-50 disabled:cursor-not-allowed"
+    <div className="border-t border-gray-700 p-3 space-y-2">
+      {verifyBanner && (
+        <div
+          onClick={() => setVerifyBanner(null)}
+          className="bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-center cursor-pointer transition-opacity duration-300"
         >
-          {verifying ? 'Verificando...' : 'Verifica'}
-        </button>
+          Verifica completata:{' '}
+          <span className="text-green-400 font-bold">{verifyBanner.valid} ✓</span>
+          {' · '}
+          <span className="text-yellow-400 font-bold">{verifyBanner.warning} ~</span>
+          {' · '}
+          <span className="text-red-400 font-bold">{verifyBanner.error} ✗</span>
+        </div>
       )}
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={() => handlePDF('summary')}
+          className="flex-1 py-2 bg-green-500 text-black rounded font-bold text-xs hover:bg-green-400"
+        >
+          PDF Sintetico
+        </button>
+        <button
+          onClick={() => handlePDF('roadbook')}
+          className="flex-1 py-2 bg-green-600 text-black rounded font-bold text-xs hover:bg-green-500"
+        >
+          PDF Roadbook
+        </button>
+        <button
+          onClick={handleGPX}
+          className="flex-1 py-2 bg-blue-500 text-black rounded font-bold text-xs hover:bg-blue-400"
+        >
+          GPX
+        </button>
+        {(() => {
+          const meteoUrl = buildMeteoUrl(waypoints);
+          return meteoUrl ? (
+            <button
+              onClick={() => window.open(meteoUrl, '_blank')}
+              className="flex-1 py-2 bg-cyan-600 text-black rounded font-bold text-xs hover:bg-cyan-500"
+            >
+              Meteo
+            </button>
+          ) : null;
+        })()}
+        <button
+          onClick={handleShareLink}
+          disabled={waypoints.length < 2}
+          className="flex-1 py-2 bg-amber-500 text-black rounded font-bold text-xs hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {linkCopied ? 'Copiato!' : 'Copia link'}
+        </button>
+        {appMode === 'learn' && (
+          <button
+            onClick={handleVerify}
+            disabled={verifying}
+            className="flex-1 py-2 bg-purple-500 text-black rounded font-bold text-xs hover:bg-purple-400 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {verifying ? 'Verificando...' : 'Verifica'}
+          </button>
+        )}
+        {onOpenProgress && (
+          <button
+            onClick={onOpenProgress}
+            className="flex-1 py-2 bg-indigo-500 text-black rounded font-bold text-xs hover:bg-indigo-400"
+          >
+            📊 Progresso
+          </button>
+        )}
+      </div>
     </div>
   );
 }
