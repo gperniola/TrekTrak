@@ -13,6 +13,7 @@ interface UIState {
   toggleQuiz: () => void;
   deactivateCompass: () => void;
   deactivateRuler: () => void;
+  deactivateQuiz: () => void;
   openProgress: () => void;
   closeProgress: () => void;
   setDrawerOpen: (open: boolean) => void;
@@ -44,6 +45,7 @@ export const useUIStore = create<UIState>((set) => ({
   })),
   deactivateCompass: () => set({ compassActive: false }),
   deactivateRuler: () => set({ rulerActive: false }),
+  deactivateQuiz: () => set({ quizActive: false }),
   openProgress: () => set({ progressOpen: true, quizActive: false }),
   closeProgress: () => set({ progressOpen: false }),
   setDrawerOpen: (open) => set({ drawerOpen: open }),

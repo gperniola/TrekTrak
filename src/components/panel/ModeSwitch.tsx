@@ -15,14 +15,17 @@ export function ModeSwitch() {
   const toggleCompass = useUIStore((s) => s.toggleCompass);
   const toggleRuler = useUIStore((s) => s.toggleRuler);
   const toggleQuiz = useUIStore((s) => s.toggleQuiz);
+  const deactivateCompass = useUIStore((s) => s.deactivateCompass);
+  const deactivateRuler = useUIStore((s) => s.deactivateRuler);
+  const deactivateQuiz = useUIStore((s) => s.deactivateQuiz);
 
   const isTrack = appMode === 'track';
 
   const handleToggle = (mode: AppMode) => {
     // Clicking Learn or Track deactivates compass, ruler, and quiz
-    if (compassActive) toggleCompass();
-    if (rulerActive) toggleRuler();
-    if (quizActive) toggleQuiz();
+    if (compassActive) deactivateCompass();
+    if (rulerActive) deactivateRuler();
+    if (quizActive) deactivateQuiz();
     if (mode === appMode) return;
     if (mode === 'learn' && waypoints.some((wp) => wp.altitude != null || wp.lat != null)) {
       if (!confirm('Passare a Learn cancellerà tutti i dati calcolati (altitudine, distanza, azimuth, D+/D-). Continuare?')) return;

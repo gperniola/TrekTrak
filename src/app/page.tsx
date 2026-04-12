@@ -28,7 +28,7 @@ export default function Home() {
   const progressOpen = useUIStore((s) => s.progressOpen);
   const setDrawerOpen = useUIStore((s) => s.setDrawerOpen);
   const setSearchOpen = useUIStore((s) => s.setSearchOpen);
-  const toggleQuiz = useUIStore((s) => s.toggleQuiz);
+  const deactivateQuiz = useUIStore((s) => s.deactivateQuiz);
   const closeProgress = useUIStore((s) => s.closeProgress);
 
   useBodyScrollLock(drawerOpen);
@@ -202,7 +202,7 @@ export default function Home() {
       {showSettings && <ToleranceSettings onClose={() => setShowSettings(false)} />}
       {showMapSettings && <MapSettings onClose={() => setShowMapSettings(false)} />}
 
-      {quizActive && <QuizOverlay onClose={() => toggleQuiz()} />}
+      {quizActive && <QuizOverlay onClose={deactivateQuiz} />}
 
       {progressOpen && <ProgressOverlay onClose={closeProgress} />}
 
