@@ -1,40 +1,12 @@
-import withPWA from 'next-pwa';
+import withSerwistInit from '@serwist/next';
 
-const TILE_CACHE_OPTIONS = { maxEntries: 1000, maxAgeSeconds: 30 * 24 * 60 * 60 };
-
-const pwaConfig = withPWA({
-  dest: 'public',
+const withSerwist = withSerwistInit({
+  swSrc: 'src/app/sw.ts',
+  swDest: 'public/sw.js',
   disable: process.env.NODE_ENV === 'development',
-  runtimeCaching: [
-    {
-      urlPattern: /^https:\/\/.*\.tile\.openstreetmap\.org\/.*/i,
-      handler: 'CacheFirst',
-      options: { cacheName: 'tiles-osm', expiration: TILE_CACHE_OPTIONS },
-    },
-    {
-      urlPattern: /^https:\/\/.*\.tile\.opentopomap\.org\/.*/i,
-      handler: 'CacheFirst',
-      options: { cacheName: 'tiles-opentopomap', expiration: TILE_CACHE_OPTIONS },
-    },
-    {
-      urlPattern: /^https:\/\/tile\.thunderforest\.com\/.*/i,
-      handler: 'CacheFirst',
-      options: { cacheName: 'tiles-thunderforest', expiration: TILE_CACHE_OPTIONS },
-    },
-    {
-      urlPattern: /^https:\/\/.*\.tile-cyclosm\.openstreetmap\.fr\/.*/i,
-      handler: 'CacheFirst',
-      options: { cacheName: 'tiles-cyclosm', expiration: TILE_CACHE_OPTIONS },
-    },
-    {
-      urlPattern: /^https:\/\/tile\.waymarkedtrails\.org\/.*/i,
-      handler: 'CacheFirst',
-      options: { cacheName: 'tiles-waymarked', expiration: TILE_CACHE_OPTIONS },
-    },
-  ],
 });
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {};
 
-export default pwaConfig(nextConfig);
+export default withSerwist(nextConfig);
