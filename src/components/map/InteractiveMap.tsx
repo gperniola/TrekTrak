@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import type L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useItineraryStore } from '@/stores/itineraryStore';
+import { useUIStore } from '@/stores/uiStore';
 import { useCallback } from 'react';
 import { autoFillTrackData } from '@/lib/auto-fill';
 import { greenIcon } from '@/lib/map-icons';
@@ -28,14 +29,14 @@ function resolveBaseMap(chosen: string): BaseMapDef {
   return BASE_MAPS.find((m) => m.available) ?? BASE_MAPS[BASE_MAPS.length - 1];
 }
 
-export function InteractiveMap({ mobileSearchOpen, compassActive, onCompassDeactivate, rulerActive, onRulerDeactivate, quizActive }: {
-  mobileSearchOpen?: boolean;
-  compassActive?: boolean;
-  onCompassDeactivate?: () => void;
-  rulerActive?: boolean;
-  onRulerDeactivate?: () => void;
-  quizActive?: boolean;
-}) {
+export function InteractiveMap() {
+  const compassActive = useUIStore((s) => s.compassActive);
+  const rulerActive = useUIStore((s) => s.rulerActive);
+  const quizActive = useUIStore((s) => s.quizActive);
+  const deactivateCompass = useUIStore((s) => s.deactivateCompass);
+  const deactivateRuler = useUIStore((s) => s.deactivateRuler);
+  const searchOpen = useUIStore((s) => s.searchOpen);
+
   const waypoints = useItineraryStore((s) => s.waypoints);
   const updateWaypointPosition = useItineraryStore((s) => s.updateWaypointPosition);
   const baseMapId = useItineraryStore((s) => s.settings.mapDisplay.baseMap);
@@ -85,8 +86,8 @@ export function InteractiveMap({ mobileSearchOpen, compassActive, onCompassDeact
       {showCoordinateGrid && <CoordinateGrid />}
       <GeolocateOnMount />
       <TrackModeAutoFill />
-      <MapEvents compassActive={compassActive} rulerActive={rulerActive} quizActive={quizActive} />
-      <LocationSearch mobileSearchOpen={mobileSearchOpen} />
+      <MapEvents />
+      <LocationSearch mobileSearchOpen={searchOpen} />
 
       {validWaypoints.map((wp) => (
         <Marker
@@ -104,9 +105,9 @@ export function InteractiveMap({ mobileSearchOpen, compassActive, onCompassDeact
       <LegPolylineHoverEvents />
       <ProfileHoverMarker />
       <MyLocationButton hidden={compassActive} />
-      <CompassOverlay active={!!compassActive} onDeactivate={onCompassDeactivate ?? (() => {})} />
-      <RulerTool active={!!rulerActive} onDeactivate={onRulerDeactivate ?? (() => {})} />
-      <QuizBoundsSync quizActive={quizActive} />
+      <CompassOverlay active={compassActive} onDeactivate={deactivateCompass} />
+      <RulerTool active={rulerActive} onDeactivate={deactivateRuler} />
+      <QuizBoundsSync />
     </MapContainer>
   );
 }

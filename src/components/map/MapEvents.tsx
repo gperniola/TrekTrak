@@ -2,14 +2,14 @@
 
 import { useMapEvents } from 'react-leaflet';
 import { useItineraryStore } from '@/stores/itineraryStore';
+import { useUIStore } from '@/stores/uiStore';
 import { autoFillTrackData } from '@/lib/auto-fill';
 import { reverseGeocode } from '@/lib/reverse-geocoding-api';
 
-export function MapEvents({ compassActive, rulerActive, quizActive }: {
-  compassActive?: boolean;
-  rulerActive?: boolean;
-  quizActive?: boolean;
-}) {
+export function MapEvents() {
+  const compassActive = useUIStore((s) => s.compassActive);
+  const rulerActive = useUIStore((s) => s.rulerActive);
+  const quizActive = useUIStore((s) => s.quizActive);
   const addWaypointAtPosition = useItineraryStore((s) => s.addWaypointAtPosition);
 
   useMapEvents({

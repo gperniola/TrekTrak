@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { LeftPanel } from '@/components/panel/LeftPanel';
 import { MapWrapper } from '@/components/map/MapWrapper';
@@ -14,44 +14,24 @@ import { QuizOverlay } from '@/components/quiz/QuizOverlay';
 import { ProgressOverlay } from '@/components/panel/ProgressOverlay';
 import { loadSettings } from '@/lib/storage';
 import { useItineraryStore } from '@/stores/itineraryStore';
+import { useUIStore } from '@/stores/uiStore';
 import { decodeItinerary } from '@/lib/share-url';
 import { OfflineBanner } from '@/components/shared/OfflineBanner';
 
 export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
   const [showMapSettings, setShowMapSettings] = useState(false);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [compassActive, setCompassActive] = useState(false);
-  const [rulerActive, setRulerActive] = useState(false);
-  const [quizActive, setQuizActive] = useState(false);
-  const [progressOpen, setProgressOpen] = useState(false);
-  useBodyScrollLock(drawerOpen);
-  const handleCompassToggle = useCallback(() => {
-    setCompassActive((p) => {
-      if (!p) { setRulerActive(false); setQuizActive(false); }
-      return !p;
-    });
-  }, []);
-  const handleCompassDeactivate = useCallback(() => setCompassActive(false), []);
-  const handleRulerToggle = useCallback(() => {
-    setRulerActive((p) => {
-      if (!p) { setCompassActive(false); setQuizActive(false); }
-      return !p;
-    });
-  }, []);
-  const handleRulerDeactivate = useCallback(() => setRulerActive(false), []);
-  const handleQuizToggle = useCallback(() => {
-    setQuizActive((p) => {
-      if (!p) { setCompassActive(false); setRulerActive(false); }
-      return !p;
-    });
-  }, []);
 
-  const handleOpenProgress = useCallback(() => {
-    setQuizActive(false);
-    setProgressOpen(true);
-  }, []);
+  const drawerOpen = useUIStore((s) => s.drawerOpen);
+  const searchOpen = useUIStore((s) => s.searchOpen);
+  const quizActive = useUIStore((s) => s.quizActive);
+  const progressOpen = useUIStore((s) => s.progressOpen);
+  const setDrawerOpen = useUIStore((s) => s.setDrawerOpen);
+  const setSearchOpen = useUIStore((s) => s.setSearchOpen);
+  const toggleQuiz = useUIStore((s) => s.toggleQuiz);
+  const closeProgress = useUIStore((s) => s.closeProgress);
+
+  useBodyScrollLock(drawerOpen);
 
   // Hydrate settings from localStorage on mount
   useEffect(() => {
@@ -117,7 +97,7 @@ export default function Home() {
       <OfflineBanner />
       {/* Desktop sidebar — hidden on mobile */}
       <div className="hidden lg:flex">
-        <LeftPanel compassActive={compassActive} onCompassToggle={handleCompassToggle} rulerActive={rulerActive} onRulerToggle={handleRulerToggle} quizActive={quizActive} onQuizToggle={handleQuizToggle} onOpenProgress={handleOpenProgress} />
+        <LeftPanel />
       </div>
 
       {/* Right Panel: Top Bar (mobile) + Map + Elevation Profile */}
@@ -136,7 +116,7 @@ export default function Home() {
             <h1 className="text-base font-bold text-green-400">&#9650; TrekTrak</h1>
             <div className="flex items-center gap-0.5">
               <button
-                onClick={() => setSearchOpen((p) => !p)}
+                onClick={() => setSearchOpen(!searchOpen)}
                 className={`p-2 text-lg hover:text-white min-w-[44px] min-h-[44px] flex items-center justify-center ${searchOpen ? 'text-green-400' : 'text-gray-300'}`}
                 aria-label={searchOpen ? 'Chiudi ricerca' : 'Cerca località'}
                 aria-expanded={searchOpen}
@@ -153,12 +133,12 @@ export default function Home() {
             </div>
           </div>
           {/* Row 2: Mode switch (Learn / Track) */}
-          <ModeSwitch compassActive={compassActive} onCompassToggle={handleCompassToggle} rulerActive={rulerActive} onRulerToggle={handleRulerToggle} quizActive={quizActive} onQuizToggle={handleQuizToggle} />
+          <ModeSwitch />
         </div>
 
         {/* Map */}
         <div className="flex-1 relative min-h-0 overflow-hidden">
-          <MapWrapper mobileSearchOpen={searchOpen} compassActive={compassActive} onCompassDeactivate={handleCompassDeactivate} rulerActive={rulerActive} onRulerDeactivate={handleRulerDeactivate} quizActive={quizActive} />
+          <MapWrapper />
 
           {/* Settings toggles — desktop only */}
           <div className="hidden lg:flex absolute top-3 left-3 z-[1000] gap-1">
@@ -213,7 +193,7 @@ export default function Home() {
             </div>
           </div>
           <div className="flex-1 overflow-hidden">
-            <LeftPanel className="w-full h-full" compassActive={compassActive} onCompassToggle={handleCompassToggle} rulerActive={rulerActive} onRulerToggle={handleRulerToggle} quizActive={quizActive} onQuizToggle={handleQuizToggle} onOpenProgress={handleOpenProgress} />
+            <LeftPanel className="w-full h-full" />
           </div>
         </div>
       )}
@@ -222,9 +202,9 @@ export default function Home() {
       {showSettings && <ToleranceSettings onClose={() => setShowSettings(false)} />}
       {showMapSettings && <MapSettings onClose={() => setShowMapSettings(false)} />}
 
-      {quizActive && <QuizOverlay onClose={() => setQuizActive(false)} onOpenProgress={handleOpenProgress} />}
+      {quizActive && <QuizOverlay onClose={() => toggleQuiz()} />}
 
-      {progressOpen && <ProgressOverlay onClose={() => setProgressOpen(false)} />}
+      {progressOpen && <ProgressOverlay onClose={closeProgress} />}
 
       {/* First-visit tutorial */}
       <LearnTutorial />

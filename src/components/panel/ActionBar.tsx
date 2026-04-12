@@ -13,9 +13,11 @@ import { buildMeteoUrl } from '@/lib/meteo';
 import { encodeItinerary } from '@/lib/share-url';
 import { saveValidationSession } from '@/lib/storage';
 import type { ValidationSessionResult } from '@/lib/types';
+import { useUIStore } from '@/stores/uiStore';
 
 
-export function ActionBar({ onOpenProgress }: { onOpenProgress?: () => void }) {
+export function ActionBar() {
+  const openProgress = useUIStore((s) => s.openProgress);
   const itineraryName = useItineraryStore((s) => s.itineraryName);
   const waypoints = useItineraryStore((s) => s.waypoints);
   const legs = useItineraryStore((s) => s.legs);
@@ -385,14 +387,12 @@ export function ActionBar({ onOpenProgress }: { onOpenProgress?: () => void }) {
             {verifying ? 'Verificando...' : 'Verifica'}
           </button>
         )}
-        {onOpenProgress && (
-          <button
-            onClick={onOpenProgress}
-            className="flex-1 py-2 bg-indigo-500 text-black rounded font-bold text-xs hover:bg-indigo-400"
-          >
-            📊 Progresso
-          </button>
-        )}
+        <button
+          onClick={openProgress}
+          className="flex-1 py-2 bg-indigo-500 text-black rounded font-bold text-xs hover:bg-indigo-400"
+        >
+          📊 Progresso
+        </button>
       </div>
     </div>
   );

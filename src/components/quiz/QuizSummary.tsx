@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { QuizAnswer, QuestionType } from '@/lib/quiz';
 import { loadQuizHistory } from '@/lib/quiz';
+import { useUIStore } from '@/stores/uiStore';
 
 const TYPE_LABELS: Record<QuestionType, string> = {
   altitude: 'Altitudine',
@@ -16,13 +17,13 @@ function averageByType(answers: { type: QuestionType; score: number }[], type: Q
   return Math.round(filtered.reduce((sum, a) => sum + a.score, 0) / filtered.length);
 }
 
-export function QuizSummary({ answers, average, onNewSession, onClose, onOpenProgress }: {
+export function QuizSummary({ answers, average, onNewSession, onClose }: {
   answers: QuizAnswer[];
   average: number;
   onNewSession: () => void;
   onClose: () => void;
-  onOpenProgress?: () => void;
 }) {
+  const openProgress = useUIStore((s) => s.openProgress);
   const [showHistory, setShowHistory] = useState(false);
   const scoreColor = average >= 70 ? 'text-green-400' : average >= 40 ? 'text-amber-400' : 'text-red-400';
 
@@ -51,14 +52,12 @@ export function QuizSummary({ answers, average, onNewSession, onClose, onOpenPro
         <button onClick={onClose} className="flex-1 py-2 bg-gray-600 text-white rounded font-bold text-xs hover:bg-gray-500">Chiudi</button>
       </div>
       {showHistory && <HistoryView />}
-      {onOpenProgress && (
-        <button
-          onClick={onOpenProgress}
-          className="w-full text-blue-400 hover:text-blue-300 text-sm underline text-center mt-2"
-        >
-          Vedi report completo →
-        </button>
-      )}
+      <button
+        onClick={openProgress}
+        className="w-full text-blue-400 hover:text-blue-300 text-sm underline text-center mt-2"
+      >
+        Vedi report completo →
+      </button>
     </div>
   );
 }

@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useMap } from 'react-leaflet';
+import { useUIStore } from '@/stores/uiStore';
 import { setQuizMapBounds } from '@/components/quiz/QuizOverlay';
 import { QuizMarkers } from './QuizMarkers';
 import type { QuizPoint } from '@/lib/quiz';
 
-export function QuizBoundsSync({ quizActive }: { quizActive?: boolean }) {
+export function QuizBoundsSync() {
+  const quizActive = useUIStore((s) => s.quizActive);
   const map = useMap();
   const [quizPoints, setQuizPoints] = useState<{ a: QuizPoint | null; b: QuizPoint | null }>({ a: null, b: null });
 
