@@ -162,6 +162,8 @@ export type DifficultyGrade = 'T1' | 'T2' | 'T3' | 'T4' | 'T5' | 'T6';
 
 export type AppMode = 'learn' | 'track';
 
+export type ValidationFieldType = 'altitude' | 'distance' | 'azimuth' | 'elevationGain' | 'elevationLoss';
+
 export interface ValidationSessionResult {
   field: 'altitude' | 'distance' | 'elevationGain' | 'elevationLoss' | 'azimuth';
   status: 'valid' | 'warning' | 'error';

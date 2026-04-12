@@ -125,7 +125,7 @@ I test coprono bene la **logica pura** (calculations, quiz scoring, grid, share-
 
 ### Chiave `learningHistory` in storage.ts
 
-La chiave `learningHistory` e' definita in `KEYS` ma non e' mai usata. Era prevista per la Feature 12 (Report di Apprendimento) della spec originale, mai implementata. Puo' essere rimossa o tenuta come placeholder per sviluppo futuro.
+La chiave `learningHistory` in `KEYS` e' usata da `saveValidationSession()`, `loadValidationHistory()`, e `clearValidationHistory()` in `storage.ts` per persistere lo storico delle sessioni di verifica (Feature 12 — Report di Apprendimento, implementata in v0.4.0). I dati sono validati strutturalmente al caricamento con `isValidSession()`. Max 100 sessioni (FIFO).
 
 ---
 
@@ -137,8 +137,8 @@ Dalla spec originale (`docs/superpowers/specs/2026-03-10-trektrak-design.md`):
 
 | # | Feature | Note |
 |---|---|---|
-| 11 | **Suggerimenti Didattici Contestuali** | Quando l'utente sbaglia in verifica, mostrare spiegazioni: formula azimuth, lettura curve di livello, stima distanze. Implementabile come tooltip espandibili nel feedback validazione. |
-| 12 | **Report di Apprendimento** | Tracking errori frequenti tra sessioni, trend miglioramento, % accuratezza per categoria. La chiave `learningHistory` e' gia' in storage.ts. Potrebbe integrarsi col quiz history. |
+| 11 | **Suggerimenti Didattici Contestuali** | Implementata in v0.4.0. Tip didattici adattivi nel popover dei badge di validazione (`didactic-tips.ts`). |
+| 12 | **Report di Apprendimento** | Implementata in v0.4.0. ProgressOverlay con summary cards, grafico trend, dettaglio categorie (`learning-stats.ts`, `ProgressOverlay.tsx`). |
 | 14 | **Overlay Griglia UTM** | La griglia decimale e' implementata. Aggiungere UTM richiederebbe `proj4js` per la proiezione. La griglia decimale copre il caso d'uso didattico base. |
 
 ### Phase 3 (priorita' bassa)
@@ -196,5 +196,5 @@ Dalla spec originale (`docs/superpowers/specs/2026-03-10-trektrak-design.md`):
 
 - Branch `develop` per sviluppo attivo
 - Branch `master` per deploy produzione
-- Semantic versioning: attualmente v0.2.0
+- Semantic versioning: attualmente v0.4.0
 - Commit con prefisso convenzionale (`feat:`, `fix:`, `chore:`)

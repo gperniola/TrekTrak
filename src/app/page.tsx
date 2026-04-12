@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { LeftPanel } from '@/components/panel/LeftPanel';
 import { MapWrapper } from '@/components/map/MapWrapper';
 import { ElevationProfile } from '@/components/map/ElevationProfile';
@@ -25,6 +26,7 @@ export default function Home() {
   const [rulerActive, setRulerActive] = useState(false);
   const [quizActive, setQuizActive] = useState(false);
   const [progressOpen, setProgressOpen] = useState(false);
+  useBodyScrollLock(drawerOpen);
   const handleCompassToggle = useCallback(() => {
     setCompassActive((p) => {
       if (!p) { setRulerActive(false); setQuizActive(false); }
@@ -75,8 +77,6 @@ export default function Home() {
   useEffect(() => {
     if (!drawerOpen) return;
 
-    document.body.style.overflow = 'hidden';
-
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setDrawerOpen(false);
     };
@@ -102,14 +102,12 @@ export default function Home() {
       drawerEl.addEventListener('keydown', trapFocus);
 
       return () => {
-        document.body.style.overflow = '';
         window.removeEventListener('keydown', handleKeyDown);
         drawerEl.removeEventListener('keydown', trapFocus);
       };
     }
 
     return () => {
-      document.body.style.overflow = '';
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [drawerOpen]);

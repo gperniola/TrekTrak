@@ -1,4 +1,4 @@
-import type { ValidationFieldType } from '@/components/validation/ValidationBadge';
+import type { ValidationFieldType } from './types';
 
 type TipField = 'altitude' | 'distance' | 'elevationGain' | 'elevationLoss' | 'azimuth';
 

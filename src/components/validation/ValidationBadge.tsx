@@ -1,10 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import type { ValidationResult } from '@/lib/types';
+import type { ValidationResult, ValidationFieldType } from '@/lib/types';
 import { getTip } from '@/lib/didactic-tips';
-
-export type ValidationFieldType = 'altitude' | 'distance' | 'azimuth' | 'elevationGain' | 'elevationLoss';
 
 const STATUS_STYLES = {
   unverified: 'bg-gray-600 text-gray-300',

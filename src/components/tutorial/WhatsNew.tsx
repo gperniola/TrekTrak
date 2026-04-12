@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { KEYS } from '@/lib/storage';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 
 interface ReleaseStep {
   title: string;
@@ -167,6 +168,7 @@ export function WhatsNew() {
   const [step, setStep] = useState<number | null>(null);
   const [release, setRelease] = useState<Release | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  useBodyScrollLock(step !== null);
 
   useEffect(() => {
     try {
@@ -184,8 +186,6 @@ export function WhatsNew() {
 
   useEffect(() => {
     if (step === null) return;
-
-    document.body.style.overflow = 'hidden';
 
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') handleClose();
@@ -211,7 +211,6 @@ export function WhatsNew() {
     dialogEl?.addEventListener('keydown', trapFocus);
 
     return () => {
-      document.body.style.overflow = '';
       window.removeEventListener('keydown', handleKey);
       dialogEl?.removeEventListener('keydown', trapFocus);
     };

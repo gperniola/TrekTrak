@@ -139,13 +139,30 @@ export function isStorageNearLimit(): boolean {
 
 const MAX_VALIDATION_SESSIONS = 100;
 
+const VALID_FIELDS = new Set(['altitude', 'distance', 'elevationGain', 'elevationLoss', 'azimuth']);
+const VALID_STATUSES = new Set(['valid', 'warning', 'error']);
+
+function isValidSession(item: unknown): item is ValidationSession {
+  if (item == null || typeof item !== 'object') return false;
+  const rec = item as Record<string, unknown>;
+  if (typeof rec.date !== 'string' || typeof rec.itineraryName !== 'string') return false;
+  if (!Array.isArray(rec.results)) return false;
+  return rec.results.every((r: unknown) => {
+    if (r == null || typeof r !== 'object') return false;
+    const res = r as Record<string, unknown>;
+    return VALID_FIELDS.has(res.field as string)
+      && VALID_STATUSES.has(res.status as string)
+      && typeof res.delta === 'number' && Number.isFinite(res.delta);
+  });
+}
+
 export function loadValidationHistory(): ValidationSession[] {
   try {
     const raw = localStorage.getItem(KEYS.learningHistory);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed;
+    return parsed.filter(isValidSession);
   } catch {
     return [];
   }

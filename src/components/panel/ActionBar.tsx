@@ -29,6 +29,8 @@ export function ActionBar({ onOpenProgress }: { onOpenProgress?: () => void }) {
   const verifyGenerationRef = useRef(0);
   useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; verifyGenerationRef.current++; }; }, []);
   const [verifyBanner, setVerifyBanner] = useState<{ valid: number; warning: number; error: number } | null>(null);
+  const [bannerFading, setBannerFading] = useState(false);
+  const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const totalDistance = legs.reduce((sum, l) => sum + (l.distance ?? 0), 0);
   const totalGain = legs.reduce((sum, l) => sum + (l.elevationGain ?? 0), 0);
@@ -287,8 +289,16 @@ export function ActionBar({ onOpenProgress }: { onOpenProgress?: () => void }) {
             itineraryName: finalState.itineraryName,
             results: sessionResults,
           });
+          if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
+          setBannerFading(false);
           setVerifyBanner({ valid: validCount, warning: warningCount, error: errorCount });
-          setTimeout(() => { if (mountedRef.current) setVerifyBanner(null); }, 4000);
+          bannerTimerRef.current = setTimeout(() => {
+            if (!mountedRef.current) return;
+            setBannerFading(true);
+            bannerTimerRef.current = setTimeout(() => {
+              if (mountedRef.current) { setVerifyBanner(null); setBannerFading(false); }
+            }, 300);
+          }, 3700);
         }
       }
     } finally {
@@ -318,8 +328,8 @@ export function ActionBar({ onOpenProgress }: { onOpenProgress?: () => void }) {
         <div
           role="status"
           aria-live="polite"
-          onClick={() => setVerifyBanner(null)}
-          className="bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-center cursor-pointer transition-opacity duration-300"
+          onClick={() => { if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current); setVerifyBanner(null); setBannerFading(false); }}
+          className={`bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-center cursor-pointer transition-opacity duration-300 ${bannerFading ? 'opacity-0' : 'opacity-100'}`}
         >
           Verifica completata:{' '}
           <span className="text-green-400 font-bold">{verifyBanner.valid} ✓</span>

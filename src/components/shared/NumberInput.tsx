@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import type { ValidationResult } from '@/lib/types';
-import { ValidationBadge, type ValidationFieldType } from '@/components/validation/ValidationBadge';
+import type { ValidationResult, ValidationFieldType } from '@/lib/types';
+import { ValidationBadge } from '@/components/validation/ValidationBadge';
 
 interface NumberInputProps {
   label: string;

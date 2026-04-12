@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { loadValidationHistory, clearValidationHistory } from '@/lib/storage';
 import { loadQuizHistory, clearQuizHistory } from '@/lib/quiz';
@@ -55,13 +56,13 @@ export function ProgressOverlay({ onClose }: { onClose: () => void }) {
     setQuizzes(loadQuizHistory());
   }, []);
 
+  useBodyScrollLock(true);
+
   useEffect(() => {
-    document.body.style.overflow = 'hidden';
     const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handleKey);
     dialogRef.current?.focus();
     return () => {
-      document.body.style.overflow = '';
       window.removeEventListener('keydown', handleKey);
     };
   }, [onClose]);
@@ -103,7 +104,7 @@ export function ProgressOverlay({ onClose }: { onClose: () => void }) {
         ) : (
           <div className="space-y-5">
             {/* Section 1: Summary Cards */}
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <div className="bg-gray-800 rounded-lg p-3 text-center">
                 <div className="text-gray-500 text-[10px] uppercase">Verifiche</div>
                 <div className="text-white font-bold text-lg">{summary.totalVerifications}</div>
@@ -174,11 +175,11 @@ export function ProgressOverlay({ onClose }: { onClose: () => void }) {
             {/* Section 3: Category Breakdown */}
             <div>
               <div className="text-xs text-gray-400 font-medium mb-2">Dettaglio per categoria</div>
-              <div className="grid grid-cols-3 sm:grid-cols-5 gap-1 text-center">
+              <div className="flex gap-1 overflow-x-auto pb-1 sm:grid sm:grid-cols-5 sm:overflow-visible text-center">
                 {(Object.keys(CATEGORY_LABELS) as CategoryField[]).map((cat) => {
                   const s = catStats[cat];
                   return (
-                    <div key={cat} className="bg-gray-800 rounded-lg p-2">
+                    <div key={cat} className="bg-gray-800 rounded-lg p-2 min-w-[72px] shrink-0 sm:min-w-0 sm:shrink">
                       <div className="text-gray-500 text-[9px] uppercase font-medium">{CATEGORY_LABELS[cat]}</div>
                       {s.count === 0 ? (
                         <div className="text-gray-600 text-sm mt-1">—</div>
