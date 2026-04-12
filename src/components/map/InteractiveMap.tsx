@@ -32,7 +32,6 @@ function resolveBaseMap(chosen: string): BaseMapDef {
 export function InteractiveMap() {
   const compassActive = useUIStore((s) => s.compassActive);
   const rulerActive = useUIStore((s) => s.rulerActive);
-  const quizActive = useUIStore((s) => s.quizActive);
   const deactivateCompass = useUIStore((s) => s.deactivateCompass);
   const deactivateRuler = useUIStore((s) => s.deactivateRuler);
   const searchOpen = useUIStore((s) => s.searchOpen);
