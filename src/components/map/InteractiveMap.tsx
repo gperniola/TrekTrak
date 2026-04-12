@@ -1,7 +1,6 @@
 'use client';
 
 import { MapContainer, TileLayer, Marker, Polyline, useMapEvents } from 'react-leaflet';
-import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -9,6 +8,7 @@ import { useMap } from 'react-leaflet';
 import { slopeColor, smoothAltitudes, distanceToPosition, positionToDistance } from '@/lib/calculations';
 import { reverseGeocode } from '@/lib/reverse-geocoding-api';
 import { autoFillTrackData, autoFillAllTrackData } from '@/lib/auto-fill';
+import { greenIcon, profileHoverIcon } from '@/lib/map-icons';
 import { LocationSearch } from './LocationSearch';
 import { CompassOverlay } from './CompassTool';
 import { RulerTool } from './RulerTool';
@@ -19,21 +19,6 @@ import type { QuizPoint } from '@/lib/quiz';
 import { MyLocationButton } from './MyLocationButton';
 import type { Leg, BaseMapDef } from '@/lib/types';
 import { BASE_MAPS, HIKING_TRAILS_OVERLAY } from '@/lib/types';
-
-// Icon cache to avoid recreating on every render
-const iconCache = new Map<number, L.DivIcon>();
-
-function greenIcon(label: number) {
-  if (iconCache.has(label)) return iconCache.get(label)!;
-  const icon = L.divIcon({
-    className: '',
-    html: `<div style="background:#4ade80;color:#000;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:12px;border:2px solid #fff;">${label}</div>`,
-    iconSize: [24, 24],
-    iconAnchor: [12, 12],
-  });
-  iconCache.set(label, icon);
-  return icon;
-}
 
 // Chieti, Italy - default center
 const DEFAULT_CENTER: [number, number] = [42.351, 14.168];
@@ -265,13 +250,6 @@ function resolveBaseMap(chosen: string): BaseMapDef {
   // Fallback: first available map (OpenTopoMap or OSM)
   return BASE_MAPS.find((m) => m.available) ?? BASE_MAPS[BASE_MAPS.length - 1];
 }
-
-const profileHoverIcon = L.divIcon({
-  className: '',
-  html: '<div style="width:12px;height:12px;background:#facc15;border-radius:50%;border:2px solid #fff;box-shadow:0 0 6px rgba(250,204,21,0.6);"></div>',
-  iconSize: [12, 12],
-  iconAnchor: [6, 6],
-});
 
 function ProfileHoverMarker() {
   const profileHover = useItineraryStore((s) => s.profileHover);
