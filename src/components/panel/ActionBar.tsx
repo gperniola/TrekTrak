@@ -27,7 +27,7 @@ export function ActionBar({ onOpenProgress }: { onOpenProgress?: () => void }) {
   const verifyingRef = useRef(false);
   const mountedRef = useRef(true);
   const verifyGenerationRef = useRef(0);
-  useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; verifyGenerationRef.current++; }; }, []);
+  useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; verifyGenerationRef.current++; if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current); }; }, []);
   const [verifyBanner, setVerifyBanner] = useState<{ valid: number; warning: number; error: number } | null>(null);
   const [bannerFading, setBannerFading] = useState(false);
   const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);

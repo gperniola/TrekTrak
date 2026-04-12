@@ -152,7 +152,10 @@ function isValidSession(item: unknown): item is ValidationSession {
     const res = r as Record<string, unknown>;
     return VALID_FIELDS.has(res.field as string)
       && VALID_STATUSES.has(res.status as string)
-      && typeof res.delta === 'number' && Number.isFinite(res.delta);
+      && typeof res.delta === 'number' && Number.isFinite(res.delta)
+      && typeof res.tolerance === 'object' && res.tolerance != null
+      && typeof (res.tolerance as Record<string, unknown>).strict === 'number'
+      && typeof (res.tolerance as Record<string, unknown>).loose === 'number';
   });
 }
 
