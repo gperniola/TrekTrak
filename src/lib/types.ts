@@ -137,8 +137,8 @@ export interface MapDisplaySettings {
 }
 
 export const DEFAULT_MAP_DISPLAY: MapDisplaySettings = {
-  coloredPath: false,
-  trailRouting: false,
+  coloredPath: true,
+  trailRouting: true,
   sampleInterval: 50,
   baseMap: 'thunderforest-outdoors',
   showHikingTrails: true,

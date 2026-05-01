@@ -146,19 +146,19 @@ describe('sample interval and max points', () => {
 // MAP DISPLAY SETTINGS PERSISTENCE
 // ============================================================
 describe('mapDisplay settings persistence', () => {
-  test('defaults to coloredPath=false', () => {
+  test('defaults to coloredPath=true', () => {
     const settings = loadSettings();
-    expect(settings.mapDisplay.coloredPath).toBe(false);
+    expect(settings.mapDisplay.coloredPath).toBe(true);
   });
 
-  test('saves and loads coloredPath=true', () => {
+  test('saves and loads coloredPath=false', () => {
     const settings: AppSettings = {
       tolerances: { ...DEFAULT_TOLERANCES },
-      mapDisplay: { coloredPath: true, trailRouting: false, sampleInterval: 50, baseMap: 'thunderforest-outdoors', showHikingTrails: false, showCoordinateGrid: false },
+      mapDisplay: { coloredPath: false, trailRouting: false, sampleInterval: 50, baseMap: 'thunderforest-outdoors', showHikingTrails: false, showCoordinateGrid: false },
     };
     saveSettings(settings);
     const loaded = loadSettings();
-    expect(loaded.mapDisplay.coloredPath).toBe(true);
+    expect(loaded.mapDisplay.coloredPath).toBe(false);
   });
 
   test('old localStorage without mapDisplay returns defaults', () => {
@@ -167,7 +167,7 @@ describe('mapDisplay settings persistence', () => {
       tolerances: { altitude: 30, coordinates: 0.001, distance: 10, azimuth: 5, elevationDelta: 15 },
     }));
     const loaded = loadSettings();
-    expect(loaded.mapDisplay.coloredPath).toBe(false); // default
+    expect(loaded.mapDisplay.coloredPath).toBe(true); // default
     expect(loaded.tolerances.altitude).toBe(30); // preserved
   });
 
@@ -177,7 +177,7 @@ describe('mapDisplay settings persistence', () => {
       mapDisplay: 'not-an-object',
     }));
     const loaded = loadSettings();
-    expect(loaded.mapDisplay.coloredPath).toBe(false);
+    expect(loaded.mapDisplay.coloredPath).toBe(true);
   });
 
   test('invalid field types in mapDisplay are filtered', () => {
@@ -186,7 +186,7 @@ describe('mapDisplay settings persistence', () => {
       mapDisplay: { coloredPath: 'yes', extraField: 42 },
     }));
     const loaded = loadSettings();
-    expect(loaded.mapDisplay.coloredPath).toBe(false); // "yes" is not boolean, falls back to default
+    expect(loaded.mapDisplay.coloredPath).toBe(true); // "yes" is not boolean, falls back to default
     expect(loaded.mapDisplay).not.toHaveProperty('extraField');
   });
 

@@ -9,7 +9,7 @@ beforeEach(() => {
     waypoints: [],
     legs: [],
     settings: { tolerances: { altitude: 50, coordinates: 0.001, distance: 10, azimuth: 5, elevationDelta: 15 }, mapDisplay: { coloredPath: false, trailRouting: false, sampleInterval: 50, baseMap: 'thunderforest-outdoors', showHikingTrails: false, showCoordinateGrid: false } },
-    appMode: 'learn' as AppMode,
+    appMode: 'track' as AppMode,
   });
 });
 
@@ -152,18 +152,18 @@ describe('itinerary name', () => {
 });
 
 describe('appMode', () => {
-  test('defaults to learn', () => {
-    expect(useItineraryStore.getState().appMode).toBe('learn');
-  });
-
-  test('switches to track mode', () => {
-    useItineraryStore.getState().setAppMode('track');
+  test('defaults to track', () => {
     expect(useItineraryStore.getState().appMode).toBe('track');
   });
 
-  test('no-op when setting same mode', () => {
+  test('switches to learn mode', () => {
     useItineraryStore.getState().setAppMode('learn');
     expect(useItineraryStore.getState().appMode).toBe('learn');
+  });
+
+  test('no-op when setting same mode', () => {
+    useItineraryStore.getState().setAppMode('track');
+    expect(useItineraryStore.getState().appMode).toBe('track');
   });
 
   test('clears validation when switching modes', () => {
@@ -178,7 +178,7 @@ describe('appMode', () => {
       validationState: { distance: { status: 'valid', userValue: 3.2, realValue: 3.3, delta: 0.1, tolerance: { strict: 0.32, loose: 0.64 } } },
     });
 
-    useItineraryStore.getState().setAppMode('track');
+    useItineraryStore.getState().setAppMode('learn');
 
     expect(useItineraryStore.getState().waypoints[0].validationState).toBeUndefined();
     expect(useItineraryStore.getState().legs[0].validationState).toBeUndefined();

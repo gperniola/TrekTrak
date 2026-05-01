@@ -69,7 +69,7 @@ const initialState = {
   waypoints: [] as Waypoint[],
   legs: [] as Leg[],
   settings: { tolerances: { ...DEFAULT_TOLERANCES }, mapDisplay: { ...DEFAULT_MAP_DISPLAY } } as AppSettings,
-  appMode: 'learn' as AppMode,
+  appMode: 'track' as AppMode,
   profileHover: null as { distance: number; source: 'chart' | 'map' } | null,
   profileFlyTo: null as number | null,
 };
