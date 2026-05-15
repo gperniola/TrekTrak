@@ -9,9 +9,15 @@ export interface GeocodingResult {
   boundingbox?: [number, number, number, number]; // [south, north, west, east]
 }
 
+export interface SearchOptions {
+  /** Optional viewbox to bias results [west, south, east, north]. Nominatim format. */
+  viewbox?: { west: number; south: number; east: number; north: number };
+}
+
 export async function searchLocation(
   query: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  options?: SearchOptions
 ): Promise<GeocodingResult[]> {
   if (!query || query.trim().length < 3) return [];
 
@@ -37,9 +43,17 @@ export async function searchLocation(
     const params = new URLSearchParams({
       q: query.trim(),
       format: 'json',
-      limit: '5',
+      limit: '8',
       addressdetails: '0',
     });
+    // TASK-9: map-bias. viewbox + bounded=0 means results inside the box come
+    // first, but global matches still appear afterwards. Helps disambiguate
+    // toponyms like "Corno Grande" (Bolzano vs Abruzzo).
+    if (options?.viewbox) {
+      const { west, south, east, north } = options.viewbox;
+      params.set('viewbox', `${west},${south},${east},${north}`);
+      params.set('bounded', '0');
+    }
 
     const response = await fetch(`${NOMINATIM_URL}?${params}`, {
       signal: combinedSignal,

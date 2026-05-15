@@ -69,7 +69,16 @@ export function LocationSearch({ mobileSearchOpen }: { mobileSearchOpen?: boolea
       const generation = ++generationRef.current;
 
       setLoading(true);
-      const data = await searchLocation(query, abortRef.current.signal);
+      // TASK-9: bias by current map viewport so ambiguous toponyms favour what
+      // the user is looking at (e.g. "Corno Grande" in Abruzzo vs Bolzano).
+      const b = map.getBounds();
+      const viewbox = {
+        west: b.getWest(),
+        south: b.getSouth(),
+        east: b.getEast(),
+        north: b.getNorth(),
+      };
+      const data = await searchLocation(query, abortRef.current.signal, { viewbox });
 
       // Discard stale results if a newer search was triggered
       if (generationRef.current !== generation) return;
@@ -82,6 +91,7 @@ export function LocationSearch({ mobileSearchOpen }: { mobileSearchOpen?: boolea
     }, DEBOUNCE_MS);
 
     return () => clearTimeout(debounceRef.current);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);
 
   // Close on click outside (only when open)
