@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useMap, useMapEvents, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import { haversineDistance, forwardAzimuth } from '@/lib/calculations';
@@ -43,6 +43,7 @@ export function CompassOverlay({ active, onDeactivate }: { active: boolean; onDe
   const [error, setError] = useState<string | null>(null);
   const fetchGenRef = useRef(0);
   const watchIdRef = useRef<number | null>(null);
+  const errorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Stable deactivate ref to avoid effect re-runs
   const deactivateRef = useRef(onDeactivate);
@@ -56,6 +57,10 @@ export function CompassOverlay({ active, onDeactivate }: { active: boolean; onDe
       if (watchIdRef.current != null) {
         navigator.geolocation.clearWatch(watchIdRef.current);
         watchIdRef.current = null;
+      }
+      if (errorTimeoutRef.current != null) {
+        clearTimeout(errorTimeoutRef.current);
+        errorTimeoutRef.current = null;
       }
       return;
     }
@@ -88,7 +93,11 @@ export function CompassOverlay({ active, onDeactivate }: { active: boolean; onDe
           : err.code === 3 ? 'Timeout GPS. Riprova all\'aperto.'
           : 'Posizione non disponibile.';
         setError(msg);
-        setTimeout(() => { deactivateRef.current(); }, 3000);
+        if (errorTimeoutRef.current != null) clearTimeout(errorTimeoutRef.current);
+        errorTimeoutRef.current = setTimeout(() => {
+          errorTimeoutRef.current = null;
+          deactivateRef.current();
+        }, 3000);
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 }
     );
@@ -97,6 +106,10 @@ export function CompassOverlay({ active, onDeactivate }: { active: boolean; onDe
       if (watchIdRef.current != null) {
         navigator.geolocation.clearWatch(watchIdRef.current);
         watchIdRef.current = null;
+      }
+      if (errorTimeoutRef.current != null) {
+        clearTimeout(errorTimeoutRef.current);
+        errorTimeoutRef.current = null;
       }
     };
   }, [active, map]);
