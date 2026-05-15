@@ -68,7 +68,7 @@ export function ModeSwitch() {
             ? 'bg-purple-500 text-white'
             : 'bg-gray-700 text-gray-400 hover:text-gray-300'
         }`}
-        aria-label={quizActive ? 'Chiudi quiz' : 'Avvia quiz'}
+        aria-label={quizActive ? 'Disattiva quiz' : 'Attiva quiz'}
         aria-pressed={quizActive}
         title="Quiz"
       >
