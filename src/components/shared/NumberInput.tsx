@@ -9,7 +9,12 @@ interface NumberInputProps {
   value: number | null;
   onChange: (value: number | null) => void;
   unit?: string;
-  step?: number;
+  /**
+   * HTML5 `step` attribute. Defaults to `"any"` so the browser does not flag
+   * fractional values (like reverse-geocoded coordinates with 14 decimals) as
+   * `:invalid`. Pass a numeric step when the field is genuinely stepped.
+   */
+  step?: number | 'any';
   min?: number;
   max?: number;
   validation?: ValidationResult;
@@ -25,7 +30,7 @@ export function NumberInput({
   value,
   onChange,
   unit,
-  step = 1,
+  step = 'any',
   min,
   max,
   validation,
