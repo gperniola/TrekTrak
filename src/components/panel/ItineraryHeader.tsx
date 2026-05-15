@@ -85,11 +85,13 @@ export function ItineraryHeader() {
       <div className="px-3 pb-3">
         <input
           type="text"
+          name="itineraryName"
           value={itineraryName}
           onChange={(e) => setItineraryName(e.target.value)}
           maxLength={200}
           placeholder="Nome itinerario..."
           aria-label="Nome itinerario"
+          autoComplete="off"
           className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-sm text-white focus:border-green-500 focus:outline-none"
         />
       </div>
