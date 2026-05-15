@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useItineraryStore } from '@/stores/itineraryStore';
-import { saveSettings } from '@/lib/storage';
+import { saveSettings, KEYS } from '@/lib/storage';
+import { toast } from '@/stores/notificationStore';
 import type { ToleranceSettings as TolSettings } from '@/lib/types';
 
 export function ToleranceSettings({ onClose }: { onClose: () => void }) {
@@ -60,7 +61,22 @@ export function ToleranceSettings({ onClose }: { onClose: () => void }) {
             </div>
           ))}
         </div>
-        <div className="flex gap-2 mt-6">
+        <div className="border-t border-gray-700 mt-5 pt-4">
+          <button
+            onClick={() => {
+              try {
+                localStorage.removeItem(KEYS.tutorialSeen);
+                toast.info('Tutorial verrà mostrato al prossimo riavvio dell\'app');
+              } catch {
+                toast.error('Impossibile resettare il tutorial');
+              }
+            }}
+            className="w-full py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 text-xs rounded"
+          >
+            Rivedi tutorial al prossimo avvio
+          </button>
+        </div>
+        <div className="flex gap-2 mt-4">
           <button onClick={onClose} className="flex-1 py-2 bg-gray-700 rounded text-sm hover:bg-gray-600">
             Annulla
           </button>
