@@ -28,15 +28,24 @@ export function MapEvents() {
         autoFillTrackData(newWp.id);
       }
 
-      // Auto-name: fetch reverse geocode, apply only if name still default
+      // Auto-name: fetch reverse geocode, apply only if name still default.
+      // Disambiguate when reverse-geocode returns the same POI for several nearby
+      // clicks: append " (2)", " (3)", etc. so the user can still tell waypoints apart.
       const wpId = newWp.id;
       const defaultName = newWp.name;
       reverseGeocode(e.latlng.lat, e.latlng.lng).then((name) => {
         if (!name) return;
-        const current = useItineraryStore.getState().waypoints.find((w) => w.id === wpId);
-        if (current && current.name === defaultName) {
-          useItineraryStore.getState().updateWaypoint(wpId, { name });
+        const wps = useItineraryStore.getState().waypoints;
+        const current = wps.find((w) => w.id === wpId);
+        if (!current || current.name !== defaultName) return;
+        let finalName = name;
+        const taken = new Set(wps.filter((w) => w.id !== wpId).map((w) => w.name));
+        if (taken.has(finalName)) {
+          let n = 2;
+          while (taken.has(`${name} (${n})`)) n++;
+          finalName = `${name} (${n})`;
         }
+        useItineraryStore.getState().updateWaypoint(wpId, { name: finalName });
       });
     },
     contextmenu() {
