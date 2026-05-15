@@ -10,3 +10,9 @@ public/sw.js
 public/workbox-*.js
 public/sw.js.map
 public/workbox-*.js.map
+
+# TypeScript incremental build info
+tsconfig.tsbuildinfo
+
+# Windows/Cygwin artefacts
+*.stackdump
