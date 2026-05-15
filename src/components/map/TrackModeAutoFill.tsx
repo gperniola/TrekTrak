@@ -20,12 +20,23 @@ export function TrackModeAutoFill() {
     const itineraryChanged = appMode === 'track' && prevItineraryId.current !== itineraryId;
 
     if (modeChanged || routingChanged || itineraryChanged) {
-      // Clear stale route geometry and elevation profiles before recalculating
       const store = useItineraryStore.getState();
-      store.legs.forEach((leg) => {
-        store.updateLeg(leg.id, { routeGeometry: undefined, elevationProfile: undefined });
-      });
-      autoFillAllTrackData();
+      // BUG-FIX (TASK-15 interaction): on a pure mode switch where TASK-15 just
+      // restored populated trackValues, skip the re-fetch — those values are
+      // still valid. Only re-fill when:
+      //   - routing setting flipped (must recompute either way)
+      //   - itinerary just loaded (data came from storage/URL without geometry)
+      //   - mode change AND at least one leg has null distance (= no trackValues to restore)
+      const allLegsPopulated = store.legs.length > 0 && store.legs.every((l) => l.distance != null);
+      const shouldRefill = routingChanged || itineraryChanged || (modeChanged && !allLegsPopulated);
+
+      if (shouldRefill) {
+        // Clear stale route geometry and elevation profiles before recalculating
+        store.legs.forEach((leg) => {
+          store.updateLeg(leg.id, { routeGeometry: undefined, elevationProfile: undefined });
+        });
+        autoFillAllTrackData();
+      }
     }
 
     prevMode.current = appMode;

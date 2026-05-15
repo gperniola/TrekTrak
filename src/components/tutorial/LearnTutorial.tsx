@@ -153,7 +153,7 @@ function LevelChooser({ onChoose }: { onChoose: (level: 'beginner' | 'expert') =
       >
         <div className="text-sm font-bold text-green-300">🥾 Sono esperto</div>
         <div className="text-[11px] text-gray-300 mt-1">
-          Default modalità Track: l\'app calcola tutto, io rivedo e perfeziono.
+          Default modalità Track: l&apos;app calcola tutto, io rivedo e perfeziono.
         </div>
       </button>
     </div>

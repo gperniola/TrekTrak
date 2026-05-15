@@ -24,7 +24,7 @@ function ToastItem({ toast }: { toast: ToastType }) {
     <div
       role={toast.variant === 'error' ? 'alert' : 'status'}
       aria-live={toast.variant === 'error' ? 'assertive' : 'polite'}
-      className={`flex items-start gap-2 ${style.bg} ${style.text} border rounded-lg px-3 py-2 shadow-xl pointer-events-auto animate-in fade-in slide-in-from-bottom-2 duration-200`}
+      className={`flex items-start gap-2 ${style.bg} ${style.text} border rounded-lg px-3 py-2 shadow-xl pointer-events-auto`}
     >
       <span aria-hidden className="font-bold leading-tight pt-0.5">{style.icon}</span>
       <span className="text-sm leading-snug flex-1 break-words">{toast.message}</span>

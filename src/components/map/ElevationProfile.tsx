@@ -4,6 +4,7 @@ import { useId, useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceDot, ReferenceLine } from 'recharts';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { buildGradientStops } from '@/lib/calculations';
+import type { Leg } from '@/lib/types';
 
 const ESTIMATED_TOOLTIP = 'Profilo basato solo sulle quote ai waypoint: non riflette salite e discese intermedie.';
 
@@ -63,6 +64,19 @@ export function ElevationProfile() {
     let data: { distance: number; altitude: number }[] = [];
     let globalDist = 0;
 
+    // TASK-29 / R2 review fix: when overlaying real-vs-estimated in Learn mode,
+    // both profiles must share the same X-axis to be didactically meaningful.
+    // If trackValues.distance is available per leg, use those for spacing the
+    // user's waypoint altitudes; otherwise fall back to the user's own distance.
+    const hasRealReference = appMode === 'learn' && legs.some((l) => l.trackValues?.distance != null);
+    const spacingFor = (leg: Leg): number | null => {
+      if (hasRealReference) {
+        const td = leg.trackValues?.distance;
+        if (td != null) return td;
+      }
+      return leg.distance;
+    };
+
     for (let i = 0; i < legs.length; i++) {
       const leg = legs[i];
       if (leg.elevationProfile && leg.elevationProfile.length >= 2) {
@@ -78,21 +92,24 @@ export function ElevationProfile() {
         // Use the profile's own last distance for continuity (may differ slightly from leg.distance)
         const profileEnd = leg.elevationProfile[leg.elevationProfile.length - 1].distance;
         globalDist += profileEnd;
-      } else if (leg.distance != null) {
-        // Fallback: use waypoint altitudes only
+      } else {
+        // Fallback: use waypoint altitudes only, spaced by the chosen distance source
+        const spacing = spacingFor(leg);
+        if (spacing == null) continue;
         const fromWp = waypoints.find((w) => w.id === leg.fromWaypointId);
         const toWp = waypoints.find((w) => w.id === leg.toWaypointId);
         if (i === 0 && fromWp?.altitude != null) {
           data.push({ distance: parseFloat(globalDist.toFixed(4)), altitude: fromWp.altitude });
         }
-        globalDist += leg.distance;
+        globalDist += spacing;
         if (toWp?.altitude != null) {
           data.push({ distance: parseFloat(globalDist.toFixed(4)), altitude: toWp.altitude });
         }
       }
     }
 
-    // Build waypoint positions with cumulative distance (used for fallback + dots)
+    // Build waypoint positions with cumulative distance (used for fallback + dots).
+    // Use the same spacing source as the profile (real distance when overlaying).
     const dots: { distance: number; altitude: number; name: string }[] = [];
     let wpCumulDist = 0;
     waypoints.forEach((wp, i) => {
@@ -101,7 +118,10 @@ export function ElevationProfile() {
         const leg = legs.find(
           (l) => l.fromWaypointId === prevWp.id && l.toWaypointId === wp.id
         );
-        if (leg?.distance != null) wpCumulDist += leg.distance;
+        if (leg) {
+          const spacing = spacingFor(leg);
+          if (spacing != null) wpCumulDist += spacing;
+        }
       }
       if (wp.altitude != null) {
         dots.push({

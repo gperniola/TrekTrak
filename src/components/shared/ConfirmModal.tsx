@@ -13,14 +13,18 @@ function ConfirmDialog({ request }: { request: ConfirmRequest }) {
   const resolveConfirm = useNotificationStore((s) => s.resolveConfirm);
   const dialogRef = useRef<HTMLDivElement>(null);
   const confirmBtnRef = useRef<HTMLButtonElement>(null);
+  const cancelBtnRef = useRef<HTMLButtonElement>(null);
   const style = VARIANT_STYLES[request.variant];
 
   const accept = () => resolveConfirm(request.id, true);
   const dismiss = () => resolveConfirm(request.id, false);
 
   useEffect(() => {
-    confirmBtnRef.current?.focus();
-  }, []);
+    // For destructive actions (error variant), focus the Cancel button so
+    // accidental Enter doesn't trigger an irreversible action.
+    if (request.variant === 'error') cancelBtnRef.current?.focus();
+    else confirmBtnRef.current?.focus();
+  }, [request.variant]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -73,6 +77,7 @@ function ConfirmDialog({ request }: { request: ConfirmRequest }) {
         </div>
         <div className="flex justify-end gap-2 mt-4">
           <button
+            ref={cancelBtnRef}
             onClick={dismiss}
             className="px-4 py-2 rounded text-sm bg-gray-700 hover:bg-gray-600 text-gray-100"
           >
