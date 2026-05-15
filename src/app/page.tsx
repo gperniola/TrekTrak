@@ -17,6 +17,8 @@ import { useItineraryStore } from '@/stores/itineraryStore';
 import { useUIStore } from '@/stores/uiStore';
 import { decodeItinerary } from '@/lib/share-url';
 import { OfflineBanner } from '@/components/shared/OfflineBanner';
+import { ToastContainer } from '@/components/shared/Toast';
+import { ConfirmModalContainer } from '@/components/shared/ConfirmModal';
 
 export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
@@ -211,6 +213,10 @@ export default function Home() {
 
       {/* What's New popup (shown once per version, after tutorial) */}
       <WhatsNew />
+
+      {/* Global notification UI */}
+      <ToastContainer />
+      <ConfirmModalContainer />
     </main>
   );
 }
