@@ -129,9 +129,16 @@ export function ElevationProfile() {
 
   const minAlt = profileData.reduce((min, d) => Math.min(min, d.altitude), Infinity);
   const maxAlt = profileData.reduce((max, d) => Math.max(max, d.altitude), -Infinity);
-  const padding = Math.max(10, (maxAlt - minAlt) * 0.1);
-  const yMin = Math.floor((minAlt - padding) / 10) * 10;
-  const yMax = Math.ceil((maxAlt + padding) / 10) * 10;
+  // Adaptive padding: keep the curve visually expressive even for small altitude ranges.
+  // - Range < 50m → 5m padding (tight)
+  // - 50m ≤ range < 200m → linearly interpolate 5m → 10m
+  // - Range ≥ 200m → 10% of range
+  // Also round to 5m for small ranges (vs 10m) to avoid wasting visual space.
+  const range = maxAlt - minAlt;
+  const padding = range < 50 ? 5 : range < 200 ? 5 + (range - 50) / 30 : range * 0.1;
+  const roundTo = range < 50 ? 5 : 10;
+  const yMin = Math.floor((minAlt - padding) / roundTo) * roundTo;
+  const yMax = Math.ceil((maxAlt + padding) / roundTo) * roundTo;
   const totalDistance = profileData[profileData.length - 1].distance;
 
   const stops = buildGradientStops(profileData, totalDistance);
@@ -160,7 +167,7 @@ export function ElevationProfile() {
           </span>
         )}
       </div>
-      <ResponsiveContainer width="100%" height="85%">
+      <ResponsiveContainer width="100%" height="85%" minWidth={0} minHeight={0}>
         <AreaChart data={profileData} onMouseMove={handleChartMouseMove} onMouseLeave={handleChartMouseLeave} onClick={handleChartClick}>
           <defs>
             {hasGradient ? (

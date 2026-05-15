@@ -139,7 +139,7 @@ export function ProgressOverlay({ onClose }: { onClose: () => void }) {
             {trendData.length >= 3 && (
               <div>
                 <div className="text-xs text-gray-400 font-medium mb-2">Andamento nel tempo</div>
-                <ResponsiveContainer width="100%" height={160}>
+                <ResponsiveContainer width="100%" height={160} minWidth={0}>
                   <LineChart data={trendData}>
                     <XAxis dataKey="date" tickFormatter={formatDate} tick={{ fontSize: 10, fill: '#9ca3af' }} />
                     <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: '#9ca3af' }} width={30} />
