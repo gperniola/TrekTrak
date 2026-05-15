@@ -222,7 +222,7 @@ export function LearnTutorial() {
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-label="Tutorial modalità Learn"
+        aria-label="Guida iniziale TrekTrak"
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         className="bg-gray-900 border border-gray-700 rounded-xl max-w-sm w-full p-5 shadow-2xl outline-none overflow-y-auto max-h-[calc(100vh-2rem)]"
