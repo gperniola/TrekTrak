@@ -43,7 +43,7 @@ export function SavedItinerariesModal({ onClose }: { onClose: () => void }) {
                 <div>
                   <div className="text-sm font-medium">{it.name || 'Senza nome'}</div>
                   <div className="text-xs text-gray-500">
-                    {it.waypoints.length} waypoint | {new Date(it.updatedAt).toLocaleDateString('it-IT')}
+                    {it.waypoints.length} waypoint{it.updatedAt && !Number.isNaN(Date.parse(it.updatedAt)) ? ` | ${new Date(it.updatedAt).toLocaleDateString('it-IT')}` : ''}
                   </div>
                 </div>
                 <div className="flex gap-1">
