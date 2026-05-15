@@ -34,70 +34,74 @@ export function ModeSwitch() {
   };
 
   return (
-    <div className="flex items-center px-3 py-2 border-b border-gray-700 gap-1" role="tablist" aria-label="Modalità app">
-      <button
-        onClick={toggleCompass}
-        className={`px-2 py-1.5 rounded text-sm font-bold transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center ${
-          compassActive
-            ? 'bg-amber-600 text-white'
-            : 'bg-gray-700 text-gray-400 hover:text-gray-300'
-        }`}
-        aria-label={compassActive ? 'Disattiva bussola' : 'Attiva bussola'}
-        aria-pressed={compassActive}
-        title="Bussola"
-      >
-        ◎
-      </button>
-      <button
-        onClick={toggleRuler}
-        className={`px-2 py-1.5 rounded text-sm font-bold transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center ${
-          rulerActive
-            ? 'bg-blue-600 text-white'
-            : 'bg-gray-700 text-gray-400 hover:text-gray-300'
-        }`}
-        aria-label={rulerActive ? 'Disattiva righello' : 'Attiva righello'}
-        aria-pressed={rulerActive}
-        title="Righello"
-      >
-        ↕
-      </button>
-      <button
-        onClick={toggleQuiz}
-        className={`px-2 py-1.5 rounded text-sm font-bold transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center ${
-          quizActive
-            ? 'bg-purple-500 text-white'
-            : 'bg-gray-700 text-gray-400 hover:text-gray-300'
-        }`}
-        aria-label={quizActive ? 'Disattiva quiz' : 'Attiva quiz'}
-        aria-pressed={quizActive}
-        title="Quiz"
-      >
-        ?
-      </button>
-      <button
-        role="tab"
-        aria-selected={!isTrack && !compassActive && !rulerActive && !quizActive}
-        onClick={() => handleToggle('learn')}
-        className={`flex-1 py-1.5 rounded text-xs font-bold transition-colors ${
-          !isTrack && !compassActive && !rulerActive && !quizActive
-            ? 'bg-purple-600 text-white'
-            : 'bg-gray-700 text-gray-400 hover:text-gray-300'
-        }`}
-      >
-        Learn
-      </button>
-      <button
-        role="tab"
-        aria-selected={isTrack && !compassActive && !rulerActive && !quizActive}
-        onClick={() => handleToggle('track')}
-        className={`flex-1 py-1.5 rounded text-xs font-bold transition-colors ${
-          isTrack && !compassActive && !rulerActive && !quizActive
-            ? 'bg-green-600 text-white'
-            : 'bg-gray-700 text-gray-400 hover:text-gray-300'
-        }`}
-      >
-        Track
-      </button>
+    <div className="flex items-center px-3 py-2 border-b border-gray-700 gap-1">
+      <div role="toolbar" aria-label="Strumenti mappa" className="flex items-center gap-1">
+        <button
+          onClick={toggleCompass}
+          className={`px-2 py-1.5 rounded text-sm font-bold transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center ${
+            compassActive
+              ? 'bg-amber-600 text-white'
+              : 'bg-gray-700 text-gray-300 hover:text-white'
+          }`}
+          aria-label={compassActive ? 'Disattiva bussola' : 'Attiva bussola'}
+          aria-pressed={compassActive}
+          title="Bussola"
+        >
+          ◎
+        </button>
+        <button
+          onClick={toggleRuler}
+          className={`px-2 py-1.5 rounded text-sm font-bold transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center ${
+            rulerActive
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-700 text-gray-300 hover:text-white'
+          }`}
+          aria-label={rulerActive ? 'Disattiva righello' : 'Attiva righello'}
+          aria-pressed={rulerActive}
+          title="Righello"
+        >
+          ↕
+        </button>
+        <button
+          onClick={toggleQuiz}
+          className={`px-2 py-1.5 rounded text-sm font-bold transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center ${
+            quizActive
+              ? 'bg-purple-500 text-white'
+              : 'bg-gray-700 text-gray-300 hover:text-white'
+          }`}
+          aria-label={quizActive ? 'Disattiva quiz' : 'Attiva quiz'}
+          aria-pressed={quizActive}
+          title="Quiz"
+        >
+          ?
+        </button>
+      </div>
+      <div role="tablist" aria-label="Modalità app" className="flex items-center gap-1 flex-1">
+        <button
+          role="tab"
+          aria-selected={!isTrack && !compassActive && !rulerActive && !quizActive}
+          onClick={() => handleToggle('learn')}
+          className={`flex-1 py-1.5 rounded text-xs font-bold transition-colors ${
+            !isTrack && !compassActive && !rulerActive && !quizActive
+              ? 'bg-purple-600 text-white'
+              : 'bg-gray-700 text-gray-300 hover:text-white'
+          }`}
+        >
+          Learn
+        </button>
+        <button
+          role="tab"
+          aria-selected={isTrack && !compassActive && !rulerActive && !quizActive}
+          onClick={() => handleToggle('track')}
+          className={`flex-1 py-1.5 rounded text-xs font-bold transition-colors ${
+            isTrack && !compassActive && !rulerActive && !quizActive
+              ? 'bg-green-600 text-white'
+              : 'bg-gray-700 text-gray-300 hover:text-white'
+          }`}
+        >
+          Track
+        </button>
+      </div>
     </div>
   );
 }
