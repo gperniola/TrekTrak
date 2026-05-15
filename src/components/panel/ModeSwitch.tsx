@@ -79,10 +79,10 @@ export function ModeSwitch() {
       <div role="tablist" aria-label="Modalità app" className="flex items-center gap-1 flex-1">
         <button
           role="tab"
-          aria-selected={!isTrack && !compassActive && !rulerActive && !quizActive}
+          aria-selected={!isTrack}
           onClick={() => handleToggle('learn')}
           className={`flex-1 py-1.5 rounded text-xs font-bold transition-colors ${
-            !isTrack && !compassActive && !rulerActive && !quizActive
+            !isTrack
               ? 'bg-purple-600 text-white'
               : 'bg-gray-700 text-gray-300 hover:text-white'
           }`}
@@ -91,10 +91,10 @@ export function ModeSwitch() {
         </button>
         <button
           role="tab"
-          aria-selected={isTrack && !compassActive && !rulerActive && !quizActive}
+          aria-selected={isTrack}
           onClick={() => handleToggle('track')}
           className={`flex-1 py-1.5 rounded text-xs font-bold transition-colors ${
-            isTrack && !compassActive && !rulerActive && !quizActive
+            isTrack
               ? 'bg-green-600 text-white'
               : 'bg-gray-700 text-gray-300 hover:text-white'
           }`}
