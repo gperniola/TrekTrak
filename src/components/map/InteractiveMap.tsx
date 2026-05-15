@@ -5,7 +5,7 @@ import type L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { useUIStore } from '@/stores/uiStore';
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { autoFillTrackData } from '@/lib/auto-fill';
 import { greenIcon } from '@/lib/map-icons';
 import { LocationSearch } from './LocationSearch';
@@ -42,7 +42,10 @@ export function InteractiveMap() {
   const showHikingTrails = useItineraryStore((s) => s.settings.mapDisplay.showHikingTrails);
   const showCoordinateGrid = useItineraryStore((s) => s.settings.mapDisplay.showCoordinateGrid);
 
-  const validWaypoints = waypoints.filter((wp) => wp.lat != null && wp.lon != null);
+  const validWaypoints = useMemo(
+    () => waypoints.filter((wp) => wp.lat != null && wp.lon != null),
+    [waypoints]
+  );
 
   const handleDragEnd = useCallback(
     (wpId: string, e: L.DragEndEvent) => {
