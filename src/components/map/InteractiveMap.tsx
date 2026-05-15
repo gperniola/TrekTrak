@@ -5,7 +5,7 @@ import type L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { useUIStore } from '@/stores/uiStore';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { autoFillTrackData } from '@/lib/auto-fill';
 import { greenIcon } from '@/lib/map-icons';
 import { LocationSearch } from './LocationSearch';
@@ -47,14 +47,33 @@ export function InteractiveMap() {
     [waypoints]
   );
 
+  // TASK-12: debounce autoFill on rapid drags. Each marker gets its own pending timer
+  // keyed by waypointId. The new position is applied immediately (for visual feedback),
+  // but the elevation/route fetch is delayed so successive micro-adjustments coalesce.
+  const dragDebounceRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  useEffect(() => {
+    const timers = dragDebounceRef.current;
+    return () => {
+      timers.forEach((t) => clearTimeout(t));
+      timers.clear();
+    };
+  }, []);
+
   const handleDragEnd = useCallback(
     (wpId: string, e: L.DragEndEvent) => {
       const { lat, lng } = e.target.getLatLng();
       updateWaypointPosition(wpId, lat, lng);
 
-      if (useItineraryStore.getState().appMode === 'track') {
-        autoFillTrackData(wpId);
-      }
+      const timers = dragDebounceRef.current;
+      const existing = timers.get(wpId);
+      if (existing) clearTimeout(existing);
+      const next = setTimeout(() => {
+        timers.delete(wpId);
+        if (useItineraryStore.getState().appMode === 'track') {
+          autoFillTrackData(wpId);
+        }
+      }, 500);
+      timers.set(wpId, next);
     },
     [updateWaypointPosition]
   );
