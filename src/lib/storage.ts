@@ -1,7 +1,7 @@
 import type { Itinerary, AppSettings, ValidationSession } from './types';
 import { DEFAULT_TOLERANCES, DEFAULT_MAP_DISPLAY, BASE_MAPS, SAMPLE_INTERVAL_OPTIONS } from './types';
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 export const KEYS = {
   itineraries: 'trektrak_itineraries',
@@ -15,10 +15,68 @@ export const KEYS = {
 
 const STORAGE_WARNING_BYTES = 4 * 1024 * 1024; // 4MB
 
+/**
+ * Migration registry. Key = "from version" → function that mutates localStorage
+ * to bring it forward by exactly one version.
+ *
+ * v1 → v2: introduces parallel `learnValues`/`trackValues` per leg/waypoint
+ * (TASK-15 non-destructive Learn↔Track switch). Existing legs are migrated by
+ * snapshotting their current values into `trackValues` (since the v0.6.x default
+ * was track mode, so saved data most likely originated there).
+ */
+const migrations: Record<number, () => void> = {
+  1: () => {
+    try {
+      const raw = localStorage.getItem(KEYS.itineraries);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return;
+      const migrated = parsed.map((it: unknown) => {
+        if (!it || typeof it !== 'object') return it;
+        const item = it as Record<string, unknown>;
+        if (!Array.isArray(item.legs)) return it;
+        item.legs = item.legs.map((leg: unknown) => {
+          if (!leg || typeof leg !== 'object') return leg;
+          const l = leg as Record<string, unknown>;
+          // Skip if already migrated (e.g. partial migration earlier)
+          if (l.trackValues || l.learnValues) return l;
+          const trackValues = {
+            distance: (l.distance ?? null) as number | null,
+            elevationGain: (l.elevationGain ?? null) as number | null,
+            elevationLoss: (l.elevationLoss ?? null) as number | null,
+            azimuth: (l.azimuth ?? null) as number | null,
+          };
+          return { ...l, trackValues };
+        });
+        if (Array.isArray(item.waypoints)) {
+          item.waypoints = item.waypoints.map((wp: unknown) => {
+            if (!wp || typeof wp !== 'object') return wp;
+            const w = wp as Record<string, unknown>;
+            if (w.trackAltitude !== undefined || w.learnAltitude !== undefined) return w;
+            return { ...w, trackAltitude: (w.altitude ?? null) as number | null };
+          });
+        }
+        return item;
+      });
+      localStorage.setItem(KEYS.itineraries, JSON.stringify(migrated));
+    } catch {
+      // ignore migration errors; corrupted data will be filtered by validators on load
+    }
+  },
+};
+
 function initSchema(): void {
   try {
-    const version = localStorage.getItem(KEYS.schema);
-    if (!version) {
+    const versionStr = localStorage.getItem(KEYS.schema);
+    let from = versionStr ? parseInt(versionStr, 10) : SCHEMA_VERSION;
+    if (!Number.isFinite(from) || from < 1) from = SCHEMA_VERSION;
+    while (from < SCHEMA_VERSION) {
+      const step = migrations[from];
+      if (step) step();
+      from += 1;
+      localStorage.setItem(KEYS.schema, String(from));
+    }
+    if (!versionStr) {
       localStorage.setItem(KEYS.schema, String(SCHEMA_VERSION));
     }
   } catch {
