@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { KEYS } from '@/lib/storage';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
+import { useItineraryStore } from '@/stores/itineraryStore';
 
 interface TutorialStep {
   title: string;
@@ -99,7 +100,7 @@ const STEPS: TutorialStep[] = [
   },
   {
     title: 'Learn e Track',
-    text: 'In modalità Learn inserisci manualmente distanza, dislivello e azimuth, poi usa "Verifica" per confrontare con i dati reali. In modalità Track i valori vengono calcolati automaticamente.',
+    text: 'In modalità Learn inserisci manualmente distanza, dislivello e azimuth, poi usa "Verifica" per confrontare con i dati reali. In modalità Track i valori vengono calcolati automaticamente. Puoi passare da una all\'altra liberamente: i tuoi dati di entrambe le modalità restano salvati separatamente.',
     icon: '✏️',
     mockup: <MenuMockup highlight="fields" />,
   },
@@ -133,8 +134,36 @@ const STEPS: TutorialStep[] = [
   },
 ];
 
+/** Pseudo-step shown before step 0: user picks their level so the app sets sensible defaults. */
+function LevelChooser({ onChoose }: { onChoose: (level: 'beginner' | 'expert') => void }) {
+  return (
+    <div className="space-y-2 mt-3">
+      <button
+        onClick={() => onChoose('beginner')}
+        className="w-full text-left bg-purple-900/40 hover:bg-purple-900/60 border border-purple-600 rounded-lg p-3"
+      >
+        <div className="text-sm font-bold text-purple-300">📚 Sto imparando</div>
+        <div className="text-[11px] text-gray-300 mt-1">
+          Default modalità Learn: inserisco io i valori e li confronto con quelli reali.
+        </div>
+      </button>
+      <button
+        onClick={() => onChoose('expert')}
+        className="w-full text-left bg-green-900/40 hover:bg-green-900/60 border border-green-600 rounded-lg p-3"
+      >
+        <div className="text-sm font-bold text-green-300">🥾 Sono esperto</div>
+        <div className="text-[11px] text-gray-300 mt-1">
+          Default modalità Track: l&apos;app calcola tutto, io rivedo e perfeziono.
+        </div>
+      </button>
+    </div>
+  );
+}
+
 export function LearnTutorial() {
   const [step, setStep] = useState<number | null>(null);
+  const [showLevelChooser, setShowLevelChooser] = useState(false);
+  const setAppMode = useItineraryStore((s) => s.setAppMode);
   const dialogRef = useRef<HTMLDivElement>(null);
   useBodyScrollLock(step !== null);
 
@@ -146,7 +175,18 @@ export function LearnTutorial() {
       // localStorage unavailable — show tutorial anyway
     }
     setStep(0);
+    setShowLevelChooser(true);
   }, []);
+
+  const handleChooseLevel = (level: 'beginner' | 'expert') => {
+    setAppMode(level === 'beginner' ? 'learn' : 'track');
+    try {
+      localStorage.setItem('trektrak_user_level', level);
+    } catch {
+      // localStorage unavailable
+    }
+    setShowLevelChooser(false);
+  };
 
   // Escape key, focus trap, body scroll lock
   useEffect(() => {
@@ -222,7 +262,7 @@ export function LearnTutorial() {
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-label="Tutorial modalità Learn"
+        aria-label="Guida iniziale TrekTrak"
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         className="bg-gray-900 border border-gray-700 rounded-xl max-w-sm w-full p-5 shadow-2xl outline-none overflow-y-auto max-h-[calc(100vh-2rem)]"
@@ -231,6 +271,7 @@ export function LearnTutorial() {
         <h2 className="text-base font-bold text-green-400 mb-2">{current.title}</h2>
         <p className="text-sm text-gray-300 leading-relaxed">{current.text}</p>
 
+        {step === 0 && showLevelChooser && <LevelChooser onChoose={handleChooseLevel} />}
         {current.mockup}
 
         {/* Step indicator */}

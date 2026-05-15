@@ -35,10 +35,16 @@ export function forwardAzimuth(
   return (bearing + 360) % 360;
 }
 
+/**
+ * Munter time formula with optional personal pace factor.
+ * factor = 1.0 → standard Munter (4 km/h horizontal, 400 m/h gain, 800 m/h loss).
+ * factor > 1 → slower (heavier pack, fatigue, beginner). factor < 1 → faster.
+ */
 export function calculateMunterTime(
   distanceKm: number,
   elevationGainM: number,
-  elevationLossM: number
+  elevationLossM: number,
+  factor: number = 1
 ): number {
   const d = Math.max(0, distanceKm);
   const g = Math.max(0, elevationGainM);
@@ -48,7 +54,9 @@ export function calculateMunterTime(
   const tVertGain = (g / 400) * 60;
   const tVertLoss = (l / 800) * 60;
   const tVert = Math.max(tVertGain, tVertLoss);
-  return Math.max(tHoriz, tVert) + 0.5 * Math.min(tHoriz, tVert);
+  const base = Math.max(tHoriz, tVert) + 0.5 * Math.min(tHoriz, tVert);
+  const safeFactor = Number.isFinite(factor) && factor > 0 ? factor : 1;
+  return base * safeFactor;
 }
 
 export function calculateSlope(

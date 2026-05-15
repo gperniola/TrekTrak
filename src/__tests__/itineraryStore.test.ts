@@ -199,7 +199,7 @@ describe('appMode', () => {
     expect(useItineraryStore.getState().legs[0].routeGeometry).toBeUndefined();
   });
 
-  test('switching to learn clears altitude and all leg computed fields', () => {
+  test('switching to learn clears active altitude and leg computed fields', () => {
     useItineraryStore.getState().setAppMode('track');
     useItineraryStore.getState().addWaypoint();
     useItineraryStore.getState().addWaypoint();
@@ -220,6 +220,59 @@ describe('appMode', () => {
     expect(leg.elevationLoss).toBeNull();
     expect(leg.estimatedTime).toBeUndefined();
     expect(leg.slope).toBeUndefined();
+  });
+
+  // TASK-15: non-destructive Learn↔Track switch
+  test('switch is non-destructive: track values are restored after a round-trip', () => {
+    useItineraryStore.getState().setAppMode('track');
+    useItineraryStore.getState().addWaypoint();
+    useItineraryStore.getState().addWaypoint();
+    const wpId = useItineraryStore.getState().waypoints[0].id;
+    useItineraryStore.getState().updateWaypoint(wpId, { altitude: 1450 });
+    const legId = useItineraryStore.getState().legs[0].id;
+    useItineraryStore.getState().updateLeg(legId, {
+      distance: 3.2, azimuth: 245, elevationGain: 200, elevationLoss: 50,
+      routeGeometry: [[46, 11], [46.01, 11.01]],
+    });
+
+    useItineraryStore.getState().setAppMode('learn');
+    expect(useItineraryStore.getState().legs[0].distance).toBeNull();
+    expect(useItineraryStore.getState().legs[0].trackValues?.distance).toBe(3.2);
+    expect(useItineraryStore.getState().legs[0].trackValues?.azimuth).toBe(245);
+    expect(useItineraryStore.getState().legs[0].trackValues?.routeGeometry).toEqual([[46, 11], [46.01, 11.01]]);
+    expect(useItineraryStore.getState().waypoints[0].trackAltitude).toBe(1450);
+
+    useItineraryStore.getState().setAppMode('track');
+    const leg = useItineraryStore.getState().legs[0];
+    expect(leg.distance).toBe(3.2);
+    expect(leg.azimuth).toBe(245);
+    expect(leg.elevationGain).toBe(200);
+    expect(leg.elevationLoss).toBe(50);
+    expect(leg.routeGeometry).toEqual([[46, 11], [46.01, 11.01]]);
+    expect(useItineraryStore.getState().waypoints[0].altitude).toBe(1450);
+  });
+
+  test('learn values persist across switches', () => {
+    useItineraryStore.getState().setAppMode('track');
+    useItineraryStore.getState().addWaypoint();
+    useItineraryStore.getState().addWaypoint();
+    useItineraryStore.getState().setAppMode('learn');
+    const wpId = useItineraryStore.getState().waypoints[0].id;
+    useItineraryStore.getState().updateWaypoint(wpId, { altitude: 1500 });
+    const legId = useItineraryStore.getState().legs[0].id;
+    useItineraryStore.getState().updateLeg(legId, { distance: 2.5, azimuth: 90 });
+
+    useItineraryStore.getState().setAppMode('track');
+    // Track restored to null/defaults (never had any track values)
+    expect(useItineraryStore.getState().legs[0].distance).toBeNull();
+    expect(useItineraryStore.getState().legs[0].learnValues?.distance).toBe(2.5);
+    expect(useItineraryStore.getState().waypoints[0].learnAltitude).toBe(1500);
+
+    useItineraryStore.getState().setAppMode('learn');
+    // Learn values restored exactly
+    expect(useItineraryStore.getState().legs[0].distance).toBe(2.5);
+    expect(useItineraryStore.getState().legs[0].azimuth).toBe(90);
+    expect(useItineraryStore.getState().waypoints[0].altitude).toBe(1500);
   });
 });
 

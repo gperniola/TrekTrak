@@ -212,18 +212,40 @@ export async function autoFillTrackData(waypointId: string) {
 
   if (routingWarnings.length > 0 && !isStale()) {
     console.warn(`[TrekTrak] Nessun sentiero trovato per: ${routingWarnings.join(', ')}. Usato calcolo in linea d'aria.`);
+    // TASK-6: surface the fallback to the user via toast so they know the path
+    // shown is a straight line, not the real sentiero. Lazy-import to keep this
+    // pure-logic module free of UI deps in tests.
+    try {
+      const mod = await import('@/stores/notificationStore');
+      const list = routingWarnings.slice(0, 3).join(', ') + (routingWarnings.length > 3 ? ' …' : '');
+      mod.toast.warning(`Sentiero non trovato per ${routingWarnings.length} tratta/e (${list}). Usata linea d'aria.`, 6000);
+    } catch {
+      // best-effort
+    }
   }
 }
 
-export async function autoFillAllTrackData() {
+/**
+ * Refill all legs.
+ * @param onlyMissing if true, skip waypoints whose adjacent legs are already populated
+ *                    (used after TASK-15 mode-restore to fill only newly-added legs)
+ */
+export async function autoFillAllTrackData(onlyMissing: boolean = false) {
   const store = useItineraryStore.getState();
   if (store.appMode !== 'track') return;
   // Process only the "from" waypoint of each leg to avoid double-processing shared legs
   const processed = new Set<string>();
   const { waypoints, legs } = store;
+  const needsFill = (wpId: string): boolean => {
+    if (!onlyMissing) return true;
+    // Refill only if any adjacent leg has missing distance
+    return legs.some(
+      (l) => (l.fromWaypointId === wpId || l.toWaypointId === wpId) && l.distance == null,
+    );
+  };
   for (const leg of legs) {
     if (useItineraryStore.getState().appMode !== 'track') return;
-    if (!processed.has(leg.fromWaypointId)) {
+    if (!processed.has(leg.fromWaypointId) && needsFill(leg.fromWaypointId)) {
       const wp = waypoints.find((w) => w.id === leg.fromWaypointId);
       if (wp && wp.lat != null && wp.lon != null) {
         await autoFillTrackData(wp.id);
@@ -234,7 +256,7 @@ export async function autoFillAllTrackData() {
   // Process the last waypoint (only a "to", never a "from" for its inbound leg)
   if (legs.length > 0) {
     const lastLeg = legs[legs.length - 1];
-    if (!processed.has(lastLeg.toWaypointId)) {
+    if (!processed.has(lastLeg.toWaypointId) && needsFill(lastLeg.toWaypointId)) {
       const wp = waypoints.find((w) => w.id === lastLeg.toWaypointId);
       if (wp && wp.lat != null && wp.lon != null) {
         if (useItineraryStore.getState().appMode !== 'track') return;

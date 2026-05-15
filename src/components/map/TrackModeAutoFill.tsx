@@ -20,12 +20,23 @@ export function TrackModeAutoFill() {
     const itineraryChanged = appMode === 'track' && prevItineraryId.current !== itineraryId;
 
     if (modeChanged || routingChanged || itineraryChanged) {
-      // Clear stale route geometry and elevation profiles before recalculating
       const store = useItineraryStore.getState();
-      store.legs.forEach((leg) => {
-        store.updateLeg(leg.id, { routeGeometry: undefined, elevationProfile: undefined });
-      });
-      autoFillAllTrackData();
+      // TASK-15 interaction:
+      //  - routingChanged / itineraryChanged → full re-fill (need fresh geometry).
+      //  - modeChanged only (Learn→Track) → re-fill only legs missing data;
+      //    legs whose trackValues were just restored stay untouched.
+      const fullRefill = routingChanged || itineraryChanged;
+      const partialRefill = modeChanged && !fullRefill;
+
+      if (fullRefill) {
+        store.legs.forEach((leg) => {
+          store.updateLeg(leg.id, { routeGeometry: undefined, elevationProfile: undefined });
+        });
+        autoFillAllTrackData();
+      } else if (partialRefill) {
+        // Only fill legs with null distance; preserve restored trackValues elsewhere.
+        autoFillAllTrackData(true);
+      }
     }
 
     prevMode.current = appMode;

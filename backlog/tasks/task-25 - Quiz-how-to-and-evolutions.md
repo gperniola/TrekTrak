@@ -1,7 +1,7 @@
 ---
 id: TASK-25
 title: Quiz — how-to azimuth, modalità raggio, adattivo
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-05-15 19:00'
 labels:

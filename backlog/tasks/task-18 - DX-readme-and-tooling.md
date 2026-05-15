@@ -1,7 +1,7 @@
 ---
 id: TASK-18
 title: README, .env.example, e cleanup tooling (ts-jest deprecation, docs structure)
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-05-15 19:00'
 labels:

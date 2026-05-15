@@ -89,7 +89,7 @@ describe('searchLocation', () => {
     const url = mockFetch.mock.calls[0][0] as string;
     expect(url).toContain('q=Chieti');
     expect(url).toContain('format=json');
-    expect(url).toContain('limit=5');
+    expect(url).toContain('limit=8');
     const options = mockFetch.mock.calls[0][1] as RequestInit;
     const headers = options.headers as Record<string, string>;
     expect(headers['User-Agent']).toContain('TrekTrak');

@@ -5,6 +5,8 @@ import { useItineraryStore } from '@/stores/itineraryStore';
 import { saveItinerary, isStorageNearLimit } from '@/lib/storage';
 import { SavedItinerariesModal } from './SavedItinerariesModal';
 import { exportItineraryJSON, importItineraryJSON } from '@/lib/export-json';
+import { confirm as appConfirm, toast } from '@/stores/notificationStore';
+import type { Leg } from '@/lib/types';
 
 export function ItineraryHeader() {
   const itineraryId = useItineraryStore((s) => s.itineraryId);
@@ -17,6 +19,23 @@ export function ItineraryHeader() {
   const resetItinerary = useItineraryStore((s) => s.resetItinerary);
   const [showSaved, setShowSaved] = useState(false);
 
+  // Strip large/derived fields before persisting (storage and JSON export).
+  // - validationState, estimatedTime, slope: derived (recomputed on load)
+  // - routeGeometry, elevationProfile: large (regenerable via ORS/DEM)
+  // - trackValues.routeGeometry, trackValues.elevationProfile: same as above
+  const slimLeg = (leg: Leg) => {
+    const { validationState, estimatedTime, slope, routeGeometry, elevationProfile, trackValues, ...rest } = leg;
+    void validationState; void estimatedTime; void slope; void routeGeometry; void elevationProfile;
+    const slimTrack = trackValues
+      ? (() => {
+          const { routeGeometry: _rg, elevationProfile: _ep, ...tv } = trackValues;
+          void _rg; void _ep;
+          return tv;
+        })()
+      : undefined;
+    return slimTrack ? { ...rest, trackValues: slimTrack } : rest;
+  };
+
   const handleSave = () => {
     try {
       saveItinerary({
@@ -25,14 +44,14 @@ export function ItineraryHeader() {
         createdAt,
         updatedAt: new Date().toISOString(),
         waypoints: waypoints.map(({ validationState, ...wp }) => wp),
-        // Strip derived fields and routeGeometry (large, can be re-fetched from ORS)
-        legs: legs.map(({ validationState, estimatedTime, slope, routeGeometry, ...leg }) => leg),
+        legs: legs.map(slimLeg),
       });
+      toast.success('Itinerario salvato');
       if (isStorageNearLimit()) {
-        alert('Attenzione: lo spazio di archiviazione locale si sta esaurendo. Esporta i tuoi itinerari in JSON e cancella quelli vecchi.');
+        toast.warning('Spazio di archiviazione quasi esaurito. Esporta in JSON i vecchi itinerari.', 6000);
       }
     } catch {
-      alert('Errore nel salvataggio. Lo spazio di archiviazione potrebbe essere pieno.');
+      toast.error('Errore nel salvataggio. Lo spazio potrebbe essere pieno.');
     }
   };
 
@@ -43,15 +62,23 @@ export function ItineraryHeader() {
       createdAt,
       updatedAt: new Date().toISOString(),
       waypoints: waypoints.map(({ validationState, ...wp }) => wp),
-      legs: legs.map(({ validationState, estimatedTime, slope, routeGeometry, ...leg }) => leg),
+      legs: legs.map(slimLeg),
     });
   };
 
   const handleImportJSON = () => {
-    importItineraryJSON((itinerary) => {
+    importItineraryJSON(async (itinerary) => {
       const currentWps = useItineraryStore.getState().waypoints;
-      if (currentWps.length > 0 && !confirm('Importare questo itinerario? Le modifiche non salvate andranno perse.')) return;
+      if (currentWps.length > 0) {
+        const ok = await appConfirm({
+          title: 'Importare questo itinerario?',
+          message: 'Le modifiche non salvate andranno perse.',
+          confirmText: 'Importa',
+        });
+        if (!ok) return;
+      }
       loadItinerary(itinerary.id, itinerary.name, itinerary.waypoints, itinerary.legs, itinerary.createdAt);
+      toast.success('Itinerario importato');
     });
   };
 
@@ -65,10 +92,17 @@ export function ItineraryHeader() {
           Carica
         </button>
         <button
-          onClick={() => {
-            if (waypoints.length === 0 || confirm('Creare un nuovo itinerario? Le modifiche non salvate andranno perse.')) {
-              resetItinerary();
+          onClick={async () => {
+            if (waypoints.length > 0) {
+              const ok = await appConfirm({
+                title: 'Creare un nuovo itinerario?',
+                message: 'Le modifiche non salvate andranno perse.',
+                confirmText: 'Crea nuovo',
+              });
+              if (!ok) return;
             }
+            resetItinerary();
+            toast.info('Nuovo itinerario creato');
           }}
           className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600"
           aria-label="Nuovo itinerario"

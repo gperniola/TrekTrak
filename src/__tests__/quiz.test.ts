@@ -11,17 +11,30 @@ describe('azimuthDelta', () => {
   test('opposite directions', () => { expect(azimuthDelta(0, 180)).toBe(180); });
 });
 
-describe('calculateQuizScore', () => {
+describe('calculateQuizScore (piecewise lenient curve)', () => {
+  // Curve: ratio 0→100, 0.5→75, 1.0→50, 2.0→10, 4.0→0
   test('exact answer = 100 for altitude', () => { expect(calculateQuizScore(500, 500, 'altitude')).toBe(100); });
-  test('half tolerance = 50 for altitude', () => { expect(calculateQuizScore(550, 500, 'altitude')).toBe(50); });
-  test('at tolerance = 0 for altitude', () => { expect(calculateQuizScore(600, 500, 'altitude')).toBe(0); });
-  test('beyond tolerance = 0 for altitude', () => { expect(calculateQuizScore(700, 500, 'altitude')).toBe(0); });
+  test('half tolerance = 75 for altitude (lenient)', () => { expect(calculateQuizScore(550, 500, 'altitude')).toBe(75); });
+  test('at tolerance = 50 for altitude (passing)', () => { expect(calculateQuizScore(600, 500, 'altitude')).toBe(50); });
+  test('1.5x tolerance = 30 for altitude', () => { expect(calculateQuizScore(650, 500, 'altitude')).toBe(30); });
+  test('2x tolerance = 10 for altitude (still some credit)', () => { expect(calculateQuizScore(700, 500, 'altitude')).toBe(10); });
+  test('3x tolerance = 5 for altitude', () => { expect(calculateQuizScore(800, 500, 'altitude')).toBe(5); });
+  test('4x tolerance = 0 for altitude', () => { expect(calculateQuizScore(900, 500, 'altitude')).toBe(0); });
+  test('beyond 4x tolerance = 0 for altitude', () => { expect(calculateQuizScore(1500, 500, 'altitude')).toBe(0); });
   test('exact answer = 100 for distance', () => { expect(calculateQuizScore(5, 5, 'distance')).toBe(100); });
-  test('10% error on distance = 50', () => { expect(calculateQuizScore(5.5, 5, 'distance')).toBe(50); });
-  test('20% error on distance = 0', () => { expect(calculateQuizScore(6, 5, 'distance')).toBe(0); });
+  // For distance, tolerance = TOLERANCES.distance (20) % of real value. real=5 → tol=1.0
+  test('half-tolerance error on distance = 75', () => { expect(calculateQuizScore(5.5, 5, 'distance')).toBe(75); });
+  test('full tolerance (20% error) on distance = 50', () => { expect(calculateQuizScore(6, 5, 'distance')).toBe(50); });
+  test('2x tolerance (40% error) on distance = 10', () => { expect(calculateQuizScore(7, 5, 'distance')).toBe(10); });
+  test('Persona D scenario: 42% off distance (real 1.41, stima 2.0) — still some credit', () => {
+    const score = calculateQuizScore(2.0, 1.41, 'distance');
+    expect(score).toBeGreaterThan(0);
+    expect(score).toBeLessThan(15);
+  });
   test('exact answer = 100 for azimuth', () => { expect(calculateQuizScore(45, 45, 'azimuth')).toBe(100); });
-  test('15° error on azimuth = 50', () => { expect(calculateQuizScore(60, 45, 'azimuth')).toBe(50); });
-  test('azimuth wraps correctly (350 vs 10 = 20° delta)', () => { expect(calculateQuizScore(350, 10, 'azimuth')).toBe(33); });
+  test('15° error on azimuth = 75 (half tolerance 30°)', () => { expect(calculateQuizScore(60, 45, 'azimuth')).toBe(75); });
+  test('30° error on azimuth = 50 (at tolerance)', () => { expect(calculateQuizScore(75, 45, 'azimuth')).toBe(50); });
+  test('azimuth wraps correctly (350 vs 10 = 20° delta → 67)', () => { expect(calculateQuizScore(350, 10, 'azimuth')).toBe(67); });
 });
 
 describe('generateRandomPoint', () => {

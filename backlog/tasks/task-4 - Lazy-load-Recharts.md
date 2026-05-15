@@ -1,7 +1,7 @@
 ---
 id: TASK-4
 title: Lazy-load Recharts in ProgressOverlay
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-05-15 17:30'
 labels:

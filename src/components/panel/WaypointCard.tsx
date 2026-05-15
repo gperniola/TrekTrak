@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { Waypoint } from '@/lib/types';
 import { NumberInput } from '@/components/shared/NumberInput';
 import { useItineraryStore } from '@/stores/itineraryStore';
+import { confirm as appConfirm, toast } from '@/stores/notificationStore';
 
 export function WaypointCard({ waypoint, dragHandleProps }: { waypoint: Waypoint; dragHandleProps?: Record<string, unknown> }) {
   const updateWaypoint = useItineraryStore((s) => s.updateWaypoint);
@@ -34,9 +35,16 @@ export function WaypointCard({ waypoint, dragHandleProps }: { waypoint: Waypoint
             ☰
           </span>
           <button
-            onClick={() => {
-              if (confirm(`Rimuovere waypoint "${displayName}"?`)) {
+            onClick={async () => {
+              const ok = await appConfirm({
+                title: 'Rimuovere il waypoint?',
+                message: `"${displayName}" verrà rimosso dall'itinerario.`,
+                variant: 'error',
+                confirmText: 'Rimuovi',
+              });
+              if (ok) {
                 removeWaypoint(waypoint.id);
+                toast.success('Waypoint rimosso');
               }
             }}
             className="text-gray-500 hover:text-red-400 text-xs px-1"

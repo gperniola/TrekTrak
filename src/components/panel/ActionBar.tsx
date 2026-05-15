@@ -11,9 +11,11 @@ import { validateValue, validateAzimuth, percentageTolerance } from '@/lib/valid
 import { fetchTrailRoute } from '@/lib/routing-api';
 import { buildMeteoUrl } from '@/lib/meteo';
 import { encodeItinerary } from '@/lib/share-url';
-import { saveValidationSession } from '@/lib/storage';
+import { saveValidationSession, loadValidationHistory } from '@/lib/storage';
+import { loadQuizHistory } from '@/lib/quiz';
 import type { ValidationSessionResult } from '@/lib/types';
 import { useUIStore } from '@/stores/uiStore';
+import { toast } from '@/stores/notificationStore';
 
 
 export function ActionBar() {
@@ -30,7 +32,7 @@ export function ActionBar() {
   const mountedRef = useRef(true);
   const verifyGenerationRef = useRef(0);
   useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; verifyGenerationRef.current++; if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current); }; }, []);
-  const [verifyBanner, setVerifyBanner] = useState<{ valid: number; warning: number; error: number } | null>(null);
+  const [verifyBanner, setVerifyBanner] = useState<{ valid: number; warning: number; error: number; improvement?: number } | null>(null);
   const [bannerFading, setBannerFading] = useState(false);
   const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -42,7 +44,7 @@ export function ActionBar() {
 
   const handlePDF = async (format: 'summary' | 'roadbook') => {
     if (waypoints.length < 2) {
-      alert('Aggiungi almeno 2 waypoint');
+      toast.warning('Aggiungi almeno 2 waypoint');
       return;
     }
     // PDF is useful even without coordinates, so only check waypoint count.
@@ -63,7 +65,7 @@ export function ActionBar() {
   const handleGPX = () => {
     const validCoordWps = waypoints.filter((wp) => wp.lat != null && wp.lon != null);
     if (validCoordWps.length < 2) {
-      alert('Servono almeno 2 waypoint con coordinate valide per il GPX');
+      toast.warning('Servono almeno 2 waypoint con coordinate valide per il GPX');
       return;
     }
     downloadGPX(itineraryName, waypoints, legs);
@@ -240,7 +242,10 @@ export function ActionBar() {
       }
 
       if (!apiAvailable && mountedRef.current) {
-        alert('Alcuni dati non sono stati verificati: servizio altimetrico non disponibile. Distanza e azimuth sono stati comunque validati.');
+        toast.warning(
+          'Servizio altimetrico non disponibile: distanza e azimuth validati, altitudine e D+/D- saltati.',
+          6000,
+        );
       }
 
       // --- Collect results and save validation session ---
@@ -288,6 +293,18 @@ export function ActionBar() {
         }
 
         if (sessionResults.length > 0) {
+          // TASK-20: positive reinforcement — compute improvement vs previous session
+          const total = sessionResults.length;
+          const validPercent = Math.round((validCount / total) * 100);
+          const prevHistory = loadValidationHistory();
+          let improvement: number | undefined;
+          if (prevHistory.length > 0) {
+            const last = prevHistory[prevHistory.length - 1];
+            const lastValid = last.results.filter((r) => r.status === 'valid').length;
+            const lastPercent = last.results.length > 0 ? Math.round((lastValid / last.results.length) * 100) : 0;
+            const diff = validPercent - lastPercent;
+            if (Math.abs(diff) >= 5) improvement = diff;
+          }
           saveValidationSession({
             date: new Date().toISOString(),
             itineraryName: finalState.itineraryName,
@@ -295,7 +312,7 @@ export function ActionBar() {
           });
           if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
           setBannerFading(false);
-          setVerifyBanner({ valid: validCount, warning: warningCount, error: errorCount });
+          setVerifyBanner({ valid: validCount, warning: warningCount, error: errorCount, improvement });
           bannerTimerRef.current = setTimeout(() => {
             if (!mountedRef.current) return;
             setBannerFading(true);
@@ -314,15 +331,16 @@ export function ActionBar() {
   const handleShareLink = () => {
     const hash = encodeItinerary(itineraryName, waypoints, legs);
     if (!hash) {
-      alert('Itinerario troppo grande per la condivisione via link. Usa Export JSON.');
+      toast.warning('Itinerario troppo grande per la condivisione via link. Usa Export JSON.');
       return;
     }
     const url = `${window.location.origin}${window.location.pathname}${hash}`;
     navigator.clipboard.writeText(url).then(() => {
       setLinkCopied(true);
+      toast.success('Link copiato negli appunti');
       setTimeout(() => setLinkCopied(false), 2000);
     }).catch(() => {
-      alert('Impossibile copiare il link. Copia manualmente:\n' + url);
+      toast.error('Impossibile copiare il link. Riprova manualmente.');
     });
   };
 
@@ -341,6 +359,12 @@ export function ActionBar() {
           <span className="text-yellow-400 font-bold">{verifyBanner.warning} ~</span>
           {' · '}
           <span className="text-red-400 font-bold">{verifyBanner.error} ✗</span>
+          {verifyBanner.improvement != null && (
+            <span className={`block mt-1 text-xs font-medium ${verifyBanner.improvement > 0 ? 'text-green-400' : 'text-amber-400'}`}>
+              {verifyBanner.improvement > 0 ? '📈 ' : '📉 '}
+              {verifyBanner.improvement > 0 ? '+' : ''}{verifyBanner.improvement}% rispetto alla sessione precedente
+            </span>
+          )}
         </div>
       )}
       <div className="flex flex-wrap gap-2">
@@ -376,6 +400,7 @@ export function ActionBar() {
         <button
           onClick={handleShareLink}
           disabled={waypoints.length < 2}
+          title={waypoints.length < 2 ? 'Servono almeno 2 waypoint per condividere via link' : undefined}
           className="flex-1 py-2 bg-amber-500 text-black rounded font-bold text-xs hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {linkCopied ? 'Copiato!' : 'Copia link'}
@@ -389,12 +414,20 @@ export function ActionBar() {
             {verifying ? 'Verificando...' : 'Verifica'}
           </button>
         )}
-        <button
-          onClick={openProgress}
-          className="flex-1 py-2 bg-indigo-500 text-black rounded font-bold text-xs hover:bg-indigo-400"
-        >
-          📊 Progresso
-        </button>
+        {(() => {
+          // TASK-20: disable Progresso until there is at least one verify or quiz session
+          const hasHistory = loadValidationHistory().length > 0 || loadQuizHistory().length > 0;
+          return (
+            <button
+              onClick={openProgress}
+              disabled={!hasHistory}
+              title={hasHistory ? undefined : 'Completa una verifica o un quiz per vedere il tuo progresso'}
+              className="flex-1 py-2 bg-indigo-500 text-black rounded font-bold text-xs hover:bg-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              📊 Progresso
+            </button>
+          );
+        })()}
       </div>
     </div>
   );

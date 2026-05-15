@@ -7,7 +7,6 @@ import type { AppMode } from '@/lib/types';
 export function ModeSwitch() {
   const appMode = useItineraryStore((s) => s.appMode);
   const setAppMode = useItineraryStore((s) => s.setAppMode);
-  const waypoints = useItineraryStore((s) => s.waypoints);
 
   const compassActive = useUIStore((s) => s.compassActive);
   const rulerActive = useUIStore((s) => s.rulerActive);
@@ -27,9 +26,8 @@ export function ModeSwitch() {
     if (rulerActive) deactivateRuler();
     if (quizActive) deactivateQuiz();
     if (mode === appMode) return;
-    if (mode === 'learn' && waypoints.some((wp) => wp.altitude != null || wp.lat != null)) {
-      if (!confirm('Passare a Learn cancellerà tutti i dati calcolati (altitudine, distanza, azimuth, D+/D-). Continuare?')) return;
-    }
+    // TASK-15: switch is now non-destructive. Per-mode values are preserved in
+    // trackValues/learnValues slots and restored on switch. No confirm needed.
     setAppMode(mode);
   };
 
@@ -79,10 +77,10 @@ export function ModeSwitch() {
       <div role="tablist" aria-label="Modalità app" className="flex items-center gap-1 flex-1">
         <button
           role="tab"
-          aria-selected={!isTrack && !compassActive && !rulerActive && !quizActive}
+          aria-selected={!isTrack}
           onClick={() => handleToggle('learn')}
           className={`flex-1 py-1.5 rounded text-xs font-bold transition-colors ${
-            !isTrack && !compassActive && !rulerActive && !quizActive
+            !isTrack
               ? 'bg-purple-600 text-white'
               : 'bg-gray-700 text-gray-300 hover:text-white'
           }`}
@@ -91,10 +89,10 @@ export function ModeSwitch() {
         </button>
         <button
           role="tab"
-          aria-selected={isTrack && !compassActive && !rulerActive && !quizActive}
+          aria-selected={isTrack}
           onClick={() => handleToggle('track')}
           className={`flex-1 py-1.5 rounded text-xs font-bold transition-colors ${
-            isTrack && !compassActive && !rulerActive && !quizActive
+            isTrack
               ? 'bg-green-600 text-white'
               : 'bg-gray-700 text-gray-300 hover:text-white'
           }`}

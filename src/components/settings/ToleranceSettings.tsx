@@ -2,13 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { useItineraryStore } from '@/stores/itineraryStore';
-import { saveSettings } from '@/lib/storage';
+import { saveSettings, KEYS } from '@/lib/storage';
+import { toast } from '@/stores/notificationStore';
+import { DEFAULT_PACE } from '@/lib/types';
 import type { ToleranceSettings as TolSettings } from '@/lib/types';
 
 export function ToleranceSettings({ onClose }: { onClose: () => void }) {
   const settings = useItineraryStore((s) => s.settings);
   const updateSettings = useItineraryStore((s) => s.updateSettings);
   const [tol, setTol] = useState<TolSettings>({ ...settings.tolerances });
+  const [paceFactor, setPaceFactor] = useState<number>(settings.pace?.factor ?? DEFAULT_PACE.factor);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -19,7 +22,7 @@ export function ToleranceSettings({ onClose }: { onClose: () => void }) {
   }, [onClose]);
 
   const handleSave = () => {
-    const newSettings = { ...settings, tolerances: tol };
+    const newSettings = { ...settings, tolerances: tol, pace: { factor: paceFactor } };
     updateSettings(newSettings);
     saveSettings(newSettings);
     onClose();
@@ -35,7 +38,7 @@ export function ToleranceSettings({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1200]" onClick={onClose}>
-      <div className="bg-gray-800 rounded-lg p-6 w-80" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-gray-800 rounded-lg p-6 w-80 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <h3 className="text-lg font-bold text-green-400 mb-4">Tolleranze di validazione</h3>
         <p className="text-xs text-gray-400 mb-4">
           Soglia stretta = valore impostato. Soglia larga = 2x il valore.
@@ -60,7 +63,41 @@ export function ToleranceSettings({ onClose }: { onClose: () => void }) {
             </div>
           ))}
         </div>
-        <div className="flex gap-2 mt-6">
+        <div className="border-t border-gray-700 mt-5 pt-4">
+          <div className="text-sm font-medium text-gray-300 mb-2">Passo personale (Munter)</div>
+          <p className="text-[10px] text-gray-500 mb-2">
+            Moltiplicatore del tempo di percorrenza standard (4 km/h orizzontale).
+          </p>
+          <input
+            type="range"
+            min="0.7" max="1.5" step="0.05"
+            value={paceFactor}
+            onChange={(e) => setPaceFactor(Number(e.target.value))}
+            className="w-full accent-green-500"
+            aria-label="Passo personale"
+          />
+          <div className="flex justify-between text-[10px] text-gray-400 mt-1">
+            <span>0.7× corridore</span>
+            <span className="text-green-400 font-bold">{paceFactor.toFixed(2)}×</span>
+            <span>1.5× pesante</span>
+          </div>
+        </div>
+        <div className="border-t border-gray-700 mt-5 pt-4">
+          <button
+            onClick={() => {
+              try {
+                localStorage.removeItem(KEYS.tutorialSeen);
+                toast.info('Tutorial verrà mostrato al prossimo riavvio dell\'app');
+              } catch {
+                toast.error('Impossibile resettare il tutorial');
+              }
+            }}
+            className="w-full py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 text-xs rounded"
+          >
+            Rivedi tutorial al prossimo avvio
+          </button>
+        </div>
+        <div className="flex gap-2 mt-4">
           <button onClick={onClose} className="flex-1 py-2 bg-gray-700 rounded text-sm hover:bg-gray-600">
             Annulla
           </button>

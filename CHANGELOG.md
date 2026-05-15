@@ -4,6 +4,47 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.7.0] — 2026-05-15 — "Didattica visiva + UX rifondata"
+
+Bundle di 20+ task completati, basati sul backlog generato dalla campagna polish v0.6.2 e dai persona usability test.
+
+### Killer feature
+- **TASK-29 ⭐** Profilo altimetrico "stimato vs reale" sovrapposto in Learn quando esistono dati Track. Trasforma la verifica da numeri a confronto visivo.
+
+### Architettura
+- **TASK-15** Switch Learn↔Track **non-distruttivo**: valori per modalità in slot paralleli (`trackValues`/`learnValues`, `trackAltitude`/`learnAltitude`), ripristinati al cambio. Niente più "cancellerà i dati".
+- **TASK-3** Migration scaffold `SCHEMA_VERSION` (v1→v2) con snapshot legacy data in `trackValues`.
+
+### UX
+- **TASK-5** Modal + Toast in-app: 12 `alert()` e 3 `confirm()` migrati a UI coerente.
+- **TASK-13** Curva scoring quiz più clemente (piecewise lineare, credito anche a stime fuori tolerance).
+- **TASK-16** Profile choice all'onboarding + tutorial reapribile da Impostazioni.
+- **TASK-17** Popup quick-action sui marker: rinomina, elimina, copia coordinate.
+- **TASK-20** UI cues: Progresso disabled senza dati; tooltip scala SAC T1-T6; positive reinforcement.
+- **TASK-21** Fattore Munter personalizzato (slider 0.7-1.5x).
+- **TASK-25** Mini-guida al primo quiz di ogni tipo.
+- **TASK-6** Toast su fallback ORS.
+- **TASK-7** Tooltip su Copia link disabilitato.
+
+### Performance e qualità
+- **TASK-4** ProgressOverlay lazy-loaded via `next/dynamic`.
+- **TASK-12** Debounce per-marker (500ms) sull'autoFill al drag.
+- **TASK-11** Risolto warning Recharts `width(-1)`.
+- **TASK-8** Y-axis padding adattivo nel profilo altimetrico.
+
+### Accessibility
+- **TASK-10** Tab Learn/Track aria-selected anche con tool attivi.
+- **TASK-14** Tutorial aria-label corretto.
+
+### Networking
+- **TASK-9** Ricerca località con map-bias (viewbox).
+
+### DX
+- **TASK-18** README aggiornato, `.env.example` documentato, `jest.config.js` modernizzato.
+
+### Skipped/Deferred
+- TASK-2 (assets), TASK-19 (undo), TASK-22 (cloud), TASK-23 (E2E), TASK-24 (PDF print), TASK-26 (coord paste), TASK-27 (slice refactor), TASK-28 (exporter), TASK-30 (sfida cieca), TASK-31 (categorie), TASK-32 (trend già presente), TASK-33 (import GPX), TASK-34 (triangulation), TASK-35 (light mode), TASK-36 (i18n), TASK-37 (pre-cache), TASK-38 (side panel).
+
 ## [0.6.2] — 2026-05-15 — "Polish"
 
 Campagna di code review approfondita: 32 fix in 7 round su type safety, React patterns, networking, storage, accessibility, performance, usability.
@@ -90,6 +131,7 @@ Campagna di code review approfondita: 32 fix in 7 round su type safety, React pa
 ### Added
 - Prima release MVP: creazione itinerari con waypoint e tratte, validazione manuale di altitudine / distanza / azimuth / dislivelli, profilo altimetrico colorato, layout mobile con drawer a tutto schermo, tutorial interattivo, validazione cumulativa, import/export JSON, export GPX 1.1, export PDF (sintetico + roadbook).
 
+[0.7.0]: https://github.com/gperniola/TrekTrak/releases/tag/v0.7.0
 [0.6.2]: https://github.com/gperniola/TrekTrak/releases/tag/v0.6.2
 [0.6.1]: https://github.com/gperniola/TrekTrak/releases/tag/v0.6.1
 [0.6.0]: https://github.com/gperniola/TrekTrak/compare/49fe267...8796c62

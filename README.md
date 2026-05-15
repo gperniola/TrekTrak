@@ -14,9 +14,9 @@ App web didattica per l'apprendimento della cartografia manuale attraverso la cr
 | **jsPDF** | Generazione PDF (sintetico + roadbook) |
 | **@dnd-kit** | Drag-and-drop per riordinamento waypoint |
 | **lz-string** | Compressione URL per condivisione itinerari |
-| **next-pwa** + Workbox | Service worker, caching offline, installabilita' PWA |
+| **@serwist/next** | Service worker, caching offline, installabilita' PWA |
 | **Tailwind CSS** | Styling mobile-first, dark theme |
-| **Jest** | 325 test unitari e di integrazione |
+| **Jest** | ~437 test unitari e di integrazione |
 
 ### API Esterne
 
@@ -307,7 +307,7 @@ src/
 │   ├── export-gpx.ts       # Generazione GPX
 │   ├── export-json.ts      # Import/export JSON
 │   └── storage.ts          # Persistenza localStorage
-└── __tests__/              # 325 test (17 suite)
+└── __tests__/              # ~437 test (28 suite)
 ```
 
 ---
@@ -330,6 +330,21 @@ npm run test:watch    # Watch mode
 - Tailwind CSS con approccio mobile-first, dark theme
 
 ---
+
+## Workflow & backlog
+
+Task attivi gestiti con [backlog.md](https://backlog.md) CLI:
+
+```bash
+backlog board                 # kanban view
+backlog task list --plain     # lista flat
+backlog task create "..."     # nuovo task
+```
+
+- **[backlog/](./backlog/)** — task aperti e completati
+- **[backlog/docs/](./backlog/docs/)** — analisi critiche, persona usability tests, bug log, feature suggestions
+- **[CHANGELOG.md](./CHANGELOG.md)** — storico release con highlight per versione
+- **[docs/](./docs/)** — archivio storico spec/plan delle versioni 0.1.0 → 0.6.0
 
 ## Licenza
 

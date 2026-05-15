@@ -1,7 +1,7 @@
 ---
 id: TASK-11
 title: Eliminare warning Recharts width(-1) height(-1) al primo render
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-05-15 18:30'
 labels:

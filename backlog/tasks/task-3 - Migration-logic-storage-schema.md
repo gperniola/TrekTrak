@@ -1,7 +1,7 @@
 ---
 id: TASK-3
 title: Migration logic per SCHEMA_VERSION di localStorage
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-05-15 17:30'
 labels:

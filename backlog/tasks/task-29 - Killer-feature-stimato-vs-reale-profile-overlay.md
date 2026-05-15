@@ -1,7 +1,7 @@
 ---
 id: TASK-29
 title: ⭐ Profilo altimetrico "stimato vs reale" sovrapposto post-Verifica
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-05-15 19:00'
 labels:

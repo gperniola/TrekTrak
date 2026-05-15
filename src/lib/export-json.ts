@@ -1,5 +1,6 @@
 import type { Itinerary } from './types';
 import { sanitizeFilename } from './format';
+import { toast } from '@/stores/notificationStore';
 
 export function exportItineraryJSON(itinerary: Itinerary): void {
   const cleaned = {
@@ -72,16 +73,16 @@ export function importItineraryJSON(onLoad: (itinerary: Itinerary) => void): voi
       try {
         const parsed = JSON.parse(ev.target?.result as string);
         if (!validateItinerarySchema(parsed)) {
-          alert('File JSON non valido: struttura dati non conforme');
+          toast.error('File JSON non valido: struttura dati non conforme');
           return;
         }
         onLoad(parsed);
       } catch {
-        alert('Errore nel parsing del file JSON');
+        toast.error('Errore nel parsing del file JSON');
       }
     };
     reader.onerror = () => {
-      alert('Errore nella lettura del file');
+      toast.error('Errore nella lettura del file');
     };
     reader.readAsText(file);
   };
