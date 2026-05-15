@@ -75,10 +75,17 @@ export function ItineraryHeader() {
           Carica
         </button>
         <button
-          onClick={() => {
-            if (waypoints.length === 0 || confirm('Creare un nuovo itinerario? Le modifiche non salvate andranno perse.')) {
-              resetItinerary();
+          onClick={async () => {
+            if (waypoints.length > 0) {
+              const ok = await appConfirm({
+                title: 'Creare un nuovo itinerario?',
+                message: 'Le modifiche non salvate andranno perse.',
+                confirmText: 'Crea nuovo',
+              });
+              if (!ok) return;
             }
+            resetItinerary();
+            toast.info('Nuovo itinerario creato');
           }}
           className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600"
           aria-label="Nuovo itinerario"
