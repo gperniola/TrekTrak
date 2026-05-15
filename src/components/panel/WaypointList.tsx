@@ -64,7 +64,7 @@ export function WaypointList() {
 
   return (
     <div className="flex-1 overflow-y-auto p-2 space-y-2">
-      <div className="text-xs uppercase text-gray-500 px-2">Waypoint</div>
+      <div className="text-xs uppercase text-gray-400 px-2">Waypoint</div>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={wpIds} strategy={verticalListSortingStrategy}>
           {waypoints.map((wp, i) => {
@@ -81,7 +81,7 @@ export function WaypointList() {
         </SortableContext>
       </DndContext>
       {isTrack ? (
-        <div className="w-full border border-dashed border-gray-600 rounded-lg p-3 text-gray-500 text-sm text-center">
+        <div className="w-full border border-dashed border-gray-600 rounded-lg p-3 text-gray-400 text-sm text-center">
           Clicca sulla mappa per aggiungere waypoint
         </div>
       ) : (
@@ -93,7 +93,7 @@ export function WaypointList() {
             }
             addWaypoint();
           }}
-          className="w-full border border-dashed border-gray-600 rounded-lg p-3 text-gray-500 hover:text-green-400 hover:border-green-400 transition text-sm"
+          className="w-full border border-dashed border-gray-600 rounded-lg p-3 text-gray-400 hover:text-green-400 hover:border-green-400 transition text-sm"
         >
           + Aggiungi waypoint (o clicca sulla mappa)
         </button>
