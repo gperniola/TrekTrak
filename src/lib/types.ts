@@ -171,9 +171,21 @@ export const DEFAULT_MAP_DISPLAY: MapDisplaySettings = {
   showCoordinateGrid: false,
 };
 
+/**
+ * Personal pace settings for Munter time estimation.
+ * factor multiplies the standard Munter time. 1.0 = standard.
+ */
+export interface PaceSettings {
+  /** Multiplier on Munter time. Range typically 0.7–1.5. Default 1.0. */
+  factor: number;
+}
+
+export const DEFAULT_PACE: PaceSettings = { factor: 1 };
+
 export interface AppSettings {
   tolerances: ToleranceSettings;
   mapDisplay: MapDisplaySettings;
+  pace?: PaceSettings;
 }
 
 export const DEFAULT_TOLERANCES: ToleranceSettings = {

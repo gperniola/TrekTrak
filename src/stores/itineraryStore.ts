@@ -65,12 +65,12 @@ function createEmptyLeg(fromId: string, toId: string): Leg {
   };
 }
 
-function recalculateLeg(leg: Leg): Leg {
+function recalculateLeg(leg: Leg, paceFactor: number = 1): Leg {
   const { distance, elevationGain, elevationLoss } = leg;
   if (distance != null && elevationGain != null && elevationLoss != null) {
     return {
       ...leg,
-      estimatedTime: calculateMunterTime(distance, elevationGain, elevationLoss),
+      estimatedTime: calculateMunterTime(distance, elevationGain, elevationLoss, paceFactor),
       slope: calculateSlope(distance, elevationGain, elevationLoss),
     };
   }
@@ -152,7 +152,7 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
         };
         if (oldMode === 'track') next.trackValues = oldSnap as LegTrackModeValues;
         else next.learnValues = oldSnap;
-        return recalculateLeg(next);
+        return recalculateLeg(next, get().settings.pace?.factor ?? 1);
       }),
     });
   },
@@ -249,7 +249,7 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
           if ('azimuth' in data) delete cleared.azimuth;
           updated.validationState = Object.keys(cleared).length > 0 ? cleared : undefined;
         }
-        return recalculateLeg(updated);
+        return recalculateLeg(updated, get().settings.pace?.factor ?? 1);
       }),
     });
   },
@@ -317,7 +317,7 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
       );
       if (existing) {
         const { validationState, ...clean } = existing;
-        newLegs.push(recalculateLeg(clean));
+        newLegs.push(recalculateLeg(clean, get().settings.pace?.factor ?? 1));
       } else {
         newLegs.push(createEmptyLeg(cleanWaypoints[i].id, cleanWaypoints[i + 1].id));
       }

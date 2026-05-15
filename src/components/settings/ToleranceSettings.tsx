@@ -4,12 +4,14 @@ import { useState, useEffect } from 'react';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { saveSettings, KEYS } from '@/lib/storage';
 import { toast } from '@/stores/notificationStore';
+import { DEFAULT_PACE } from '@/lib/types';
 import type { ToleranceSettings as TolSettings } from '@/lib/types';
 
 export function ToleranceSettings({ onClose }: { onClose: () => void }) {
   const settings = useItineraryStore((s) => s.settings);
   const updateSettings = useItineraryStore((s) => s.updateSettings);
   const [tol, setTol] = useState<TolSettings>({ ...settings.tolerances });
+  const [paceFactor, setPaceFactor] = useState<number>(settings.pace?.factor ?? DEFAULT_PACE.factor);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -20,7 +22,7 @@ export function ToleranceSettings({ onClose }: { onClose: () => void }) {
   }, [onClose]);
 
   const handleSave = () => {
-    const newSettings = { ...settings, tolerances: tol };
+    const newSettings = { ...settings, tolerances: tol, pace: { factor: paceFactor } };
     updateSettings(newSettings);
     saveSettings(newSettings);
     onClose();
@@ -60,6 +62,25 @@ export function ToleranceSettings({ onClose }: { onClose: () => void }) {
               </div>
             </div>
           ))}
+        </div>
+        <div className="border-t border-gray-700 mt-5 pt-4">
+          <div className="text-sm font-medium text-gray-300 mb-2">Passo personale (Munter)</div>
+          <p className="text-[10px] text-gray-500 mb-2">
+            Moltiplicatore del tempo di percorrenza standard (4 km/h orizzontale).
+          </p>
+          <input
+            type="range"
+            min="0.7" max="1.5" step="0.05"
+            value={paceFactor}
+            onChange={(e) => setPaceFactor(Number(e.target.value))}
+            className="w-full accent-green-500"
+            aria-label="Passo personale"
+          />
+          <div className="flex justify-between text-[10px] text-gray-400 mt-1">
+            <span>0.7× corridore</span>
+            <span className="text-green-400 font-bold">{paceFactor.toFixed(2)}×</span>
+            <span>1.5× pesante</span>
+          </div>
         </div>
         <div className="border-t border-gray-700 mt-5 pt-4">
           <button
