@@ -50,6 +50,12 @@ export function decodeItinerary(
     if (typeof data.n !== 'string' || !Array.isArray(data.w) || !Array.isArray(data.l)) return null;
     if (data.w.length % 4 !== 0 || data.l.length % 4 !== 0) return null;
 
+    const expectedWaypoints = data.w.length / 4;
+    const expectedLegs = data.l.length / 4;
+    // For ≥2 waypoints we expect exactly N-1 legs. 0 or 1 waypoint → 0 legs.
+    const requiredLegs = expectedWaypoints >= 2 ? expectedWaypoints - 1 : 0;
+    if (expectedLegs !== requiredLegs) return null;
+
     if (data.n.length > 200) return null;
 
     const validNum = (v: unknown): number | null =>
