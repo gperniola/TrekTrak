@@ -10,6 +10,26 @@ const TYPE_LABELS: Record<QuestionType, string> = {
   azimuth: 'Azimuth',
 };
 
+// TASK-25: short how-to shown once per question type (gated by localStorage).
+const HOW_TO: Record<QuestionType, { title: string; body: string }> = {
+  altitude: {
+    title: 'Come stimare l\'altitudine',
+    body: 'Leggi le curve di livello attorno al punto. L\'equidistanza standard è 25m (carta IGM 1:25.000): conta le curve dal valore noto più vicino. Il punto evidenziato è il viola sulla mappa.',
+  },
+  distance: {
+    title: 'Come stimare la distanza in linea d\'aria',
+    body: 'Usa la scala della mappa o stima visiva: 1 km ≈ 4 cm a 1:25.000. La distanza è in linea d\'aria, non lungo il sentiero. I due punti sono viola (A) e arancione (B).',
+  },
+  azimuth: {
+    title: 'Come stimare l\'azimuth',
+    body: 'L\'azimuth è la direzione in gradi rispetto al Nord. Orienta mentalmente la mappa al Nord (in alto), poi conta i gradi in senso orario dal Nord verso il target. N=0°, E=90°, S=180°, W=270°.',
+  },
+};
+
+function getHowToSeenKey(type: QuestionType): string {
+  return `trektrak_quiz_howto_${type}`;
+}
+
 export function QuizQuestionView({ question, questionNumber, totalQuestions, onAnswer }: {
   question: QuizQuestionType;
   questionNumber: number;
@@ -19,6 +39,18 @@ export function QuizQuestionView({ question, questionNumber, totalQuestions, onA
   const [input, setInput] = useState('');
   const [answered, setAnswered] = useState(false);
   const [result, setResult] = useState<QuizAnswer | null>(null);
+  // TASK-25: show how-to mini-guide before first occurrence of each question type
+  const [howToOpen, setHowToOpen] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(getHowToSeenKey(question.type)) !== '1';
+    } catch {
+      return false;
+    }
+  });
+  const dismissHowTo = () => {
+    try { localStorage.setItem(getHowToSeenKey(question.type), '1'); } catch { /* ignore */ }
+    setHowToOpen(false);
+  };
 
   const handleSubmit = () => {
     const userValue = parseFloat(input);
@@ -50,6 +82,18 @@ export function QuizQuestionView({ question, questionNumber, totalQuestions, onA
         <span className="text-xs font-bold text-purple-400">{TYPE_LABELS[question.type]}</span>
       </div>
       <p className="text-sm text-gray-200">{question.prompt}</p>
+      {howToOpen && (
+        <div className="bg-purple-900/40 border border-purple-700 rounded p-2 text-[11px] text-gray-200">
+          <div className="font-bold text-purple-300 mb-1">💡 {HOW_TO[question.type].title}</div>
+          <p className="leading-snug">{HOW_TO[question.type].body}</p>
+          <button
+            onClick={dismissHowTo}
+            className="mt-1.5 text-purple-300 hover:text-white underline text-[10px]"
+          >
+            Capito, non mostrare più
+          </button>
+        </div>
+      )}
       {!answered ? (
         <div className="flex gap-2">
           <input
