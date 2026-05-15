@@ -89,7 +89,7 @@ function ToolbarMockup() {
 const STEPS: TutorialStep[] = [
   {
     title: 'Benvenuto in TrekTrak!',
-    text: 'Impara la cartografia manuale creando itinerari escursionistici. Questa guida ti mostra come usare le funzionalita\' principali.',
+    text: 'Impara la cartografia manuale creando itinerari escursionistici. Questa guida ti mostra come usare le funzionalità principali.',
     icon: '🗺️',
   },
   {
@@ -99,7 +99,7 @@ const STEPS: TutorialStep[] = [
   },
   {
     title: 'Learn e Track',
-    text: 'In modalita\' Learn inserisci manualmente distanza, dislivello e azimuth, poi usa "Verifica" per confrontare con i dati reali. In modalita\' Track i valori vengono calcolati automaticamente.',
+    text: 'In modalità Learn inserisci manualmente distanza, dislivello e azimuth, poi usa "Verifica" per confrontare con i dati reali. In modalità Track i valori vengono calcolati automaticamente.',
     icon: '✏️',
     mockup: <MenuMockup highlight="fields" />,
   },

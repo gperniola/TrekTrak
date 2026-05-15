@@ -31,6 +31,10 @@ export function RulerTool({ active, onDeactivate }: { active: boolean; onDeactiv
   const [pointB, setPointB] = useState<RulerPoint | null>(null);
   const clickCountRef = useRef(0);
   const mountedRef = useRef(true);
+  // Per-slot generation counters so a stale fetchElevation cannot overwrite
+  // a newer click's point (race condition when clicking faster than the API resolves).
+  const pointAGenRef = useRef(0);
+  const pointBGenRef = useRef(0);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -43,6 +47,8 @@ export function RulerTool({ active, onDeactivate }: { active: boolean; onDeactiv
       setPointA(null);
       setPointB(null);
       clickCountRef.current = 0;
+      pointAGenRef.current++;
+      pointBGenRef.current++;
     }
   }, [active]);
 
@@ -61,23 +67,22 @@ export function RulerTool({ active, onDeactivate }: { active: boolean; onDeactiv
     const { lat, lng } = e.latlng;
     const count = clickCountRef.current;
 
-    if (count === 0) {
+    if (count === 0 || count === 2) {
+      const gen = ++pointAGenRef.current;
+      pointBGenRef.current++; // invalidate any pending B fetch from previous round
       setPointA({ lat, lon: lng, alt: null });
       setPointB(null);
       clickCountRef.current = 1;
       const alt = await fetchElevation(lat, lng);
-      if (mountedRef.current) setPointA((prev) => prev ? { ...prev, alt: alt != null ? Math.round(alt) : null } : null);
-    } else if (count === 1) {
+      if (!mountedRef.current || gen !== pointAGenRef.current) return;
+      setPointA((prev) => prev ? { ...prev, alt: alt != null ? Math.round(alt) : null } : null);
+    } else {
+      const gen = ++pointBGenRef.current;
       setPointB({ lat, lon: lng, alt: null });
       clickCountRef.current = 2;
       const alt = await fetchElevation(lat, lng);
-      if (mountedRef.current) setPointB((prev) => prev ? { ...prev, alt: alt != null ? Math.round(alt) : null } : null);
-    } else {
-      setPointA({ lat, lon: lng, alt: null });
-      setPointB(null);
-      clickCountRef.current = 1;
-      const alt = await fetchElevation(lat, lng);
-      if (mountedRef.current) setPointA((prev) => prev ? { ...prev, alt: alt != null ? Math.round(alt) : null } : null);
+      if (!mountedRef.current || gen !== pointBGenRef.current) return;
+      setPointB((prev) => prev ? { ...prev, alt: alt != null ? Math.round(alt) : null } : null);
     }
   }, [active]);
 

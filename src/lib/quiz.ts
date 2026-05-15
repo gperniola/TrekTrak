@@ -110,13 +110,35 @@ export function saveQuizSession(session: QuizSession): void {
   } catch { /* storage write failed */ }
 }
 
+const VALID_QUIZ_TYPES = new Set<QuestionType>(['altitude', 'distance', 'azimuth']);
+
+function isValidQuizAnswer(item: unknown): item is QuizAnswer {
+  if (item == null || typeof item !== 'object') return false;
+  const a = item as Record<string, unknown>;
+  return (
+    VALID_QUIZ_TYPES.has(a.type as QuestionType) &&
+    typeof a.score === 'number' && Number.isFinite(a.score) &&
+    typeof a.userValue === 'number' && Number.isFinite(a.userValue) &&
+    typeof a.realValue === 'number' && Number.isFinite(a.realValue)
+  );
+}
+
+function isValidQuizSession(item: unknown): item is QuizSession {
+  if (item == null || typeof item !== 'object') return false;
+  const s = item as Record<string, unknown>;
+  if (typeof s.date !== 'string') return false;
+  if (typeof s.average !== 'number' || !Number.isFinite(s.average)) return false;
+  if (!Array.isArray(s.questions)) return false;
+  return s.questions.every(isValidQuizAnswer);
+}
+
 export function loadQuizHistory(): QuizSession[] {
   try {
     const raw = localStorage.getItem(KEYS.quizHistory);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed;
+    return parsed.filter(isValidQuizSession);
   } catch { return []; }
 }
 

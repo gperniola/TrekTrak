@@ -284,8 +284,14 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
     });
   },
 
-  setProfileHover: (distance, source) => set({ profileHover: { distance, source } }),
+  setProfileHover: (distance, source) => {
+    if (!Number.isFinite(distance) || distance < 0) return;
+    set({ profileHover: { distance, source } });
+  },
   clearProfileHover: () => set({ profileHover: null }),
-  setProfileFlyTo: (distance) => set({ profileFlyTo: distance }),
+  setProfileFlyTo: (distance) => {
+    if (!Number.isFinite(distance) || distance < 0) return;
+    set({ profileFlyTo: distance });
+  },
   clearProfileFlyTo: () => set({ profileFlyTo: null }),
 }));

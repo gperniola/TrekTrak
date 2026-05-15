@@ -1,6 +1,9 @@
 const NOMINATIM_REVERSE_URL = 'https://nominatim.openstreetmap.org/reverse';
 const TIMEOUT_MS = 5000;
 const MAX_NAME_LENGTH = 30;
+// Nominatim usage policy: at most 1 request per second.
+// We enforce a 1100ms minimum gap between consecutive requests to stay safely below the limit.
+const NOMINATIM_MIN_INTERVAL_MS = 1100;
 
 /** Address fields checked in hiking-priority order when no top-level name exists. */
 const HIKING_ADDRESS_FIELDS = [
@@ -70,40 +73,63 @@ export function extractHikingName(data: unknown): string | null {
   return null;
 }
 
+// Module-level chain of pending reverseGeocode calls. Each new request waits
+// for the previous one to finish (or for the min-interval to elapse) before
+// starting its own network call. This serialises calls and enforces Nominatim's
+// 1 req/s policy even when the user adds waypoints in rapid succession.
+let nominatimChain: Promise<unknown> = Promise.resolve();
+let lastNominatimAt = 0;
+
+async function rateLimitedFetch(url: string, init: RequestInit): Promise<Response> {
+  const elapsed = Date.now() - lastNominatimAt;
+  const wait = Math.max(0, NOMINATIM_MIN_INTERVAL_MS - elapsed);
+  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+  lastNominatimAt = Date.now();
+  return fetch(url, init);
+}
+
 /**
  * Calls the Nominatim reverse geocoding API and returns a hiking-friendly name,
  * or null on error / when no useful name is found.
+ * Requests are serialised at module level to respect Nominatim's 1 req/s rate limit.
  */
 export async function reverseGeocode(lat: number, lon: number): Promise<string | null> {
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
 
-  const timeoutController = new AbortController();
-  const timer = setTimeout(() => timeoutController.abort(), TIMEOUT_MS);
+  // Chain this call after any previously queued call. The chain is best-effort:
+  // we always proceed even if a previous link rejects.
+  const myTurn = nominatimChain.catch(() => undefined);
+  nominatimChain = myTurn.then(async () => {
+    const timeoutController = new AbortController();
+    const timer = setTimeout(() => timeoutController.abort(), TIMEOUT_MS);
 
-  try {
-    const params = new URLSearchParams({
-      lat: String(lat),
-      lon: String(lon),
-      format: 'json',
-      zoom: '18',
-      addressdetails: '1',
-    });
+    try {
+      const params = new URLSearchParams({
+        lat: String(lat),
+        lon: String(lon),
+        format: 'json',
+        zoom: '18',
+        addressdetails: '1',
+      });
 
-    const response = await fetch(`${NOMINATIM_REVERSE_URL}?${params}`, {
-      signal: timeoutController.signal,
-      headers: {
-        'Accept-Language': 'it,en',
-        'User-Agent': 'TrekTrak/1.0 (didactic cartography app)',
-      },
-    });
+      const response = await rateLimitedFetch(`${NOMINATIM_REVERSE_URL}?${params}`, {
+        signal: timeoutController.signal,
+        headers: {
+          'Accept-Language': 'it,en',
+          'User-Agent': 'TrekTrak/1.0 (didactic cartography app)',
+        },
+      });
 
-    if (!response.ok) return null;
+      if (!response.ok) return null;
 
-    const data: unknown = await response.json();
-    return extractHikingName(data);
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timer);
-  }
+      const data: unknown = await response.json();
+      return extractHikingName(data);
+    } catch {
+      return null;
+    } finally {
+      clearTimeout(timer);
+    }
+  });
+
+  return nominatimChain as Promise<string | null>;
 }

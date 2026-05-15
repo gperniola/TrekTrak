@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import type { Leg } from '@/lib/types';
 import { useItineraryStore } from '@/stores/itineraryStore';
-import { downloadPDF } from '@/lib/export-pdf';
+// Note: lib/export-pdf imports jspdf (~100kB). Loaded lazily on first export to keep first-paint bundle small.
 import { downloadGPX } from '@/lib/export-gpx';
 import { calculateDifficulty, haversineDistance, forwardAzimuth, interpolatePoints, cumulativeElevation, sampleInterval } from '@/lib/calculations';
 import { fetchElevation, fetchElevationProfile } from '@/lib/elevation-api';
@@ -40,12 +40,14 @@ export function ActionBar() {
   const totalTime = legs.reduce((sum, l) => sum + (l.estimatedTime ?? 0), 0);
   const maxSlope = Math.max(0, ...legs.map((l) => l.slope ?? 0));
 
-  const handlePDF = (format: 'summary' | 'roadbook') => {
+  const handlePDF = async (format: 'summary' | 'roadbook') => {
     if (waypoints.length < 2) {
       alert('Aggiungi almeno 2 waypoint');
       return;
     }
-    // PDF is useful even without coordinates, so only check waypoint count
+    // PDF is useful even without coordinates, so only check waypoint count.
+    // Lazy-load the PDF module (it pulls jspdf, ~100kB) only on the first export click.
+    const { downloadPDF } = await import('@/lib/export-pdf');
     downloadPDF({
       name: itineraryName,
       waypoints,

@@ -5,7 +5,12 @@
   "start_url": "/",
   "id": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "scope": "/",
+  "lang": "it",
+  "dir": "ltr",
+  "orientation": "any",
+  "categories": ["education", "navigation", "sports", "utilities"],
   "background_color": "#000000",
   "theme_color": "#4ade80",
   "icons": [

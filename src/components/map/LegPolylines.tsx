@@ -69,14 +69,22 @@ export function LegPolylineHoverEvents() {
   const clearProfileHover = useItineraryStore((s) => s.clearProfileHover);
   const lastHoverTime = useRef(0);
 
+  // Stable refs for the always-changing inputs so the mousemove callback
+  // identity doesn't change every store update (which would re-bind eventHandlers
+  // on every Polyline below).
+  const waypointsRef = useRef(waypoints);
+  const legsRef = useRef(legs);
+  waypointsRef.current = waypoints;
+  legsRef.current = legs;
+
   const handleMouseMove = useCallback((e: L.LeafletMouseEvent) => {
     const now = Date.now();
     if (now - lastHoverTime.current < 60) return;
     lastHoverTime.current = now;
     const { lat, lng } = e.latlng;
-    const dist = positionToDistance(lat, lng, waypoints, legs);
+    const dist = positionToDistance(lat, lng, waypointsRef.current, legsRef.current);
     if (dist != null) setProfileHover(dist, 'map');
-  }, [waypoints, legs, setProfileHover]);
+  }, [setProfileHover]);
 
   const handleMouseOut = useCallback(() => {
     clearProfileHover();

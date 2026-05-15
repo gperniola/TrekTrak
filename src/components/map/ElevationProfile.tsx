@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useState, useRef, useEffect, useCallback } from 'react';
+import { useId, useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceDot, ReferenceLine } from 'recharts';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { buildGradientStops } from '@/lib/calculations';
@@ -59,62 +59,65 @@ export function ElevationProfile() {
   }, [setProfileFlyTo]);
 
   // Try to build detailed profile from leg elevation data
-  let profileData: { distance: number; altitude: number }[] = [];
-  let globalDist = 0;
+  const { profileData, waypointDots } = useMemo(() => {
+    let data: { distance: number; altitude: number }[] = [];
+    let globalDist = 0;
 
-  for (let i = 0; i < legs.length; i++) {
-    const leg = legs[i];
-    if (leg.elevationProfile && leg.elevationProfile.length >= 2) {
-      for (let j = 0; j < leg.elevationProfile.length; j++) {
-        // Skip first point of subsequent legs (same as last point of previous)
-        if (i > 0 && j === 0) continue;
-        const p = leg.elevationProfile[j];
-        profileData.push({
-          distance: parseFloat((globalDist + p.distance).toFixed(4)),
-          altitude: p.altitude,
+    for (let i = 0; i < legs.length; i++) {
+      const leg = legs[i];
+      if (leg.elevationProfile && leg.elevationProfile.length >= 2) {
+        for (let j = 0; j < leg.elevationProfile.length; j++) {
+          // Skip first point of subsequent legs (same as last point of previous)
+          if (i > 0 && j === 0) continue;
+          const p = leg.elevationProfile[j];
+          data.push({
+            distance: parseFloat((globalDist + p.distance).toFixed(4)),
+            altitude: p.altitude,
+          });
+        }
+        // Use the profile's own last distance for continuity (may differ slightly from leg.distance)
+        const profileEnd = leg.elevationProfile[leg.elevationProfile.length - 1].distance;
+        globalDist += profileEnd;
+      } else if (leg.distance != null) {
+        // Fallback: use waypoint altitudes only
+        const fromWp = waypoints.find((w) => w.id === leg.fromWaypointId);
+        const toWp = waypoints.find((w) => w.id === leg.toWaypointId);
+        if (i === 0 && fromWp?.altitude != null) {
+          data.push({ distance: parseFloat(globalDist.toFixed(4)), altitude: fromWp.altitude });
+        }
+        globalDist += leg.distance;
+        if (toWp?.altitude != null) {
+          data.push({ distance: parseFloat(globalDist.toFixed(4)), altitude: toWp.altitude });
+        }
+      }
+    }
+
+    // Build waypoint positions with cumulative distance (used for fallback + dots)
+    const dots: { distance: number; altitude: number; name: string }[] = [];
+    let wpCumulDist = 0;
+    waypoints.forEach((wp, i) => {
+      if (i > 0) {
+        const prevWp = waypoints[i - 1];
+        const leg = legs.find(
+          (l) => l.fromWaypointId === prevWp.id && l.toWaypointId === wp.id
+        );
+        if (leg?.distance != null) wpCumulDist += leg.distance;
+      }
+      if (wp.altitude != null) {
+        dots.push({
+          distance: parseFloat(wpCumulDist.toFixed(4)),
+          altitude: wp.altitude,
+          name: wp.name || `WP${i + 1}`,
         });
       }
-      // Use the profile's own last distance for continuity (may differ slightly from leg.distance)
-      const profileEnd = leg.elevationProfile[leg.elevationProfile.length - 1].distance;
-      globalDist += profileEnd;
-    } else if (leg.distance != null) {
-      // Fallback: use waypoint altitudes only
-      const fromWp = waypoints.find((w) => w.id === leg.fromWaypointId);
-      const toWp = waypoints.find((w) => w.id === leg.toWaypointId);
-      if (i === 0 && fromWp?.altitude != null) {
-        profileData.push({ distance: parseFloat(globalDist.toFixed(4)), altitude: fromWp.altitude });
-      }
-      globalDist += leg.distance;
-      if (toWp?.altitude != null) {
-        profileData.push({ distance: parseFloat(globalDist.toFixed(4)), altitude: toWp.altitude });
-      }
-    }
-  }
+    });
 
-  // Build waypoint positions with cumulative distance (used for fallback + dots)
-  const waypointDots: { distance: number; altitude: number; name: string }[] = [];
-  let wpCumulDist = 0;
-  waypoints.forEach((wp, i) => {
-    if (i > 0) {
-      const prevWp = waypoints[i - 1];
-      const leg = legs.find(
-        (l) => l.fromWaypointId === prevWp.id && l.toWaypointId === wp.id
-      );
-      if (leg?.distance != null) wpCumulDist += leg.distance;
+    // If no legs have profile data, fall back to waypoint-only data
+    if (data.length < 2) {
+      data = dots.map(({ name, ...rest }) => rest);
     }
-    if (wp.altitude != null) {
-      waypointDots.push({
-        distance: parseFloat(wpCumulDist.toFixed(4)),
-        altitude: wp.altitude,
-        name: wp.name || `WP${i + 1}`,
-      });
-    }
-  });
-
-  // If no legs have profile data, fall back to waypoint-only data
-  if (profileData.length < 2) {
-    profileData = waypointDots.map(({ name, ...rest }) => rest);
-  }
+    return { profileData: data, waypointDots: dots };
+  }, [waypoints, legs]);
 
   if (profileData.length < 2) {
     return (

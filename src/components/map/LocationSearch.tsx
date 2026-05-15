@@ -162,7 +162,8 @@ export function LocationSearch({ mobileSearchOpen }: { mobileSearchOpen?: boolea
           &#128269;
         </span>
         <input
-          type="text"
+          type="search"
+          name="locationSearch"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -174,6 +175,7 @@ export function LocationSearch({ mobileSearchOpen }: { mobileSearchOpen?: boolea
           aria-autocomplete="list"
           aria-controls={open && results.length > 0 ? LISTBOX_ID : undefined}
           aria-activedescendant={activeIndex >= 0 ? `location-option-${activeIndex}` : undefined}
+          autoComplete="off"
           className="w-full bg-gray-800/95 border border-gray-600 rounded pl-8 pr-3 py-1.5 text-sm text-white placeholder-gray-500 focus:border-green-500 focus:outline-none"
         />
         {loading && (

@@ -18,10 +18,20 @@ export async function searchLocation(
   const timeoutController = new AbortController();
   const timer = setTimeout(() => timeoutController.abort(), TIMEOUT_MS);
 
-  // Combine caller signal (cancellation) with timeout signal
-  const combinedSignal = signal
-    ? AbortSignal.any([signal, timeoutController.signal])
-    : timeoutController.signal;
+  // Combine caller signal (cancellation) with timeout signal.
+  // Use AbortSignal.any when available (Chrome 116+/Safari 17+), otherwise
+  // bridge manually so older browsers keep working.
+  let combinedSignal: AbortSignal;
+  if (signal && typeof (AbortSignal as { any?: unknown }).any === 'function') {
+    combinedSignal = (AbortSignal as unknown as { any: (signals: AbortSignal[]) => AbortSignal }).any([signal, timeoutController.signal]);
+  } else if (signal) {
+    const bridgeAbort = () => timeoutController.abort();
+    if (signal.aborted) timeoutController.abort();
+    else signal.addEventListener('abort', bridgeAbort, { once: true });
+    combinedSignal = timeoutController.signal;
+  } else {
+    combinedSignal = timeoutController.signal;
+  }
 
   try {
     const params = new URLSearchParams({

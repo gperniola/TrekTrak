@@ -17,18 +17,30 @@ export function MyLocationButton({ hidden }: { hidden?: boolean }) {
   const [location, setLocation] = useState<LocationData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const mountedRef = useRef(true);
+  const errorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     mountedRef.current = true;
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+      if (errorTimeoutRef.current != null) clearTimeout(errorTimeoutRef.current);
+    };
+  }, []);
+
+  const showError = useCallback((msg: string) => {
+    setError(msg);
+    if (errorTimeoutRef.current != null) clearTimeout(errorTimeoutRef.current);
+    errorTimeoutRef.current = setTimeout(() => {
+      errorTimeoutRef.current = null;
+      if (mountedRef.current) setError(null);
+    }, 3000);
   }, []);
 
   const handleClick = useCallback(() => {
     if (locating) return;
 
     if (!navigator.geolocation) {
-      setError('Geolocalizzazione non supportata dal browser');
-      setTimeout(() => { if (mountedRef.current) setError(null); }, 3000);
+      showError('Geolocalizzazione non supportata dal browser');
       return;
     }
 
@@ -60,12 +72,11 @@ export function MyLocationButton({ hidden }: { hidden?: boolean }) {
           : err.code === 3
             ? 'Timeout GPS'
             : 'Posizione non disponibile';
-        setError(msg);
-        setTimeout(() => { if (mountedRef.current) setError(null); }, 3000);
+        showError(msg);
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
     );
-  }, [locating, map]);
+  }, [locating, map, showError]);
 
   const handleCopy = useCallback(() => {
     if (!location) return;
@@ -147,7 +158,7 @@ export function MyLocationButton({ hidden }: { hidden?: boolean }) {
 
       {/* Error message */}
       {error && (
-        <div aria-live="assertive" className="absolute bottom-40 right-3 z-[1000] bg-red-900/90 rounded-lg px-3 py-2 text-xs text-red-200 shadow-lg">
+        <div role="status" aria-live="polite" className="absolute bottom-40 right-3 z-[1000] bg-red-900/90 rounded-lg px-3 py-2 text-xs text-red-200 shadow-lg">
           {error}
         </div>
       )}

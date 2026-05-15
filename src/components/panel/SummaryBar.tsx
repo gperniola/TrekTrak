@@ -22,7 +22,7 @@ export function SummaryBar() {
         <span className="text-blue-400">-{totalLoss}m</span>
         <span>{formatTime(totalTime)}</span>
       </div>
-      <div className="flex justify-between text-xs text-gray-500">
+      <div className="flex justify-between text-xs text-gray-400">
         <span>Difficolt&agrave;: {difficulty}</span>
       </div>
     </div>

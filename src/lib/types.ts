@@ -165,7 +165,7 @@ export type AppMode = 'learn' | 'track';
 export type ValidationFieldType = 'altitude' | 'distance' | 'azimuth' | 'elevationGain' | 'elevationLoss';
 
 export interface ValidationSessionResult {
-  field: 'altitude' | 'distance' | 'elevationGain' | 'elevationLoss' | 'azimuth';
+  field: ValidationFieldType;
   status: 'valid' | 'warning' | 'error';
   delta: number;
   tolerance: { strict: number; loose: number };

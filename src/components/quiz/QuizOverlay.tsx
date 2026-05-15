@@ -85,16 +85,21 @@ export function QuizOverlay({ onClose }: { onClose: () => void }) {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [answers, setAnswers] = useState<QuizAnswer[]>([]);
   const mountedRef = useRef(true);
+  // Session generation counter — invalidates stale `startSession` results when
+  // a new session is started (e.g., user closes and reopens, or clicks "New session").
+  const sessionGenRef = useRef(0);
 
   useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
+      sessionGenRef.current++;
       emitQuizPoints(null, null);
     };
   }, []);
 
   const startSession = useCallback(async () => {
+    const gen = ++sessionGenRef.current;
     setPhase('loading');
     setAnswers([]);
     setCurrentIdx(0);
@@ -104,11 +109,12 @@ export function QuizOverlay({ onClose }: { onClose: () => void }) {
     if (!bounds) { onClose(); return; }
 
     const pois = await fetchHikingPOIs(bounds);
+    if (!mountedRef.current || gen !== sessionGenRef.current) return;
     const types = generateQuestionSet(bounds);
     const built: QuizQuestion[] = [];
     for (const type of types) {
       const q = await buildQuestion(type, pois);
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || gen !== sessionGenRef.current) return;
       if (q) built.push(q);
     }
 

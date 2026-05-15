@@ -93,7 +93,7 @@ export default function Home() {
   }, [drawerOpen]);
 
   return (
-    <div className="h-dvh flex flex-col lg:flex-row overflow-hidden">
+    <main className="h-dvh flex flex-col lg:flex-row overflow-hidden">
       <OfflineBanner />
       {/* Desktop sidebar — hidden on mobile */}
       <div className="hidden lg:flex">
@@ -211,6 +211,6 @@ export default function Home() {
 
       {/* What's New popup (shown once per version, after tutorial) */}
       <WhatsNew />
-    </div>
+    </main>
   );
 }
