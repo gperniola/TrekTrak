@@ -1,8 +1,64 @@
 'use client';
 
+import { useState, useRef, useEffect } from 'react';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { calculateDifficulty } from '@/lib/calculations';
 import { formatTime } from '@/lib/format';
+import type { DifficultyGrade } from '@/lib/types';
+
+const SAC_DESCRIPTIONS: Record<DifficultyGrade, string> = {
+  T1: 'Camminata — sentiero ben segnato',
+  T2: 'Sentiero di montagna — tratti meno definiti',
+  T3: 'Sentiero alpino impegnativo — passaggi esposti possibili',
+  T4: 'Alpino — capacità di orientamento richiesta',
+  T5: 'Alpinismo facile — passaggi tecnici',
+  T6: 'Alpinismo difficile',
+};
+
+function SacBadge({ grade }: { grade: DifficultyGrade }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent | TouchEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', close);
+    document.addEventListener('touchstart', close);
+    document.addEventListener('keydown', esc);
+    return () => {
+      document.removeEventListener('mousedown', close);
+      document.removeEventListener('touchstart', close);
+      document.removeEventListener('keydown', esc);
+    };
+  }, [open]);
+
+  return (
+    <span ref={ref} className="relative inline-flex">
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); setOpen((p) => !p); }}
+        className="underline decoration-dotted underline-offset-2 text-gray-300 hover:text-white"
+        aria-label={`Scala SAC: ${grade}. ${SAC_DESCRIPTIONS[grade]}. Clicca per dettagli`}
+        aria-expanded={open}
+      >
+        {grade}
+      </button>
+      {open && (
+        <div role="tooltip" className="absolute right-0 bottom-5 z-[1300] bg-gray-800 border border-gray-600 rounded px-2.5 py-1.5 text-[10px] text-gray-300 shadow-lg w-56 leading-snug">
+          <div className="font-bold text-gray-100 mb-1">Scala SAC (Club Alpino Svizzero)</div>
+          {(Object.keys(SAC_DESCRIPTIONS) as DifficultyGrade[]).map((g) => (
+            <div key={g} className={g === grade ? 'text-green-400 font-medium' : ''}>
+              <span className="font-mono">{g}</span> — {SAC_DESCRIPTIONS[g]}
+            </div>
+          ))}
+        </div>
+      )}
+    </span>
+  );
+}
 
 export function SummaryBar() {
   const legs = useItineraryStore((s) => s.legs);
@@ -23,7 +79,7 @@ export function SummaryBar() {
         <span>{formatTime(totalTime)}</span>
       </div>
       <div className="flex justify-between text-xs text-gray-400">
-        <span>Difficolt&agrave;: {difficulty}</span>
+        <span>Difficolt&agrave;: <SacBadge grade={difficulty} /></span>
       </div>
     </div>
   );
