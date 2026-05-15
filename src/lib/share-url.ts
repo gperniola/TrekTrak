@@ -54,6 +54,14 @@ export function decodeItinerary(
 
     const validNum = (v: unknown): number | null =>
       typeof v === 'number' && Number.isFinite(v) ? v : null;
+    const validLat = (v: unknown): number | null => {
+      const n = validNum(v);
+      return n !== null && n >= -90 && n <= 90 ? n : null;
+    };
+    const validLon = (v: unknown): number | null => {
+      const n = validNum(v);
+      return n !== null && n >= -180 && n <= 180 ? n : null;
+    };
 
     const waypoints: Waypoint[] = [];
     for (let i = 0; i < data.w.length; i += 4) {
@@ -62,8 +70,8 @@ export function decodeItinerary(
       waypoints.push({
         id: generateId(),
         name,
-        lat: validNum(data.w[i + 1]),
-        lon: validNum(data.w[i + 2]),
+        lat: validLat(data.w[i + 1]),
+        lon: validLon(data.w[i + 2]),
         altitude: validNum(data.w[i + 3]),
         order: waypoints.length,
       });
