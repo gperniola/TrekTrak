@@ -168,14 +168,7 @@ export function ElevationProfile() {
     return { profileData: data, waypointDots: dots, realProfileData: realData };
   }, [waypoints, legs, appMode]);
 
-  if (profileData.length < 2) {
-    return (
-      <div className="h-full flex items-center justify-center text-gray-400 text-sm">
-        Aggiungi almeno 2 waypoint con quota per il profilo altimetrico
-      </div>
-    );
-  }
-
+  // CRITICAL: all hooks must be called BEFORE any early return (Rules of Hooks).
   // Merge user + real profiles into one dataset so Recharts can render both Areas
   // on the same x-axis. Gaps are OK (Area with `connectNulls`).
   const hasReal = realProfileData.length >= 2;
@@ -192,6 +185,14 @@ export function ElevationProfile() {
     }
     return Array.from(byDist.values()).sort((a, b) => a.distance - b.distance);
   }, [profileData, realProfileData, hasReal]);
+
+  if (profileData.length < 2) {
+    return (
+      <div className="h-full flex items-center justify-center text-gray-400 text-sm">
+        Aggiungi almeno 2 waypoint con quota per il profilo altimetrico
+      </div>
+    );
+  }
 
   const minAlt = profileData.reduce((min, d) => Math.min(min, d.altitude), Infinity);
   const maxAlt = profileData.reduce((max, d) => Math.max(max, d.altitude), -Infinity);

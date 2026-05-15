@@ -4,6 +4,11 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.7.1] — 2026-05-15 — Hotfix
+
+### Fixed
+- **CRITICAL**: crash al secondo waypoint causato da Rules of Hooks violation in `ElevationProfile`. Il `useMemo` di `mergedData` (TASK-29) era dopo l'early-return placeholder "<2 waypoint": al passaggio da 1 a 2 waypoint l'ordine degli hooks cambiava (38→39) e React buttava giù il componente con `NotFoundErrorBoundary`. Hooks ora tutti prima dei return condizionali, come da Rules of Hooks.
+
 ## [0.7.0] — 2026-05-15 — "Didattica visiva + UX rifondata"
 
 Bundle di 20+ task completati, basati sul backlog generato dalla campagna polish v0.6.2 e dai persona usability test.
@@ -131,6 +136,7 @@ Campagna di code review approfondita: 32 fix in 7 round su type safety, React pa
 ### Added
 - Prima release MVP: creazione itinerari con waypoint e tratte, validazione manuale di altitudine / distanza / azimuth / dislivelli, profilo altimetrico colorato, layout mobile con drawer a tutto schermo, tutorial interattivo, validazione cumulativa, import/export JSON, export GPX 1.1, export PDF (sintetico + roadbook).
 
+[0.7.1]: https://github.com/gperniola/TrekTrak/releases/tag/v0.7.1
 [0.7.0]: https://github.com/gperniola/TrekTrak/releases/tag/v0.7.0
 [0.6.2]: https://github.com/gperniola/TrekTrak/releases/tag/v0.6.2
 [0.6.1]: https://github.com/gperniola/TrekTrak/releases/tag/v0.6.1
