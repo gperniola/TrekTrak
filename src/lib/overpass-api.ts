@@ -132,15 +132,23 @@ function boundsToKey(bounds: OverpassBounds): string {
 // Public fetch function
 // ---------------------------------------------------------------------------
 
+const CACHE_MAX_ENTRIES = 20;
+
 export async function fetchHikingPOIs(bounds: OverpassBounds): Promise<HikingPOI[]> {
   const key = boundsToKey(bounds);
   const now = Date.now();
 
-  // Prune expired entries to prevent unbounded memory growth
-  if (cache.size > 20) {
+  // First prune any expired entries.
+  if (cache.size >= CACHE_MAX_ENTRIES) {
     cache.forEach((v, k) => {
       if (v.expiresAt <= now) cache.delete(k);
     });
+    // If still at the cap, evict the oldest insertion (Map keeps insertion order).
+    while (cache.size >= CACHE_MAX_ENTRIES) {
+      const oldest = cache.keys().next().value;
+      if (oldest === undefined) break;
+      cache.delete(oldest);
+    }
   }
 
   const cached = cache.get(key);
