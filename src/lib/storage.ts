@@ -26,6 +26,37 @@ function initSchema(): void {
   }
 }
 
+function isNumberOrNull(v: unknown): v is number | null {
+  return v === null || (typeof v === 'number' && Number.isFinite(v));
+}
+
+function isValidWaypoint(item: unknown): boolean {
+  if (item == null || typeof item !== 'object') return false;
+  const rec = item as Record<string, unknown>;
+  return (
+    typeof rec.id === 'string' &&
+    typeof rec.name === 'string' &&
+    isNumberOrNull(rec.lat) &&
+    isNumberOrNull(rec.lon) &&
+    isNumberOrNull(rec.altitude) &&
+    typeof rec.order === 'number' && Number.isFinite(rec.order)
+  );
+}
+
+function isValidLeg(item: unknown): boolean {
+  if (item == null || typeof item !== 'object') return false;
+  const rec = item as Record<string, unknown>;
+  return (
+    typeof rec.id === 'string' &&
+    typeof rec.fromWaypointId === 'string' &&
+    typeof rec.toWaypointId === 'string' &&
+    isNumberOrNull(rec.distance) &&
+    isNumberOrNull(rec.elevationGain) &&
+    isNumberOrNull(rec.elevationLoss) &&
+    isNumberOrNull(rec.azimuth)
+  );
+}
+
 export function loadItineraries(): Itinerary[] {
   initSchema();
   try {
@@ -37,7 +68,11 @@ export function loadItineraries(): Itinerary[] {
       (item: unknown) => {
         if (item == null || typeof item !== 'object') return false;
         const rec = item as Record<string, unknown>;
-        return typeof rec.id === 'string' && Array.isArray(rec.waypoints) && Array.isArray(rec.legs);
+        if (typeof rec.id !== 'string') return false;
+        if (typeof rec.name !== 'string') return false;
+        if (!Array.isArray(rec.waypoints) || !rec.waypoints.every(isValidWaypoint)) return false;
+        if (!Array.isArray(rec.legs) || !rec.legs.every(isValidLeg)) return false;
+        return true;
       }
     ) as Itinerary[];
   } catch {
@@ -83,7 +118,7 @@ export function loadSettings(): AppSettings {
     if (typeof parsed?.tolerances !== 'object' || parsed.tolerances == null) {
       return { tolerances: { ...DEFAULT_TOLERANCES }, mapDisplay: { ...DEFAULT_MAP_DISPLAY } };
     }
-    return {
+    const settings = {
       tolerances: {
         ...DEFAULT_TOLERANCES,
         ...Object.fromEntries(
@@ -106,6 +141,14 @@ export function loadSettings(): AppSettings {
         ),
       },
     };
+    // If the saved baseMap is no longer available at runtime (e.g., user removed the
+    // Thunderforest API key), fall back to the first available map to avoid a broken tile layer.
+    const chosenMap = BASE_MAPS.find((m) => m.id === settings.mapDisplay.baseMap);
+    if (!chosenMap || !chosenMap.available) {
+      const fallback = BASE_MAPS.find((m) => m.available);
+      if (fallback) settings.mapDisplay.baseMap = fallback.id;
+    }
+    return settings;
   } catch {
     return { tolerances: { ...DEFAULT_TOLERANCES }, mapDisplay: { ...DEFAULT_MAP_DISPLAY } };
   }
