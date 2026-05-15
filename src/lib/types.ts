@@ -8,12 +8,33 @@ export interface ValidationResult {
   tolerance: { strict: number; loose: number };
 }
 
+/**
+ * Numeric values a leg can carry in either learn or track mode.
+ * Learn-only fields (no routeGeometry/elevationProfile because Learn doesn't compute paths).
+ */
+export interface LegModeValues {
+  distance: number | null;
+  elevationGain: number | null;
+  elevationLoss: number | null;
+  azimuth: number | null;
+}
+
+export interface LegTrackModeValues extends LegModeValues {
+  routeGeometry?: [number, number][];
+  elevationProfile?: { distance: number; altitude: number }[];
+}
+
 export interface Waypoint {
   id: string;
   name: string;
   lat: number | null;
   lon: number | null;
+  /** Active altitude — driven by appMode. Mirrored in trackAltitude or learnAltitude. */
   altitude: number | null;
+  /** Snapshot of altitude as last seen in Track mode. */
+  trackAltitude?: number | null;
+  /** Snapshot of altitude as last typed in Learn mode. */
+  learnAltitude?: number | null;
   order: number;
   validationState?: {
     altitude?: ValidationResult;
@@ -24,6 +45,7 @@ export interface Leg {
   id: string;
   fromWaypointId: string;
   toWaypointId: string;
+  /** Active values — driven by appMode. Mirrored in trackValues or learnValues. */
   distance: number | null;
   elevationGain: number | null;
   elevationLoss: number | null;
@@ -32,6 +54,10 @@ export interface Leg {
   elevationProfile?: { distance: number; altitude: number }[];
   estimatedTime?: number;
   slope?: number;
+  /** Snapshot of values as last seen in Track mode (auto-filled by ORS/DEM). */
+  trackValues?: LegTrackModeValues;
+  /** Snapshot of values as last typed in Learn mode (user input). */
+  learnValues?: LegModeValues;
   validationState?: {
     distance?: ValidationResult;
     elevationGain?: ValidationResult;

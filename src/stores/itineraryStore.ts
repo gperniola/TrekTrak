@@ -1,7 +1,53 @@
 import { create } from 'zustand';
-import type { Waypoint, Leg, AppSettings, AppMode } from '../lib/types';
+import type { Waypoint, Leg, AppSettings, AppMode, LegModeValues, LegTrackModeValues } from '../lib/types';
 import { DEFAULT_TOLERANCES, DEFAULT_MAP_DISPLAY } from '../lib/types';
 import { calculateMunterTime, calculateSlope } from '../lib/calculations';
+
+// --- Mode value snapshots (TASK-15: non-destructive Learn↔Track switch) ----------------
+// Each leg carries two slots — trackValues and learnValues — plus the "active"
+// fields (distance/elevationGain/...) that mirror whichever slot is current.
+// On setAppMode, the active fields are snapshotted into the OLD mode's slot
+// and the NEW mode's slot is restored to the active fields (or null defaults).
+// Renderers keep reading leg.distance, leg.elevationGain, etc. unchanged.
+
+function snapshotLegForMode(leg: Leg, mode: AppMode): LegModeValues | LegTrackModeValues {
+  const base: LegModeValues = {
+    distance: leg.distance,
+    elevationGain: leg.elevationGain,
+    elevationLoss: leg.elevationLoss,
+    azimuth: leg.azimuth,
+  };
+  if (mode === 'track') {
+    const trackSnap: LegTrackModeValues = { ...base };
+    if (leg.routeGeometry !== undefined) trackSnap.routeGeometry = leg.routeGeometry;
+    if (leg.elevationProfile !== undefined) trackSnap.elevationProfile = leg.elevationProfile;
+    return trackSnap;
+  }
+  return base;
+}
+
+function restoreLegForMode(leg: Leg, mode: AppMode): Partial<Leg> {
+  if (mode === 'track') {
+    const tv = leg.trackValues;
+    return {
+      distance: tv?.distance ?? null,
+      elevationGain: tv?.elevationGain ?? null,
+      elevationLoss: tv?.elevationLoss ?? null,
+      azimuth: tv?.azimuth ?? null,
+      routeGeometry: tv?.routeGeometry,
+      elevationProfile: tv?.elevationProfile,
+    };
+  }
+  const lv = leg.learnValues;
+  return {
+    distance: lv?.distance ?? null,
+    elevationGain: lv?.elevationGain ?? null,
+    elevationLoss: lv?.elevationLoss ?? null,
+    azimuth: lv?.azimuth ?? null,
+    routeGeometry: undefined,
+    elevationProfile: undefined,
+  };
+}
 
 function generateId(): string {
   return Math.random().toString(36).substring(2, 11);
@@ -78,34 +124,37 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
   ...initialState,
 
   setAppMode: (mode) => {
-    if (mode === get().appMode) return;
+    const oldMode = get().appMode;
+    if (mode === oldMode) return;
     const { waypoints, legs } = get();
-    if (mode === 'learn') {
-      // Switching to learn: clear all computed values, keep only coordinates
-      set({
-        appMode: mode,
-        waypoints: waypoints.map((wp) => ({ ...wp, altitude: null, validationState: undefined })),
-        legs: legs.map((l) => ({
-          ...l,
-          distance: null,
-          elevationGain: null,
-          elevationLoss: null,
-          azimuth: null,
+    // Non-destructive switch: snapshot current "active" values into the old mode's slot,
+    // restore active values from the new mode's slot (or null defaults if never visited).
+    set({
+      appMode: mode,
+      waypoints: waypoints.map((wp) => {
+        const next: Waypoint = { ...wp, validationState: undefined };
+        // Save current altitude into old mode's snapshot
+        if (oldMode === 'track') next.trackAltitude = wp.altitude;
+        else next.learnAltitude = wp.altitude;
+        // Restore from new mode's snapshot
+        next.altitude = mode === 'track' ? (wp.trackAltitude ?? null) : (wp.learnAltitude ?? null);
+        return next;
+      }),
+      legs: legs.map((leg) => {
+        const oldSnap = snapshotLegForMode(leg, oldMode);
+        const restored = restoreLegForMode(leg, mode);
+        const next: Leg = {
+          ...leg,
+          ...restored,
+          validationState: undefined,
           estimatedTime: undefined,
           slope: undefined,
-          routeGeometry: undefined,
-          elevationProfile: undefined,
-          validationState: undefined,
-        })),
-      });
-    } else {
-      // Switching to track: clear validation (auto-fill will be triggered by the UI)
-      set({
-        appMode: mode,
-        waypoints: waypoints.map((wp) => ({ ...wp, validationState: undefined })),
-        legs: legs.map((l) => ({ ...l, validationState: undefined })),
-      });
-    }
+        };
+        if (oldMode === 'track') next.trackValues = oldSnap as LegTrackModeValues;
+        else next.learnValues = oldSnap;
+        return recalculateLeg(next);
+      }),
+    });
   },
 
   setItineraryName: (name) => set({ itineraryName: name }),

@@ -2,13 +2,11 @@
 
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { useUIStore } from '@/stores/uiStore';
-import { confirm as appConfirm } from '@/stores/notificationStore';
 import type { AppMode } from '@/lib/types';
 
 export function ModeSwitch() {
   const appMode = useItineraryStore((s) => s.appMode);
   const setAppMode = useItineraryStore((s) => s.setAppMode);
-  const waypoints = useItineraryStore((s) => s.waypoints);
 
   const compassActive = useUIStore((s) => s.compassActive);
   const rulerActive = useUIStore((s) => s.rulerActive);
@@ -22,20 +20,14 @@ export function ModeSwitch() {
 
   const isTrack = appMode === 'track';
 
-  const handleToggle = async (mode: AppMode) => {
+  const handleToggle = (mode: AppMode) => {
     // Clicking Learn or Track deactivates compass, ruler, and quiz
     if (compassActive) deactivateCompass();
     if (rulerActive) deactivateRuler();
     if (quizActive) deactivateQuiz();
     if (mode === appMode) return;
-    if (mode === 'learn' && waypoints.some((wp) => wp.altitude != null || wp.lat != null)) {
-      const ok = await appConfirm({
-        title: 'Passare a modalità Learn?',
-        message: 'I dati calcolati (altitudine, distanza, azimuth, D+/D-) verranno cancellati. Continuare?',
-        confirmText: 'Passa a Learn',
-      });
-      if (!ok) return;
-    }
+    // TASK-15: switch is now non-destructive. Per-mode values are preserved in
+    // trackValues/learnValues slots and restored on switch. No confirm needed.
     setAppMode(mode);
   };
 
