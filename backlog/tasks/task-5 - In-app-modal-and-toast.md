@@ -1,7 +1,7 @@
 ---
 id: TASK-5
 title: Sostituire alert() / confirm() native con modal e toast in-app
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-05-15 17:30'
 labels:

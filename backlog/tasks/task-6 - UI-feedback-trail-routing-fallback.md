@@ -1,7 +1,7 @@
 ---
 id: TASK-6
 title: UI feedback quando il trail routing fallisce e si usa linea d'aria
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-05-15 17:30'
 labels:

@@ -1,7 +1,7 @@
 ---
 id: TASK-20
 title: Bundle UI cues — Progresso disabled, T1-T6 tooltip, maxZoom badge, positive feedback
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-05-15 19:00'
 labels:

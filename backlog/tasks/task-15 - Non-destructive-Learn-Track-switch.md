@@ -1,7 +1,7 @@
 ---
 id: TASK-15
 title: Switch Learn ↔ Track non-distruttivo (mantenere learnValues e trackValues paralleli)
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-05-15 18:30'
 labels:

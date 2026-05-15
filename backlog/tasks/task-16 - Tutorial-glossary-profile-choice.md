@@ -1,7 +1,7 @@
 ---
 id: TASK-16
 title: Tutorial — glossario didattico e scelta del profilo all'onboarding
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-05-15 18:30'
 labels:

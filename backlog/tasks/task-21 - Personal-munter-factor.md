@@ -1,7 +1,7 @@
 ---
 id: TASK-21
 title: Fattore personale Munter (passo dell'utente)
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-05-15 19:00'
 labels:

@@ -1,7 +1,7 @@
 ---
 id: TASK-9
 title: Map-bias e disambiguazione nei risultati di ricerca località
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-05-15 18:30'
 labels:

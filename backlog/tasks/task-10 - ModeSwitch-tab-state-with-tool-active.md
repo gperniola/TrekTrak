@@ -1,7 +1,7 @@
 ---
 id: TASK-10
 title: Tab Learn/Track devono restare selezionati anche con tool/quiz attivo
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-05-15 18:30'
 labels:

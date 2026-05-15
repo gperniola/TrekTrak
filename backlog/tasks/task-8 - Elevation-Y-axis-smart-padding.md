@@ -1,7 +1,7 @@
 ---
 id: TASK-8
 title: Y-axis padding intelligente nel profilo altimetrico
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-05-15 18:30'
 labels:

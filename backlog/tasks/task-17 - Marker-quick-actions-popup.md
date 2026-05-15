@@ -1,7 +1,7 @@
 ---
 id: TASK-17
 title: Quick-action popup su tap del marker (rinomina, elimina, copia coord)
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-05-15 18:30'
 labels:

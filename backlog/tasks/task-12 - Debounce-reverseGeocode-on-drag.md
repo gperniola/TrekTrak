@@ -1,7 +1,7 @@
 ---
 id: TASK-12
 title: Debounce reverseGeocode su drag rapido del marker
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-05-15 18:30'
 labels:
