@@ -5,6 +5,7 @@ import { useItineraryStore } from '@/stores/itineraryStore';
 import { saveItinerary, isStorageNearLimit } from '@/lib/storage';
 import { SavedItinerariesModal } from './SavedItinerariesModal';
 import { exportItineraryJSON, importItineraryJSON } from '@/lib/export-json';
+import { confirm as appConfirm, toast } from '@/stores/notificationStore';
 
 export function ItineraryHeader() {
   const itineraryId = useItineraryStore((s) => s.itineraryId);
@@ -28,11 +29,12 @@ export function ItineraryHeader() {
         // Strip derived fields and routeGeometry (large, can be re-fetched from ORS)
         legs: legs.map(({ validationState, estimatedTime, slope, routeGeometry, ...leg }) => leg),
       });
+      toast.success('Itinerario salvato');
       if (isStorageNearLimit()) {
-        alert('Attenzione: lo spazio di archiviazione locale si sta esaurendo. Esporta i tuoi itinerari in JSON e cancella quelli vecchi.');
+        toast.warning('Spazio di archiviazione quasi esaurito. Esporta in JSON i vecchi itinerari.', 6000);
       }
     } catch {
-      alert('Errore nel salvataggio. Lo spazio di archiviazione potrebbe essere pieno.');
+      toast.error('Errore nel salvataggio. Lo spazio potrebbe essere pieno.');
     }
   };
 
@@ -48,10 +50,18 @@ export function ItineraryHeader() {
   };
 
   const handleImportJSON = () => {
-    importItineraryJSON((itinerary) => {
+    importItineraryJSON(async (itinerary) => {
       const currentWps = useItineraryStore.getState().waypoints;
-      if (currentWps.length > 0 && !confirm('Importare questo itinerario? Le modifiche non salvate andranno perse.')) return;
+      if (currentWps.length > 0) {
+        const ok = await appConfirm({
+          title: 'Importare questo itinerario?',
+          message: 'Le modifiche non salvate andranno perse.',
+          confirmText: 'Importa',
+        });
+        if (!ok) return;
+      }
       loadItinerary(itinerary.id, itinerary.name, itinerary.waypoints, itinerary.legs, itinerary.createdAt);
+      toast.success('Itinerario importato');
     });
   };
 

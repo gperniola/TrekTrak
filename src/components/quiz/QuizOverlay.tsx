@@ -119,7 +119,8 @@ export function QuizOverlay({ onClose }: { onClose: () => void }) {
     }
 
     if (built.length === 0) {
-      alert('Impossibile generare domande. Prova a zoomare su un\'area diversa.');
+      const { toast } = await import('@/stores/notificationStore');
+      toast.warning('Impossibile generare domande. Prova a zoomare su un\'area diversa.');
       onClose();
       return;
     }

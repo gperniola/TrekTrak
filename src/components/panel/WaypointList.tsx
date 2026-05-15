@@ -18,6 +18,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useItineraryStore } from '@/stores/itineraryStore';
+import { toast } from '@/stores/notificationStore';
 import { WaypointCard } from './WaypointCard';
 import { LegCard } from './LegCard';
 import type { Waypoint } from '@/lib/types';
@@ -88,7 +89,7 @@ export function WaypointList() {
         <button
           onClick={() => {
             if (waypoints.length >= maxWaypoints) {
-              alert(`Massimo ${maxWaypoints} waypoint per itinerario`);
+              toast.warning(`Massimo ${maxWaypoints} waypoint per itinerario`);
               return;
             }
             addWaypoint();

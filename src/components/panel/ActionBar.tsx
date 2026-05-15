@@ -14,6 +14,7 @@ import { encodeItinerary } from '@/lib/share-url';
 import { saveValidationSession } from '@/lib/storage';
 import type { ValidationSessionResult } from '@/lib/types';
 import { useUIStore } from '@/stores/uiStore';
+import { toast } from '@/stores/notificationStore';
 
 
 export function ActionBar() {
@@ -42,7 +43,7 @@ export function ActionBar() {
 
   const handlePDF = async (format: 'summary' | 'roadbook') => {
     if (waypoints.length < 2) {
-      alert('Aggiungi almeno 2 waypoint');
+      toast.warning('Aggiungi almeno 2 waypoint');
       return;
     }
     // PDF is useful even without coordinates, so only check waypoint count.
@@ -63,7 +64,7 @@ export function ActionBar() {
   const handleGPX = () => {
     const validCoordWps = waypoints.filter((wp) => wp.lat != null && wp.lon != null);
     if (validCoordWps.length < 2) {
-      alert('Servono almeno 2 waypoint con coordinate valide per il GPX');
+      toast.warning('Servono almeno 2 waypoint con coordinate valide per il GPX');
       return;
     }
     downloadGPX(itineraryName, waypoints, legs);
@@ -240,7 +241,10 @@ export function ActionBar() {
       }
 
       if (!apiAvailable && mountedRef.current) {
-        alert('Alcuni dati non sono stati verificati: servizio altimetrico non disponibile. Distanza e azimuth sono stati comunque validati.');
+        toast.warning(
+          'Servizio altimetrico non disponibile: distanza e azimuth validati, altitudine e D+/D- saltati.',
+          6000,
+        );
       }
 
       // --- Collect results and save validation session ---
@@ -314,15 +318,16 @@ export function ActionBar() {
   const handleShareLink = () => {
     const hash = encodeItinerary(itineraryName, waypoints, legs);
     if (!hash) {
-      alert('Itinerario troppo grande per la condivisione via link. Usa Export JSON.');
+      toast.warning('Itinerario troppo grande per la condivisione via link. Usa Export JSON.');
       return;
     }
     const url = `${window.location.origin}${window.location.pathname}${hash}`;
     navigator.clipboard.writeText(url).then(() => {
       setLinkCopied(true);
+      toast.success('Link copiato negli appunti');
       setTimeout(() => setLinkCopied(false), 2000);
     }).catch(() => {
-      alert('Impossibile copiare il link. Copia manualmente:\n' + url);
+      toast.error('Impossibile copiare il link. Riprova manualmente.');
     });
   };
 

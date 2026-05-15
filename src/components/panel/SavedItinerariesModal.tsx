@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { loadItineraries, deleteItinerary } from '@/lib/storage';
 import { useItineraryStore } from '@/stores/itineraryStore';
+import { confirm as appConfirm, toast } from '@/stores/notificationStore';
 
 export function SavedItinerariesModal({ onClose }: { onClose: () => void }) {
   const loadItinerary = useItineraryStore((s) => s.loadItinerary);
@@ -16,18 +17,31 @@ export function SavedItinerariesModal({ onClose }: { onClose: () => void }) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
 
-  const handleLoad = (it: typeof items[0]) => {
+  const handleLoad = async (it: typeof items[0]) => {
     const currentWps = useItineraryStore.getState().waypoints;
-    if (currentWps.length > 0 && !confirm('Caricare questo itinerario? Le modifiche non salvate andranno perse.')) return;
+    if (currentWps.length > 0) {
+      const ok = await appConfirm({
+        title: 'Caricare questo itinerario?',
+        message: 'Le modifiche non salvate andranno perse.',
+        confirmText: 'Carica',
+      });
+      if (!ok) return;
+    }
     loadItinerary(it.id, it.name, it.waypoints, it.legs, it.createdAt);
     onClose();
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('Eliminare questo itinerario?')) {
-      deleteItinerary(id);
-      setItems(loadItineraries());
-    }
+  const handleDelete = async (id: string) => {
+    const ok = await appConfirm({
+      title: 'Eliminare questo itinerario?',
+      message: 'L\'azione è irreversibile.',
+      variant: 'error',
+      confirmText: 'Elimina',
+    });
+    if (!ok) return;
+    deleteItinerary(id);
+    setItems(loadItineraries());
+    toast.success('Itinerario eliminato');
   };
 
   return (
