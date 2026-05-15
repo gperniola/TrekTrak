@@ -16,3 +16,6 @@ tsconfig.tsbuildinfo
 
 # Windows/Cygwin artefacts
 *.stackdump
+
+# Local lighthouse reports & screenshots (regenerable)
+backlog/docs/screenshots/
