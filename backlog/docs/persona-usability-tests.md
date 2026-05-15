@@ -230,3 +230,52 @@ Metodo: per ogni persona, lista di task realistici → tentativo di esecuzione �
 5. **Quick-action marker popup** (B, C × 🟡) — feature B1.
 
 Queste 5 azioni coprono i problemi 🔴 e i 🟡 di tutte le personas. Bundle ideale per **v0.7.0 "Didattica visiva + UX rifondata"**.
+
+---
+
+## Appendice: Round 2 — Test live (2026-05-15 dopo session-restart)
+
+Esecuzione effettiva via Chrome DevTools MCP sul dev server, dopo `localStorage.clear()` per simulare first-visit.
+
+### Scenari coperti
+
+| Persona | Scenario eseguito |
+|---|---|
+| **D** | Tutorial → click mappa → 2 waypoint con reverse-geocode auto → quiz distanza (errato 42% → 0/100) → switch Learn → input manuale → Verifica → badge ✓/⚠️ con tip didattico |
+| **C** | Search "Corno Grande" (1 risultato Bolzano, NOT Abruzzo) → 4 waypoint sulla mappa Alpi → GPX export → Copia link |
+| **B** | Resize mobile 390×844 → ispezione drawer / top bar / popup leaflet |
+| **A** | Inspect a11y tree, console warnings, snapshot DOM |
+
+### Nuovi findings emersi dal test live
+
+| ID | Severity | Trovato da | Descrizione |
+|---|---|---|---|
+| **R8-01** | 🔴 HIGH | C | 3 waypoint vicini hanno **tutti lo stesso nome auto-generato** ("Monteplair"). Reverse-geocode trova lo stesso POI per coordinate vicine. Utente non può distinguere i WP nel pannello |
+| **R8-02** | 🟡 MEDIUM | C | Y-axis del profilo altimetrico per range piccoli (es. 2531-2558m, Δ=27m) mostra padding eccessivo (2520-2600m). Chart "schiacciato", difficile leggere variazioni |
+| **R8-03** | 🟡 MEDIUM | C | Search "Corno Grande" ha restituito 1 solo risultato (Bolzano), mancando il famoso del Gran Sasso d'Abruzzo. Nominatim limit=5 ma query troppo ambigua. Manca biasing per area visibile della mappa |
+| **R8-04** | 🔴 HIGH a11y | A | TUTTI gli spinbutton (Lat, Lon, Alt, Dist, Azim, D+, D-) hanno `aria-valuemin="0" aria-valuemax="0"` errati. In Learn mode Lat/Lon sono anche `aria-invalid="true"` su valori validi. Screen reader leggono info sbagliate |
+| **R8-05** | 🟡 MEDIUM | B | Quando compass/ruler/quiz è attivo, ENTRAMBI i tab Learn/Track risultano `aria-selected=false` e visivamente non selezionati. Crea ambiguità: "in che modalità sono?". Soluzione: mantenere il tab attivo evidenziato anche con tool ON |
+| **R8-06** | 🟡 MEDIUM | A | Console warning Recharts `width(-1) height(-1)` al primo render. Container senza dimensioni iniziali → flash/flicker del chart |
+| **R8-07** | 🟢 LOW | D | "Copia link" cliccato: nessun feedback visibile (testato in automation, clipboard API può essere bloccata). Verificare che lo stato `setLinkCopied(true)` sia chiaramente visibile (cambio testo bottone, colore, banner) |
+| **R8-08** | 🟡 MEDIUM | C | Reverse-geocode firing su drag: 5 trascinamenti rapidi del marker → 5 chiamate serializzate (corretto post-R3-01 fix). Ma l'UX feel laggy: il nome del waypoint cambia con delay |
+| **R8-09** | 🟡 MEDIUM | D | Quiz scoring molto severo: distanza reale 1.41 km, risposta 2.00 km → errore 42% → punteggio **0/100**. Tolerance distance = 20%, ma con scoring lineare anche piccoli sforamenti vanno a 0. Per Persona D è frustrante: scoraggia continuare |
+| **R8-10** | 🟢 LOW | A | Dialog modale tutorial ha `aria-label="Tutorial modalità Learn"` ma il tutorial copre Learn E Track. Etichetta fuorviante |
+
+### Highlight positivi (cose che funzionano bene)
+
+- ✅ Click → waypoint → reverse-geocode → trail routing → elevation profile: tutto in ~3s, niente errori
+- ✅ Badge didattici cliccabili con tip personalizzato per tipo di errore (es. "Verifica la declinazione magnetica..." per azimuth warning). Pattern eccellente.
+- ✅ Calcolo D+/D- cumulativo coerente (4 leg: 23+33+29+0=85; 1+29+32+0=62)
+- ✅ Mappa Thunderforest Outdoors molto leggibile a livelli di zoom alti
+- ✅ Profilo altimetrico in Learn mode ha background ambra ("stimato") che chiaramente lo distingue da Track
+- ✅ Mobile layout (390×844) lavora bene con touch target 44px su elementi principali
+
+### Aggiornamento "Top 5 azioni" (post-test live)
+
+Le top 5 invariate (Learn↔Track non-distruttivo, UI ORS fallback, modal/toast, glossario+profilo, marker popup). **Aggiungo**:
+
+6. **R8-04** — Fix `aria-valuemin/max` e `aria-invalid` in NumberInput (HIGH a11y, low effort)
+7. **R8-01** — Suffix progressivo su auto-name duplicati (MEDIUM impact, low effort)
+8. **R8-09** — Rivedere la curva di scoring del quiz: invece di scoring lineare → curva più clemente (es. `1 - (delta/tolerance)^0.5` invece di `1 - delta/tolerance`)
+9. **R8-02** — Y-axis padding intelligente: per range < 50m usare padding fisso 5m, per range > 200m usare 5%; in mezzo interpolare
+

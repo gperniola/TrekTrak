@@ -49,3 +49,13 @@ Status:
 | R7-03 | 7 | 🟡 MEDIUM | `panel/SavedItinerariesModal.tsx`, `panel/ActionBar.tsx`, `panel/WaypointList.tsx` | Use native `alert()` and `confirm()` — poor mobile UX, no localization control, blocks main thread. Should use styled in-app modal/banner | deferred (UX redesign) |
 | R7-04 | 7 | 🟡 MEDIUM | `auto-fill.ts` (silent ORS fallback) | When trail routing fails for a leg, fallback is silent (only `console.warn`). User has no UI cue that the path is straight-line instead of real trail | deferred (UX improvement) |
 | R7-05 | 7 | 🟢 LOW | `panel/ActionBar.tsx` "Copia link" | Button disabled state has no tooltip explaining *why* (e.g., "Servono almeno 2 waypoint con coordinate") | deferred (UX improvement) |
+| R8-01 | 8 | 🔴 HIGH | reverse-geocoding consumers (MapEvents, drag handlers) | Multiple waypoints with same auto-name when reverse-geocode returns same POI for nearby coords (live test: 3× "Monteplair") | open |
+| R8-02 | 8 | 🟡 MEDIUM | `ElevationProfile.tsx:127-131` Y-axis | For small altitude ranges (e.g., 27m delta) padding is excessive (~50%+), chart appears flat | open |
+| R8-03 | 8 | 🟡 MEDIUM | `lib/geocoding-api.ts`, `LocationSearch.tsx` | Ambiguous queries return only 1 result without map-bias (e.g., "Corno Grande" → Bolzano, missing Abruzzo). Limit=5 but Nominatim doesn't auto-disambiguate | open |
+| R8-04 | 8 | 🔴 HIGH a11y | `components/shared/NumberInput.tsx` | All spinbuttons report `aria-valuemin="0" aria-valuemax="0"` (wrong); Lat/Lon report `aria-invalid="true"` on valid coords. Screen readers receive wrong info | open |
+| R8-05 | 8 | 🟡 MEDIUM | `panel/ModeSwitch.tsx` | When compass/ruler/quiz active, BOTH Learn and Track tabs have `aria-selected=false` and visually unselected — ambiguous current mode | open |
+| R8-06 | 8 | 🟡 MEDIUM | `ElevationProfile.tsx` | Recharts logs `width(-1) height(-1)` warning at first render before container layout settles | open |
+| R8-07 | 8 | 🟢 LOW | `panel/ActionBar.tsx` "Copia link" feedback | Visible feedback after copy (label change "✓ Copiato") not prominent enough; consider toast | deferred (waits TASK-5) |
+| R8-08 | 8 | 🟡 MEDIUM | drag handlers + reverse-geocoding | Each drag-end fires reverseGeocode (serialized). Names refresh with delay, feels laggy. Debounce drag-end | open |
+| R8-09 | 8 | 🟡 MEDIUM | `lib/quiz.ts` `calculateQuizScore` | Linear scoring drops to 0 quickly: 42%-off answer gets 0/100, discouraging beginners. Use sub-linear curve (e.g., `1 - sqrt(delta/tolerance)`) | open |
+| R8-10 | 8 | 🟢 LOW | `components/tutorial/LearnTutorial.tsx` | Dialog has `aria-label="Tutorial modalità Learn"` but covers Learn AND Track; misleading label | open |
