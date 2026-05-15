@@ -6,6 +6,7 @@ import { saveItinerary, isStorageNearLimit } from '@/lib/storage';
 import { SavedItinerariesModal } from './SavedItinerariesModal';
 import { exportItineraryJSON, importItineraryJSON } from '@/lib/export-json';
 import { confirm as appConfirm, toast } from '@/stores/notificationStore';
+import type { Leg } from '@/lib/types';
 
 export function ItineraryHeader() {
   const itineraryId = useItineraryStore((s) => s.itineraryId);
@@ -18,6 +19,23 @@ export function ItineraryHeader() {
   const resetItinerary = useItineraryStore((s) => s.resetItinerary);
   const [showSaved, setShowSaved] = useState(false);
 
+  // Strip large/derived fields before persisting (storage and JSON export).
+  // - validationState, estimatedTime, slope: derived (recomputed on load)
+  // - routeGeometry, elevationProfile: large (regenerable via ORS/DEM)
+  // - trackValues.routeGeometry, trackValues.elevationProfile: same as above
+  const slimLeg = (leg: Leg) => {
+    const { validationState, estimatedTime, slope, routeGeometry, elevationProfile, trackValues, ...rest } = leg;
+    void validationState; void estimatedTime; void slope; void routeGeometry; void elevationProfile;
+    const slimTrack = trackValues
+      ? (() => {
+          const { routeGeometry: _rg, elevationProfile: _ep, ...tv } = trackValues;
+          void _rg; void _ep;
+          return tv;
+        })()
+      : undefined;
+    return slimTrack ? { ...rest, trackValues: slimTrack } : rest;
+  };
+
   const handleSave = () => {
     try {
       saveItinerary({
@@ -26,8 +44,7 @@ export function ItineraryHeader() {
         createdAt,
         updatedAt: new Date().toISOString(),
         waypoints: waypoints.map(({ validationState, ...wp }) => wp),
-        // Strip derived fields and routeGeometry (large, can be re-fetched from ORS)
-        legs: legs.map(({ validationState, estimatedTime, slope, routeGeometry, ...leg }) => leg),
+        legs: legs.map(slimLeg),
       });
       toast.success('Itinerario salvato');
       if (isStorageNearLimit()) {
@@ -45,7 +62,7 @@ export function ItineraryHeader() {
       createdAt,
       updatedAt: new Date().toISOString(),
       waypoints: waypoints.map(({ validationState, ...wp }) => wp),
-      legs: legs.map(({ validationState, estimatedTime, slope, routeGeometry, ...leg }) => leg),
+      legs: legs.map(slimLeg),
     });
   };
 
