@@ -7,11 +7,17 @@ import type { Leg } from '@/lib/types';
 // Generation counter to cancel stale auto-fill operations
 let autoFillGeneration = 0;
 
+// Round to ~1m precision (6 decimal degrees of latitude ≈ 0.11m) so
+// the elevation cache hits across float-precision drift on the same physical point.
+function elevationCacheKey(lat: number, lon: number): string {
+  return `${lat.toFixed(6)},${lon.toFixed(6)}`;
+}
+
 async function getCachedElevation(
   lat: number, lon: number,
   cache: Map<string, number | null>
 ): Promise<number | null> {
-  const key = `${lat},${lon}`;
+  const key = elevationCacheKey(lat, lon);
   if (cache.has(key)) return cache.get(key) ?? null;
   const result = await fetchElevation(lat, lon);
   cache.set(key, result);
@@ -48,12 +54,12 @@ async function autoFillLegClassic(
 
   // Check cache for all points, identify which need fetching
   const elevations: (number | null)[] = points.map(([lat, lon]) => {
-    const key = `${lat},${lon}`;
+    const key = elevationCacheKey(lat, lon);
     return elevationCache.has(key) ? (elevationCache.get(key) ?? null) : null;
   });
   const uncachedIndices = points
     .map((_, i) => i)
-    .filter((i) => !elevationCache.has(`${points[i][0]},${points[i][1]}`));
+    .filter((i) => !elevationCache.has(elevationCacheKey(points[i][0], points[i][1])));
 
   if (uncachedIndices.length > 0) {
     const uncachedPoints = uncachedIndices.map((i) => points[i]);
@@ -62,7 +68,7 @@ async function autoFillLegClassic(
     for (let j = 0; j < uncachedIndices.length; j++) {
       const idx = uncachedIndices[j];
       const [lat, lon] = points[idx];
-      elevationCache.set(`${lat},${lon}`, fetched[j]);
+      elevationCache.set(elevationCacheKey(lat, lon), fetched[j]);
       elevations[idx] = fetched[j];
     }
   }
