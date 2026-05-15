@@ -41,6 +41,20 @@ export function azimuthDelta(a: number, b: number): number {
   return Math.min(raw, 360 - raw);
 }
 
+/**
+ * Score curve (piecewise linear, more lenient than pure linear):
+ *
+ *   ratio = delta / tolerance
+ *   ratio = 0      → 100  (perfect)
+ *   ratio = 0.5    → 75
+ *   ratio = 1.0    → 50   (exactly at tolerance — still passing)
+ *   ratio = 2.0    → 10   (would have been 0 with linear; now keeps a hint of credit)
+ *   ratio = 4.0    → 0    (clearly wrong)
+ *
+ * Rationale: a beginner whose stima is 42% off (Persona D test case) was getting 0/100
+ * with the linear curve. The clement curve gives ~6/100 in the same spot, which is
+ * still low but not punishingly absolute. Encourages continued play.
+ */
 export function calculateQuizScore(userValue: number, realValue: number, type: QuestionType): number {
   let delta: number;
   let tolerance: number;
@@ -57,7 +71,11 @@ export function calculateQuizScore(userValue: number, realValue: number, type: Q
   }
 
   if (tolerance <= 0) return delta === 0 ? 100 : 0;
-  return Math.max(0, Math.round(100 * (1 - delta / tolerance)));
+  const ratio = delta / tolerance;
+  if (ratio <= 1) return Math.round(100 - 50 * ratio);       // 100 → 50
+  if (ratio <= 2) return Math.round(50 - 40 * (ratio - 1));  // 50 → 10
+  if (ratio <= 4) return Math.round(10 - 5 * (ratio - 2));   // 10 → 0
+  return 0;
 }
 
 export function generateRandomPoint(
