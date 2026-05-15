@@ -212,6 +212,16 @@ export async function autoFillTrackData(waypointId: string) {
 
   if (routingWarnings.length > 0 && !isStale()) {
     console.warn(`[TrekTrak] Nessun sentiero trovato per: ${routingWarnings.join(', ')}. Usato calcolo in linea d'aria.`);
+    // TASK-6: surface the fallback to the user via toast so they know the path
+    // shown is a straight line, not the real sentiero. Lazy-import to keep this
+    // pure-logic module free of UI deps in tests.
+    try {
+      const mod = await import('@/stores/notificationStore');
+      const list = routingWarnings.slice(0, 3).join(', ') + (routingWarnings.length > 3 ? ' …' : '');
+      mod.toast.warning(`Sentiero non trovato per ${routingWarnings.length} tratta/e (${list}). Usata linea d'aria.`, 6000);
+    } catch {
+      // best-effort
+    }
   }
 }
 

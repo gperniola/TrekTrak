@@ -7,11 +7,14 @@ import { MapWrapper } from '@/components/map/MapWrapper';
 import { ElevationProfile } from '@/components/map/ElevationProfile';
 import { ToleranceSettings } from '@/components/settings/ToleranceSettings';
 import { ModeSwitch } from '@/components/panel/ModeSwitch';
+import dynamic from 'next/dynamic';
 import { LearnTutorial } from '@/components/tutorial/LearnTutorial';
 import { WhatsNew } from '@/components/tutorial/WhatsNew';
 import { MapSettings } from '@/components/settings/MapSettings';
 import { QuizOverlay } from '@/components/quiz/QuizOverlay';
-import { ProgressOverlay } from '@/components/panel/ProgressOverlay';
+// TASK-4: ProgressOverlay imports Recharts (~150kB). Lazy-load to keep
+// first-paint bundle small — it's only mounted when the user opens the panel.
+const ProgressOverlay = dynamic(() => import('@/components/panel/ProgressOverlay').then((m) => ({ default: m.ProgressOverlay })), { ssr: false });
 import { loadSettings } from '@/lib/storage';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { useUIStore } from '@/stores/uiStore';

@@ -400,6 +400,7 @@ export function ActionBar() {
         <button
           onClick={handleShareLink}
           disabled={waypoints.length < 2}
+          title={waypoints.length < 2 ? 'Servono almeno 2 waypoint per condividere via link' : undefined}
           className="flex-1 py-2 bg-amber-500 text-black rounded font-bold text-xs hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {linkCopied ? 'Copiato!' : 'Copia link'}
