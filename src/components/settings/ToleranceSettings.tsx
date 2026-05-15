@@ -38,7 +38,7 @@ export function ToleranceSettings({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1200]" onClick={onClose}>
-      <div className="bg-gray-800 rounded-lg p-6 w-80" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-gray-800 rounded-lg p-6 w-80 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <h3 className="text-lg font-bold text-green-400 mb-4">Tolleranze di validazione</h3>
         <p className="text-xs text-gray-400 mb-4">
           Soglia stretta = valore impostato. Soglia larga = 2x il valore.

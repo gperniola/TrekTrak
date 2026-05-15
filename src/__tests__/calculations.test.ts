@@ -83,6 +83,19 @@ describe('calculateMunterTime', () => {
   test('returns 0 for zero distance and zero elevation', () => {
     expect(calculateMunterTime(0, 0, 0)).toBe(0);
   });
+
+  // TASK-21: personal pace factor
+  test('factor=1.2 slows by 20%', () => {
+    expect(calculateMunterTime(4, 0, 0, 1.2)).toBeCloseTo(72, 1);
+  });
+  test('factor=0.85 speeds up by 15%', () => {
+    expect(calculateMunterTime(4, 0, 0, 0.85)).toBeCloseTo(51, 1);
+  });
+  test('invalid factor falls back to 1', () => {
+    expect(calculateMunterTime(4, 0, 0, NaN)).toBe(60);
+    expect(calculateMunterTime(4, 0, 0, 0)).toBe(60);
+    expect(calculateMunterTime(4, 0, 0, -1)).toBe(60);
+  });
 });
 
 describe('calculateSlope', () => {

@@ -21,21 +21,21 @@ export function TrackModeAutoFill() {
 
     if (modeChanged || routingChanged || itineraryChanged) {
       const store = useItineraryStore.getState();
-      // BUG-FIX (TASK-15 interaction): on a pure mode switch where TASK-15 just
-      // restored populated trackValues, skip the re-fetch — those values are
-      // still valid. Only re-fill when:
-      //   - routing setting flipped (must recompute either way)
-      //   - itinerary just loaded (data came from storage/URL without geometry)
-      //   - mode change AND at least one leg has null distance (= no trackValues to restore)
-      const allLegsPopulated = store.legs.length > 0 && store.legs.every((l) => l.distance != null);
-      const shouldRefill = routingChanged || itineraryChanged || (modeChanged && !allLegsPopulated);
+      // TASK-15 interaction:
+      //  - routingChanged / itineraryChanged → full re-fill (need fresh geometry).
+      //  - modeChanged only (Learn→Track) → re-fill only legs missing data;
+      //    legs whose trackValues were just restored stay untouched.
+      const fullRefill = routingChanged || itineraryChanged;
+      const partialRefill = modeChanged && !fullRefill;
 
-      if (shouldRefill) {
-        // Clear stale route geometry and elevation profiles before recalculating
+      if (fullRefill) {
         store.legs.forEach((leg) => {
           store.updateLeg(leg.id, { routeGeometry: undefined, elevationProfile: undefined });
         });
         autoFillAllTrackData();
+      } else if (partialRefill) {
+        // Only fill legs with null distance; preserve restored trackValues elsewhere.
+        autoFillAllTrackData(true);
       }
     }
 
