@@ -10,6 +10,10 @@ export const Marker = ({ children }: { children?: React.ReactNode }) => (
   <div data-testid="marker">{children}</div>
 );
 
+export const Popup = ({ children }: { children?: React.ReactNode }) => (
+  <div data-testid="popup">{children}</div>
+);
+
 export const Polyline = () => <div data-testid="polyline" />;
 
 export const useMap = () => ({

@@ -1,9 +1,10 @@
 'use client';
 
-import { MapContainer, TileLayer, Marker } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import type L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useItineraryStore } from '@/stores/itineraryStore';
+import { toast, confirm as appConfirm } from '@/stores/notificationStore';
 import { useUIStore } from '@/stores/uiStore';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { autoFillTrackData } from '@/lib/auto-fill';
@@ -27,6 +28,78 @@ function resolveBaseMap(chosen: string): BaseMapDef {
   if (def) return def;
   // Fallback: first available map (OpenTopoMap or OSM)
   return BASE_MAPS.find((m) => m.available) ?? BASE_MAPS[BASE_MAPS.length - 1];
+}
+
+/** TASK-17: quick-action panel inside the Leaflet popup on marker tap.
+ * Rename inline, delete (with confirm), copy coordinates. */
+function WaypointQuickActions({ wpId }: { wpId: string }) {
+  const wp = useItineraryStore((s) => s.waypoints.find((w) => w.id === wpId));
+  const updateWaypoint = useItineraryStore((s) => s.updateWaypoint);
+  const removeWaypoint = useItineraryStore((s) => s.removeWaypoint);
+
+  if (!wp) return null;
+
+  const handleRename = (e: React.FocusEvent<HTMLInputElement>) => {
+    const name = e.target.value.trim().slice(0, 100);
+    if (name && name !== wp.name) updateWaypoint(wpId, { name });
+  };
+
+  const handleDelete = async () => {
+    const ok = await appConfirm({
+      title: 'Eliminare il waypoint?',
+      message: `"${wp.name}" verrà rimosso dall'itinerario.`,
+      variant: 'error',
+      confirmText: 'Elimina',
+    });
+    if (ok) {
+      removeWaypoint(wpId);
+      toast.success('Waypoint rimosso');
+    }
+  };
+
+  const handleCopy = () => {
+    if (wp.lat == null || wp.lon == null) return;
+    const text = `${wp.lat.toFixed(6)}, ${wp.lon.toFixed(6)}`;
+    navigator.clipboard.writeText(text).then(
+      () => toast.success(`Coordinate copiate: ${text}`),
+      () => toast.error('Impossibile copiare le coordinate'),
+    );
+  };
+
+  return (
+    <div className="min-w-[180px] text-xs">
+      <input
+        type="text"
+        defaultValue={wp.name}
+        onBlur={handleRename}
+        onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+        aria-label="Nome waypoint"
+        maxLength={100}
+        className="w-full px-2 py-1 mb-2 bg-gray-100 border border-gray-300 rounded text-sm text-gray-900"
+      />
+      {wp.lat != null && wp.lon != null && (
+        <div className="text-[10px] text-gray-500 mb-2 font-mono">
+          {wp.lat.toFixed(5)}, {wp.lon.toFixed(5)}
+        </div>
+      )}
+      <div className="flex gap-1">
+        <button
+          onClick={handleCopy}
+          className="flex-1 px-2 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs"
+          aria-label="Copia coordinate"
+        >
+          📋 Copia
+        </button>
+        <button
+          onClick={handleDelete}
+          className="flex-1 px-2 py-1 bg-red-600 hover:bg-red-500 text-white rounded text-xs"
+          aria-label="Elimina waypoint"
+        >
+          🗑 Elimina
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export function InteractiveMap() {
@@ -119,7 +192,11 @@ export function InteractiveMap() {
           eventHandlers={{
             dragend: (e) => handleDragEnd(wp.id, e),
           }}
-        />
+        >
+          <Popup>
+            <WaypointQuickActions wpId={wp.id} />
+          </Popup>
+        </Marker>
       ))}
 
       <LegPolylines />
