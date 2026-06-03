@@ -49,7 +49,9 @@ export const useRouteLibraryStore = create<RouteLibraryState>((set, get) => ({
 
   select: (id) => set({ selectedRouteId: id }),
 
-  setSortMode: (mode) => set({ sortMode: mode, routes: sortRoutes(get().routes, mode) }),
+  // Reload from storage (not get().routes) so the re-sort reflects any external
+  // writes since the last refresh, consistent with the other mutating actions.
+  setSortMode: (mode) => set({ sortMode: mode, routes: sortRoutes(loadItineraries(), mode) }),
 
   reorder: (orderedIds) => {
     reorderSavedItineraries(orderedIds);
