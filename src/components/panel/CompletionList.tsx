@@ -49,6 +49,7 @@ export function CompletionList({ route }: { route: Itinerary }) {
 
       {adding && (
         <CompletionForm
+          idPrefix="cf-add"
           knownPeople={getKnownPeople()}
           onCancel={() => setAdding(false)}
           onSubmit={(c) => { guard(() => addCompletion(route.id, c)); setAdding(false); }}
@@ -58,7 +59,7 @@ export function CompletionList({ route }: { route: Itinerary }) {
       <div className="space-y-1">
         {completions.map((c: RouteCompletion) => (
           editingId === c.id ? (
-            <CompletionForm key={c.id} knownPeople={getKnownPeople()} initial={c}
+            <CompletionForm key={c.id} idPrefix={`cf-edit-${c.id}`} knownPeople={getKnownPeople()} initial={c}
               onCancel={() => setEditingId(null)}
               onSubmit={(patch) => { guard(() => updateCompletion(route.id, c.id, patch)); setEditingId(null); }} />
           ) : (
