@@ -2,11 +2,14 @@
 
 import { useState } from 'react';
 import { useItineraryStore } from '@/stores/itineraryStore';
-import { saveItinerary, isStorageNearLimit } from '@/lib/storage';
-import { SavedItinerariesModal } from './SavedItinerariesModal';
+import { saveItinerary, loadItineraries, isStorageNearLimit } from '@/lib/storage';
+import { computeRouteMetrics } from '@/lib/calculations';
+import { SaveRouteModal } from './SaveRouteModal';
 import { exportItineraryJSON, importItineraryJSON } from '@/lib/export-json';
 import { confirm as appConfirm, toast } from '@/stores/notificationStore';
-import type { Leg } from '@/lib/types';
+import { useUIStore } from '@/stores/uiStore';
+import { useRouteLibraryStore } from '@/stores/routeLibraryStore';
+import type { Leg, Itinerary } from '@/lib/types';
 
 export function ItineraryHeader() {
   const itineraryId = useItineraryStore((s) => s.itineraryId);
@@ -14,10 +17,13 @@ export function ItineraryHeader() {
   const createdAt = useItineraryStore((s) => s.createdAt);
   const waypoints = useItineraryStore((s) => s.waypoints);
   const legs = useItineraryStore((s) => s.legs);
+  const settings = useItineraryStore((s) => s.settings);
   const setItineraryName = useItineraryStore((s) => s.setItineraryName);
   const loadItinerary = useItineraryStore((s) => s.loadItinerary);
   const resetItinerary = useItineraryStore((s) => s.resetItinerary);
-  const [showSaved, setShowSaved] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const setMainView = useUIStore((s) => s.setMainView);
+  const refreshLibrary = useRouteLibraryStore((s) => s.refresh);
 
   // Strip large/derived fields before persisting (storage and JSON export).
   // - validationState, estimatedTime, slope: derived (recomputed on load)
@@ -36,22 +42,47 @@ export function ItineraryHeader() {
     return slimTrack ? { ...rest, trackValues: slimTrack } : rest;
   };
 
-  const handleSave = () => {
+  // `preloaded` lets the caller pass a snapshot it already read, so a single
+  // click does one localStorage read here (existing + maxSort from the same
+  // snapshot, no inter-read race), plus the unavoidable read inside saveItinerary.
+  const persist = (name: string, notes: string | undefined, preloaded?: Itinerary[]) => {
+    const all = preloaded ?? loadItineraries();
+    const existing = all.find((it) => it.id === itineraryId);
+    const metrics = computeRouteMetrics(waypoints, legs, settings.pace?.factor ?? 1);
+    const maxSort = all.reduce((m, it) => Math.max(m, it.sortIndex ?? 0), -1);
     try {
       saveItinerary({
         id: itineraryId,
-        name: itineraryName,
-        createdAt,
+        name,
+        // Preserve the original creation date on re-save; for a first save fall
+        // back to the store value (stamped when the itinerary was started).
+        createdAt: existing?.createdAt ?? createdAt,
         updatedAt: new Date().toISOString(),
         waypoints: waypoints.map(({ validationState, ...wp }) => wp),
         legs: legs.map(slimLeg),
+        metrics,
+        notes: notes ?? existing?.notes ?? '',
+        completions: existing?.completions ?? [],
+        sortIndex: existing?.sortIndex ?? maxSort + 1,
       });
+      if (name !== itineraryName) setItineraryName(name);
+      refreshLibrary();
       toast.success('Itinerario salvato');
       if (isStorageNearLimit()) {
         toast.warning('Spazio di archiviazione quasi esaurito. Esporta in JSON i vecchi itinerari.', 6000);
       }
     } catch {
       toast.error('Errore nel salvataggio. Lo spazio potrebbe essere pieno.');
+    }
+  };
+
+  const handleSave = () => {
+    const all = loadItineraries();
+    const existing = all.find((it) => it.id === itineraryId);
+    if (existing) {
+      persist(itineraryName || existing.name, undefined, all);
+    } else {
+      setShowSaveModal(true);
     }
   };
 
@@ -88,7 +119,7 @@ export function ItineraryHeader() {
         <button onClick={handleSave} className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600" aria-label="Salva itinerario">
           Salva
         </button>
-        <button onClick={() => setShowSaved(true)} className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600" aria-label="Carica itinerario">
+        <button onClick={() => setMainView('library')} className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600" aria-label="Apri libreria percorsi">
           Carica
         </button>
         <button
@@ -129,7 +160,13 @@ export function ItineraryHeader() {
           className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-sm text-white focus:border-green-500 focus:outline-none"
         />
       </div>
-      {showSaved && <SavedItinerariesModal onClose={() => setShowSaved(false)} />}
+      {showSaveModal && (
+        <SaveRouteModal
+          initialName={itineraryName}
+          onClose={() => setShowSaveModal(false)}
+          onConfirm={(name, notes) => { persist(name, notes); setShowSaveModal(false); }}
+        />
+      )}
     </div>
   );
 }

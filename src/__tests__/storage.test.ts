@@ -7,6 +7,8 @@ import {
   loadSettings,
   getStorageUsage,
   isStorageNearLimit,
+  updateSavedItinerary, reorderSavedItineraries,
+  addCompletion, updateCompletion, deleteCompletion, getKnownPeople,
 } from '../lib/storage';
 import type { Itinerary, AppSettings } from '../lib/types';
 
@@ -140,5 +142,107 @@ describe('saveItinerary quota exceeded', () => {
     } finally {
       localStorageMock.setItem = originalSetItem;
     }
+  });
+});
+
+describe('schema v3 migration and validation', () => {
+  test('loadItineraries keeps old itineraries lacking new fields', () => {
+    localStorage.setItem('trektrak_schema_version', '2');
+    localStorage.setItem('trektrak_itineraries', JSON.stringify([
+      { id: '1', name: 'Old', createdAt: 'x', updatedAt: 'x', waypoints: [], legs: [] },
+    ]));
+    const loaded = loadItineraries();
+    expect(loaded).toHaveLength(1);
+    expect(loaded[0].completions ?? []).toEqual([]);
+  });
+
+  test('migration v2->v3 backfills notes, completions, sortIndex, metrics', () => {
+    localStorage.setItem('trektrak_schema_version', '2');
+    localStorage.setItem('trektrak_itineraries', JSON.stringify([
+      { id: 'a', name: 'A', createdAt: 'x', updatedAt: 'x',
+        waypoints: [{ id: 'w1', name: 'w1', lat: 45, lon: 9, altitude: 100, order: 0 }],
+        legs: [] },
+    ]));
+    loadItineraries();
+    const raw = JSON.parse(localStorage.getItem('trektrak_itineraries')!);
+    expect(raw[0].notes).toBe('');
+    expect(raw[0].completions).toEqual([]);
+    expect(raw[0].sortIndex).toBe(0);
+    expect(raw[0].metrics.minAltitude).toBe(100);
+    expect(localStorage.getItem('trektrak_schema_version')).toBe('3');
+  });
+
+  test('migration v2->v3 is idempotent (preserves edited fields on re-load)', () => {
+    localStorage.setItem('trektrak_schema_version', '2');
+    localStorage.setItem('trektrak_itineraries', JSON.stringify([
+      { id: 'a', name: 'A', createdAt: 'x', updatedAt: 'x',
+        waypoints: [{ id: 'w1', name: 'w1', lat: 45, lon: 9, altitude: 100, order: 0 }],
+        legs: [] },
+    ]));
+    loadItineraries(); // runs migration once
+    // Simulate user edits after migration
+    updateSavedItinerary('a', { notes: 'edited', sortIndex: 7 });
+    addCompletion('a', { personName: 'Gio', date: '2026-01-01', notes: '' });
+    // A second load must NOT re-run the migration or clobber the edited fields
+    const reloaded = loadItineraries();
+    expect(reloaded[0].notes).toBe('edited');
+    expect(reloaded[0].sortIndex).toBe(7);
+    expect(reloaded[0].completions).toHaveLength(1);
+    expect(localStorage.getItem('trektrak_schema_version')).toBe('3');
+  });
+
+  test('filters malformed completions on load', () => {
+    localStorage.setItem('trektrak_schema_version', '3');
+    localStorage.setItem('trektrak_itineraries', JSON.stringify([
+      { id: '1', name: 'X', createdAt: 'x', updatedAt: 'x', waypoints: [], legs: [],
+        completions: [
+          { id: 'c1', personName: 'Gio', date: '2026-01-01', notes: 'ok' },
+          { id: 'c2', date: '2026-01-02' },
+          'garbage',
+        ] },
+    ]));
+    const loaded = loadItineraries();
+    expect(loaded[0].completions).toHaveLength(1);
+    expect(loaded[0].completions![0].id).toBe('c1');
+  });
+});
+
+describe('library helpers', () => {
+  test('updateSavedItinerary patches notes', () => {
+    saveItinerary(makeItinerary('1', 'A'));
+    updateSavedItinerary('1', { notes: 'bella gita' });
+    expect(loadItineraries()[0].notes).toBe('bella gita');
+  });
+
+  test('reorderSavedItineraries rewrites sortIndex', () => {
+    saveItinerary({ ...makeItinerary('1', 'A'), sortIndex: 0 });
+    saveItinerary({ ...makeItinerary('2', 'B'), sortIndex: 1 });
+    reorderSavedItineraries(['2', '1']);
+    const byId = Object.fromEntries(loadItineraries().map((r) => [r.id, r.sortIndex]));
+    expect(byId['2']).toBe(0);
+    expect(byId['1']).toBe(1);
+  });
+
+  test('addCompletion / updateCompletion / deleteCompletion', () => {
+    saveItinerary(makeItinerary('1', 'A'));
+    addCompletion('1', { personName: 'Gio', date: '2026-01-01', durationMinutes: 120, notes: '' });
+    let c = loadItineraries()[0].completions!;
+    expect(c).toHaveLength(1);
+    const cid = c[0].id;
+    updateCompletion('1', cid, { notes: 'fango' });
+    expect(loadItineraries()[0].completions![0].notes).toBe('fango');
+    deleteCompletion('1', cid);
+    expect(loadItineraries()[0].completions).toHaveLength(0);
+  });
+
+  test('getKnownPeople dedupes case-insensitively and trims', () => {
+    saveItinerary(makeItinerary('1', 'A'));
+    addCompletion('1', { personName: ' Gio ', date: '2026-01-01', notes: '' });
+    addCompletion('1', { personName: 'gio', date: '2026-01-02', notes: '' });
+    addCompletion('1', { personName: 'Anna', date: '2026-01-03', notes: '' });
+    const people = getKnownPeople();
+    expect(people).toContain('Gio');
+    expect(people).toContain('Anna');
+    expect(people.filter((p) => p.toLowerCase() === 'gio')).toHaveLength(1);
   });
 });

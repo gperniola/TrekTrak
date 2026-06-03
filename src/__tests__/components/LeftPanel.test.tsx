@@ -68,6 +68,7 @@ beforeEach(() => {
     progressOpen: false,
     drawerOpen: false,
     searchOpen: false,
+    mainView: 'editor',
   });
 });
 

@@ -1,4 +1,4 @@
-import type { DifficultyGrade, Waypoint, Leg } from './types';
+import type { DifficultyGrade, Waypoint, Leg, RouteMetrics } from './types';
 
 const EARTH_RADIUS_KM = 6371;
 
@@ -377,4 +377,59 @@ export function positionToDistance(
   }
 
   return bestDist < Infinity ? bestCumulative : null;
+}
+
+/**
+ * Snapshot delle metriche aggregate di un percorso.
+ * Ricalcola pendenza e tempo internamente: i campi derivati leg.slope/leg.estimatedTime
+ * possono essere stantii, assenti o dipendenti dalla modalità, quindi non vanno letti.
+ */
+export function computeRouteMetrics(
+  waypoints: Waypoint[],
+  legs: Leg[],
+  paceFactor: number = 1
+): RouteMetrics {
+  let distanceKm = 0;
+  let elevationGain = 0;
+  let elevationLoss = 0;
+  let estimatedTimeMin = 0;
+  let maxSlope = 0;
+  let slopeDistSum = 0;
+  let distSum = 0;
+
+  for (const leg of legs) {
+    const d = leg.distance ?? 0;
+    const g = leg.elevationGain ?? 0;
+    const l = leg.elevationLoss ?? 0;
+    distanceKm += d;
+    elevationGain += g;
+    elevationLoss += l;
+    estimatedTimeMin += calculateMunterTime(d, g, l, paceFactor);
+    const slope = calculateSlope(d, g, l);
+    if (slope > maxSlope) maxSlope = slope;
+    if (d > 0) { slopeDistSum += slope * d; distSum += d; }
+  }
+
+  const altitudes: number[] = [];
+  for (const wp of waypoints) {
+    if (wp.altitude != null) altitudes.push(wp.altitude);
+  }
+  for (const leg of legs) {
+    if (leg.elevationProfile) {
+      for (const p of leg.elevationProfile) {
+        if (Number.isFinite(p.altitude)) altitudes.push(p.altitude);
+      }
+    }
+  }
+
+  return {
+    distanceKm,
+    elevationGain: Math.round(elevationGain),
+    elevationLoss: Math.round(elevationLoss),
+    minAltitude: altitudes.length ? Math.round(Math.min(...altitudes)) : null,
+    maxAltitude: altitudes.length ? Math.round(Math.max(...altitudes)) : null,
+    avgSlope: distSum > 0 ? slopeDistSum / distSum : 0,
+    maxSlope,
+    estimatedTimeMin,
+  };
 }

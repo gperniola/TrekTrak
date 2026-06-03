@@ -22,6 +22,8 @@ import { MapEvents } from './MapEvents';
 import { LegPolylines, LegPolylineHoverEvents } from './LegPolylines';
 import { ProfileHoverMarker } from './ProfileHoverMarker';
 import { QuizBoundsSync } from './QuizBoundsSync';
+import { useRouteLibraryStore } from '@/stores/routeLibraryStore';
+import { PreviewRouteLayer } from './PreviewRouteLayer';
 
 function resolveBaseMap(chosen: string): BaseMapDef {
   const def = BASE_MAPS.find((m) => m.id === chosen && m.available);
@@ -108,6 +110,9 @@ export function InteractiveMap() {
   const deactivateCompass = useUIStore((s) => s.deactivateCompass);
   const deactivateRuler = useUIStore((s) => s.deactivateRuler);
   const searchOpen = useUIStore((s) => s.searchOpen);
+  const mainView = useUIStore((s) => s.mainView);
+  const selectedRouteId = useRouteLibraryStore((s) => s.selectedRouteId);
+  const previewRoute = useRouteLibraryStore((s) => s.routes.find((r) => r.id === s.selectedRouteId));
 
   const waypoints = useItineraryStore((s) => s.waypoints);
   const updateWaypointPosition = useItineraryStore((s) => s.updateWaypointPosition);
@@ -152,6 +157,7 @@ export function InteractiveMap() {
   );
 
   const baseMap = resolveBaseMap(baseMapId);
+  const libraryPreview = mainView === 'library' && selectedRouteId != null && previewRoute != null;
 
   return (
     <MapContainer
@@ -179,29 +185,36 @@ export function InteractiveMap() {
       )}
       {showCoordinateGrid && <CoordinateGrid />}
       <GeolocateOnMount />
-      <TrackModeAutoFill />
-      <MapEvents />
       <LocationSearch mobileSearchOpen={searchOpen} />
 
-      {validWaypoints.map((wp) => (
-        <Marker
-          key={wp.id}
-          position={[wp.lat!, wp.lon!]}
-          icon={greenIcon(wp.order + 1)}
-          draggable
-          eventHandlers={{
-            dragend: (e) => handleDragEnd(wp.id, e),
-          }}
-        >
-          <Popup>
-            <WaypointQuickActions wpId={wp.id} />
-          </Popup>
-        </Marker>
-      ))}
+      {libraryPreview && previewRoute && <PreviewRouteLayer route={previewRoute} />}
 
-      <LegPolylines />
-      <LegPolylineHoverEvents />
-      <ProfileHoverMarker />
+      {!libraryPreview && (
+        <>
+          <TrackModeAutoFill />
+          <MapEvents />
+
+          {validWaypoints.map((wp) => (
+            <Marker
+              key={wp.id}
+              position={[wp.lat!, wp.lon!]}
+              icon={greenIcon(wp.order + 1)}
+              draggable
+              eventHandlers={{
+                dragend: (e) => handleDragEnd(wp.id, e),
+              }}
+            >
+              <Popup>
+                <WaypointQuickActions wpId={wp.id} />
+              </Popup>
+            </Marker>
+          ))}
+
+          <LegPolylines />
+          <LegPolylineHoverEvents />
+          <ProfileHoverMarker />
+        </>
+      )}
       <MyLocationButton hidden={compassActive} />
       <CompassOverlay active={compassActive} onDeactivate={deactivateCompass} />
       <RulerTool active={rulerActive} onDeactivate={deactivateRuler} />

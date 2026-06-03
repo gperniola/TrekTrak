@@ -1,7 +1,8 @@
-import type { Itinerary, AppSettings, ValidationSession } from './types';
+import type { Itinerary, AppSettings, ValidationSession, Waypoint, Leg, RouteCompletion } from './types';
 import { DEFAULT_TOLERANCES, DEFAULT_MAP_DISPLAY, BASE_MAPS, SAMPLE_INTERVAL_OPTIONS } from './types';
+import { computeRouteMetrics } from './calculations';
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 export const KEYS = {
   itineraries: 'trektrak_itineraries',
@@ -63,6 +64,35 @@ const migrations: Record<number, () => void> = {
       // ignore migration errors; corrupted data will be filtered by validators on load
     }
   },
+  2: () => {
+    try {
+      const raw = localStorage.getItem(KEYS.itineraries);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return;
+      const migrated = parsed.map((it: unknown, idx: number) => {
+        if (!it || typeof it !== 'object') return it;
+        const item = it as Record<string, unknown>;
+        if (typeof item.notes !== 'string') item.notes = '';
+        if (!Array.isArray(item.completions)) item.completions = [];
+        if (typeof item.sortIndex !== 'number') item.sortIndex = idx;
+        // Only snapshot metrics from well-formed data, so a malformed leg/waypoint
+        // can't bake NaN/garbage into a persisted metrics object (metrics is not
+        // re-validated on load; it's recomputed on the next save anyway).
+        if (
+          item.metrics == null &&
+          Array.isArray(item.waypoints) && item.waypoints.every(isValidWaypoint) &&
+          Array.isArray(item.legs) && item.legs.every(isValidLeg)
+        ) {
+          item.metrics = computeRouteMetrics(item.waypoints as Waypoint[], item.legs as Leg[]);
+        }
+        return item;
+      });
+      localStorage.setItem(KEYS.itineraries, JSON.stringify(migrated));
+    } catch {
+      // ignore migration errors; validators filter corrupted data on load
+    }
+  },
 };
 
 function initSchema(): void {
@@ -115,6 +145,19 @@ function isValidLeg(item: unknown): boolean {
   );
 }
 
+function isValidCompletion(item: unknown): boolean {
+  if (item == null || typeof item !== 'object') return false;
+  const rec = item as Record<string, unknown>;
+  return (
+    typeof rec.id === 'string' &&
+    typeof rec.personName === 'string' &&
+    typeof rec.date === 'string' &&
+    typeof rec.notes === 'string' &&
+    (rec.durationMinutes === undefined ||
+      (typeof rec.durationMinutes === 'number' && Number.isFinite(rec.durationMinutes)))
+  );
+}
+
 export function loadItineraries(): Itinerary[] {
   initSchema();
   try {
@@ -130,6 +173,9 @@ export function loadItineraries(): Itinerary[] {
         if (typeof rec.name !== 'string') return false;
         if (!Array.isArray(rec.waypoints) || !rec.waypoints.every(isValidWaypoint)) return false;
         if (!Array.isArray(rec.legs) || !rec.legs.every(isValidLeg)) return false;
+        if (Array.isArray(rec.completions)) {
+          rec.completions = (rec.completions as unknown[]).filter(isValidCompletion);
+        }
         return true;
       }
     ) as Itinerary[];
@@ -291,4 +337,84 @@ export function clearValidationHistory(): void {
   } catch {
     // storage unavailable
   }
+}
+
+/**
+ * Persist the full itinerary list.
+ * NOTE: the helpers below read via `loadItineraries()`, which sanitizes data
+ * in place (drops structurally-invalid completions) before returning. Writing
+ * that result back therefore re-persists the sanitized set — a malformed
+ * completion on an untouched sibling route is not preserved across a write.
+ * @throws Error('Spazio di archiviazione esaurito') when the quota is exceeded.
+ * Callers in the UI should wrap these helpers in try/catch and surface a toast.
+ */
+function persistAll(all: Itinerary[]): void {
+  try {
+    localStorage.setItem(KEYS.itineraries, JSON.stringify(all));
+  } catch {
+    throw new Error('Spazio di archiviazione esaurito');
+  }
+}
+
+export function updateSavedItinerary(id: string, patch: Partial<Itinerary>): void {
+  const all = loadItineraries();
+  const idx = all.findIndex((it) => it.id === id);
+  if (idx < 0) return;
+  all[idx] = { ...all[idx], ...patch, updatedAt: new Date().toISOString() };
+  persistAll(all);
+}
+
+export function reorderSavedItineraries(orderedIds: string[]): void {
+  const all = loadItineraries();
+  const rank = new Map(orderedIds.map((id, i) => [id, i]));
+  for (const it of all) {
+    const r = rank.get(it.id);
+    if (r !== undefined) it.sortIndex = r;
+  }
+  persistAll(all);
+}
+
+function genCompletionId(): string {
+  return Math.random().toString(36).substring(2, 11);
+}
+
+export function addCompletion(routeId: string, c: Omit<RouteCompletion, 'id'>): void {
+  const all = loadItineraries();
+  const it = all.find((r) => r.id === routeId);
+  if (!it) return;
+  it.completions = [...(it.completions ?? []), { ...c, id: genCompletionId() }];
+  it.updatedAt = new Date().toISOString();
+  persistAll(all);
+}
+
+export function updateCompletion(routeId: string, completionId: string, patch: Partial<RouteCompletion>): void {
+  const all = loadItineraries();
+  const it = all.find((r) => r.id === routeId);
+  if (!it || !it.completions) return;
+  it.completions = it.completions.map((c) => (c.id === completionId ? { ...c, ...patch, id: c.id } : c));
+  it.updatedAt = new Date().toISOString();
+  persistAll(all);
+}
+
+export function deleteCompletion(routeId: string, completionId: string): void {
+  const all = loadItineraries();
+  const it = all.find((r) => r.id === routeId);
+  if (!it || !it.completions) return;
+  it.completions = it.completions.filter((c) => c.id !== completionId);
+  it.updatedAt = new Date().toISOString();
+  persistAll(all);
+}
+
+export function getKnownPeople(): string[] {
+  const all = loadItineraries();
+  const seen = new Map<string, string>();
+  for (const it of all) {
+    for (const c of it.completions ?? []) {
+      const name = c.personName.trim();
+      if (!name) continue;
+      const key = name.toLowerCase();
+      if (!seen.has(key)) seen.set(key, name);
+    }
+  }
+  return Array.from(seen.values()).sort((a, b) => a.localeCompare(b, 'it'));
 }

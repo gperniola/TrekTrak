@@ -13,7 +13,9 @@ import {
   buildGradientStops,
   distanceToPosition,
   positionToDistance,
+  computeRouteMetrics,
 } from '../lib/calculations';
+import type { Waypoint, Leg } from '../lib/types';
 
 describe('haversineDistance', () => {
   test('returns 0 for same point', () => {
@@ -664,5 +666,54 @@ describe('roundtrip with routeGeometry', () => {
         expect(roundtrip!).toBeCloseTo(d, 0);
       }
     }
+  });
+});
+
+describe('computeRouteMetrics', () => {
+  const wp = (id: string, altitude: number | null): Waypoint => ({
+    id, name: id, lat: 45, lon: 9, altitude, order: 0,
+  });
+  const leg = (distance: number, gain: number, loss: number): Leg => ({
+    id: `${distance}-${gain}-${loss}`, fromWaypointId: 'a', toWaypointId: 'b',
+    distance, elevationGain: gain, elevationLoss: loss, azimuth: 0,
+  });
+
+  test('sums distance, gain, loss across legs', () => {
+    const m = computeRouteMetrics([wp('a', 100), wp('b', 200)], [leg(2, 100, 0), leg(3, 50, 80)]);
+    expect(m.distanceKm).toBeCloseTo(5);
+    expect(m.elevationGain).toBe(150);
+    expect(m.elevationLoss).toBe(80);
+  });
+
+  test('min/max altitude from waypoints', () => {
+    const m = computeRouteMetrics([wp('a', 100), wp('b', 350), wp('c', 80)], []);
+    expect(m.minAltitude).toBe(80);
+    expect(m.maxAltitude).toBe(350);
+  });
+
+  test('min/max altitude null when no altitudes', () => {
+    const m = computeRouteMetrics([wp('a', null)], []);
+    expect(m.minAltitude).toBeNull();
+    expect(m.maxAltitude).toBeNull();
+  });
+
+  test('avgSlope is distance-weighted, recomputed (ignores stripped leg.slope)', () => {
+    const m = computeRouteMetrics([], [leg(2, 100, 0), leg(2, 0, 80)]);
+    expect(m.avgSlope).toBeCloseTo(4.5);
+    expect(m.maxSlope).toBeCloseTo(5);
+  });
+
+  test('handles zero total distance without NaN', () => {
+    const m = computeRouteMetrics([], [leg(0, 0, 0)]);
+    expect(m.avgSlope).toBe(0);
+    expect(m.estimatedTimeMin).toBe(0);
+  });
+
+  test('includes altitudes from leg elevationProfile when present', () => {
+    const l = leg(2, 100, 0);
+    l.elevationProfile = [{ distance: 0, altitude: 90 }, { distance: 2, altitude: 410 }];
+    const m = computeRouteMetrics([wp('a', 100)], [l]);
+    expect(m.minAltitude).toBe(90);
+    expect(m.maxAltitude).toBe(410);
   });
 });
