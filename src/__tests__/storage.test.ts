@@ -7,6 +7,8 @@ import {
   loadSettings,
   getStorageUsage,
   isStorageNearLimit,
+  updateSavedItinerary, reorderSavedItineraries,
+  addCompletion, updateCompletion, deleteCompletion, getKnownPeople,
 } from '../lib/storage';
 import type { Itinerary, AppSettings } from '../lib/types';
 
@@ -183,5 +185,45 @@ describe('schema v3 migration and validation', () => {
     const loaded = loadItineraries();
     expect(loaded[0].completions).toHaveLength(1);
     expect(loaded[0].completions![0].id).toBe('c1');
+  });
+});
+
+describe('library helpers', () => {
+  test('updateSavedItinerary patches notes', () => {
+    saveItinerary(makeItinerary('1', 'A'));
+    updateSavedItinerary('1', { notes: 'bella gita' });
+    expect(loadItineraries()[0].notes).toBe('bella gita');
+  });
+
+  test('reorderSavedItineraries rewrites sortIndex', () => {
+    saveItinerary({ ...makeItinerary('1', 'A'), sortIndex: 0 });
+    saveItinerary({ ...makeItinerary('2', 'B'), sortIndex: 1 });
+    reorderSavedItineraries(['2', '1']);
+    const byId = Object.fromEntries(loadItineraries().map((r) => [r.id, r.sortIndex]));
+    expect(byId['2']).toBe(0);
+    expect(byId['1']).toBe(1);
+  });
+
+  test('addCompletion / updateCompletion / deleteCompletion', () => {
+    saveItinerary(makeItinerary('1', 'A'));
+    addCompletion('1', { personName: 'Gio', date: '2026-01-01', durationMinutes: 120, notes: '' });
+    let c = loadItineraries()[0].completions!;
+    expect(c).toHaveLength(1);
+    const cid = c[0].id;
+    updateCompletion('1', cid, { notes: 'fango' });
+    expect(loadItineraries()[0].completions![0].notes).toBe('fango');
+    deleteCompletion('1', cid);
+    expect(loadItineraries()[0].completions).toHaveLength(0);
+  });
+
+  test('getKnownPeople dedupes case-insensitively and trims', () => {
+    saveItinerary(makeItinerary('1', 'A'));
+    addCompletion('1', { personName: ' Gio ', date: '2026-01-01', notes: '' });
+    addCompletion('1', { personName: 'gio', date: '2026-01-02', notes: '' });
+    addCompletion('1', { personName: 'Anna', date: '2026-01-03', notes: '' });
+    const people = getKnownPeople();
+    expect(people).toContain('Gio');
+    expect(people).toContain('Anna');
+    expect(people.filter((p) => p.toLowerCase() === 'gio')).toHaveLength(1);
   });
 });
