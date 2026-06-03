@@ -52,8 +52,10 @@ export function RouteList() {
     const { active, over } = e;
     if (!over || active.id === over.id) return;
     const ids = routes.map((r) => r.id);
-    const next = arrayMove(ids, ids.indexOf(active.id as string), ids.indexOf(over.id as string));
-    reorder(next);
+    const oldIndex = ids.indexOf(active.id as string);
+    const newIndex = ids.indexOf(over.id as string);
+    if (oldIndex === -1 || newIndex === -1) return;
+    reorder(arrayMove(ids, oldIndex, newIndex));
   };
 
   return (
