@@ -381,8 +381,8 @@ export function positionToDistance(
 
 /**
  * Snapshot delle metriche aggregate di un percorso.
- * Ricalcola pendenza e tempo internamente (i campi derivati leg.slope/leg.estimatedTime
- * vengono eliminati nei dati persistiti, quindi non vanno letti).
+ * Ricalcola pendenza e tempo internamente: i campi derivati leg.slope/leg.estimatedTime
+ * possono essere stantii, assenti o dipendenti dalla modalità, quindi non vanno letti.
  */
 export function computeRouteMetrics(
   waypoints: Waypoint[],
