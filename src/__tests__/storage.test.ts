@@ -142,3 +142,46 @@ describe('saveItinerary quota exceeded', () => {
     }
   });
 });
+
+describe('schema v3 migration and validation', () => {
+  test('loadItineraries keeps old itineraries lacking new fields', () => {
+    localStorage.setItem('trektrak_schema_version', '2');
+    localStorage.setItem('trektrak_itineraries', JSON.stringify([
+      { id: '1', name: 'Old', createdAt: 'x', updatedAt: 'x', waypoints: [], legs: [] },
+    ]));
+    const loaded = loadItineraries();
+    expect(loaded).toHaveLength(1);
+    expect(loaded[0].completions ?? []).toEqual([]);
+  });
+
+  test('migration v2->v3 backfills notes, completions, sortIndex, metrics', () => {
+    localStorage.setItem('trektrak_schema_version', '2');
+    localStorage.setItem('trektrak_itineraries', JSON.stringify([
+      { id: 'a', name: 'A', createdAt: 'x', updatedAt: 'x',
+        waypoints: [{ id: 'w1', name: 'w1', lat: 45, lon: 9, altitude: 100, order: 0 }],
+        legs: [] },
+    ]));
+    loadItineraries();
+    const raw = JSON.parse(localStorage.getItem('trektrak_itineraries')!);
+    expect(raw[0].notes).toBe('');
+    expect(raw[0].completions).toEqual([]);
+    expect(raw[0].sortIndex).toBe(0);
+    expect(raw[0].metrics.minAltitude).toBe(100);
+    expect(localStorage.getItem('trektrak_schema_version')).toBe('3');
+  });
+
+  test('filters malformed completions on load', () => {
+    localStorage.setItem('trektrak_schema_version', '3');
+    localStorage.setItem('trektrak_itineraries', JSON.stringify([
+      { id: '1', name: 'X', createdAt: 'x', updatedAt: 'x', waypoints: [], legs: [],
+        completions: [
+          { id: 'c1', personName: 'Gio', date: '2026-01-01', notes: 'ok' },
+          { id: 'c2', date: '2026-01-02' },
+          'garbage',
+        ] },
+    ]));
+    const loaded = loadItineraries();
+    expect(loaded[0].completions).toHaveLength(1);
+    expect(loaded[0].completions![0].id).toBe('c1');
+  });
+});

@@ -1,7 +1,8 @@
 import type { Itinerary, AppSettings, ValidationSession } from './types';
 import { DEFAULT_TOLERANCES, DEFAULT_MAP_DISPLAY, BASE_MAPS, SAMPLE_INTERVAL_OPTIONS } from './types';
+import { computeRouteMetrics } from './calculations';
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 export const KEYS = {
   itineraries: 'trektrak_itineraries',
@@ -63,6 +64,28 @@ const migrations: Record<number, () => void> = {
       // ignore migration errors; corrupted data will be filtered by validators on load
     }
   },
+  2: () => {
+    try {
+      const raw = localStorage.getItem(KEYS.itineraries);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return;
+      const migrated = parsed.map((it: unknown, idx: number) => {
+        if (!it || typeof it !== 'object') return it;
+        const item = it as Record<string, unknown>;
+        if (typeof item.notes !== 'string') item.notes = '';
+        if (!Array.isArray(item.completions)) item.completions = [];
+        if (typeof item.sortIndex !== 'number') item.sortIndex = idx;
+        if (item.metrics == null && Array.isArray(item.waypoints) && Array.isArray(item.legs)) {
+          item.metrics = computeRouteMetrics(item.waypoints as never, item.legs as never);
+        }
+        return item;
+      });
+      localStorage.setItem(KEYS.itineraries, JSON.stringify(migrated));
+    } catch {
+      // ignore migration errors; validators filter corrupted data on load
+    }
+  },
 };
 
 function initSchema(): void {
@@ -115,6 +138,19 @@ function isValidLeg(item: unknown): boolean {
   );
 }
 
+function isValidCompletion(item: unknown): boolean {
+  if (item == null || typeof item !== 'object') return false;
+  const rec = item as Record<string, unknown>;
+  return (
+    typeof rec.id === 'string' &&
+    typeof rec.personName === 'string' &&
+    typeof rec.date === 'string' &&
+    typeof rec.notes === 'string' &&
+    (rec.durationMinutes === undefined ||
+      (typeof rec.durationMinutes === 'number' && Number.isFinite(rec.durationMinutes)))
+  );
+}
+
 export function loadItineraries(): Itinerary[] {
   initSchema();
   try {
@@ -130,6 +166,9 @@ export function loadItineraries(): Itinerary[] {
         if (typeof rec.name !== 'string') return false;
         if (!Array.isArray(rec.waypoints) || !rec.waypoints.every(isValidWaypoint)) return false;
         if (!Array.isArray(rec.legs) || !rec.legs.every(isValidLeg)) return false;
+        if (Array.isArray(rec.completions)) {
+          rec.completions = (rec.completions as unknown[]).filter(isValidCompletion);
+        }
         return true;
       }
     ) as Itinerary[];
