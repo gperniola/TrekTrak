@@ -1,4 +1,4 @@
-import type { Itinerary, AppSettings, ValidationSession } from './types';
+import type { Itinerary, AppSettings, ValidationSession, Waypoint, Leg } from './types';
 import { DEFAULT_TOLERANCES, DEFAULT_MAP_DISPLAY, BASE_MAPS, SAMPLE_INTERVAL_OPTIONS } from './types';
 import { computeRouteMetrics } from './calculations';
 
@@ -76,8 +76,15 @@ const migrations: Record<number, () => void> = {
         if (typeof item.notes !== 'string') item.notes = '';
         if (!Array.isArray(item.completions)) item.completions = [];
         if (typeof item.sortIndex !== 'number') item.sortIndex = idx;
-        if (item.metrics == null && Array.isArray(item.waypoints) && Array.isArray(item.legs)) {
-          item.metrics = computeRouteMetrics(item.waypoints as never, item.legs as never);
+        // Only snapshot metrics from well-formed data, so a malformed leg/waypoint
+        // can't bake NaN/garbage into a persisted metrics object (metrics is not
+        // re-validated on load; it's recomputed on the next save anyway).
+        if (
+          item.metrics == null &&
+          Array.isArray(item.waypoints) && item.waypoints.every(isValidWaypoint) &&
+          Array.isArray(item.legs) && item.legs.every(isValidLeg)
+        ) {
+          item.metrics = computeRouteMetrics(item.waypoints as Waypoint[], item.legs as Leg[]);
         }
         return item;
       });
