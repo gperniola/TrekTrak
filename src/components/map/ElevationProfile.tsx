@@ -188,6 +188,17 @@ export function ElevationProfile() {
     return Array.from(byDist.values()).sort((a, b) => a.distance - b.distance);
   }, [profileData, realProfileData, hasReal]);
 
+  // In library view the chart reflects the editor itinerary, which is irrelevant
+  // while browsing saved routes — always show the placeholder (takes precedence
+  // over the "add waypoints" guard below). Must stay after all hooks.
+  if (mainView === 'library') {
+    return (
+      <div className="h-full flex items-center justify-center text-xs text-gray-500 px-3 text-center">
+        Profilo non disponibile per i percorsi salvati — vedi le metriche nella scheda.
+      </div>
+    );
+  }
+
   if (profileData.length < 2) {
     return (
       <div className="h-full flex items-center justify-center text-gray-400 text-sm">
@@ -217,14 +228,6 @@ export function ElevationProfile() {
 
   const stops = buildGradientStops(profileData, totalDistance);
   const hasGradient = stops.length > 0;
-
-  if (mainView === 'library') {
-    return (
-      <div className="h-full flex items-center justify-center text-xs text-gray-500 px-3 text-center">
-        Profilo non disponibile per i percorsi salvati — vedi le metriche nella scheda.
-      </div>
-    );
-  }
 
   return (
     <div className={`h-full p-2 ${isEstimated ? 'bg-amber-950/25' : ''}`}>
