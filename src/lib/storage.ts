@@ -339,6 +339,15 @@ export function clearValidationHistory(): void {
   }
 }
 
+/**
+ * Persist the full itinerary list.
+ * NOTE: the helpers below read via `loadItineraries()`, which sanitizes data
+ * in place (drops structurally-invalid completions) before returning. Writing
+ * that result back therefore re-persists the sanitized set — a malformed
+ * completion on an untouched sibling route is not preserved across a write.
+ * @throws Error('Spazio di archiviazione esaurito') when the quota is exceeded.
+ * Callers in the UI should wrap these helpers in try/catch and surface a toast.
+ */
 function persistAll(all: Itinerary[]): void {
   try {
     localStorage.setItem(KEYS.itineraries, JSON.stringify(all));
