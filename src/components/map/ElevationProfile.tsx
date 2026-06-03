@@ -3,6 +3,7 @@
 import { useId, useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceDot, ReferenceLine } from 'recharts';
 import { useItineraryStore } from '@/stores/itineraryStore';
+import { useUIStore } from '@/stores/uiStore';
 import { buildGradientStops } from '@/lib/calculations';
 import type { Leg } from '@/lib/types';
 
@@ -18,6 +19,7 @@ export function ElevationProfile() {
   const setProfileHover = useItineraryStore((s) => s.setProfileHover);
   const clearProfileHover = useItineraryStore((s) => s.clearProfileHover);
   const setProfileFlyTo = useItineraryStore((s) => s.setProfileFlyTo);
+  const mainView = useUIStore((s) => s.mainView);
 
   const isEstimated = appMode === 'learn';
 
@@ -185,6 +187,17 @@ export function ElevationProfile() {
     }
     return Array.from(byDist.values()).sort((a, b) => a.distance - b.distance);
   }, [profileData, realProfileData, hasReal]);
+
+  // In library view the chart reflects the editor itinerary, which is irrelevant
+  // while browsing saved routes — always show the placeholder (takes precedence
+  // over the "add waypoints" guard below). Must stay after all hooks.
+  if (mainView === 'library') {
+    return (
+      <div className="h-full flex items-center justify-center text-xs text-gray-500 px-3 text-center">
+        Profilo non disponibile per i percorsi salvati — vedi le metriche nella scheda.
+      </div>
+    );
+  }
 
   if (profileData.length < 2) {
     return (
