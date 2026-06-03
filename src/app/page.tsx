@@ -18,6 +18,7 @@ const ProgressOverlay = dynamic(() => import('@/components/panel/ProgressOverlay
 import { loadSettings } from '@/lib/storage';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { useUIStore } from '@/stores/uiStore';
+import { useRouteLibraryStore } from '@/stores/routeLibraryStore';
 import { decodeItinerary } from '@/lib/share-url';
 import { OfflineBanner } from '@/components/shared/OfflineBanner';
 import { ToastContainer } from '@/components/shared/Toast';
@@ -27,6 +28,7 @@ export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
   const [showMapSettings, setShowMapSettings] = useState(false);
 
+  const mainView = useUIStore((s) => s.mainView);
   const drawerOpen = useUIStore((s) => s.drawerOpen);
   const searchOpen = useUIStore((s) => s.searchOpen);
   const quizActive = useUIStore((s) => s.quizActive);
@@ -35,6 +37,10 @@ export default function Home() {
   const setSearchOpen = useUIStore((s) => s.setSearchOpen);
   const deactivateQuiz = useUIStore((s) => s.deactivateQuiz);
   const closeProgress = useUIStore((s) => s.closeProgress);
+
+  const selectedRouteId = useRouteLibraryStore((s) => s.selectedRouteId);
+  const previewRoute = useRouteLibraryStore((s) => s.routes.find((r) => r.id === s.selectedRouteId));
+  const clearRouteSelection = useRouteLibraryStore((s) => s.select);
 
   useBodyScrollLock(drawerOpen);
 
@@ -97,6 +103,12 @@ export default function Home() {
     };
   }, [drawerOpen]);
 
+  // Auto-close mobile drawer when a route is selected in library view,
+  // so the map preview becomes visible on mobile.
+  useEffect(() => {
+    if (mainView === 'library' && selectedRouteId) setDrawerOpen(false);
+  }, [selectedRouteId, mainView, setDrawerOpen]);
+
   return (
     <main className="h-dvh flex flex-col lg:flex-row overflow-hidden">
       <OfflineBanner />
@@ -144,6 +156,17 @@ export default function Home() {
         {/* Map */}
         <div className="flex-1 relative min-h-0 overflow-hidden">
           <MapWrapper />
+
+          {/* Mobile-only preview banner: shown when browsing the library and a route is selected */}
+          {mainView === 'library' && previewRoute && (
+            <div className="lg:hidden absolute top-2 left-2 right-2 z-[1000] bg-gray-900/95 border border-gray-700 rounded px-3 py-2 flex items-center justify-between text-xs">
+              <span className="truncate text-gray-200">Anteprima: {previewRoute.name || 'Senza nome'}</span>
+              <div className="flex gap-2 shrink-0 ml-2">
+                <button onClick={() => setDrawerOpen(true)} className="text-green-400">Apri libreria</button>
+                <button onClick={() => clearRouteSelection(null)} className="text-gray-400">Chiudi</button>
+              </div>
+            </div>
+          )}
 
           {/* Settings toggles — desktop only */}
           <div className="hidden lg:flex absolute top-3 left-3 z-[1000] gap-1">
