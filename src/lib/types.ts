@@ -73,6 +73,29 @@ export interface Itinerary {
   updatedAt: string;
   waypoints: Waypoint[];
   legs: Leg[];
+  notes?: string;
+  completions?: RouteCompletion[];
+  metrics?: RouteMetrics;
+  sortIndex?: number;
+}
+
+export interface RouteCompletion {
+  id: string;
+  personName: string;
+  date: string;              // ISO "YYYY-MM-DD"
+  durationMinutes?: number;  // tempo impiegato (opzionale)
+  notes: string;
+}
+
+export interface RouteMetrics {
+  distanceKm: number;
+  elevationGain: number;
+  elevationLoss: number;
+  minAltitude: number | null;
+  maxAltitude: number | null;
+  avgSlope: number;          // % media pesata sulla distanza
+  maxSlope: number;          // % max pendenza di tratta
+  estimatedTimeMin: number;  // stima Munter totale
 }
 
 export interface ToleranceSettings {
