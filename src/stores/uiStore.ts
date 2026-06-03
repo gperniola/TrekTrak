@@ -7,6 +7,7 @@ interface UIState {
   progressOpen: boolean;
   drawerOpen: boolean;
   searchOpen: boolean;
+  mainView: 'editor' | 'library';
 
   toggleCompass: () => void;
   toggleRuler: () => void;
@@ -18,6 +19,7 @@ interface UIState {
   closeProgress: () => void;
   setDrawerOpen: (open: boolean) => void;
   setSearchOpen: (open: boolean) => void;
+  setMainView: (view: 'editor' | 'library') => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -27,6 +29,7 @@ export const useUIStore = create<UIState>((set) => ({
   progressOpen: false,
   drawerOpen: false,
   searchOpen: false,
+  mainView: 'editor',
 
   toggleCompass: () => set((s) => ({
     compassActive: !s.compassActive,
@@ -50,4 +53,5 @@ export const useUIStore = create<UIState>((set) => ({
   closeProgress: () => set({ progressOpen: false }),
   setDrawerOpen: (open) => set({ drawerOpen: open }),
   setSearchOpen: (open) => set({ searchOpen: open }),
+  setMainView: (view) => set({ mainView: view }),
 }));
