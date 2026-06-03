@@ -15,8 +15,8 @@ function fmtDate(iso: string): string {
 
 function deltaLabel(actual: number, estimate: number): string {
   const diff = Math.round(actual - estimate);
-  const sign = diff > 0 ? '+' : '';
-  return `stima ${formatTime(estimate)} → ${sign}${diff}m`;
+  const sign = diff > 0 ? '+' : diff < 0 ? '-' : '';
+  return `stima ${formatTime(estimate)} → ${sign}${formatTime(Math.abs(diff))}`;
 }
 
 const SAVE_ERR = 'Errore nel salvataggio. Lo spazio potrebbe essere pieno.';

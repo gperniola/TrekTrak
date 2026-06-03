@@ -172,6 +172,25 @@ describe('schema v3 migration and validation', () => {
     expect(localStorage.getItem('trektrak_schema_version')).toBe('3');
   });
 
+  test('migration v2->v3 is idempotent (preserves edited fields on re-load)', () => {
+    localStorage.setItem('trektrak_schema_version', '2');
+    localStorage.setItem('trektrak_itineraries', JSON.stringify([
+      { id: 'a', name: 'A', createdAt: 'x', updatedAt: 'x',
+        waypoints: [{ id: 'w1', name: 'w1', lat: 45, lon: 9, altitude: 100, order: 0 }],
+        legs: [] },
+    ]));
+    loadItineraries(); // runs migration once
+    // Simulate user edits after migration
+    updateSavedItinerary('a', { notes: 'edited', sortIndex: 7 });
+    addCompletion('a', { personName: 'Gio', date: '2026-01-01', notes: '' });
+    // A second load must NOT re-run the migration or clobber the edited fields
+    const reloaded = loadItineraries();
+    expect(reloaded[0].notes).toBe('edited');
+    expect(reloaded[0].sortIndex).toBe(7);
+    expect(reloaded[0].completions).toHaveLength(1);
+    expect(localStorage.getItem('trektrak_schema_version')).toBe('3');
+  });
+
   test('filters malformed completions on load', () => {
     localStorage.setItem('trektrak_schema_version', '3');
     localStorage.setItem('trektrak_itineraries', JSON.stringify([
