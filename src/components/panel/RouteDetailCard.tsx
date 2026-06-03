@@ -9,6 +9,15 @@ import { formatTime } from '@/lib/format';
 import { confirm as appConfirm, toast } from '@/stores/notificationStore';
 import { CompletionList } from './CompletionList';
 
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-gray-900 rounded px-2 py-1.5">
+      <div className="text-[10px] text-gray-500 uppercase">{label}</div>
+      <div className="text-sm font-medium">{value}</div>
+    </div>
+  );
+}
+
 export function RouteDetailCard() {
   const routes = useRouteLibraryStore((s) => s.routes);
   const selectedId = useRouteLibraryStore((s) => s.selectedRouteId);
@@ -56,13 +65,6 @@ export function RouteDetailCard() {
       toast.error('Errore nel salvataggio. Lo spazio potrebbe essere pieno.');
     }
   };
-
-  const Stat = ({ label, value }: { label: string; value: string }) => (
-    <div className="bg-gray-900 rounded px-2 py-1.5">
-      <div className="text-[10px] text-gray-500 uppercase">{label}</div>
-      <div className="text-sm font-medium">{value}</div>
-    </div>
-  );
 
   return (
     <div className="border-t border-gray-700 p-3 space-y-3">
