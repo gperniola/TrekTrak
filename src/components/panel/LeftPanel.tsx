@@ -29,7 +29,7 @@ export function LeftPanel({ className }: {
         <>
           <ModeSwitch />
           <ItineraryHeader />
-          <div className="flex border-b border-gray-700" role="tablist">
+          <div className="flex border-b border-gray-700" role="tablist" aria-label="Vista waypoint">
             <button
               onClick={() => setView('edit')}
               role="tab"
