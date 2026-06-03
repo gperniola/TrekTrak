@@ -20,8 +20,14 @@ export function SaveRouteModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1200]" onClick={onClose}>
-      <div className="bg-gray-800 rounded-lg p-6 w-96 max-w-[90vw]" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-lg font-bold text-green-400 mb-4">Salva in libreria</h3>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="save-route-title"
+        className="bg-gray-800 rounded-lg p-6 w-96 max-w-[90vw]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 id="save-route-title" className="text-lg font-bold text-green-400 mb-4">Salva in libreria</h3>
         <label className="block text-xs text-gray-400 mb-1">Titolo</label>
         <input
           value={name} onChange={(e) => setName(e.target.value)} maxLength={200}

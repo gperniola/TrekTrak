@@ -9,7 +9,7 @@ import { exportItineraryJSON, importItineraryJSON } from '@/lib/export-json';
 import { confirm as appConfirm, toast } from '@/stores/notificationStore';
 import { useUIStore } from '@/stores/uiStore';
 import { useRouteLibraryStore } from '@/stores/routeLibraryStore';
-import type { Leg } from '@/lib/types';
+import type { Leg, Itinerary } from '@/lib/types';
 
 export function ItineraryHeader() {
   const itineraryId = useItineraryStore((s) => s.itineraryId);
@@ -42,15 +42,21 @@ export function ItineraryHeader() {
     return slimTrack ? { ...rest, trackValues: slimTrack } : rest;
   };
 
-  const persist = (name: string, notes: string | undefined) => {
-    const existing = loadItineraries().find((it) => it.id === itineraryId);
+  // `preloaded` lets the caller pass a snapshot it already read, so a single
+  // click does one localStorage read here (existing + maxSort from the same
+  // snapshot, no inter-read race), plus the unavoidable read inside saveItinerary.
+  const persist = (name: string, notes: string | undefined, preloaded?: Itinerary[]) => {
+    const all = preloaded ?? loadItineraries();
+    const existing = all.find((it) => it.id === itineraryId);
     const metrics = computeRouteMetrics(waypoints, legs, settings.pace?.factor ?? 1);
-    const maxSort = loadItineraries().reduce((m, it) => Math.max(m, it.sortIndex ?? 0), -1);
+    const maxSort = all.reduce((m, it) => Math.max(m, it.sortIndex ?? 0), -1);
     try {
       saveItinerary({
         id: itineraryId,
         name,
-        createdAt,
+        // Preserve the original creation date on re-save; for a first save fall
+        // back to the store value (stamped when the itinerary was started).
+        createdAt: existing?.createdAt ?? createdAt,
         updatedAt: new Date().toISOString(),
         waypoints: waypoints.map(({ validationState, ...wp }) => wp),
         legs: legs.map(slimLeg),
@@ -71,9 +77,10 @@ export function ItineraryHeader() {
   };
 
   const handleSave = () => {
-    const existing = loadItineraries().find((it) => it.id === itineraryId);
+    const all = loadItineraries();
+    const existing = all.find((it) => it.id === itineraryId);
     if (existing) {
-      persist(itineraryName || existing.name, undefined);
+      persist(itineraryName || existing.name, undefined, all);
     } else {
       setShowSaveModal(true);
     }
