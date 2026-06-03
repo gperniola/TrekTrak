@@ -162,8 +162,8 @@ export default function Home() {
             <div className="lg:hidden absolute top-2 left-2 right-2 z-[1000] bg-gray-900/95 border border-gray-700 rounded px-3 py-2 flex items-center justify-between text-xs">
               <span className="truncate text-gray-200">Anteprima: {previewRoute.name || 'Senza nome'}</span>
               <div className="flex gap-2 shrink-0 ml-2">
-                <button onClick={() => setDrawerOpen(true)} className="text-green-400">Apri libreria</button>
-                <button onClick={() => clearRouteSelection(null)} className="text-gray-400">Chiudi</button>
+                <button onClick={() => setDrawerOpen(true)} className="text-green-400 min-h-[44px] flex items-center">Apri libreria</button>
+                <button onClick={() => clearRouteSelection(null)} className="text-gray-400 min-h-[44px] flex items-center">Chiudi</button>
               </div>
             </div>
           )}
