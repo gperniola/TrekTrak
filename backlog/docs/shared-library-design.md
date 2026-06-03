@@ -54,24 +54,31 @@ Backend: **Supabase** (Postgres + Auth + Row-Level Security + Edge Functions). L
 ### Link di invito
 - Forma: `…/#invite=TOKEN`. All'apertura, l'app verifica il token (vedi sotto) e, se valido,
   salva `trektrak_invited=true` in localStorage e rivela l'area condivisa (login/registrazione).
-- Il token è **un segreto unico riutilizzabile**. Verificato **lato server** (Edge Function)
+- Il token è **un segreto unico riutilizzabile**. Verificato **lato server** (API route Next.js)
   contro `invites.token_hash`. Rigenerare il token invalida i vecchi link; i membri già
   registrati restano tali.
 - La verifica è server-side perché il solo possesso della anon key non deve bastare a registrarsi.
 
+### Server: API routes Next.js (non Edge Functions)
+La logica privilegiata vive in **API routes Next.js** (route handler server-side, come l'esistente
+`src/app/api/elevation/route.ts`), non in Edge Functions Deno. Stesso confine di fiducia (codice
+server che custodisce la `service_role` key), un toolchain in meno, deploy con l'app. Un client
+admin server-only (`lib/supabase-admin.ts`) usa la `SUPABASE_SERVICE_ROLE_KEY` (env server, **mai**
+`NEXT_PUBLIC_`). La RLS resta la rete di sicurezza a livello DB sotto le route.
+
 ### Flusso (unificato login + registrazione)
 1. Apertura `#invite=TOKEN` → area rivelata, form "Inserisci la tua email".
-2. Submit → **Edge Function `request-access(email, token)`**:
+2. Submit → **`POST /api/shared/request-access` (email, token)`**:
    - verifica `token` contro `invites` (deve essere `active`);
-   - se l'email è già di un membro → invia **magic-link di login** (`shouldCreateUser:false`);
+   - se l'email è già di un membro → invia **magic-link di login** (`generateLink` type `magiclink`);
    - altrimenti → **admin invite** (`auth.admin.inviteUserByEmail`) per creare il nuovo utente.
    - I **signup pubblici sono DISABILITATI** in Supabase Auth: l'unico modo di ottenere un
-     account è passare da questa funzione (che ha verificato il token).
+     account è passare da questa route (che ha verificato il token).
 3. L'utente clicca il magic-link nell'email → sessione autenticata sul dispositivo (persistente
    a tempo indefinito: `persistSession` + `autoRefreshToken`).
-4. **Primo accesso senza username** → schermata "Scegli il tuo username" → **Edge Function
-   `claim-username(username)`**: verifica sessione valida e unicità, crea la riga `members`.
-   (In alternativa una Postgres function con RLS; si sceglie Edge Function per chiarezza.)
+4. **Primo accesso senza username** → schermata "Scegli il tuo username" → **`POST
+   /api/shared/claim-username` (username)`**: verifica sessione valida e unicità, crea la riga
+   `members`.
 5. **Membership = riga in `members`.** Le RLS richiedono membership per leggere/scrivere la
    libreria: essere solo autenticati non basta.
 
@@ -86,7 +93,7 @@ l'email → magic-link di login → rientra nel suo account esistente (nessuna r
 - **`members`** — `id uuid` (= `auth.users.id`), `username text unique not null`,
   `role text default 'member'` (`member`|`admin`), `created_at timestamptz`. L'email **non**
   è qui: resta nello schema `auth`. **Assegnazione admin:** il **primo** membro registrato è
-  promosso ad `admin` (dalla Edge Function `claim-username` se la tabella è vuota); gli altri
+  promosso ad `admin` (dalla route `claim-username` se la tabella è vuota); gli altri
   sono `member`. Ulteriori admin si impostano manualmente in DB.
 - **`invites`** — `id`, `token_hash text not null`, `active boolean default true`,
   `created_at`. Per ora una riga (link unico). Il token in chiaro non è mai persistito.
@@ -113,10 +120,15 @@ nelle metriche). Tipo client: `RouteCompletion.difficulty?: 1|2|3|4|5`.
 
 ---
 
-## Sezione C — Architettura client
+## Sezione C — Architettura client/server
 
-- **`lib/supabase.ts`** — istanza del client (`createClient`) con `persistSession:true`,
-  `autoRefreshToken:true`. URL/anon key da env.
+- **`lib/supabase.ts`** — client **browser** (`createClient`, anon key) con `persistSession:true`,
+  `autoRefreshToken:true`. URL/anon key da env `NEXT_PUBLIC_*`.
+- **`lib/supabase-admin.ts`** — client **server-only** con `SUPABASE_SERVICE_ROLE_KEY`. Importato
+  **solo** dalle API routes; mai da componenti client.
+- **API routes `src/app/api/shared/request-access/route.ts` e `.../claim-username/route.ts`** —
+  logica privilegiata di gating (verifica token, invio magic-link, creazione membro). Sostituiscono
+  le Edge Functions Deno.
 - **`lib/sync.ts`** — funzioni di accesso ai dati cloud (`fetchRoutes`, `upsertRoute`,
   `deleteRoute`, `fetchCompletions`, `addCompletion`, …) + risoluzione `created_by`→username
   via una mappa membri caricata insieme.
@@ -166,13 +178,15 @@ nelle metriche). Tipo client: `RouteCompletion.difficulty?: 1|2|3|4|5`.
 
 ### Configurazione
 - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` in `.env` (documentati in
-  `.env.example`).
-- Secret del token di invito e `SUPABASE_SERVICE_ROLE_KEY` configurati come **secret delle Edge
-  Functions** (mai nel bundle client).
+  `.env.example`) — usate dal client browser.
+- `SUPABASE_SERVICE_ROLE_KEY` e `INVITE_TOKEN_HASH` (o il token in chiaro) in **env server**
+  (mai `NEXT_PUBLIC_`, mai nel bundle client) — usate dalle API routes. In locale: `.env.local`.
 - Supabase Auth: **signup pubblici disabilitati**; magic-link abilitato; redirect URL configurati.
+- Sviluppo: **`next dev` parla col Supabase hosted** (niente Docker/stack locale). Schema/RLS
+  applicati al progetto hosted via Supabase CLI (`db push`).
 
 ### Fasi del piano
-1. **Backend:** progetto Supabase, schema (4 tabelle), policy RLS, Edge Functions
+1. **Backend:** progetto Supabase, schema (4 tabelle), policy RLS, API routes Next.js
    `request-access` e `claim-username`, seed del token invito.
 2. **Auth client:** `lib/supabase.ts`, `authStore`, flusso invito→magic-link→username,
    gating della tab Libreria, persistenza sessione.
@@ -186,13 +200,15 @@ nelle metriche). Tipo client: `RouteCompletion.difficulty?: 1|2|3|4|5`.
   gating membership, claim/cambio username, unicità).
 - Component test: rating scarponi (1-5 → valore), schermate auth (validazione email/username),
   `CompletionForm`/`CompletionList` con difficoltà.
-- Edge Functions testate separatamente (verifica token, signup disabilitato, unicità username).
+- API routes testate con Jest (handler importato + client admin mockato): verifica token,
+  token errato → 403, unicità username, primo membro = admin.
 - Gating: la tab Libreria non compare per anonimo; compare per invitato/membro.
 
 ### Rischi / trade-off
 - **Token riutilizzabile:** chiunque lo riceva può registrarsi finché non lo rigeneri (natura del
   link unico scelto). Per controllo per-persona servirebbero inviti individuali (fuori scope).
-- **Backend minimo necessario:** 2 Edge Functions per il gating sicuro (non è "zero backend").
+- **Backend minimo necessario:** 2 API routes server per il gating sicuro (non è "zero backend");
+  dipende dal fatto che TrekTrak gira con runtime server (ha già `api/elevation`).
 - **Dipendenza esterna:** Supabase come fornitore; i dati lasciano il dispositivo.
 - **Offline:** scritture solo online nell'MVP; lettura da cache.
 
@@ -204,8 +220,11 @@ nelle metriche). Tipo client: `RouteCompletion.difficulty?: 1|2|3|4|5`.
 (`InviteGate`/`RequestAccessForm`, `ChooseUsername`, `UserHeader`), rating scarponi
 (`DifficultyRating`). Test relativi.
 
-**Nuovi (Supabase):** migration SQL (tabelle + RLS), Edge Functions `request-access`,
-`claim-username`. (Versionati nel repo, es. `supabase/`.)
+**Nuovi (server):** `lib/supabase-admin.ts`, API routes `src/app/api/shared/request-access/route.ts`
+e `src/app/api/shared/claim-username/route.ts`. Test Jest relativi.
+
+**Nuovi (Supabase):** migration SQL (tabelle + RLS) versionate nel repo sotto `supabase/migrations/`,
+applicate al progetto hosted via CLI `db push`.
 
 **Modificati:** `routeLibraryStore` (backend → sync), `RouteDetailCard` (creato-da + colonna
 completamenti), `CompletionForm`/`CompletionList` (difficoltà), `MainViewSwitch`/`LeftPanel`
