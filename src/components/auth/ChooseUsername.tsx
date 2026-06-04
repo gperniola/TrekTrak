@@ -27,7 +27,7 @@ export function ChooseUsername() {
       <p className="text-xs text-gray-400">Sarà il nome visibile a tutti nel gruppo.</p>
       <label className="block text-xs text-gray-400" htmlFor="cu-name">Username</label>
       <input
-        id="cu-name" value={username} onChange={(e) => setUsername(e.target.value)} maxLength={30}
+        id="cu-name" type="text" value={username} onChange={(e) => setUsername(e.target.value)} maxLength={30}
         className="w-full bg-gray-900 border border-gray-600 rounded px-2 py-1.5 text-sm focus:border-green-500 focus:outline-none"
         autoComplete="off"
       />
