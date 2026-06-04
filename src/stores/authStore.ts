@@ -59,21 +59,29 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // justInvited solo se l'invito arriva ORA dall'URL (clic sul link), non da localStorage.
     set({ invited, inviteToken, justInvited: !!fromHash });
 
-    const supabase = getSupabase();
-    const { data } = await supabase.auth.getSession();
-    set({ session: data.session ?? null });
-    if (data.session) await get().refreshMember();
+    // Il client Supabase potrebbe non essere disponibile (es. env NEXT_PUBLIC mancanti
+    // se il dev server non è stato riavviato). In tal caso non blocchiamo la UI:
+    // `loading` viene comunque risolto nel finally così il popup di invito può comparire.
+    try {
+      const supabase = getSupabase();
+      const { data } = await supabase.auth.getSession();
+      set({ session: data.session ?? null });
+      if (data.session) await get().refreshMember();
 
-    if (!authSubscription) {
-      const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-        set({ session: session ?? null });
-        if (session) void get().refreshMember();
-        else set({ member: null });
-      });
-      authSubscription = sub.subscription;
+      if (!authSubscription) {
+        const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+          set({ session: session ?? null });
+          if (session) void get().refreshMember();
+          else set({ member: null });
+        });
+        authSubscription = sub.subscription;
+      }
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('Supabase auth init non riuscito (controlla le env NEXT_PUBLIC_SUPABASE_*):', e);
+    } finally {
+      set({ loading: false });
     }
-
-    set({ loading: false });
   },
 
   refreshMember: async () => {
