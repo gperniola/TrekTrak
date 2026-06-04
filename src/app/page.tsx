@@ -25,6 +25,7 @@ import { OfflineBanner } from '@/components/shared/OfflineBanner';
 import { ToastContainer } from '@/components/shared/Toast';
 import { ConfirmModalContainer } from '@/components/shared/ConfirmModal';
 import { InviteModal } from '@/components/auth/InviteModal';
+import { BrandMark } from '@/components/shared/BrandMark';
 
 export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
@@ -145,7 +146,7 @@ export default function Home() {
             >
               ☰
             </button>
-            <h1 className="text-base font-bold text-green-400">&#9650; TrekTrak</h1>
+            <h1><BrandMark size="sm" /></h1>
             <div className="flex items-center gap-0.5">
               <button
                 onClick={() => setSearchOpen(!searchOpen)}
