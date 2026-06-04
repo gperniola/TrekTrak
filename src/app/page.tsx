@@ -24,6 +24,7 @@ import { decodeItinerary } from '@/lib/share-url';
 import { OfflineBanner } from '@/components/shared/OfflineBanner';
 import { ToastContainer } from '@/components/shared/Toast';
 import { ConfirmModalContainer } from '@/components/shared/ConfirmModal';
+import { InviteModal } from '@/components/auth/InviteModal';
 
 export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
@@ -42,6 +43,9 @@ export default function Home() {
   const selectedRouteId = useRouteLibraryStore((s) => s.selectedRouteId);
   const previewRoute = useRouteLibraryStore((s) => s.routes.find((r) => r.id === s.selectedRouteId));
   const clearRouteSelection = useRouteLibraryStore((s) => s.select);
+
+  const justInvited = useAuthStore((s) => s.justInvited);
+  const authSession = useAuthStore((s) => s.session);
 
   useBodyScrollLock(drawerOpen);
 
@@ -243,6 +247,9 @@ export default function Home() {
 
       {/* What's New popup (shown once per version, after tutorial) */}
       <WhatsNew />
+
+      {/* Invite welcome popup — solo all'apertura del link di invito, se non autenticato */}
+      {justInvited && !authSession && <InviteModal />}
 
       {/* Global notification UI */}
       <ToastContainer />

@@ -17,7 +17,7 @@ import { useAuthStore } from '@/stores/authStore';
 beforeEach(() => {
   mockGetSession.mockReset(); mockMaybeSingle.mockReset(); mockSignOut.mockReset();
   mockGetSession.mockResolvedValue({ data: { session: null } });
-  useAuthStore.setState({ loading: true, invited: false, inviteToken: null, session: null, member: null });
+  useAuthStore.setState({ loading: true, invited: false, inviteToken: null, justInvited: false, session: null, member: null });
   window.location.hash = '';
   localStorage.clear();
 });
@@ -31,13 +31,21 @@ describe('authStore', () => {
     expect(s.inviteToken).toBe('beta-test');
     expect(localStorage.getItem('trektrak_invited')).toBe('1');
     expect(window.location.hash).toBe('');
+    expect(s.justInvited).toBe(true); // popup di benvenuto attivo su clic del link
   });
 
-  test('init: invited ripristinato da localStorage', async () => {
+  test('init: invited ripristinato da localStorage senza justInvited (no popup)', async () => {
     localStorage.setItem('trektrak_invited', '1');
     localStorage.setItem('trektrak_invite_token', 'beta-test');
     await useAuthStore.getState().init();
     expect(useAuthStore.getState().invited).toBe(true);
+    expect(useAuthStore.getState().justInvited).toBe(false);
+  });
+
+  test('dismissInvite azzera justInvited', () => {
+    useAuthStore.setState({ justInvited: true });
+    useAuthStore.getState().dismissInvite();
+    expect(useAuthStore.getState().justInvited).toBe(false);
   });
 
   test('init: sessione presente + riga member → member popolato', async () => {

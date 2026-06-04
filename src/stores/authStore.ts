@@ -8,6 +8,8 @@ interface AuthState {
   loading: boolean;
   invited: boolean;
   inviteToken: string | null;
+  /** true solo quando l'invito è arrivato adesso dall'URL hash: pilota il popup di benvenuto. */
+  justInvited: boolean;
   session: Session | null;
   member: Member | null;
   init: () => Promise<void>;
@@ -15,6 +17,7 @@ interface AuthState {
   requestAccess: (email: string) => Promise<{ ok: boolean; error?: string }>;
   claimUsername: (username: string) => Promise<{ ok: boolean; error?: string }>;
   updateUsername: (username: string) => Promise<{ ok: boolean; error?: string }>;
+  dismissInvite: () => void;
   signOut: () => Promise<void>;
 }
 
@@ -32,6 +35,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   loading: true,
   invited: false,
   inviteToken: null,
+  justInvited: false,
   session: null,
   member: null,
 
@@ -52,7 +56,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         inviteToken = localStorage.getItem('trektrak_invite_token');
       } catch { /* ignore */ }
     }
-    set({ invited, inviteToken });
+    // justInvited solo se l'invito arriva ORA dall'URL (clic sul link), non da localStorage.
+    set({ invited, inviteToken, justInvited: !!fromHash });
 
     const supabase = getSupabase();
     const { data } = await supabase.auth.getSession();
@@ -115,6 +120,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     await get().refreshMember();
     return { ok: true };
   },
+
+  dismissInvite: () => set({ justInvited: false }),
 
   signOut: async () => {
     await getSupabase().auth.signOut();
