@@ -4,6 +4,8 @@
 >
 > **PREREQUISITO UMANO:** completare la "Setup checklist Supabase" prima dei task. L'utente fornisce Project URL + anon key + project ref; imposta la `service_role` key in env server (non la condivide). **Niente Docker:** sviluppo con `next dev` contro il Supabase hosted.
 
+**STATO: ✅ COMPLETATA (2026-06-04)** — schema/RLS/seed applicati su Supabase hosted; API routes verificate end-to-end (token errato → 403, token valido → magic-link `ok:true`); 8 test Jest verdi (suite 481).
+
 **Goal:** Predisporre il backend della libreria condivisa: 4 tabelle Postgres con RLS su Supabase hosted, due **API routes Next.js** per il gating a invito (`request-access`, `claim-username`), client admin server-only. Migrazioni versionate nel repo.
 
 **Architecture:** Postgres + Auth gestiti da Supabase hosted. Schema e RLS in migrazioni SQL applicate via Supabase CLI (`db push`). La logica privilegiata vive in API routes Next.js server-side (come l'esistente `api/elevation`) che usano un client admin con la `service_role` key (solo env server). Il client browser userà la anon key (Fase 2). La RLS è la garanzia a livello DB.
