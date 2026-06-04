@@ -47,6 +47,12 @@ export default function Home() {
   const justInvited = useAuthStore((s) => s.justInvited);
   const authSession = useAuthStore((s) => s.session);
   const authLoading = useAuthStore((s) => s.loading);
+  const invited = useAuthStore((s) => s.invited);
+  const isMember = useAuthStore((s) => s.member != null);
+  // Durante il flusso di invito (invitato ma non ancora membro) il popup di
+  // registrazione/accesso ha la precedenza: sopprimiamo l'onboarding di prima
+  // visita (tutorial + What's New) per non sovrapporlo.
+  const inInviteFlow = invited && !isMember;
 
   useBodyScrollLock(drawerOpen);
 
@@ -243,11 +249,11 @@ export default function Home() {
 
       {progressOpen && <ProgressOverlay onClose={closeProgress} />}
 
-      {/* First-visit tutorial */}
-      <LearnTutorial />
+      {/* First-visit tutorial — soppresso durante il flusso di invito (il popup di accesso ha la precedenza) */}
+      {!inInviteFlow && <LearnTutorial />}
 
       {/* What's New popup (shown once per version, after tutorial) */}
-      <WhatsNew />
+      {!inInviteFlow && <WhatsNew />}
 
       {/* Invite welcome popup — solo all'apertura del link di invito, se non autenticato */}
       {!authLoading && justInvited && !authSession && <InviteModal />}
