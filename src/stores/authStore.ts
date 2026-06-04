@@ -24,6 +24,10 @@ function readInviteFromHash(): string | null {
   return m ? decodeURIComponent(m[1]) : null;
 }
 
+// Handle della sottoscrizione auth, a livello di modulo: evita listener
+// duplicati se init() viene chiamato più volte (es. React StrictMode in dev).
+let authSubscription: { unsubscribe: () => void } | null = null;
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   loading: true,
   invited: false,
@@ -41,7 +45,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         localStorage.setItem('trektrak_invited', '1');
         localStorage.setItem('trektrak_invite_token', fromHash);
       } catch { /* storage non disponibile */ }
-      if (typeof window !== 'undefined') window.location.hash = '';
+      window.location.hash = '';
     } else {
       try {
         invited = localStorage.getItem('trektrak_invited') === '1';
@@ -55,11 +59,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ session: data.session ?? null });
     if (data.session) await get().refreshMember();
 
-    supabase.auth.onAuthStateChange((_event, session) => {
-      set({ session: session ?? null });
-      if (session) void get().refreshMember();
-      else set({ member: null });
-    });
+    if (!authSubscription) {
+      const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+        set({ session: session ?? null });
+        if (session) void get().refreshMember();
+        else set({ member: null });
+      });
+      authSubscription = sub.subscription;
+    }
 
     set({ loading: false });
   },
@@ -73,6 +80,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   requestAccess: async (email) => {
+    // token può essere null se non invitato: il server risponde 403 (gate voluto).
     const token = get().inviteToken;
     const res = await fetch('/api/shared/request-access', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
