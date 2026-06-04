@@ -31,6 +31,12 @@ function readInviteFromHash(): string | null {
 // duplicati se init() viene chiamato più volte (es. React StrictMode in dev).
 let authSubscription: { unsubscribe: () => void } | null = null;
 
+// Flag a livello di modulo: l'invito è stato letto dall'URL in questo caricamento
+// di pagina. Sopravvive al doppio init di React StrictMode (che azzera l'hash al
+// primo giro, lasciando il secondo senza token). Si resetta solo a pagina ricaricata
+// o con dismissInvite(). Rende init() idempotente rispetto al popup di benvenuto.
+let pendingInvitePopup = false;
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   loading: true,
   invited: false,
@@ -50,14 +56,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         localStorage.setItem('trektrak_invite_token', fromHash);
       } catch { /* storage non disponibile */ }
       window.location.hash = '';
+      pendingInvitePopup = true;
     } else {
       try {
         invited = localStorage.getItem('trektrak_invited') === '1';
         inviteToken = localStorage.getItem('trektrak_invite_token');
       } catch { /* ignore */ }
     }
-    // justInvited solo se l'invito arriva ORA dall'URL (clic sul link), non da localStorage.
-    set({ invited, inviteToken, justInvited: !!fromHash });
+    // justInvited resta true finché non viene dismesso, anche se init() viene
+    // richiamato dopo che l'hash è stato azzerato (StrictMode). Solo da link, mai da LS.
+    set({ invited, inviteToken, justInvited: pendingInvitePopup });
 
     // Il client Supabase potrebbe non essere disponibile (es. env NEXT_PUBLIC mancanti
     // se il dev server non è stato riavviato). In tal caso non blocchiamo la UI:
@@ -129,7 +137,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     return { ok: true };
   },
 
-  dismissInvite: () => set({ justInvited: false }),
+  dismissInvite: () => { pendingInvitePopup = false; set({ justInvited: false }); },
 
   signOut: async () => {
     await getSupabase().auth.signOut();

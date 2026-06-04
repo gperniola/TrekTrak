@@ -18,6 +18,7 @@ beforeEach(() => {
   mockGetSession.mockReset(); mockMaybeSingle.mockReset(); mockSignOut.mockReset();
   mockGetSession.mockResolvedValue({ data: { session: null } });
   useAuthStore.setState({ loading: true, invited: false, inviteToken: null, justInvited: false, session: null, member: null });
+  useAuthStore.getState().dismissInvite(); // reset del flag pendingInvitePopup a livello di modulo
   window.location.hash = '';
   localStorage.clear();
 });
