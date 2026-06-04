@@ -1,0 +1,115 @@
+import { create } from 'zustand';
+import type { Session } from '@supabase/supabase-js';
+import { getSupabase } from '@/lib/supabase';
+
+export interface Member { id: string; username: string; role: 'member' | 'admin'; }
+
+interface AuthState {
+  loading: boolean;
+  invited: boolean;
+  inviteToken: string | null;
+  session: Session | null;
+  member: Member | null;
+  init: () => Promise<void>;
+  refreshMember: () => Promise<void>;
+  requestAccess: (email: string) => Promise<{ ok: boolean; error?: string }>;
+  claimUsername: (username: string) => Promise<{ ok: boolean; error?: string }>;
+  updateUsername: (username: string) => Promise<{ ok: boolean; error?: string }>;
+  signOut: () => Promise<void>;
+}
+
+function readInviteFromHash(): string | null {
+  if (typeof window === 'undefined') return null;
+  const m = window.location.hash.match(/[#&]invite=([^&]+)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+export const useAuthStore = create<AuthState>((set, get) => ({
+  loading: true,
+  invited: false,
+  inviteToken: null,
+  session: null,
+  member: null,
+
+  init: async () => {
+    let invited = false;
+    let inviteToken: string | null = null;
+    const fromHash = readInviteFromHash();
+    if (fromHash) {
+      invited = true; inviteToken = fromHash;
+      try {
+        localStorage.setItem('trektrak_invited', '1');
+        localStorage.setItem('trektrak_invite_token', fromHash);
+      } catch { /* storage non disponibile */ }
+      if (typeof window !== 'undefined') window.location.hash = '';
+    } else {
+      try {
+        invited = localStorage.getItem('trektrak_invited') === '1';
+        inviteToken = localStorage.getItem('trektrak_invite_token');
+      } catch { /* ignore */ }
+    }
+    set({ invited, inviteToken });
+
+    const supabase = getSupabase();
+    const { data } = await supabase.auth.getSession();
+    set({ session: data.session ?? null });
+    if (data.session) await get().refreshMember();
+
+    supabase.auth.onAuthStateChange((_event, session) => {
+      set({ session: session ?? null });
+      if (session) void get().refreshMember();
+      else set({ member: null });
+    });
+
+    set({ loading: false });
+  },
+
+  refreshMember: async () => {
+    const supabase = getSupabase();
+    const uid = get().session?.user?.id;
+    if (!uid) { set({ member: null }); return; }
+    const { data } = await supabase.from('members').select('id, username, role').eq('id', uid).maybeSingle();
+    set({ member: (data as Member) ?? null });
+  },
+
+  requestAccess: async (email) => {
+    const token = get().inviteToken;
+    const res = await fetch('/api/shared/request-access', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, token }),
+    });
+    if (!res.ok) { const b = await res.json().catch(() => ({})); return { ok: false, error: b.error ?? 'error' }; }
+    return { ok: true };
+  },
+
+  claimUsername: async (username) => {
+    const supabase = getSupabase();
+    const { data } = await supabase.auth.getSession();
+    const jwt = data.session?.access_token;
+    if (!jwt) return { ok: false, error: 'no_session' };
+    const res = await fetch('/api/shared/claim-username', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${jwt}` },
+      body: JSON.stringify({ username }),
+    });
+    const b = await res.json().catch(() => ({}));
+    if (!res.ok) return { ok: false, error: b.error ?? 'error' };
+    await get().refreshMember();
+    return { ok: true };
+  },
+
+  updateUsername: async (username) => {
+    const supabase = getSupabase();
+    const uid = get().session?.user?.id;
+    if (!uid) return { ok: false, error: 'no_session' };
+    const { error } = await supabase.from('members').update({ username: username.trim() }).eq('id', uid);
+    if (error) return { ok: false, error: error.code === '23505' ? 'username_taken' : 'error' };
+    await get().refreshMember();
+    return { ok: true };
+  },
+
+  signOut: async () => {
+    await getSupabase().auth.signOut();
+    set({ session: null, member: null });
+  },
+}));
