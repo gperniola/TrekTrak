@@ -98,20 +98,20 @@ export function RouteDetailCard() {
       <div className="flex gap-2">
         <button
           onClick={handleLoad}
-          className="flex-1 py-2 bg-green-600 text-black rounded text-xs font-bold hover:bg-green-500"
+          className="flex-1 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-gray-950 rounded-lg text-xs font-bold shadow-sm transition-all active:scale-[0.98] hover:from-green-400 hover:to-emerald-500"
         >
           Carica nell&apos;editor
         </button>
         <button
           onClick={() => exportItineraryJSON(route)}
-          className="px-3 py-2 bg-gray-700 rounded text-xs hover:bg-gray-600"
+          className="px-3 py-2 bg-gray-700 rounded-lg text-xs transition-all active:scale-[0.97] hover:bg-gray-600"
           aria-label="Esporta JSON"
         >
           ↓
         </button>
         <button
           onClick={handleDelete}
-          className="px-3 py-2 bg-red-600 rounded text-xs hover:bg-red-500"
+          className="px-3 py-2 bg-red-600 rounded-lg text-xs transition-all active:scale-[0.97] hover:bg-red-500"
         >
           Elimina
         </button>

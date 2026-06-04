@@ -15,7 +15,7 @@ export function WaypointCard({ waypoint, dragHandleProps }: { waypoint: Waypoint
   const displayName = waypoint.name || `Waypoint ${waypoint.order + 1}`;
 
   return (
-    <div className="bg-gray-800 border border-gray-700 rounded-lg p-3">
+    <div className="bg-gray-800 border border-gray-700 rounded-lg p-3 transition-colors hover:border-gray-600">
       <div className="flex justify-between items-center mb-2">
         <div className="flex items-center gap-1 min-w-0">
           <span className="text-green-400 font-bold text-sm truncate">

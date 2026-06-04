@@ -35,7 +35,7 @@ export function LeftPanel({ className }: {
               onClick={() => setView('edit')}
               role="tab"
               aria-selected={view === 'edit'}
-              className={`flex-1 py-2 text-xs text-center ${view === 'edit' ? 'text-green-400 border-b-2 border-green-400' : 'text-gray-500'}`}
+              className={`flex-1 py-2 text-xs text-center transition-colors ${view === 'edit' ? 'text-green-400 border-b-2 border-green-400' : 'text-gray-500 hover:text-gray-300'}`}
             >
               Modifica
             </button>
@@ -43,7 +43,7 @@ export function LeftPanel({ className }: {
               onClick={() => setView('table')}
               role="tab"
               aria-selected={view === 'table'}
-              className={`flex-1 py-2 text-xs text-center ${view === 'table' ? 'text-green-400 border-b-2 border-green-400' : 'text-gray-500'}`}
+              className={`flex-1 py-2 text-xs text-center transition-colors ${view === 'table' ? 'text-green-400 border-b-2 border-green-400' : 'text-gray-500 hover:text-gray-300'}`}
             >
               Tabella
             </button>

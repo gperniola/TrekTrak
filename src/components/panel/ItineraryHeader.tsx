@@ -116,10 +116,10 @@ export function ItineraryHeader() {
   return (
     <div className="border-b border-gray-700">
       <div className="p-3 flex items-center justify-end gap-1">
-        <button onClick={handleSave} className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600" aria-label="Salva itinerario">
+        <button onClick={handleSave} className="px-2.5 py-1 bg-gradient-to-r from-green-500 to-emerald-600 text-gray-950 font-semibold rounded-lg text-xs shadow-sm transition-all active:scale-[0.97] hover:from-green-400 hover:to-emerald-500" aria-label="Salva itinerario">
           Salva
         </button>
-        <button onClick={() => setMainView('library')} className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600" aria-label="Apri libreria percorsi">
+        <button onClick={() => setMainView('library')} className="px-2 py-1 bg-gray-700 rounded-lg text-xs transition-all active:scale-[0.97] hover:bg-gray-600" aria-label="Apri libreria percorsi">
           Carica
         </button>
         <button
@@ -135,15 +135,15 @@ export function ItineraryHeader() {
             resetItinerary();
             toast.info('Nuovo itinerario creato');
           }}
-          className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600"
+          className="px-2 py-1 bg-gray-700 rounded-lg text-xs transition-all active:scale-[0.97] hover:bg-gray-600"
           aria-label="Nuovo itinerario"
         >
           Nuovo
         </button>
-        <button onClick={handleExportJSON} className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600" title="Esporta JSON" aria-label="Esporta JSON">
+        <button onClick={handleExportJSON} className="px-2 py-1 bg-gray-700 rounded-lg text-xs transition-all active:scale-[0.97] hover:bg-gray-600" title="Esporta JSON" aria-label="Esporta JSON">
           ↓
         </button>
-        <button onClick={handleImportJSON} className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600" title="Importa JSON" aria-label="Importa JSON">
+        <button onClick={handleImportJSON} className="px-2 py-1 bg-gray-700 rounded-lg text-xs transition-all active:scale-[0.97] hover:bg-gray-600" title="Importa JSON" aria-label="Importa JSON">
           ↑
         </button>
       </div>

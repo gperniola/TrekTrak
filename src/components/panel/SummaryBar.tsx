@@ -72,14 +72,16 @@ export function SummaryBar() {
 
   return (
     <div className="border-t border-gray-700 p-3 bg-gray-900">
-      <div className="flex justify-between text-xs mb-1">
-        <span>{totalDistance.toFixed(1)} km</span>
-        <span className="text-red-400">+{totalGain}m</span>
-        <span className="text-blue-400">-{totalLoss}m</span>
-        <span>{formatTime(totalTime)}</span>
-      </div>
-      <div className="flex justify-between text-xs text-gray-400">
-        <span>Difficolt&agrave;: <SacBadge grade={difficulty} /></span>
+      <div className="rounded-lg bg-gray-800/60 px-3 py-2">
+        <div className="flex justify-between text-xs mb-1 tabular-nums font-semibold">
+          <span className="text-gray-200">{totalDistance.toFixed(1)} km</span>
+          <span className="text-red-400">+{totalGain} m</span>
+          <span className="text-blue-400">-{totalLoss} m</span>
+          <span className="text-gray-200">{formatTime(totalTime)}</span>
+        </div>
+        <div className="flex justify-between text-xs text-gray-400">
+          <span>Difficolt&agrave;: <SacBadge grade={difficulty} /></span>
+        </div>
       </div>
     </div>
   );
