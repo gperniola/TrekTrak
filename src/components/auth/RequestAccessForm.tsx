@@ -5,7 +5,7 @@ import { useAuthStore } from '@/stores/authStore';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export function RequestAccessForm() {
+export function RequestAccessForm({ hideHeader = false }: { hideHeader?: boolean }) {
   const requestAccess = useAuthStore((s) => s.requestAccess);
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
@@ -32,20 +32,26 @@ export function RequestAccessForm() {
 
   return (
     <div className="p-4 space-y-3">
-      <h3 className="text-sm font-bold text-green-400">Accesso area condivisa</h3>
-      <p className="text-xs text-gray-400">Inserisci la tua email: riceverai un link per entrare.</p>
-      <label className="block text-xs text-gray-400" htmlFor="ra-email">Email</label>
+      {!hideHeader && (
+        <>
+          <h3 className="text-sm font-bold text-green-400">Accesso area condivisa</h3>
+          <p className="text-xs text-gray-400">Inserisci la tua email: riceverai un link per entrare.</p>
+        </>
+      )}
+      <label className="block text-[11px] uppercase tracking-wider text-gray-400" htmlFor="ra-email">Email</label>
       <input
         id="ra-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-        className="w-full bg-gray-900 border border-gray-600 rounded px-2 py-1.5 text-sm focus:border-green-500 focus:outline-none"
+        onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
+        placeholder="nome@email.it"
+        className="w-full bg-gray-900/80 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:border-green-500 focus:ring-1 focus:ring-green-500/40 focus:outline-none transition-colors"
         autoComplete="email"
       />
       {error && <p className="text-xs text-red-400">{error}</p>}
       <button
         onClick={submit} disabled={busy}
-        className="w-full py-2 bg-green-600 text-black rounded text-sm font-bold hover:bg-green-500 disabled:opacity-50"
+        className="w-full py-2.5 bg-green-600 text-black rounded-lg text-sm font-bold hover:bg-green-500 active:scale-[0.99] disabled:opacity-50 transition-all"
       >
-        {busy ? 'Invio…' : 'Invia link'}
+        {busy ? 'Invio…' : 'Invia link di accesso'}
       </button>
     </div>
   );
