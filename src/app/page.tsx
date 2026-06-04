@@ -19,6 +19,7 @@ import { loadSettings } from '@/lib/storage';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { useUIStore } from '@/stores/uiStore';
 import { useRouteLibraryStore } from '@/stores/routeLibraryStore';
+import { useAuthStore } from '@/stores/authStore';
 import { decodeItinerary } from '@/lib/share-url';
 import { OfflineBanner } from '@/components/shared/OfflineBanner';
 import { ToastContainer } from '@/components/shared/Toast';
@@ -43,6 +44,9 @@ export default function Home() {
   const clearRouteSelection = useRouteLibraryStore((s) => s.select);
 
   useBodyScrollLock(drawerOpen);
+
+  // Initialize auth store once on mount (session, invite, member).
+  useEffect(() => { void useAuthStore.getState().init(); }, []);
 
   // Hydrate settings from localStorage on mount
   useEffect(() => {
