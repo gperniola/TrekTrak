@@ -23,7 +23,7 @@ export function InviteModal() {
       <div
         role="dialog"
         aria-modal="true"
-        aria-labelledby="invite-modal-title"
+        aria-label="Accesso area condivisa"
         className="bg-gray-800 rounded-lg w-96 max-w-[90vw] relative"
         onClick={(e) => e.stopPropagation()}
       >
@@ -34,7 +34,6 @@ export function InviteModal() {
         >
           &times;
         </button>
-        <div id="invite-modal-title" className="sr-only">Accesso area condivisa</div>
         <RequestAccessForm />
       </div>
     </div>

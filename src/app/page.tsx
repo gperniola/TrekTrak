@@ -46,6 +46,7 @@ export default function Home() {
 
   const justInvited = useAuthStore((s) => s.justInvited);
   const authSession = useAuthStore((s) => s.session);
+  const authLoading = useAuthStore((s) => s.loading);
 
   useBodyScrollLock(drawerOpen);
 
@@ -249,7 +250,7 @@ export default function Home() {
       <WhatsNew />
 
       {/* Invite welcome popup — solo all'apertura del link di invito, se non autenticato */}
-      {justInvited && !authSession && <InviteModal />}
+      {!authLoading && justInvited && !authSession && <InviteModal />}
 
       {/* Global notification UI */}
       <ToastContainer />
