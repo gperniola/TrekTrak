@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouteLibraryStore } from '@/stores/routeLibraryStore';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { useUIStore } from '@/stores/uiStore';
+import { useAuthStore } from '@/stores/authStore';
 import { exportItineraryJSON } from '@/lib/export-json';
 import { formatTime } from '@/lib/format';
 import { confirm as appConfirm, toast } from '@/stores/notificationStore';
@@ -26,11 +27,14 @@ export function RouteDetailCard() {
   const remove = useRouteLibraryStore((s) => s.remove);
   const loadItinerary = useItineraryStore((s) => s.loadItinerary);
   const setMainView = useUIStore((s) => s.setMainView);
+  const member = useAuthStore((s) => s.member);
   const route = routes.find((r) => r.id === selectedId);
   const [notes, setNotes] = useState(route?.notes ?? '');
 
   if (!route) return null;
   const m = route.metrics;
+  // Solo il proprietario (o un admin) può eliminare il percorso.
+  const canManageRoute = member?.role === 'admin' || route.createdByUsername === member?.username;
 
   const handleLoad = async () => {
     const currentWps = useItineraryStore.getState().waypoints;
@@ -47,9 +51,12 @@ export function RouteDetailCard() {
   };
 
   const handleDelete = async () => {
+    const n = route.completions?.length ?? 0;
     const ok = await appConfirm({
       title: 'Eliminare questo percorso?',
-      message: "L'azione è irreversibile.",
+      message: n > 0
+        ? `Verranno eliminati anche i ${n} completament${n === 1 ? 'o' : 'i'} associati. L'azione è irreversibile.`
+        : "L'azione è irreversibile.",
       variant: 'error',
       confirmText: 'Elimina',
     });
@@ -133,12 +140,14 @@ export function RouteDetailCard() {
         >
           ↓
         </button>
-        <button
-          onClick={handleDelete}
-          className="px-3 py-2 bg-red-600 rounded-lg text-xs transition-all active:scale-[0.97] hover:bg-red-500"
-        >
-          Elimina
-        </button>
+        {canManageRoute && (
+          <button
+            onClick={handleDelete}
+            className="px-3 py-2 bg-red-600 rounded-lg text-xs transition-all active:scale-[0.97] hover:bg-red-500"
+          >
+            Elimina
+          </button>
+        )}
       </div>
     </div>
   );

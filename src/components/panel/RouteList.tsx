@@ -36,7 +36,10 @@ function Row({ route, index }: { route: Itinerary; index: number }) {
       )}
       <div className="flex-1 min-w-0">
         <div className="text-sm font-medium truncate">{route.name || 'Senza nome'}</div>
-        <div className="text-[11px] text-gray-500">{km.toFixed(1)} km · +{gain}m · 🥾{completions}</div>
+        <div className="text-[11px] text-gray-500">
+          {route.createdByUsername && <span className="text-green-500">@{route.createdByUsername} · </span>}
+          {km.toFixed(1)} km · +{gain}m · 🥾{completions}
+        </div>
       </div>
     </div>
   );

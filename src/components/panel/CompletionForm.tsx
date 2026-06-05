@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { RouteCompletion } from '@/lib/types';
 import { DifficultyRating } from './DifficultyRating';
+import { WEATHER_OPTIONS } from '@/lib/weather';
 
 export function CompletionForm({
   initial, onSubmit, onCancel, idPrefix = 'cf',
@@ -17,6 +18,7 @@ export function CompletionForm({
   const [hours, setHours] = useState(initial?.durationMinutes != null ? String(Math.floor(initial.durationMinutes / 60)) : '');
   const [minutes, setMinutes] = useState(initial?.durationMinutes != null ? String(initial.durationMinutes % 60) : '');
   const [difficulty, setDifficulty] = useState<RouteCompletion['difficulty']>(initial?.difficulty);
+  const [weather, setWeather] = useState(initial?.weather ?? '');
   const [notes, setNotes] = useState(initial?.notes ?? '');
 
   const submit = () => {
@@ -27,6 +29,7 @@ export function CompletionForm({
       date,
       durationMinutes: total > 0 ? total : undefined,
       difficulty,
+      weather: weather || undefined,
       notes: notes.trim(),
     });
   };
@@ -53,6 +56,14 @@ export function CompletionForm({
       <div>
         <label className="block text-[10px] text-gray-500 uppercase">Difficoltà percepita</label>
         <DifficultyRating value={difficulty} onChange={(v) => setDifficulty(v)} />
+      </div>
+      <div>
+        <label className="block text-[10px] text-gray-500 uppercase" htmlFor={`${idPrefix}-weather`}>Meteo</label>
+        <select id={`${idPrefix}-weather`} value={weather} onChange={(e) => setWeather(e.target.value)}
+          className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-sm focus:border-green-500 focus:outline-none">
+          <option value="">— non specificato —</option>
+          {WEATHER_OPTIONS.map((o) => <option key={o.code} value={o.code}>{o.icon} {o.label}</option>)}
+        </select>
       </div>
       <div>
         <label className="block text-[10px] text-gray-500 uppercase" htmlFor={`${idPrefix}-notes`}>Note</label>

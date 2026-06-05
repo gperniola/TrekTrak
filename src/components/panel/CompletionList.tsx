@@ -8,16 +8,11 @@ import { formatTime } from '@/lib/format';
 import { toast } from '@/stores/notificationStore';
 import { CompletionForm } from './CompletionForm';
 import { DifficultyRating } from './DifficultyRating';
+import { weatherOption } from '@/lib/weather';
 
 function fmtDate(iso: string): string {
   const d = Date.parse(iso);
   return Number.isNaN(d) ? iso : new Date(d).toLocaleDateString('it-IT');
-}
-
-function deltaLabel(actual: number, estimate: number): string {
-  const diff = Math.round(actual - estimate);
-  const sign = diff > 0 ? '+' : diff < 0 ? '-' : '';
-  return `stima ${formatTime(estimate)} → ${sign}${formatTime(Math.abs(diff))}`;
 }
 
 export function CompletionList({ route }: { route: Itinerary }) {
@@ -28,7 +23,6 @@ export function CompletionList({ route }: { route: Itinerary }) {
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const completions = route.completions ?? [];
-  const estimate = route.metrics?.estimatedTimeMin;
 
   const lastDate = completions.length
     ? completions.map((c) => c.date).sort().at(-1)
@@ -61,22 +55,24 @@ export function CompletionList({ route }: { route: Itinerary }) {
             <CompletionForm key={c.id} idPrefix={`cf-edit-${c.id}`} initial={c}
               onCancel={() => setEditingId(null)}
               onSubmit={(patch) => { void guard(() => updateCompletion(route.id, c.id, patch)); setEditingId(null); }} />
-          ) : (
+          ) : (() => {
+            const w = weatherOption(c.weather);
+            const canManage = member?.role === 'admin' || c.createdBy === member?.id;
+            return (
             <div key={c.id} className="bg-gray-900 rounded px-2 py-1.5 text-xs">
               <div className="flex justify-between items-start">
                 <div>
                   <span className="font-medium">{c.personName}</span>
                   <span className="text-gray-500"> · {fmtDate(c.date)}</span>
-                  {c.durationMinutes != null && (
-                    <span className="text-gray-400"> · {formatTime(c.durationMinutes)}
-                      {estimate != null && <span className="text-gray-600"> ({deltaLabel(c.durationMinutes, estimate)})</span>}
-                    </span>
-                  )}
+                  {c.durationMinutes != null && <span className="text-gray-400"> · {formatTime(c.durationMinutes)}</span>}
+                  {w && <span className="text-gray-400" title={w.label}> · {w.icon} {w.label}</span>}
                 </div>
-                <div className="flex gap-1 shrink-0">
-                  <button onClick={() => setEditingId(c.id)} className="text-gray-500 hover:text-gray-300" aria-label="Modifica completamento">✎</button>
-                  <button onClick={() => void guard(() => deleteCompletion(route.id, c.id))} className="text-gray-500 hover:text-red-400" aria-label="Elimina completamento">✕</button>
-                </div>
+                {canManage && (
+                  <div className="flex gap-1 shrink-0">
+                    <button onClick={() => setEditingId(c.id)} className="text-gray-500 hover:text-gray-300" aria-label="Modifica completamento">✎</button>
+                    <button onClick={() => void guard(() => deleteCompletion(route.id, c.id))} className="text-gray-500 hover:text-red-400" aria-label="Elimina completamento">✕</button>
+                  </div>
+                )}
               </div>
               {c.difficulty != null && (
                 <div className="mt-0.5">
@@ -85,7 +81,8 @@ export function CompletionList({ route }: { route: Itinerary }) {
               )}
               {c.notes && <div className="text-gray-500 mt-0.5">{c.notes}</div>}
             </div>
-          )
+            );
+          })()
         ))}
       </div>
     </div>
