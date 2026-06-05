@@ -1,7 +1,7 @@
 ---
 id: TASK-47
 title: "[B] Tool mappa in FAB contestuale"
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-06-05 19:45'
 labels:

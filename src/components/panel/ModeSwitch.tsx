@@ -34,7 +34,7 @@ export function ModeSwitch() {
   return (
     <div className="flex items-center px-3 py-2 border-b border-gray-700 gap-1">
       {/* TASK-40: ogni tool ha icona + etichetta testuale (i soli glifi ◎ ↕ ? erano ambigui). */}
-      <div role="toolbar" aria-label="Strumenti mappa" className="flex items-center gap-1">
+      <div role="toolbar" aria-label="Strumenti mappa" className="hidden lg:flex items-center gap-1">
         <button
           onClick={toggleCompass}
           className={`px-2 py-1 rounded-lg transition-all active:scale-95 min-w-[44px] min-h-[40px] flex flex-col items-center justify-center gap-0.5 ${

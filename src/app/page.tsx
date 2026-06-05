@@ -26,6 +26,7 @@ import { ToastContainer } from '@/components/shared/Toast';
 import { ConfirmModalContainer } from '@/components/shared/ConfirmModal';
 import { InviteModal } from '@/components/auth/InviteModal';
 import { BrandMark } from '@/components/shared/BrandMark';
+import { MapToolsFab } from '@/components/map/MapToolsFab';
 
 export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
@@ -130,6 +131,7 @@ export default function Home() {
         {/* Map */}
         <div className="flex-1 relative min-h-0 overflow-hidden">
           <MapWrapper />
+          <MapToolsFab />
 
           {/* Mobile-only preview banner: shown when browsing the library and a route is selected */}
           {mainView === 'library' && previewRoute && (
