@@ -40,7 +40,7 @@ export function DifficultyRating({
             onClick={() => onChange?.(lvl)}
             aria-label={`${lvl} — ${DIFFICULTY_LABELS[lvl]}`}
             aria-pressed={value === lvl}
-            className={`text-lg leading-none transition-transform active:scale-90 ${value && lvl <= value ? 'opacity-100' : 'opacity-30 grayscale'}`}
+            className={`min-w-[44px] min-h-[44px] flex items-center justify-center text-xl transition-transform active:scale-90 ${value && lvl <= value ? 'opacity-100' : 'opacity-30 grayscale'}`}
           >
             🥾
           </button>

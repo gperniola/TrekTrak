@@ -5,7 +5,7 @@ import type { Itinerary, RouteCompletion } from '@/lib/types';
 import { useRouteLibraryStore } from '@/stores/routeLibraryStore';
 import { useAuthStore } from '@/stores/authStore';
 import { formatTime } from '@/lib/format';
-import { toast } from '@/stores/notificationStore';
+import { confirm as appConfirm, toast } from '@/stores/notificationStore';
 import { CompletionForm } from './CompletionForm';
 import { DifficultyRating } from './DifficultyRating';
 import { weatherOption } from '@/lib/weather';
@@ -30,6 +30,11 @@ export function CompletionList({ route }: { route: Itinerary }) {
 
   const guard = async (fn: () => Promise<void>) => {
     try { await fn(); } catch { toast.error('Errore nel salvataggio. Riprova quando sei online.'); }
+  };
+
+  const askDelete = async (id: string) => {
+    const ok = await appConfirm({ title: 'Eliminare questa uscita?', message: "L'azione è irreversibile.", variant: 'error', confirmText: 'Elimina' });
+    if (ok) await guard(() => deleteCompletion(route.id, id));
   };
 
   return (
@@ -69,8 +74,8 @@ export function CompletionList({ route }: { route: Itinerary }) {
                 </div>
                 {canManage && (
                   <div className="flex gap-1 shrink-0">
-                    <button onClick={() => setEditingId(c.id)} className="text-gray-500 hover:text-gray-300" aria-label="Modifica completamento">✎</button>
-                    <button onClick={() => void guard(() => deleteCompletion(route.id, c.id))} className="text-gray-500 hover:text-red-400" aria-label="Elimina completamento">✕</button>
+                    <button onClick={() => setEditingId(c.id)} className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded text-gray-400 hover:text-gray-200 hover:bg-white/5" aria-label="Modifica completamento">✎</button>
+                    <button onClick={() => void askDelete(c.id)} className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded text-gray-400 hover:text-red-400 hover:bg-white/5" aria-label="Elimina completamento">✕</button>
                   </div>
                 )}
               </div>

@@ -1,7 +1,7 @@
 ---
 id: TASK-49
 title: "[B] Diario completamenti tap-friendly su mobile"
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-06-05 19:45'
 labels:
