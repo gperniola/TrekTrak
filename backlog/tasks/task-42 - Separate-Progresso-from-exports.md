@@ -1,7 +1,7 @@
 ---
 id: TASK-42
 title: Separare "Progresso" dagli export nella ActionBar
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-06-05 18:30'
 labels:

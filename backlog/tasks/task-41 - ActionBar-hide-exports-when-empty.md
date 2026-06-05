@@ -1,7 +1,7 @@
 ---
 id: TASK-41
 title: ActionBar — nascondi/raggruppa gli export quando l'itinerario è vuoto
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-06-05 18:30'
 labels:

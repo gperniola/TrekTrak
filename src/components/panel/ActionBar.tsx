@@ -42,6 +42,11 @@ export function ActionBar() {
   const totalTime = legs.reduce((sum, l) => sum + (l.estimatedTime ?? 0), 0);
   const maxSlope = Math.max(0, ...legs.map((l) => l.slope ?? 0));
 
+  // TASK-41: gli export non devono invitare ad azioni inutili quando non c'è nulla da esportare.
+  const validCoordWaypoints = waypoints.filter((wp) => wp.lat != null && wp.lon != null);
+  const canExportPdf = waypoints.length >= 2;
+  const canExportGpx = validCoordWaypoints.length >= 2;
+
   const handlePDF = async (format: 'summary' | 'roadbook') => {
     if (waypoints.length < 2) {
       toast.warning('Aggiungi almeno 2 waypoint');
@@ -367,22 +372,29 @@ export function ActionBar() {
           )}
         </div>
       )}
-      <div className="flex flex-wrap gap-2">
+      {/* Export e condivisione del percorso. TASK-41: disabilitati quando non c'è nulla da esportare. */}
+      <div role="group" aria-label="Esporta e condividi" className="flex flex-wrap gap-2">
         <button
           onClick={() => handlePDF('summary')}
-          className="flex-1 py-2 bg-green-500 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-green-400"
+          disabled={!canExportPdf}
+          title={!canExportPdf ? 'Servono almeno 2 waypoint' : undefined}
+          className="flex-1 py-2 bg-green-500 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           PDF Sintetico
         </button>
         <button
           onClick={() => handlePDF('roadbook')}
-          className="flex-1 py-2 bg-green-600 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-green-500"
+          disabled={!canExportPdf}
+          title={!canExportPdf ? 'Servono almeno 2 waypoint' : undefined}
+          className="flex-1 py-2 bg-green-600 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           PDF Roadbook
         </button>
         <button
           onClick={handleGPX}
-          className="flex-1 py-2 bg-blue-500 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-blue-400"
+          disabled={!canExportGpx}
+          title={!canExportGpx ? 'Servono almeno 2 waypoint con coordinate' : undefined}
+          className="flex-1 py-2 bg-blue-500 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-blue-400 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           GPX
         </button>
@@ -405,6 +417,9 @@ export function ActionBar() {
         >
           {linkCopied ? 'Copiato!' : 'Copia link'}
         </button>
+      </div>
+      {/* Attività didattiche (verifica + progresso). TASK-42: separate dagli export. */}
+      <div role="group" aria-label="Attività" className="flex flex-wrap gap-2">
         {appMode === 'learn' && (
           <button
             onClick={handleVerify}
