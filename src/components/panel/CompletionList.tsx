@@ -57,7 +57,7 @@ export function CompletionList({ route }: { route: Itinerary }) {
               onSubmit={(patch) => { void guard(() => updateCompletion(route.id, c.id, patch)); setEditingId(null); }} />
           ) : (() => {
             const w = weatherOption(c.weather);
-            const canManage = member?.role === 'admin' || c.createdBy === member?.id;
+            const canManage = member != null && (member.role === 'admin' || c.createdBy === member.id);
             return (
             <div key={c.id} className="bg-gray-900 rounded px-2 py-1.5 text-xs">
               <div className="flex justify-between items-start">

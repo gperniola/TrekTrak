@@ -29,7 +29,7 @@ export function CompletionForm({
       date,
       durationMinutes: total > 0 ? total : undefined,
       difficulty,
-      weather: weather || undefined,
+      weather, // stringa vuota = "non specificato" → l'update la azzera nel DB
       notes: notes.trim(),
     });
   };
