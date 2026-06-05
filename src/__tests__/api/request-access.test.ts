@@ -3,12 +3,12 @@ import { describe, expect, test, jest, beforeEach } from '@jest/globals';
 
 const mockFrom = jest.fn();
 const mockListUsers = jest.fn();
-const mockGenerateLink = jest.fn();
+const mockSignInWithOtp = jest.fn();
 const mockInvite = jest.fn();
 jest.mock('@/lib/supabase-admin', () => ({
   getAdminClient: () => ({
     from: mockFrom,
-    auth: { admin: { listUsers: mockListUsers, generateLink: mockGenerateLink, inviteUserByEmail: mockInvite } },
+    auth: { signInWithOtp: mockSignInWithOtp, admin: { listUsers: mockListUsers, inviteUserByEmail: mockInvite } },
   }),
 }));
 
@@ -32,7 +32,7 @@ function inviteLookup(data: unknown) {
 beforeEach(() => {
   mockFrom.mockReset();
   mockListUsers.mockReset();
-  mockGenerateLink.mockReset();
+  mockSignInWithOtp.mockReset();
   mockInvite.mockReset();
 });
 
@@ -56,16 +56,16 @@ describe('request-access route', () => {
     const res = await POST(req({ email: 'new@b.it', token: 'whatever' }));
     expect(res.status).toBe(200);
     expect(mockInvite).toHaveBeenCalled();
-    expect(mockGenerateLink).not.toHaveBeenCalled();
+    expect(mockSignInWithOtp).not.toHaveBeenCalled();
   });
 
-  test('utente esistente → magic-link di login', async () => {
+  test('utente esistente → invia magic-link di login (signInWithOtp)', async () => {
     inviteLookup({ id: 'i1' });
     mockListUsers.mockResolvedValue({ data: { users: [{ email: 'OLD@b.it' }] } });
-    mockGenerateLink.mockResolvedValue({ error: null });
+    mockSignInWithOtp.mockResolvedValue({ error: null });
     const res = await POST(req({ email: 'old@b.it', token: 'whatever' }));
     expect(res.status).toBe(200);
-    expect(mockGenerateLink).toHaveBeenCalled();
+    expect(mockSignInWithOtp).toHaveBeenCalledWith(expect.objectContaining({ email: 'old@b.it', options: expect.objectContaining({ shouldCreateUser: false }) }));
     expect(mockInvite).not.toHaveBeenCalled();
   });
 });

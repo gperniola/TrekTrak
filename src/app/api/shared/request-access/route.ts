@@ -26,7 +26,10 @@ export async function POST(req: Request) {
     );
 
     if (exists) {
-      const { error } = await admin.auth.admin.generateLink({ type: 'magiclink', email, options: { redirectTo } });
+      // Utente esistente → INVIA un magic-link di login (template "Magic Link").
+      // signInWithOtp invia davvero l'email (a differenza di admin.generateLink, che
+      // genera soltanto il link); shouldCreateUser:false evita di creare nuovi utenti.
+      const { error } = await admin.auth.signInWithOtp({ email, options: { shouldCreateUser: false, emailRedirectTo: redirectTo } });
       if (error) return json({ error: 'send_failed' }, 500);
     } else {
       const { error } = await admin.auth.admin.inviteUserByEmail(email, { redirectTo });
