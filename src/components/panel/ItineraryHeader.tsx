@@ -43,6 +43,14 @@ export function ItineraryHeader() {
     return slimTrack ? { ...rest, trackValues: slimTrack } : rest;
   };
 
+  // Per il cloud manteniamo routeGeometry + elevationProfile (fedeltà del sentiero
+  // tracciato); rimuoviamo solo i derivati ricalcolabili al load.
+  const cloudLeg = (leg: Leg) => {
+    const { validationState, estimatedTime, slope, ...rest } = leg;
+    void validationState; void estimatedTime; void slope;
+    return rest;
+  };
+
   const persist = async (name: string, notes: string | undefined) => {
     if (!member) return;
     const metrics = computeRouteMetrics(waypoints, legs, settings.pace?.factor ?? 1);
@@ -53,7 +61,7 @@ export function ItineraryHeader() {
       createdAt,
       updatedAt: new Date().toISOString(),
       waypoints: waypoints.map(({ validationState, ...wp }) => wp),
-      legs: legs.map(slimLeg),
+      legs: legs.map(cloudLeg),
       metrics,
       notes: notes ?? existing?.notes ?? '',
     } as Parameters<typeof saveRouteToCloud>[0];

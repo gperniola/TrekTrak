@@ -49,4 +49,13 @@ describe('fetchRoutes', () => {
     const routes = await fetchRoutes();
     expect(routes[0].completions![0].difficulty).toBe(4);
   });
+
+  test('preserva routeGeometry/elevationProfile dei leg', async () => {
+    tables['routes'] = [{ id: 'r1', sort_index: 0, updated_at: 'x', created_at: 'x', created_by: 'm1',
+      data: { name: 'X', waypoints: [], legs: [{ id: 'l1', fromWaypointId: 'a', toWaypointId: 'b', distance: 2, elevationGain: 100, elevationLoss: 0, azimuth: 0, routeGeometry: [[45, 9], [45.1, 9.1]], elevationProfile: [{ distance: 0, altitude: 100 }] }] } }];
+    tables['completions'] = []; tables['members'] = [];
+    const routes = await fetchRoutes();
+    expect(routes[0].legs[0].routeGeometry).toEqual([[45, 9], [45.1, 9.1]]);
+    expect(routes[0].legs[0].elevationProfile).toHaveLength(1);
+  });
 });
