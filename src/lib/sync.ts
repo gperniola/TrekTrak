@@ -4,12 +4,17 @@ import type { Itinerary, RouteCompletion } from './types';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface RouteRow { id: string; data: Record<string, unknown>; created_by: string; sort_index: number; created_at: string; updated_at: string; }
-interface CompletionRow { id: string; route_id: string; created_by: string; person: string; date: string; duration_minutes: number | null; notes: string; }
+interface CompletionRow { id: string; route_id: string; created_by: string; person: string; date: string; duration_minutes: number | null; difficulty: number | null; notes: string; }
 
 function mapCompletion(r: CompletionRow): RouteCompletion {
-  // NB: la colonna `difficulty` esiste in DB ma la UI (e il tipo RouteCompletion) la
-  // gestiranno in Fase 4; qui non viene letta/scritta per ora.
-  return { id: r.id, personName: r.person, date: r.date, durationMinutes: r.duration_minutes ?? undefined, notes: r.notes ?? '' };
+  return {
+    id: r.id,
+    personName: r.person,
+    date: r.date,
+    durationMinutes: r.duration_minutes ?? undefined,
+    difficulty: (r.difficulty ?? undefined) as RouteCompletion['difficulty'],
+    notes: r.notes ?? '',
+  };
 }
 
 export async function fetchRoutes(): Promise<Itinerary[]> {
@@ -105,7 +110,7 @@ export async function reorderRoutes(orderedIds: string[]): Promise<void> {
 export async function addCompletion(routeId: string, memberId: string, c: Omit<RouteCompletion, 'id'>): Promise<void> {
   const { error } = await getSupabase().from('completions').insert({
     route_id: routeId, created_by: memberId, person: c.personName, date: c.date,
-    duration_minutes: c.durationMinutes ?? null, notes: c.notes ?? '',
+    duration_minutes: c.durationMinutes ?? null, difficulty: c.difficulty ?? null, notes: c.notes ?? '',
   });
   if (error) throw new Error((error as { message: string }).message);
 }
@@ -115,6 +120,7 @@ export async function updateCompletion(completionId: string, patch: Partial<Rout
   if (patch.personName !== undefined) upd.person = patch.personName;
   if (patch.date !== undefined) upd.date = patch.date;
   if (patch.durationMinutes !== undefined) upd.duration_minutes = patch.durationMinutes ?? null;
+  if (patch.difficulty !== undefined) upd.difficulty = patch.difficulty ?? null;
   if (patch.notes !== undefined) upd.notes = patch.notes;
   const { error } = await getSupabase().from('completions').update(upd).eq('id', completionId);
   if (error) throw new Error((error as { message: string }).message);

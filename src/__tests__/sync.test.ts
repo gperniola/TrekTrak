@@ -41,4 +41,12 @@ describe('fetchRoutes', () => {
     expect(routes[0].completions![0].personName).toBe('Gio');
     expect(routes[0].completions![0].durationMinutes).toBe(120);
   });
+
+  test('mappa difficulty del completamento', async () => {
+    tables['routes'] = [{ id: 'r1', sort_index: 0, updated_at: 'x', created_at: 'x', created_by: 'm1', data: { name: 'X', waypoints: [], legs: [] } }];
+    tables['completions'] = [{ id: 'c1', route_id: 'r1', created_by: 'm1', person: 'Gio', date: '2026-05-01', duration_minutes: null, difficulty: 4, notes: '' }];
+    tables['members'] = [];
+    const routes = await fetchRoutes();
+    expect(routes[0].completions![0].difficulty).toBe(4);
+  });
 });

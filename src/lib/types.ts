@@ -86,6 +86,8 @@ export interface RouteCompletion {
   personName: string;
   date: string;              // ISO "YYYY-MM-DD"
   durationMinutes?: number;  // tempo impiegato (opzionale)
+  /** Difficoltà percepita 1-5 (1 passeggiata di salute … 5 kitemmurt). */
+  difficulty?: 1 | 2 | 3 | 4 | 5;
   notes: string;
 }
 
