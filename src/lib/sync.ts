@@ -59,9 +59,16 @@ function dataPayload(it: Itinerary): Record<string, unknown> {
 export async function saveRouteToCloud(it: Itinerary, memberId: string): Promise<string> {
   const supabase = getSupabase();
   if (UUID_RE.test(it.id)) {
-    const { data: row } = await supabase.from('routes').select('id, created_by').eq('id', it.id).maybeSingle();
+    const { data: row } = await supabase.from('routes').select('id, created_by, data').eq('id', it.id).maybeSingle();
     if (row && (row as { created_by: string }).created_by === memberId) {
-      const { error } = await supabase.from('routes').update({ data: dataPayload(it), updated_at: new Date().toISOString() }).eq('id', it.id);
+      const payload = dataPayload(it);
+      // Le note sono gestite dalla libreria (RouteDetailCard), non dall'editor:
+      // se l'editor non porta note, preserva quelle già salvate nel cloud.
+      if (!it.notes) {
+        const existingData = ((row as { data?: Record<string, unknown> }).data) ?? {};
+        payload.notes = (existingData.notes as string) ?? '';
+      }
+      const { error } = await supabase.from('routes').update({ data: payload, updated_at: new Date().toISOString() }).eq('id', it.id);
       if (error) throw new Error((error as { message: string }).message);
       return it.id;
     }
