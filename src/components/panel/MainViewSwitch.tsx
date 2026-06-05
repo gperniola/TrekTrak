@@ -12,7 +12,11 @@ export function MainViewSwitch() {
 
   const invited = useAuthStore((s) => s.invited);
   const isMember = useAuthStore((s) => s.member != null);
-  const showLibrary = invited || isMember;
+  const hasSession = useAuthStore((s) => s.session != null);
+  // Mostra la tab anche con sola sessione attiva: al ritorno dal magic-link
+  // l'utente è autenticato ma non ancora membro e deve poter scegliere lo username,
+  // anche su un browser dove il flag d'invito non è presente.
+  const showLibrary = invited || isMember || hasSession;
 
   // Defensive fallback: if the library becomes inaccessible while it's the
   // active view, switch back to the editor. Done in an effect (not during

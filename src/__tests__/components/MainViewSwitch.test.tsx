@@ -6,7 +6,7 @@ import { useAuthStore } from '@/stores/authStore';
 
 beforeEach(() => {
   useUIStore.setState({ mainView: 'editor' });
-  useAuthStore.setState({ invited: false, member: null });
+  useAuthStore.setState({ invited: false, member: null, session: null });
 });
 
 describe('MainViewSwitch gating', () => {
@@ -24,6 +24,12 @@ describe('MainViewSwitch gating', () => {
 
   test('tab Libreria presente se membro', () => {
     useAuthStore.setState({ invited: false, member: { id: 'u', username: 'g', role: 'member' } });
+    render(<MainViewSwitch />);
+    expect(screen.getByRole('tab', { name: /libreria/i })).toBeInTheDocument();
+  });
+
+  test('tab Libreria presente con sola sessione attiva (ritorno magic-link)', () => {
+    useAuthStore.setState({ invited: false, member: null, session: { user: { id: 'u' } } as never });
     render(<MainViewSwitch />);
     expect(screen.getByRole('tab', { name: /libreria/i })).toBeInTheDocument();
   });
