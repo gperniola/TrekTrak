@@ -227,20 +227,25 @@ export async function autoFillTrackData(waypointId: string) {
 
 /**
  * Refill all legs.
- * @param onlyMissing if true, skip waypoints whose adjacent legs are already populated
- *                    (used after TASK-15 mode-restore to fill only newly-added legs)
+ * @param onlyMissing if true, skip waypoints whose adjacent legs are already populated.
+ *                    Used after TASK-15 mode-restore and on itinerary load: a leg is
+ *                    considered "missing" if it has no distance, OR (in trail-routing mode)
+ *                    no routeGeometry. This preserves the trail geometry of routes loaded
+ *                    from the cloud (Fase 5) while still reconstructing legs that lack it
+ *                    (e.g. share-URL imports or pre-Fase-5 saves).
  */
 export async function autoFillAllTrackData(onlyMissing: boolean = false) {
   const store = useItineraryStore.getState();
   if (store.appMode !== 'track') return;
+  const useTrailRouting = store.settings.mapDisplay.trailRouting;
   // Process only the "from" waypoint of each leg to avoid double-processing shared legs
   const processed = new Set<string>();
   const { waypoints, legs } = store;
   const needsFill = (wpId: string): boolean => {
     if (!onlyMissing) return true;
-    // Refill only if any adjacent leg has missing distance
     return legs.some(
-      (l) => (l.fromWaypointId === wpId || l.toWaypointId === wpId) && l.distance == null,
+      (l) => (l.fromWaypointId === wpId || l.toWaypointId === wpId)
+        && (l.distance == null || (useTrailRouting && l.routeGeometry == null)),
     );
   };
   for (const leg of legs) {

@@ -15,26 +15,22 @@ export function TrackModeAutoFill() {
   useEffect(() => {
     const modeChanged = prevMode.current !== 'track' && appMode === 'track';
     const routingChanged = appMode === 'track' && prevTrailRouting.current !== trailRouting;
-    // Re-fill on itinerary load: saved/shared itineraries have no routeGeometry/elevationProfile,
-    // since those are stripped on save (storage) and on encode (share URL) to limit size.
+    // On itinerary load: routes from the cloud (Fase 5) already carry routeGeometry/
+    // elevationProfile → preserve them; only legs that LACK geometry (share-URL imports,
+    // pre-Fase-5 saves) get reconstructed via the geometry-aware onlyMissing refill.
     const itineraryChanged = appMode === 'track' && prevItineraryId.current !== itineraryId;
 
     if (modeChanged || routingChanged || itineraryChanged) {
-      const store = useItineraryStore.getState();
-      // TASK-15 interaction:
-      //  - routingChanged / itineraryChanged → full re-fill (need fresh geometry).
-      //  - modeChanged only (Learn→Track) → re-fill only legs missing data;
-      //    legs whose trackValues were just restored stay untouched.
-      const fullRefill = routingChanged || itineraryChanged;
-      const partialRefill = modeChanged && !fullRefill;
-
-      if (fullRefill) {
+      // routingChanged = user toggled trail routing → re-route EVERYTHING (clear all geometry).
+      if (routingChanged) {
+        const store = useItineraryStore.getState();
         store.legs.forEach((leg) => {
           store.updateLeg(leg.id, { routeGeometry: undefined, elevationProfile: undefined });
         });
         autoFillAllTrackData();
-      } else if (partialRefill) {
-        // Only fill legs with null distance; preserve restored trackValues elsewhere.
+      } else {
+        // modeChanged (Learn→Track) or itineraryChanged → fill only legs missing
+        // data/geometry; legs that already have geometry are left untouched.
         autoFillAllTrackData(true);
       }
     }

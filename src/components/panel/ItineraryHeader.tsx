@@ -44,7 +44,8 @@ export function ItineraryHeader() {
   };
 
   // Per il cloud manteniamo routeGeometry + elevationProfile (fedeltà del sentiero
-  // tracciato); rimuoviamo solo i derivati ricalcolabili al load.
+  // tracciato), inclusi quelli dentro trackValues; rimuoviamo solo i derivati
+  // ricalcolabili al load (validationState/estimatedTime/slope).
   const cloudLeg = (leg: Leg) => {
     const { validationState, estimatedTime, slope, ...rest } = leg;
     void validationState; void estimatedTime; void slope;
