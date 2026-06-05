@@ -48,15 +48,4 @@ describe('routeLibraryStore (cloud)', () => {
     expect(mockReorder).toHaveBeenCalledWith(['2', '1']);
   });
 
-  test('knownPeople deduplica case-insensitive dai completamenti caricati', async () => {
-    mockFetch.mockResolvedValue([
-      mk('1', 'A', 0, [{ id: 'c1', personName: ' Gio ', date: 'x', notes: '' }, { id: 'c2', personName: 'gio', date: 'x', notes: '' }]),
-      mk('2', 'B', 1, [{ id: 'c3', personName: 'Anna', date: 'x', notes: '' }]),
-    ]);
-    await useRouteLibraryStore.getState().refresh();
-    const people = useRouteLibraryStore.getState().knownPeople();
-    expect(people).toContain('Gio');
-    expect(people).toContain('Anna');
-    expect(people.filter((p) => p.toLowerCase() === 'gio')).toHaveLength(1);
-  });
 });

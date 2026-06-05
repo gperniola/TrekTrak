@@ -2,47 +2,37 @@
 
 import { useState } from 'react';
 import type { RouteCompletion } from '@/lib/types';
+import { DifficultyRating } from './DifficultyRating';
 
 export function CompletionForm({
-  knownPeople, initial, onSubmit, onCancel, idPrefix = 'cf',
+  initial, onSubmit, onCancel, idPrefix = 'cf',
 }: {
-  knownPeople: string[];
   initial?: RouteCompletion;
-  onSubmit: (c: Omit<RouteCompletion, 'id'>) => void;
+  onSubmit: (c: Omit<RouteCompletion, 'id' | 'personName'>) => void;
   onCancel: () => void;
-  /** Unique prefix so multiple forms on screen don't collide on DOM ids / datalist. */
+  /** Unique prefix so multiple forms on screen don't collide on DOM ids. */
   idPrefix?: string;
 }) {
-  const [personName, setPersonName] = useState(initial?.personName ?? '');
   const [date, setDate] = useState(initial?.date ?? new Date().toISOString().slice(0, 10));
   const [hours, setHours] = useState(initial?.durationMinutes != null ? String(Math.floor(initial.durationMinutes / 60)) : '');
   const [minutes, setMinutes] = useState(initial?.durationMinutes != null ? String(initial.durationMinutes % 60) : '');
+  const [difficulty, setDifficulty] = useState<RouteCompletion['difficulty']>(initial?.difficulty);
   const [notes, setNotes] = useState(initial?.notes ?? '');
 
-  const dlId = `${idPrefix}-known-people`;
-
   const submit = () => {
-    const name = personName.trim();
-    if (!name) return;
     const h = parseInt(hours, 10);
     const mm = parseInt(minutes, 10);
     const total = (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(mm) ? mm : 0);
     onSubmit({
-      personName: name,
       date,
       durationMinutes: total > 0 ? total : undefined,
+      difficulty,
       notes: notes.trim(),
     });
   };
 
   return (
     <div className="bg-gray-900 rounded p-2 space-y-2">
-      <div>
-        <label className="block text-[10px] text-gray-500 uppercase" htmlFor={`${idPrefix}-person`}>Chi</label>
-        <input id={`${idPrefix}-person`} list={dlId} value={personName} onChange={(e) => setPersonName(e.target.value)}
-          maxLength={120} className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-sm focus:border-green-500 focus:outline-none" />
-        <datalist id={dlId}>{knownPeople.map((p) => <option key={p} value={p} />)}</datalist>
-      </div>
       <div className="flex gap-2">
         <div className="flex-1">
           <label className="block text-[10px] text-gray-500 uppercase" htmlFor={`${idPrefix}-date`}>Data</label>
@@ -59,6 +49,10 @@ export function CompletionForm({
           <input id={`${idPrefix}-min`} type="number" min={0} max={59} value={minutes} onChange={(e) => setMinutes(e.target.value)}
             className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-sm focus:border-green-500 focus:outline-none" />
         </div>
+      </div>
+      <div>
+        <label className="block text-[10px] text-gray-500 uppercase">Difficoltà percepita</label>
+        <DifficultyRating value={difficulty} onChange={(v) => setDifficulty(v)} />
       </div>
       <div>
         <label className="block text-[10px] text-gray-500 uppercase" htmlFor={`${idPrefix}-notes`}>Note</label>

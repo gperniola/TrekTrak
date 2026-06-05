@@ -37,7 +37,6 @@ interface RouteLibraryState {
   addCompletion: (routeId: string, c: Omit<RouteCompletion, 'id'>) => Promise<void>;
   updateCompletion: (routeId: string, completionId: string, patch: Partial<RouteCompletion>) => Promise<void>;
   deleteCompletion: (routeId: string, completionId: string) => Promise<void>;
-  knownPeople: () => string[];
 }
 
 export const useRouteLibraryStore = create<RouteLibraryState>((set, get) => ({
@@ -81,13 +80,4 @@ export const useRouteLibraryStore = create<RouteLibraryState>((set, get) => ({
   },
   updateCompletion: async (_routeId, completionId, patch) => { await syncUpdateCompletion(completionId, patch); await get().refresh(); },
   deleteCompletion: async (_routeId, completionId) => { await syncDeleteCompletion(completionId); await get().refresh(); },
-
-  knownPeople: () => {
-    const seen = new Map<string, string>();
-    for (const r of get().routes) for (const c of r.completions ?? []) {
-      const n = c.personName.trim(); if (!n) continue;
-      const k = n.toLowerCase(); if (!seen.has(k)) seen.set(k, n);
-    }
-    return Array.from(seen.values()).sort((a, b) => a.localeCompare(b, 'it'));
-  },
 }));

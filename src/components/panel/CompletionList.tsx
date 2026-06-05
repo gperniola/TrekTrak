@@ -3,9 +3,11 @@
 import { useState } from 'react';
 import type { Itinerary, RouteCompletion } from '@/lib/types';
 import { useRouteLibraryStore } from '@/stores/routeLibraryStore';
+import { useAuthStore } from '@/stores/authStore';
 import { formatTime } from '@/lib/format';
 import { toast } from '@/stores/notificationStore';
 import { CompletionForm } from './CompletionForm';
+import { DifficultyRating } from './DifficultyRating';
 
 function fmtDate(iso: string): string {
   const d = Date.parse(iso);
@@ -22,7 +24,7 @@ export function CompletionList({ route }: { route: Itinerary }) {
   const addCompletion = useRouteLibraryStore((s) => s.addCompletion);
   const updateCompletion = useRouteLibraryStore((s) => s.updateCompletion);
   const deleteCompletion = useRouteLibraryStore((s) => s.deleteCompletion);
-  const knownPeople = useRouteLibraryStore((s) => s.knownPeople);
+  const member = useAuthStore((s) => s.member);
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const completions = route.completions ?? [];
@@ -48,16 +50,15 @@ export function CompletionList({ route }: { route: Itinerary }) {
       {adding && (
         <CompletionForm
           idPrefix="cf-add"
-          knownPeople={knownPeople()}
           onCancel={() => setAdding(false)}
-          onSubmit={(c) => { void guard(() => addCompletion(route.id, c)); setAdding(false); }}
+          onSubmit={(c) => { void guard(() => addCompletion(route.id, { ...c, personName: member?.username ?? '' })); setAdding(false); }}
         />
       )}
 
       <div className="space-y-1">
         {completions.map((c: RouteCompletion) => (
           editingId === c.id ? (
-            <CompletionForm key={c.id} idPrefix={`cf-edit-${c.id}`} knownPeople={knownPeople()} initial={c}
+            <CompletionForm key={c.id} idPrefix={`cf-edit-${c.id}`} initial={c}
               onCancel={() => setEditingId(null)}
               onSubmit={(patch) => { void guard(() => updateCompletion(route.id, c.id, patch)); setEditingId(null); }} />
           ) : (
@@ -77,6 +78,11 @@ export function CompletionList({ route }: { route: Itinerary }) {
                   <button onClick={() => void guard(() => deleteCompletion(route.id, c.id))} className="text-gray-500 hover:text-red-400" aria-label="Elimina completamento">✕</button>
                 </div>
               </div>
+              {c.difficulty != null && (
+                <div className="mt-0.5">
+                  <DifficultyRating value={c.difficulty} readOnly />
+                </div>
+              )}
               {c.notes && <div className="text-gray-500 mt-0.5">{c.notes}</div>}
             </div>
           )
