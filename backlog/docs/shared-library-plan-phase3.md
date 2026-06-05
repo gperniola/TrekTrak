@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:subagent-driven-development o executing-plans. Steps con checkbox (`- [ ]`). Logica testata con mock del client Supabase; verifica e2e (lettura/scrittura reale) manuale.
 
+**STATO: ✅ COMPLETATA (2026-06-05)** — `lib/sync.ts` + `routeLibraryStore` async su Supabase; Save editor→cloud (solo membri); completamenti/note/riordino sincronizzati; verificato e2e (salvataggio, libreria, completamenti, riordino, gating non-membri). 507 test verdi.
+
 **Goal:** Sostituire il backend della libreria da localStorage a **Supabase cloud**, dietro l'interfaccia esistente del `routeLibraryStore`. I membri leggono/scrivono percorsi e completamenti condivisi; il "Salva" dell'editor pubblica nel cloud ed è riservato ai membri.
 
 **Architecture:** Un nuovo `lib/sync.ts` incapsula l'accesso dati Supabase (routes JSONB + completions + risoluzione username dei membri). Le azioni del `routeLibraryStore` diventano **async** e usano `lib/sync` invece di `lib/storage`. localStorage resta come cache offline (read-through) e per settings/quiz/validation (non toccati). Conflitti: last-write-wins su `updated_at`. Scritture solo online (toast se offline). Decisione: **Salva = solo membri** (non-membri: pulsante disabilitato con CTA).
