@@ -7,12 +7,13 @@
 ## Stato
 
 - ✅ **Codice pronto** (commit fase 6): la route `request-access`, per i membri **già registrati**, ora **invia davvero** il magic-link di login (`signInWithOtp`) invece di solo generarlo (`admin.generateLink`).
-- ✅ **Template pronti** in `supabase/templates/`: `invite.html`, `magic-link.html`, `confirm-signup.html`.
-- ⏳ **Da fare (utente):** configurare SMTP + incollare i template + verificare.
+- ✅ **Template pronti e brandizzati** in `supabase/templates/`: `invite.html`, `magic-link.html`, `confirm-signup.html`. Header con **cresta di vette** (decorazione email-safe: solo glifi di testo, niente SVG — Gmail/Outlook lo eliminerebbero) e **copy rivista**: l'invito è a *provare TrekTrak (anteprima)*, con la libreria condivisa presentata come **prima funzionalità** e descritta dal lato utente (consultare / condividere / diario comune delle uscite). Footer `▲ TrekTrak · anteprima`.
+- ✅ **SMTP configurato** (lato utente — Gmail SMTP).
+- ⏳ **Da fare (utente):** (re)incollare i template **aggiornati** in dashboard (sono cambiati tema e testi) + verifica finale.
 
 ---
 
-## A. Configurare l'SMTP
+## A. Configurare l'SMTP  ✅ *(fatto — Gmail SMTP)*
 
 ### Opzione consigliata: **Gmail SMTP** (gratis, nessun servizio terzo)
 Per `@gmail.com` l'invio *tramite* Gmail è autenticato da Google (SPF/DKIM allineati) → buona consegna, niente notazione "via", meno spam. Mittente bloccato sull'indirizzo Gmail autenticato; limite ~500 email/giorno (abbondante per uso familiare).
@@ -42,7 +43,7 @@ Una volta abilitato l'SMTP custom, l'editor template si sblocca (Authentication 
 
 | Template Supabase | File | Oggetto consigliato |
 |---|---|---|
-| **Invite user** | `supabase/templates/invite.html` | Sei stato invitato alla libreria percorsi di TrekTrak 🏔️ |
+| **Invite user** | `supabase/templates/invite.html` | Sei stato invitato all'anteprima di TrekTrak 🏔️ |
 | **Magic Link** | `supabase/templates/magic-link.html` | Il tuo link di accesso a TrekTrak |
 | **Confirm signup** | `supabase/templates/confirm-signup.html` | Conferma il tuo accesso a TrekTrak *(opzionale: signup pubblici disabilitati)* |
 
@@ -51,7 +52,7 @@ I template usano la variabile del link d'azione `{{ .ConfirmationURL }}`.
 ---
 
 ## C. Verifica
-- Invito con **email nuova** → arriva l'email **brandizzata in italiano** (template Invite).
+- Invito con **email nuova** → arriva l'email **brandizzata** (tema cresta di vette + copy anteprima TrekTrak), oggetto *Sei stato invitato all'anteprima di TrekTrak* 🏔️.
 - Login di un **membro esistente** (riapri il link invito → inserisci email) → arriva il **magic-link di login** brandizzato (ora inviato davvero grazie al fix).
 - Controlla che il mittente mostri **TrekTrak** e l'indirizzo scelto.
 
