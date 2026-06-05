@@ -34,4 +34,10 @@ describe('RouteDetailCard', () => {
     fireEvent.click(screen.getByRole('button', { name: /carica nell'editor/i }));
     expect(useUIStore.getState().mainView).toBe('editor');
   });
+
+  test('mostra il creatore @username', () => {
+    useRouteLibraryStore.setState({ routes: [{ ...route, createdByUsername: 'gio' }], selectedRouteId: '1', sortMode: 'manual' });
+    render(<RouteDetailCard />);
+    expect(screen.getByText(/@gio/)).toBeInTheDocument();
+  });
 });

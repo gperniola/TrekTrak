@@ -8,6 +8,7 @@ import { exportItineraryJSON } from '@/lib/export-json';
 import { formatTime } from '@/lib/format';
 import { confirm as appConfirm, toast } from '@/stores/notificationStore';
 import { CompletionList } from './CompletionList';
+import { buildMeteoUrl } from '@/lib/meteo';
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
@@ -63,9 +64,28 @@ export function RouteDetailCard() {
     catch { toast.error('Errore nel salvataggio. Riprova quando sei online.'); }
   };
 
+  const handlePDF = async () => {
+    if (route.waypoints.length < 2) { toast.warning('Servono almeno 2 waypoint'); return; }
+    const { downloadPDF } = await import('@/lib/export-pdf');
+    const { calculateDifficulty } = await import('@/lib/calculations');
+    downloadPDF({
+      name: route.name,
+      waypoints: route.waypoints,
+      legs: route.legs,
+      totalDistance: m?.distanceKm ?? 0,
+      totalElevGain: m?.elevationGain ?? 0,
+      totalElevLoss: m?.elevationLoss ?? 0,
+      totalTime: m?.estimatedTimeMin ?? 0,
+      difficulty: calculateDifficulty(m?.maxSlope ?? 0),
+    }, 'summary');
+  };
+
   return (
     <div className="border-t border-gray-700 p-3 space-y-3">
       <h3 className="text-base font-bold text-green-400">{route.name || 'Senza nome'}</h3>
+      {route.createdByUsername && (
+        <p className="text-xs text-gray-500">creato da <span className="text-green-400">@{route.createdByUsername}</span></p>
+      )}
       {m && (
         <div className="grid grid-cols-2 gap-1.5">
           <Stat label="Distanza" value={`${m.distanceKm.toFixed(1)} km`} />
@@ -91,14 +111,21 @@ export function RouteDetailCard() {
           className="w-full bg-gray-900 border border-gray-600 rounded px-2 py-1.5 text-sm focus:border-green-500 focus:outline-none resize-none"
         />
       </div>
-      <CompletionList route={route} />
-      <div className="flex gap-2">
+      <div>
+        <h4 className="text-xs font-semibold text-gray-400 mb-1">Diario uscite</h4>
+        <CompletionList route={route} />
+      </div>
+      <div className="flex flex-wrap gap-2">
         <button
           onClick={handleLoad}
           className="flex-1 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-gray-950 rounded-lg text-xs font-bold shadow-sm transition-all active:scale-[0.98] hover:from-green-400 hover:to-emerald-500"
         >
           Carica nell&apos;editor
         </button>
+        <button onClick={handlePDF} className="px-3 py-2 bg-green-500 text-black rounded-lg text-xs font-bold transition-all active:scale-[0.97] hover:bg-green-400" aria-label="Scarica PDF">PDF</button>
+        {(() => { const u = buildMeteoUrl(route.waypoints); return u ? (
+          <button onClick={() => window.open(u, '_blank')} className="px-3 py-2 bg-cyan-600 text-black rounded-lg text-xs font-bold transition-all active:scale-[0.97] hover:bg-cyan-500" aria-label="Meteo">Meteo</button>
+        ) : null; })()}
         <button
           onClick={() => exportItineraryJSON(route)}
           className="px-3 py-2 bg-gray-700 rounded-lg text-xs transition-all active:scale-[0.97] hover:bg-gray-600"
