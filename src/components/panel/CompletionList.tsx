@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import type { Itinerary, RouteCompletion } from '@/lib/types';
 import { useRouteLibraryStore } from '@/stores/routeLibraryStore';
-import { getKnownPeople } from '@/lib/storage';
 import { formatTime } from '@/lib/format';
 import { toast } from '@/stores/notificationStore';
 import { CompletionForm } from './CompletionForm';
@@ -19,12 +18,11 @@ function deltaLabel(actual: number, estimate: number): string {
   return `stima ${formatTime(estimate)} → ${sign}${formatTime(Math.abs(diff))}`;
 }
 
-const SAVE_ERR = 'Errore nel salvataggio. Lo spazio potrebbe essere pieno.';
-
 export function CompletionList({ route }: { route: Itinerary }) {
   const addCompletion = useRouteLibraryStore((s) => s.addCompletion);
   const updateCompletion = useRouteLibraryStore((s) => s.updateCompletion);
   const deleteCompletion = useRouteLibraryStore((s) => s.deleteCompletion);
+  const knownPeople = useRouteLibraryStore((s) => s.knownPeople);
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const completions = route.completions ?? [];
@@ -34,8 +32,8 @@ export function CompletionList({ route }: { route: Itinerary }) {
     ? completions.map((c) => c.date).sort().at(-1)
     : null;
 
-  const guard = (fn: () => void) => {
-    try { fn(); } catch { toast.error(SAVE_ERR); }
+  const guard = async (fn: () => Promise<void>) => {
+    try { await fn(); } catch { toast.error('Errore nel salvataggio. Riprova quando sei online.'); }
   };
 
   return (
@@ -50,18 +48,18 @@ export function CompletionList({ route }: { route: Itinerary }) {
       {adding && (
         <CompletionForm
           idPrefix="cf-add"
-          knownPeople={getKnownPeople()}
+          knownPeople={knownPeople()}
           onCancel={() => setAdding(false)}
-          onSubmit={(c) => { guard(() => addCompletion(route.id, c)); setAdding(false); }}
+          onSubmit={(c) => { void guard(() => addCompletion(route.id, c)); setAdding(false); }}
         />
       )}
 
       <div className="space-y-1">
         {completions.map((c: RouteCompletion) => (
           editingId === c.id ? (
-            <CompletionForm key={c.id} idPrefix={`cf-edit-${c.id}`} knownPeople={getKnownPeople()} initial={c}
+            <CompletionForm key={c.id} idPrefix={`cf-edit-${c.id}`} knownPeople={knownPeople()} initial={c}
               onCancel={() => setEditingId(null)}
-              onSubmit={(patch) => { guard(() => updateCompletion(route.id, c.id, patch)); setEditingId(null); }} />
+              onSubmit={(patch) => { void guard(() => updateCompletion(route.id, c.id, patch)); setEditingId(null); }} />
           ) : (
             <div key={c.id} className="bg-gray-900 rounded px-2 py-1.5 text-xs">
               <div className="flex justify-between items-start">
@@ -76,7 +74,7 @@ export function CompletionList({ route }: { route: Itinerary }) {
                 </div>
                 <div className="flex gap-1 shrink-0">
                   <button onClick={() => setEditingId(c.id)} className="text-gray-500 hover:text-gray-300" aria-label="Modifica completamento">✎</button>
-                  <button onClick={() => guard(() => deleteCompletion(route.id, c.id))} className="text-gray-500 hover:text-red-400" aria-label="Elimina completamento">✕</button>
+                  <button onClick={() => void guard(() => deleteCompletion(route.id, c.id))} className="text-gray-500 hover:text-red-400" aria-label="Elimina completamento">✕</button>
                 </div>
               </div>
               {c.notes && <div className="text-gray-500 mt-0.5">{c.notes}</div>}

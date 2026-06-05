@@ -4,6 +4,7 @@ import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type D
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useRouteLibraryStore, type SortMode } from '@/stores/routeLibraryStore';
+import { toast } from '@/stores/notificationStore';
 import type { Itinerary } from '@/lib/types';
 
 const SORT_LABELS: Record<SortMode, string> = {
@@ -55,7 +56,7 @@ export function RouteList() {
     const oldIndex = ids.indexOf(active.id as string);
     const newIndex = ids.indexOf(over.id as string);
     if (oldIndex === -1 || newIndex === -1) return;
-    reorder(arrayMove(ids, oldIndex, newIndex));
+    void reorder(arrayMove(ids, oldIndex, newIndex)).catch(() => toast.error('Errore nel riordino. Riprova quando sei online.'));
   };
 
   return (

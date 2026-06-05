@@ -53,17 +53,14 @@ export function RouteDetailCard() {
       confirmText: 'Elimina',
     });
     if (!ok) return;
-    remove(route.id);
-    toast.success('Percorso eliminato');
+    try { await remove(route.id); toast.success('Percorso eliminato'); }
+    catch { toast.error('Errore di rete. Riprova quando sei online.'); }
   };
 
-  const handleNotesBlur = () => {
+  const handleNotesBlur = async () => {
     if (notes === (route.notes ?? '')) return;
-    try {
-      updateNotes(route.id, notes);
-    } catch {
-      toast.error('Errore nel salvataggio. Lo spazio potrebbe essere pieno.');
-    }
+    try { await updateNotes(route.id, notes); }
+    catch { toast.error('Errore nel salvataggio. Riprova quando sei online.'); }
   };
 
   return (
