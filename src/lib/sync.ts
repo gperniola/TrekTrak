@@ -12,7 +12,9 @@ function mapCompletion(r: CompletionRow): RouteCompletion {
     personName: r.person,
     date: r.date,
     durationMinutes: r.duration_minutes ?? undefined,
-    difficulty: (r.difficulty ?? undefined) as RouteCompletion['difficulty'],
+    // Clamp difensivo: accetta solo 1-5 interi, altrimenti undefined (non ci fidiamo
+    // ciecamente del valore DB anche se c'è il CHECK constraint).
+    difficulty: ([1, 2, 3, 4, 5].includes(r.difficulty as number) ? r.difficulty : undefined) as RouteCompletion['difficulty'],
     notes: r.notes ?? '',
   };
 }
