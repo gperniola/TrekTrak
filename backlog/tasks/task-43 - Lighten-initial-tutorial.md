@@ -1,7 +1,7 @@
 ---
 id: TASK-43
 title: Alleggerire il tutorial iniziale (8 passi → essenziale)
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-06-05 18:30'
 labels:

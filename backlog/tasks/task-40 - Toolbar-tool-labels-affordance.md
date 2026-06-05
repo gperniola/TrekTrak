@@ -1,7 +1,7 @@
 ---
 id: TASK-40
 title: Etichette/affordance ai tool della toolbar (bussola/righello/quiz)
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-06-05 18:30'
 labels:
