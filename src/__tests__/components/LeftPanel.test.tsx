@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, expect, test, beforeEach, jest } from '@jest/globals';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { useUIStore } from '@/stores/uiStore';
+import { useAuthStore } from '@/stores/authStore';
 import type { AppMode } from '@/lib/types';
 
 // Mock sub-components to isolate LeftPanel structure
@@ -106,5 +107,21 @@ describe('LeftPanel + ModeSwitch', () => {
     fireEvent.click(rulerBtn);
     expect(useUIStore.getState().rulerActive).toBe(true);
     expect(useUIStore.getState().compassActive).toBe(false);
+  });
+
+  test('showSwitch=false nasconde lo switch Editor/Libreria in-pannello', () => {
+    render(<LeftPanel showSwitch={false} />);
+    expect(screen.queryByRole('tab', { name: /libreria/i })).toBeNull();
+    expect(screen.queryByRole('tab', { name: /^editor$/i })).toBeNull();
+  });
+
+  test('viewOverride="library" mostra la libreria indipendentemente da mainView', () => {
+    useUIStore.setState({ mainView: 'editor' });
+    useAuthStore.setState({ loading: true, session: null, member: null });
+    render(<LeftPanel showSwitch={false} viewOverride="library" />);
+    // LibraryAuthGate in stato loading mostra "Caricamento…"
+    expect(screen.getByText(/Caricamento/i)).toBeInTheDocument();
+    // Editor content must NOT be present
+    expect(screen.queryByText('WAYPOINT')).toBeNull();
   });
 });

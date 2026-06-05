@@ -1,7 +1,7 @@
 ---
 id: TASK-46
 title: "[B] Bottom navigation mobile (shell)"
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-06-05 19:45'
 labels:
