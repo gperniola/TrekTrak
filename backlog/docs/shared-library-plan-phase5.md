@@ -2,6 +2,8 @@
 
 > Esecuzione inline guidata + test dove sensato. Steps con checkbox.
 
+**STATO: ✅ COMPLETATA (2026-06-05)** — geometria preservata al salvataggio; anteprima libreria mostra il sentiero reale **colorato per pendenza** (ColoredLegSegments) + **profilo altimetrico** (PreviewElevationProfile); ricarica nell'editor fedele (fix S1 in TrackModeAutoFill geometry-aware). 523 test verdi, build ok.
+
 **Goal:** Preservare il tracciato reale del percorso. Oggi al salvataggio si eliminano `routeGeometry`/`elevationProfile` dei leg → in libreria il percorso appare in linea d'aria anche se tracciato su sentiero. Dopo: il salvataggio conserva la geometria; l'anteprima e la ricarica nell'editor mostrano il sentiero reale (o la linea d'aria se così era stato tracciato).
 
 **Architecture:** Il salvataggio cloud usa un leg-prep che mantiene `routeGeometry` + `elevationProfile` (rimuove solo i derivati ricalcolabili: validationState/estimatedTime/slope). `dataPayload` (sync) li persiste nel JSONB. `PreviewRouteLayer` disegna la polilinea per-leg dalla `routeGeometry` quando presente (fallback retta tra waypoint). La ricarica nell'editor passa i leg con geometria → mappa e profilo altimetrico la rendono (loadItinerary già preserva i campi leg). Trade-off: righe più grandi nel DB (accettabile per gruppo familiare).
