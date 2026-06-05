@@ -27,6 +27,7 @@ export const useMap = () => ({
   }),
   flyTo: jest.fn(),
   setView: jest.fn(),
+  fitBounds: jest.fn(),
   on: jest.fn(),
   off: jest.fn(),
 });
