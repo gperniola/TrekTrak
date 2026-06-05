@@ -1,7 +1,7 @@
 ---
 id: TASK-45
 title: "[B] Definizione design della shell mobile (bottom nav)"
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-06-05 19:45'
 labels:
