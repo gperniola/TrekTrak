@@ -50,7 +50,7 @@ export function MapToolsFab() {
       ))}
       <button
         onClick={() => setOpen((o) => !o)}
-        aria-label={open ? 'Chiudi strumenti' : 'Strumenti mappa'}
+        aria-label={open ? 'Chiudi strumenti' : 'Apri strumenti mappa'}
         aria-expanded={open}
         aria-pressed={anyActive}
         className={`w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-xl transition-colors ${

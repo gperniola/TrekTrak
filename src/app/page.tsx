@@ -42,7 +42,6 @@ export default function Home() {
   const deactivateQuiz = useUIStore((s) => s.deactivateQuiz);
   const closeProgress = useUIStore((s) => s.closeProgress);
 
-  const selectedRouteId = useRouteLibraryStore((s) => s.selectedRouteId);
   const previewRoute = useRouteLibraryStore((s) => s.routes.find((r) => r.id === s.selectedRouteId));
   const clearRouteSelection = useRouteLibraryStore((s) => s.select);
 

@@ -46,7 +46,6 @@ beforeEach(() => {
     rulerActive: false,
     quizActive: false,
     progressOpen: false,
-    drawerOpen: false,
     searchOpen: false,
   });
 });
