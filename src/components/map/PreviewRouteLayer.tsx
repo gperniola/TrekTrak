@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Polyline, Marker, useMap } from 'react-leaflet';
+import { Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import type { Itinerary } from '@/lib/types';
+import { ColoredLegSegments } from './ColoredLegSegments';
 
 function numberedIcon(n: number) {
   return L.divIcon({
@@ -20,21 +21,21 @@ export function PreviewRouteLayer({ route }: { route: Itinerary }) {
     .filter((w) => w.lat != null && w.lon != null)
     .map((w) => [w.lat as number, w.lon as number] as [number, number]);
 
-  // Un segmento per leg: routeGeometry se presente (sentiero reale), altrimenti
-  // retta tra i due waypoint (percorso tracciato in linea d'aria).
-  const segments: [number, number][][] = [];
+  // Un segmento colorato per pendenza per ogni leg (ColoredLegSegments usa
+  // routeGeometry + elevationProfile quando presenti, altrimenti la retta tra i waypoint).
+  type Seg = { leg: Itinerary['legs'][number]; fromLat: number; fromLon: number; toLat: number; toLon: number };
+  const segs: Seg[] = [];
+  const allPts: [number, number][] = [];
   for (const leg of route.legs) {
-    if (leg.routeGeometry && leg.routeGeometry.length >= 2) {
-      segments.push(leg.routeGeometry);
-    } else {
-      const from = wpById.get(leg.fromWaypointId);
-      const to = wpById.get(leg.toWaypointId);
-      if (from?.lat != null && from?.lon != null && to?.lat != null && to?.lon != null) {
-        segments.push([[from.lat, from.lon], [to.lat, to.lon]]);
-      }
+    const from = wpById.get(leg.fromWaypointId);
+    const to = wpById.get(leg.toWaypointId);
+    if (from?.lat != null && from?.lon != null && to?.lat != null && to?.lon != null) {
+      segs.push({ leg, fromLat: from.lat, fromLon: from.lon, toLat: to.lat, toLon: to.lon });
+      if (leg.routeGeometry && leg.routeGeometry.length >= 2) allPts.push(...leg.routeGeometry);
+      else allPts.push([from.lat, from.lon], [to.lat, to.lon]);
     }
   }
-  const allPts = segments.flat().concat(markers);
+  allPts.push(...markers);
 
   useEffect(() => {
     if (allPts.length === 0) return;
@@ -43,12 +44,12 @@ export function PreviewRouteLayer({ route }: { route: Itinerary }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route.id]);
 
-  if (markers.length === 0 && segments.length === 0) return null;
+  if (markers.length === 0 && segs.length === 0) return null;
 
   return (
     <>
-      {segments.map((seg, i) => (
-        <Polyline key={i} positions={seg} pathOptions={{ color: '#16a34a', weight: 4, opacity: 0.85 }} />
+      {segs.map((s, i) => (
+        <ColoredLegSegments key={i} leg={s.leg} fromLat={s.fromLat} fromLon={s.fromLon} toLat={s.toLat} toLon={s.toLon} />
       ))}
       {markers.map((p, i) => <Marker key={`m${i}`} position={p} icon={numberedIcon(i + 1)} interactive={false} />)}
     </>

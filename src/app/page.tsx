@@ -5,6 +5,7 @@ import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { LeftPanel } from '@/components/panel/LeftPanel';
 import { MapWrapper } from '@/components/map/MapWrapper';
 import { ElevationProfile } from '@/components/map/ElevationProfile';
+import { PreviewElevationProfile } from '@/components/map/PreviewElevationProfile';
 import { ToleranceSettings } from '@/components/settings/ToleranceSettings';
 import { ModeSwitch } from '@/components/panel/ModeSwitch';
 import dynamic from 'next/dynamic';
@@ -203,9 +204,13 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Elevation Profile */}
+        {/* Elevation Profile — in library mode mostra il profilo del percorso selezionato */}
         <div className="h-[100px] lg:h-[120px] bg-gray-900 border-t border-gray-700 shrink-0">
-          <ElevationProfile />
+          {mainView === 'library'
+            ? (previewRoute
+                ? <PreviewElevationProfile route={previewRoute} />
+                : <div className="h-full flex items-center justify-center text-xs text-gray-500 px-3 text-center">Seleziona un percorso per vederne il profilo.</div>)
+            : <ElevationProfile />}
         </div>
       </div>
 
