@@ -134,6 +134,14 @@ const STEPS: TutorialStep[] = [
   },
 ];
 
+/**
+ * TASK-43: al primo avvio si mostrano solo i primi ESSENTIAL_COUNT passi (cosa fa l'app,
+ * aggiungi waypoint, Learn/Track, verifica). Le funzionalità avanzate (tool, impostazioni,
+ * profilo, condivisione) sono una continuazione opzionale, quindi restano accessibili anche
+ * alla riapertura della guida senza appesantire il primo contatto.
+ */
+const ESSENTIAL_COUNT = 4;
+
 /** Pseudo-step shown before step 0: user picks their level so the app sets sensible defaults. */
 function LevelChooser({ onChoose }: { onChoose: (level: 'beginner' | 'expert') => void }) {
   return (
@@ -163,6 +171,7 @@ function LevelChooser({ onChoose }: { onChoose: (level: 'beginner' | 'expert') =
 export function LearnTutorial() {
   const [step, setStep] = useState<number | null>(null);
   const [showLevelChooser, setShowLevelChooser] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const setAppMode = useItineraryStore((s) => s.setAppMode);
   const dialogRef = useRef<HTMLDivElement>(null);
   useBodyScrollLock(step !== null);
@@ -233,7 +242,8 @@ export function LearnTutorial() {
   }
 
   function changeStep(newStep: number | null) {
-    if (newStep === null || newStep < 0 || newStep >= STEPS.length) {
+    const visibleCount = showAdvanced ? STEPS.length : ESSENTIAL_COUNT;
+    if (newStep === null || newStep < 0 || newStep >= visibleCount) {
       markSeen();
       setStep(null);
     } else {
@@ -243,7 +253,8 @@ export function LearnTutorial() {
 
   const handleNext = () => {
     if (step === null) return;
-    changeStep(step < STEPS.length - 1 ? step + 1 : null);
+    const visibleCount = showAdvanced ? STEPS.length : ESSENTIAL_COUNT;
+    changeStep(step < visibleCount - 1 ? step + 1 : null);
   };
 
   const handleClose = () => changeStep(null);
@@ -251,7 +262,9 @@ export function LearnTutorial() {
   if (step === null) return null;
 
   const current = STEPS[step];
-  const isLast = step === STEPS.length - 1;
+  const visibleCount = showAdvanced ? STEPS.length : ESSENTIAL_COUNT;
+  const isLast = step === visibleCount - 1;
+  const atEssentialEnd = !showAdvanced && step === ESSENTIAL_COUNT - 1;
 
   return (
     <div
@@ -276,14 +289,14 @@ export function LearnTutorial() {
 
         {/* Step indicator */}
         <div className="flex justify-center gap-1.5 mt-4 mb-4" aria-hidden="true">
-          {STEPS.map((_, i) => (
+          {STEPS.slice(0, visibleCount).map((_, i) => (
             <div
               key={i}
               className={`w-2 h-2 rounded-full ${i === step ? 'bg-green-400' : 'bg-gray-600'}`}
             />
           ))}
         </div>
-        <span className="sr-only">Passo {step + 1} di {STEPS.length}</span>
+        <span className="sr-only">Passo {step + 1} di {visibleCount}</span>
 
         {/* Actions */}
         <div className="flex items-center justify-between">
@@ -300,6 +313,14 @@ export function LearnTutorial() {
                 className="px-3 min-h-[44px] bg-gray-700 rounded text-xs text-gray-300 hover:bg-gray-600"
               >
                 Indietro
+              </button>
+            )}
+            {atEssentialEnd && (
+              <button
+                onClick={() => { setShowAdvanced(true); setStep(ESSENTIAL_COUNT); }}
+                className="px-3 min-h-[44px] bg-gray-700 rounded text-xs text-gray-200 hover:bg-gray-600"
+              >
+                Altre funzionalità →
               </button>
             )}
             <button

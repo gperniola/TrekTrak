@@ -33,10 +33,11 @@ export function ModeSwitch() {
 
   return (
     <div className="flex items-center px-3 py-2 border-b border-gray-700 gap-1">
+      {/* TASK-40: ogni tool ha icona + etichetta testuale (i soli glifi ◎ ↕ ? erano ambigui). */}
       <div role="toolbar" aria-label="Strumenti mappa" className="flex items-center gap-1">
         <button
           onClick={toggleCompass}
-          className={`px-2 py-1.5 rounded-lg text-sm font-bold transition-all active:scale-95 min-w-[36px] min-h-[36px] flex items-center justify-center ${
+          className={`px-2 py-1 rounded-lg transition-all active:scale-95 min-w-[44px] min-h-[40px] flex flex-col items-center justify-center gap-0.5 ${
             compassActive
               ? 'bg-amber-500 text-white shadow-sm shadow-amber-900/40'
               : 'bg-gray-700/80 text-gray-300 hover:bg-gray-700 hover:text-white'
@@ -45,11 +46,12 @@ export function ModeSwitch() {
           aria-pressed={compassActive}
           title="Bussola"
         >
-          ◎
+          <span aria-hidden="true" className="text-sm font-bold leading-none">◎</span>
+          <span className="text-[9px] font-semibold leading-none">Bussola</span>
         </button>
         <button
           onClick={toggleRuler}
-          className={`px-2 py-1.5 rounded-lg text-sm font-bold transition-all active:scale-95 min-w-[36px] min-h-[36px] flex items-center justify-center ${
+          className={`px-2 py-1 rounded-lg transition-all active:scale-95 min-w-[44px] min-h-[40px] flex flex-col items-center justify-center gap-0.5 ${
             rulerActive
               ? 'bg-blue-500 text-white shadow-sm shadow-blue-900/40'
               : 'bg-gray-700/80 text-gray-300 hover:bg-gray-700 hover:text-white'
@@ -58,11 +60,12 @@ export function ModeSwitch() {
           aria-pressed={rulerActive}
           title="Righello"
         >
-          ↕
+          <span aria-hidden="true" className="text-sm font-bold leading-none">↕</span>
+          <span className="text-[9px] font-semibold leading-none">Righello</span>
         </button>
         <button
           onClick={toggleQuiz}
-          className={`px-2 py-1.5 rounded-lg text-sm font-bold transition-all active:scale-95 min-w-[36px] min-h-[36px] flex items-center justify-center ${
+          className={`px-2 py-1 rounded-lg transition-all active:scale-95 min-w-[44px] min-h-[40px] flex flex-col items-center justify-center gap-0.5 ${
             quizActive
               ? 'bg-purple-500 text-white shadow-sm shadow-purple-900/40'
               : 'bg-gray-700/80 text-gray-300 hover:bg-gray-700 hover:text-white'
@@ -71,7 +74,8 @@ export function ModeSwitch() {
           aria-pressed={quizActive}
           title="Quiz"
         >
-          ?
+          <span aria-hidden="true" className="text-sm font-bold leading-none">?</span>
+          <span className="text-[9px] font-semibold leading-none">Quiz</span>
         </button>
       </div>
       <div role="tablist" aria-label="Modalità app" className="flex items-center gap-1 flex-1 p-0.5 rounded-lg bg-gray-800/60">

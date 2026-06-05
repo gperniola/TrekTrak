@@ -75,4 +75,36 @@ describe('ActionBar', () => {
     render(<ActionBar />);
     expect(screen.getByText(/Progresso/)).toBeInTheDocument();
   });
+
+  // TASK-41: export non invitano ad azioni inutili quando l'itinerario è vuoto
+  test('TASK-41: PDF e GPX disabilitati con meno di 2 waypoint', () => {
+    useItineraryStore.setState({ ...BASE_ITINERARY_STATE, waypoints: [] });
+    render(<ActionBar />);
+    expect(screen.getByText('PDF Sintetico').closest('button')).toBeDisabled();
+    expect(screen.getByText('PDF Roadbook').closest('button')).toBeDisabled();
+    expect(screen.getByText('GPX').closest('button')).toBeDisabled();
+  });
+
+  test('TASK-41: export abilitati con 2+ waypoint con coordinate', () => {
+    useItineraryStore.setState({
+      ...BASE_ITINERARY_STATE,
+      waypoints: [
+        { id: 'a', name: 'A', lat: 42, lon: 14 },
+        { id: 'b', name: 'B', lat: 42.1, lon: 14.1 },
+      ] as never,
+    });
+    render(<ActionBar />);
+    expect(screen.getByText('PDF Sintetico').closest('button')).not.toBeDisabled();
+    expect(screen.getByText('PDF Roadbook').closest('button')).not.toBeDisabled();
+    expect(screen.getByText('GPX').closest('button')).not.toBeDisabled();
+  });
+
+  // TASK-42: "Progresso" non è più nel gruppo degli export
+  test('TASK-42: Progresso è in un gruppo separato dagli export', () => {
+    render(<ActionBar />);
+    const exportGroup = screen.getByRole('group', { name: /esporta/i });
+    const progresso = screen.getByText(/Progresso/).closest('button');
+    expect(exportGroup).toContainElement(screen.getByText('PDF Sintetico').closest('button'));
+    expect(exportGroup).not.toContainElement(progresso);
+  });
 });
