@@ -88,7 +88,11 @@ export interface RouteCompletion {
   durationMinutes?: number;  // tempo impiegato (opzionale)
   /** Difficoltà percepita 1-5 (1 passeggiata di salute … 5 kitemmurt). */
   difficulty?: 1 | 2 | 3 | 4 | 5;
+  /** Codice condizioni meteo (es. 'sereno','pioggia'); vuoto/assente = non specificato. */
+  weather?: string;
   notes: string;
+  /** id del membro che ha registrato il completamento (per i permessi UI). */
+  createdBy?: string;
 }
 
 export interface RouteMetrics {
