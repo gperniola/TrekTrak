@@ -4,6 +4,23 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.9.0] — 2026-06-05 — "Libreria condivisa cloud"
+
+La libreria percorsi diventa **condivisa e sincronizzata sul cloud** (Supabase), ad accesso **a invito** e **senza password**. I membri di un gruppo raccolgono insieme i percorsi e ne tengono un diario comune delle uscite. Sviluppata in 6 fasi (backend/RLS → sync → auth → UI → geometria tracciato → branding email). Spec e piani in `backlog/docs/shared-library-*`.
+
+### Added
+- **Libreria condivisa cloud (Supabase)**: percorsi e diario completamenti sincronizzati e condivisi tra i membri invitati (tabelle `members`, `invites`, `routes`, `completions`; layer `lib/sync.ts`; store `authStore` + `routeLibraryStore`).
+- **Accesso a invito + magic-link**: niente password. Invito via token nel link (`#invite=`), gate lato server (`/api/shared/request-access`); ai membri già registrati viene **inviato** un magic-link di login (`signInWithOtp`), alle email nuove un invito che crea l'utente. Scelta dello **username** al primo accesso (`/api/shared/claim-username`).
+- **Membri e ruoli** (`member`/`admin`) con **Row-Level Security** su tutte le tabelle.
+- **Email brandizzate in italiano** (invite / magic-link / confirm) con tema "cresta di vette" email-safe, via **SMTP custom** (Gmail). Template versionati in `supabase/templates/`.
+- **Vista di default = Libreria** per gli utenti autenticati (atterraggio diretto dopo il login).
+
+### Security
+- `public.is_member()` spostata nello schema **`private`** (non più esposta come endpoint RPC) per chiudere gli advisor di sicurezza Supabase 0028/0029, mantenendo la RLS funzionante.
+
+### Changed
+- L'`Itinerary` salvato in cloud preserva geometria reale del tracciato e profilo altimetrico per tratta.
+
 ## [0.8.0] — 2026-06-03 — "Libreria percorsi"
 
 Nuova area dedicata ai percorsi salvati con diario delle uscite. Estende il modello `Itinerary` e sostituisce la vecchia modale salva/carica. Sviluppata in 12 task TDD subagent-driven con review spec + qualità per ciascuno. 473 test, First Load 253 kB. Spec e piano in `backlog/docs/route-library-{design,plan}.md`.
@@ -157,6 +174,8 @@ Campagna di code review approfondita: 32 fix in 7 round su type safety, React pa
 ### Added
 - Prima release MVP: creazione itinerari con waypoint e tratte, validazione manuale di altitudine / distanza / azimuth / dislivelli, profilo altimetrico colorato, layout mobile con drawer a tutto schermo, tutorial interattivo, validazione cumulativa, import/export JSON, export GPX 1.1, export PDF (sintetico + roadbook).
 
+[0.9.0]: https://github.com/gperniola/TrekTrak/releases/tag/v0.9.0
+[0.8.0]: https://github.com/gperniola/TrekTrak/releases/tag/v0.8.0
 [0.7.1]: https://github.com/gperniola/TrekTrak/releases/tag/v0.7.1
 [0.7.0]: https://github.com/gperniola/TrekTrak/releases/tag/v0.7.0
 [0.6.2]: https://github.com/gperniola/TrekTrak/releases/tag/v0.6.2
