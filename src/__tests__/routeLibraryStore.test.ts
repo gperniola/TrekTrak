@@ -1,54 +1,62 @@
-import { describe, expect, test, beforeEach } from '@jest/globals';
+import { describe, expect, test, jest, beforeEach } from '@jest/globals';
 
-const localStorageMock = (() => {
-  let store: Record<string, string> = {};
-  return {
-    getItem: (k: string) => store[k] ?? null,
-    setItem: (k: string, v: string) => { store[k] = v; },
-    removeItem: (k: string) => { delete store[k]; },
-    clear: () => { store = {}; },
-    get length() { return Object.keys(store).length; },
-    key: (i: number) => Object.keys(store)[i] ?? null,
-  };
-})();
-Object.defineProperty(global, 'localStorage', { value: localStorageMock });
+const mockFetch = jest.fn();
+const mockDelete = jest.fn(async () => {});
+const mockReorder = jest.fn(async () => {});
+jest.mock('@/lib/sync', () => ({
+  fetchRoutes: () => mockFetch(),
+  deleteRoute: (id: string) => mockDelete(id),
+  reorderRoutes: (ids: string[]) => mockReorder(ids),
+  updateRouteNotes: jest.fn(async () => {}),
+  saveRouteToCloud: jest.fn(async () => 'r1'),
+  addCompletion: jest.fn(async () => {}),
+  updateCompletion: jest.fn(async () => {}),
+  deleteCompletion: jest.fn(async () => {}),
+}));
+jest.mock('@/stores/authStore', () => ({ useAuthStore: { getState: () => ({ member: { id: 'm1' } }) } }));
 
-import { useRouteLibraryStore } from '../stores/routeLibraryStore';
-import { saveItinerary } from '../lib/storage';
-import type { Itinerary } from '../lib/types';
+import { useRouteLibraryStore } from '@/stores/routeLibraryStore';
+import type { Itinerary } from '@/lib/types';
 
-const mk = (id: string, name: string, sortIndex: number): Itinerary => ({
-  id, name, createdAt: 'x', updatedAt: 'x', waypoints: [], legs: [], sortIndex,
+const mk = (id: string, name: string, sortIndex: number, completions: Itinerary['completions'] = []): Itinerary => ({
+  id, name, createdAt: 'x', updatedAt: 'x', waypoints: [], legs: [], sortIndex, completions,
 });
 
 beforeEach(() => {
-  localStorageMock.clear();
+  mockFetch.mockReset(); mockDelete.mockClear(); mockReorder.mockClear();
   useRouteLibraryStore.setState({ routes: [], selectedRouteId: null, sortMode: 'manual' });
 });
 
-describe('routeLibraryStore', () => {
-  test('refresh loads routes sorted by sortIndex when sortMode=manual', () => {
-    saveItinerary(mk('1', 'B', 1));
-    saveItinerary(mk('2', 'A', 0));
-    useRouteLibraryStore.getState().refresh();
+describe('routeLibraryStore (cloud)', () => {
+  test('refresh carica da fetchRoutes ordinato per sortIndex', async () => {
+    mockFetch.mockResolvedValue([mk('1', 'B', 1), mk('2', 'A', 0)]);
+    await useRouteLibraryStore.getState().refresh();
     expect(useRouteLibraryStore.getState().routes.map((r) => r.id)).toEqual(['2', '1']);
   });
 
-  test('select sets selectedRouteId', () => {
-    saveItinerary(mk('1', 'A', 0));
-    const s = useRouteLibraryStore.getState();
-    s.refresh();
-    s.select('1');
-    expect(useRouteLibraryStore.getState().selectedRouteId).toBe('1');
+  test('remove chiama deleteRoute, ricarica, azzera selezione', async () => {
+    mockFetch.mockResolvedValue([]);
+    useRouteLibraryStore.setState({ selectedRouteId: '1' });
+    await useRouteLibraryStore.getState().remove('1');
+    expect(mockDelete).toHaveBeenCalledWith('1');
+    expect(useRouteLibraryStore.getState().selectedRouteId).toBeNull();
   });
 
-  test('remove deletes and clears selection if it was selected', () => {
-    saveItinerary(mk('1', 'A', 0));
-    const s = useRouteLibraryStore.getState();
-    s.refresh();
-    s.select('1');
-    s.remove('1');
-    expect(useRouteLibraryStore.getState().routes).toHaveLength(0);
-    expect(useRouteLibraryStore.getState().selectedRouteId).toBeNull();
+  test('reorder chiama reorderRoutes e ricarica', async () => {
+    mockFetch.mockResolvedValue([]);
+    await useRouteLibraryStore.getState().reorder(['2', '1']);
+    expect(mockReorder).toHaveBeenCalledWith(['2', '1']);
+  });
+
+  test('knownPeople deduplica case-insensitive dai completamenti caricati', async () => {
+    mockFetch.mockResolvedValue([
+      mk('1', 'A', 0, [{ id: 'c1', personName: ' Gio ', date: 'x', notes: '' }, { id: 'c2', personName: 'gio', date: 'x', notes: '' }]),
+      mk('2', 'B', 1, [{ id: 'c3', personName: 'Anna', date: 'x', notes: '' }]),
+    ]);
+    await useRouteLibraryStore.getState().refresh();
+    const people = useRouteLibraryStore.getState().knownPeople();
+    expect(people).toContain('Gio');
+    expect(people).toContain('Anna');
+    expect(people.filter((p) => p.toLowerCase() === 'gio')).toHaveLength(1);
   });
 });
