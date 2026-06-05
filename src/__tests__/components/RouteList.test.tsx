@@ -33,6 +33,13 @@ describe('RouteList', () => {
     expect(useRouteLibraryStore.getState().selectedRouteId).toBe('1');
   });
 
+  test('re-clicking the selected route deselects it (accordion)', () => {
+    useRouteLibraryStore.setState({ selectedRouteId: '1' });
+    render(<RouteList />);
+    fireEvent.click(screen.getByText('Primo'));
+    expect(useRouteLibraryStore.getState().selectedRouteId).toBeNull();
+  });
+
   test('empty state when no routes', () => {
     useRouteLibraryStore.setState({ routes: [] });
     render(<RouteList />);

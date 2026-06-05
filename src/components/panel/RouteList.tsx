@@ -27,7 +27,7 @@ function Row({ route, index }: { route: Itinerary; index: number }) {
   return (
     <div ref={setNodeRef} style={style}
       className={`flex items-center gap-2 px-2 py-2 rounded cursor-pointer ${selectedId === route.id ? 'bg-green-900/40 border border-green-600' : 'bg-gray-900 hover:bg-gray-800'}`}
-      onClick={() => select(route.id)}
+      onClick={() => select(selectedId === route.id ? null : route.id)}
     >
       <span className="text-xs text-gray-500 w-5 text-right tabular-nums">{index + 1}</span>
       {sortMode === 'manual' && (
