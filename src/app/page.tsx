@@ -126,6 +126,22 @@ export default function Home() {
     if (mainView === 'library' && selectedRouteId) setDrawerOpen(false);
   }, [selectedRouteId, mainView, setDrawerOpen]);
 
+  // Primo accesso da mobile: appena l'utente è autenticato ma non ha ancora uno username
+  // (sessione presente, nessuna riga member), apri il drawer sulla Libreria — così la prima
+  // cosa che vede è la scelta dello username, invece di restare sulla mappa col menu chiuso.
+  // Scatta una sola volta (ref guard) e solo sotto il breakpoint lg (desktop ha il pannello fisso).
+  const onboardingDrawerShown = useRef(false);
+  useEffect(() => {
+    if (onboardingDrawerShown.current || authLoading) return;
+    if (authSession && !isMember) {
+      onboardingDrawerShown.current = true;
+      if (typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches) {
+        useUIStore.getState().setMainView('library');
+        setDrawerOpen(true);
+      }
+    }
+  }, [authLoading, authSession, isMember, setDrawerOpen]);
+
   return (
     <main className="h-dvh flex flex-col lg:flex-row overflow-hidden">
       <OfflineBanner />
