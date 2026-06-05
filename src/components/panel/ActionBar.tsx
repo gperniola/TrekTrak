@@ -370,19 +370,19 @@ export function ActionBar() {
       <div className="flex flex-wrap gap-2">
         <button
           onClick={() => handlePDF('summary')}
-          className="flex-1 py-2 bg-green-500 text-black rounded font-bold text-xs hover:bg-green-400"
+          className="flex-1 py-2 bg-green-500 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-green-400"
         >
           PDF Sintetico
         </button>
         <button
           onClick={() => handlePDF('roadbook')}
-          className="flex-1 py-2 bg-green-600 text-black rounded font-bold text-xs hover:bg-green-500"
+          className="flex-1 py-2 bg-green-600 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-green-500"
         >
           PDF Roadbook
         </button>
         <button
           onClick={handleGPX}
-          className="flex-1 py-2 bg-blue-500 text-black rounded font-bold text-xs hover:bg-blue-400"
+          className="flex-1 py-2 bg-blue-500 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-blue-400"
         >
           GPX
         </button>
@@ -391,7 +391,7 @@ export function ActionBar() {
           return meteoUrl ? (
             <button
               onClick={() => window.open(meteoUrl, '_blank')}
-              className="flex-1 py-2 bg-cyan-600 text-black rounded font-bold text-xs hover:bg-cyan-500"
+              className="flex-1 py-2 bg-cyan-600 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-cyan-500"
             >
               Meteo
             </button>
@@ -401,7 +401,7 @@ export function ActionBar() {
           onClick={handleShareLink}
           disabled={waypoints.length < 2}
           title={waypoints.length < 2 ? 'Servono almeno 2 waypoint per condividere via link' : undefined}
-          className="flex-1 py-2 bg-amber-500 text-black rounded font-bold text-xs hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 py-2 bg-amber-500 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {linkCopied ? 'Copiato!' : 'Copia link'}
         </button>
@@ -409,7 +409,7 @@ export function ActionBar() {
           <button
             onClick={handleVerify}
             disabled={verifying}
-            className="flex-1 py-2 bg-purple-500 text-black rounded font-bold text-xs hover:bg-purple-400 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 py-2 bg-purple-500 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-purple-400 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {verifying ? 'Verificando...' : 'Verifica'}
           </button>
@@ -422,7 +422,7 @@ export function ActionBar() {
               onClick={openProgress}
               disabled={!hasHistory}
               title={hasHistory ? undefined : 'Completa una verifica o un quiz per vedere il tuo progresso'}
-              className="flex-1 py-2 bg-indigo-500 text-black rounded font-bold text-xs hover:bg-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 py-2 bg-indigo-500 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               📊 Progresso
             </button>

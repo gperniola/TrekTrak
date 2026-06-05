@@ -40,10 +40,10 @@ export function SaveRouteModal({
           className="w-full bg-gray-900 border border-gray-600 rounded px-2 py-1.5 text-sm mb-4 focus:border-green-500 focus:outline-none resize-none"
         />
         <div className="flex gap-2">
-          <button onClick={onClose} className="flex-1 py-2 bg-gray-700 rounded text-sm hover:bg-gray-600">Annulla</button>
+          <button onClick={onClose} className="flex-1 py-2 bg-gray-700 rounded-lg text-sm transition-all active:scale-[0.98] hover:bg-gray-600">Annulla</button>
           <button
             onClick={() => onConfirm(name.trim() || 'Senza nome', notes)}
-            className="flex-1 py-2 bg-green-600 text-black rounded text-sm font-bold hover:bg-green-500"
+            className="flex-1 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-gray-950 rounded-lg text-sm font-bold shadow-sm transition-all active:scale-[0.98] hover:from-green-400 hover:to-emerald-500"
           >
             Salva
           </button>

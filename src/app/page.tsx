@@ -5,6 +5,7 @@ import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { LeftPanel } from '@/components/panel/LeftPanel';
 import { MapWrapper } from '@/components/map/MapWrapper';
 import { ElevationProfile } from '@/components/map/ElevationProfile';
+import { PreviewElevationProfile } from '@/components/map/PreviewElevationProfile';
 import { ToleranceSettings } from '@/components/settings/ToleranceSettings';
 import { ModeSwitch } from '@/components/panel/ModeSwitch';
 import dynamic from 'next/dynamic';
@@ -19,10 +20,13 @@ import { loadSettings } from '@/lib/storage';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { useUIStore } from '@/stores/uiStore';
 import { useRouteLibraryStore } from '@/stores/routeLibraryStore';
+import { useAuthStore } from '@/stores/authStore';
 import { decodeItinerary } from '@/lib/share-url';
 import { OfflineBanner } from '@/components/shared/OfflineBanner';
 import { ToastContainer } from '@/components/shared/Toast';
 import { ConfirmModalContainer } from '@/components/shared/ConfirmModal';
+import { InviteModal } from '@/components/auth/InviteModal';
+import { BrandMark } from '@/components/shared/BrandMark';
 
 export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
@@ -42,7 +46,20 @@ export default function Home() {
   const previewRoute = useRouteLibraryStore((s) => s.routes.find((r) => r.id === s.selectedRouteId));
   const clearRouteSelection = useRouteLibraryStore((s) => s.select);
 
+  const justInvited = useAuthStore((s) => s.justInvited);
+  const authSession = useAuthStore((s) => s.session);
+  const authLoading = useAuthStore((s) => s.loading);
+  const invited = useAuthStore((s) => s.invited);
+  const isMember = useAuthStore((s) => s.member != null);
+  // Durante il flusso di invito (invitato ma non ancora membro) il popup di
+  // registrazione/accesso ha la precedenza: sopprimiamo l'onboarding di prima
+  // visita (tutorial + What's New) per non sovrapporlo.
+  const inInviteFlow = invited && !isMember;
+
   useBodyScrollLock(drawerOpen);
+
+  // Initialize auth store once on mount (session, invite, member).
+  useEffect(() => { void useAuthStore.getState().init(); }, []);
 
   // Hydrate settings from localStorage on mount
   useEffect(() => {
@@ -130,7 +147,7 @@ export default function Home() {
             >
               ☰
             </button>
-            <h1 className="text-base font-bold text-green-400">&#9650; TrekTrak</h1>
+            <h1><BrandMark size="sm" /></h1>
             <div className="flex items-center gap-0.5">
               <button
                 onClick={() => setSearchOpen(!searchOpen)}
@@ -187,9 +204,13 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Elevation Profile */}
+        {/* Elevation Profile — in library mode mostra il profilo del percorso selezionato */}
         <div className="h-[100px] lg:h-[120px] bg-gray-900 border-t border-gray-700 shrink-0">
-          <ElevationProfile />
+          {mainView === 'library'
+            ? (previewRoute
+                ? <PreviewElevationProfile route={previewRoute} />
+                : <div className="h-full flex items-center justify-center text-xs text-gray-500 px-3 text-center">Seleziona un percorso per vederne il profilo.</div>)
+            : <ElevationProfile />}
         </div>
       </div>
 
@@ -234,11 +255,14 @@ export default function Home() {
 
       {progressOpen && <ProgressOverlay onClose={closeProgress} />}
 
-      {/* First-visit tutorial */}
-      <LearnTutorial />
+      {/* First-visit tutorial — soppresso durante il flusso di invito (il popup di accesso ha la precedenza) */}
+      {!inInviteFlow && <LearnTutorial />}
 
       {/* What's New popup (shown once per version, after tutorial) */}
-      <WhatsNew />
+      {!inInviteFlow && <WhatsNew />}
+
+      {/* Invite welcome popup — solo all'apertura del link di invito, se non autenticato */}
+      {!authLoading && justInvited && !authSession && <InviteModal />}
 
       {/* Global notification UI */}
       <ToastContainer />

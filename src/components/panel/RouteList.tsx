@@ -4,6 +4,7 @@ import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type D
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useRouteLibraryStore, type SortMode } from '@/stores/routeLibraryStore';
+import { toast } from '@/stores/notificationStore';
 import type { Itinerary } from '@/lib/types';
 
 const SORT_LABELS: Record<SortMode, string> = {
@@ -26,7 +27,7 @@ function Row({ route, index }: { route: Itinerary; index: number }) {
   return (
     <div ref={setNodeRef} style={style}
       className={`flex items-center gap-2 px-2 py-2 rounded cursor-pointer ${selectedId === route.id ? 'bg-green-900/40 border border-green-600' : 'bg-gray-900 hover:bg-gray-800'}`}
-      onClick={() => select(route.id)}
+      onClick={() => select(selectedId === route.id ? null : route.id)}
     >
       <span className="text-xs text-gray-500 w-5 text-right tabular-nums">{index + 1}</span>
       {sortMode === 'manual' && (
@@ -35,7 +36,10 @@ function Row({ route, index }: { route: Itinerary; index: number }) {
       )}
       <div className="flex-1 min-w-0">
         <div className="text-sm font-medium truncate">{route.name || 'Senza nome'}</div>
-        <div className="text-[11px] text-gray-500">{km.toFixed(1)} km · +{gain}m · 🥾{completions}</div>
+        <div className="text-[11px] text-gray-500">
+          {route.createdByUsername && <span className="text-green-500">@{route.createdByUsername} · </span>}
+          {km.toFixed(1)} km · +{gain}m · 🥾{completions}
+        </div>
       </div>
     </div>
   );
@@ -55,7 +59,7 @@ export function RouteList() {
     const oldIndex = ids.indexOf(active.id as string);
     const newIndex = ids.indexOf(over.id as string);
     if (oldIndex === -1 || newIndex === -1) return;
-    reorder(arrayMove(ids, oldIndex, newIndex));
+    void reorder(arrayMove(ids, oldIndex, newIndex)).catch(() => toast.error('Errore nel riordino. Riprova quando sei online.'));
   };
 
   return (

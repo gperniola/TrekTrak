@@ -1,14 +1,12 @@
 import { create } from 'zustand';
 import type { Itinerary, RouteCompletion } from '../lib/types';
 import {
-  loadItineraries,
-  deleteItinerary,
-  updateSavedItinerary,
-  reorderSavedItineraries,
-  addCompletion as storageAddCompletion,
-  updateCompletion as storageUpdateCompletion,
-  deleteCompletion as storageDeleteCompletion,
-} from '../lib/storage';
+  fetchRoutes, deleteRoute, reorderRoutes, updateRouteNotes,
+  addCompletion as syncAddCompletion,
+  updateCompletion as syncUpdateCompletion,
+  deleteCompletion as syncDeleteCompletion,
+} from '../lib/sync';
+import { useAuthStore } from './authStore';
 
 export type SortMode = 'manual' | 'name' | 'distance' | 'gain' | 'updated' | 'completions';
 
@@ -29,60 +27,57 @@ interface RouteLibraryState {
   routes: Itinerary[];
   selectedRouteId: string | null;
   sortMode: SortMode;
-  refresh: () => void;
+  loading: boolean;
+  refresh: () => Promise<void>;
   select: (id: string | null) => void;
   setSortMode: (mode: SortMode) => void;
-  reorder: (orderedIds: string[]) => void;
-  remove: (id: string) => void;
-  updateNotes: (id: string, notes: string) => void;
-  addCompletion: (routeId: string, c: Omit<RouteCompletion, 'id'>) => void;
-  updateCompletion: (routeId: string, completionId: string, patch: Partial<RouteCompletion>) => void;
-  deleteCompletion: (routeId: string, completionId: string) => void;
+  reorder: (orderedIds: string[]) => Promise<void>;
+  remove: (id: string) => Promise<void>;
+  updateNotes: (id: string, notes: string) => Promise<void>;
+  addCompletion: (routeId: string, c: Omit<RouteCompletion, 'id'>) => Promise<void>;
+  updateCompletion: (routeId: string, completionId: string, patch: Partial<RouteCompletion>) => Promise<void>;
+  deleteCompletion: (routeId: string, completionId: string) => Promise<void>;
 }
 
 export const useRouteLibraryStore = create<RouteLibraryState>((set, get) => ({
   routes: [],
   selectedRouteId: null,
   sortMode: 'manual',
+  loading: false,
 
-  refresh: () => set({ routes: sortRoutes(loadItineraries(), get().sortMode) }),
+  refresh: async () => {
+    set({ loading: true });
+    try {
+      const routes = await fetchRoutes();
+      set({ routes: sortRoutes(routes, get().sortMode) });
+    } finally {
+      set({ loading: false });
+    }
+  },
 
   select: (id) => set({ selectedRouteId: id }),
+  setSortMode: (mode) => set({ sortMode: mode, routes: sortRoutes(get().routes, mode) }),
 
-  // Reload from storage (not get().routes) so the re-sort reflects any external
-  // writes since the last refresh, consistent with the other mutating actions.
-  setSortMode: (mode) => set({ sortMode: mode, routes: sortRoutes(loadItineraries(), mode) }),
-
-  reorder: (orderedIds) => {
-    reorderSavedItineraries(orderedIds);
-    set({ routes: sortRoutes(loadItineraries(), 'manual'), sortMode: 'manual' });
+  reorder: async (orderedIds) => {
+    await reorderRoutes(orderedIds);
+    set({ sortMode: 'manual' });
+    await get().refresh();
   },
 
-  remove: (id) => {
-    deleteItinerary(id);
-    set((s) => ({
-      routes: sortRoutes(loadItineraries(), s.sortMode),
-      selectedRouteId: s.selectedRouteId === id ? null : s.selectedRouteId,
-    }));
+  remove: async (id) => {
+    await deleteRoute(id);
+    set((s) => ({ selectedRouteId: s.selectedRouteId === id ? null : s.selectedRouteId }));
+    await get().refresh();
   },
 
-  updateNotes: (id, notes) => {
-    updateSavedItinerary(id, { notes });
-    set((s) => ({ routes: sortRoutes(loadItineraries(), s.sortMode) }));
-  },
+  updateNotes: async (id, notes) => { await updateRouteNotes(id, notes); await get().refresh(); },
 
-  addCompletion: (routeId, c) => {
-    storageAddCompletion(routeId, c);
-    set((s) => ({ routes: sortRoutes(loadItineraries(), s.sortMode) }));
+  addCompletion: async (routeId, c) => {
+    const memberId = useAuthStore.getState().member?.id;
+    if (!memberId) throw new Error('not_member');
+    await syncAddCompletion(routeId, memberId, c);
+    await get().refresh();
   },
-
-  updateCompletion: (routeId, completionId, patch) => {
-    storageUpdateCompletion(routeId, completionId, patch);
-    set((s) => ({ routes: sortRoutes(loadItineraries(), s.sortMode) }));
-  },
-
-  deleteCompletion: (routeId, completionId) => {
-    storageDeleteCompletion(routeId, completionId);
-    set((s) => ({ routes: sortRoutes(loadItineraries(), s.sortMode) }));
-  },
+  updateCompletion: async (_routeId, completionId, patch) => { await syncUpdateCompletion(completionId, patch); await get().refresh(); },
+  deleteCompletion: async (_routeId, completionId) => { await syncDeleteCompletion(completionId); await get().refresh(); },
 }));

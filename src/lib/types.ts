@@ -77,6 +77,8 @@ export interface Itinerary {
   completions?: RouteCompletion[];
   metrics?: RouteMetrics;
   sortIndex?: number;
+  /** Username del creatore (risolto dal cloud, solo per visualizzazione). */
+  createdByUsername?: string;
 }
 
 export interface RouteCompletion {
@@ -84,7 +86,13 @@ export interface RouteCompletion {
   personName: string;
   date: string;              // ISO "YYYY-MM-DD"
   durationMinutes?: number;  // tempo impiegato (opzionale)
+  /** Difficoltà percepita 1-5 (1 passeggiata di salute … 5 kitemmurt). */
+  difficulty?: 1 | 2 | 3 | 4 | 5;
+  /** Codice condizioni meteo (es. 'sereno','pioggia'); vuoto/assente = non specificato. */
+  weather?: string;
   notes: string;
+  /** id del membro che ha registrato il completamento (per i permessi UI). */
+  createdBy?: string;
 }
 
 export interface RouteMetrics {

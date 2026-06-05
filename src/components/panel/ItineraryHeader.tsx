@@ -2,14 +2,15 @@
 
 import { useState } from 'react';
 import { useItineraryStore } from '@/stores/itineraryStore';
-import { saveItinerary, loadItineraries, isStorageNearLimit } from '@/lib/storage';
+import { saveRouteToCloud } from '@/lib/sync';
 import { computeRouteMetrics } from '@/lib/calculations';
 import { SaveRouteModal } from './SaveRouteModal';
 import { exportItineraryJSON, importItineraryJSON } from '@/lib/export-json';
 import { confirm as appConfirm, toast } from '@/stores/notificationStore';
 import { useUIStore } from '@/stores/uiStore';
 import { useRouteLibraryStore } from '@/stores/routeLibraryStore';
-import type { Leg, Itinerary } from '@/lib/types';
+import { useAuthStore } from '@/stores/authStore';
+import type { Leg } from '@/lib/types';
 
 export function ItineraryHeader() {
   const itineraryId = useItineraryStore((s) => s.itineraryId);
@@ -23,7 +24,7 @@ export function ItineraryHeader() {
   const resetItinerary = useItineraryStore((s) => s.resetItinerary);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const setMainView = useUIStore((s) => s.setMainView);
-  const refreshLibrary = useRouteLibraryStore((s) => s.refresh);
+  const member = useAuthStore((s) => s.member);
 
   // Strip large/derived fields before persisting (storage and JSON export).
   // - validationState, estimatedTime, slope: derived (recomputed on load)
@@ -42,48 +43,45 @@ export function ItineraryHeader() {
     return slimTrack ? { ...rest, trackValues: slimTrack } : rest;
   };
 
-  // `preloaded` lets the caller pass a snapshot it already read, so a single
-  // click does one localStorage read here (existing + maxSort from the same
-  // snapshot, no inter-read race), plus the unavoidable read inside saveItinerary.
-  const persist = (name: string, notes: string | undefined, preloaded?: Itinerary[]) => {
-    const all = preloaded ?? loadItineraries();
-    const existing = all.find((it) => it.id === itineraryId);
+  // Per il cloud manteniamo routeGeometry + elevationProfile (fedeltà del sentiero
+  // tracciato), inclusi quelli dentro trackValues; rimuoviamo solo i derivati
+  // ricalcolabili al load (validationState/estimatedTime/slope).
+  const cloudLeg = (leg: Leg) => {
+    const { validationState, estimatedTime, slope, ...rest } = leg;
+    void validationState; void estimatedTime; void slope;
+    return rest;
+  };
+
+  const persist = async (name: string, notes: string | undefined) => {
+    if (!member) return;
     const metrics = computeRouteMetrics(waypoints, legs, settings.pace?.factor ?? 1);
-    const maxSort = all.reduce((m, it) => Math.max(m, it.sortIndex ?? 0), -1);
+    const existing = useRouteLibraryStore.getState().routes.find((r) => r.id === itineraryId);
+    const itinerary = {
+      id: itineraryId,
+      name,
+      createdAt,
+      updatedAt: new Date().toISOString(),
+      waypoints: waypoints.map(({ validationState, ...wp }) => wp),
+      legs: legs.map(cloudLeg),
+      metrics,
+      notes: notes ?? existing?.notes ?? '',
+    } as Parameters<typeof saveRouteToCloud>[0];
     try {
-      saveItinerary({
-        id: itineraryId,
-        name,
-        // Preserve the original creation date on re-save; for a first save fall
-        // back to the store value (stamped when the itinerary was started).
-        createdAt: existing?.createdAt ?? createdAt,
-        updatedAt: new Date().toISOString(),
-        waypoints: waypoints.map(({ validationState, ...wp }) => wp),
-        legs: legs.map(slimLeg),
-        metrics,
-        notes: notes ?? existing?.notes ?? '',
-        completions: existing?.completions ?? [],
-        sortIndex: existing?.sortIndex ?? maxSort + 1,
-      });
+      const newId = await saveRouteToCloud(itinerary, member.id);
+      if (newId !== itineraryId) useItineraryStore.getState().setItineraryId(newId);
       if (name !== itineraryName) setItineraryName(name);
-      refreshLibrary();
-      toast.success('Itinerario salvato');
-      if (isStorageNearLimit()) {
-        toast.warning('Spazio di archiviazione quasi esaurito. Esporta in JSON i vecchi itinerari.', 6000);
-      }
+      await useRouteLibraryStore.getState().refresh();
+      toast.success('Percorso salvato nella libreria');
     } catch {
-      toast.error('Errore nel salvataggio. Lo spazio potrebbe essere pieno.');
+      toast.error('Errore nel salvataggio. Riprova quando sei online.');
     }
   };
 
   const handleSave = () => {
-    const all = loadItineraries();
-    const existing = all.find((it) => it.id === itineraryId);
-    if (existing) {
-      persist(itineraryName || existing.name, undefined, all);
-    } else {
-      setShowSaveModal(true);
-    }
+    if (!member) { toast.warning('Accedi alla libreria condivisa per salvare i percorsi'); return; }
+    const existing = useRouteLibraryStore.getState().routes.find((r) => r.id === itineraryId);
+    if (existing) void persist(itineraryName || existing.name, undefined);
+    else setShowSaveModal(true);
   };
 
   const handleExportJSON = () => {
@@ -116,10 +114,18 @@ export function ItineraryHeader() {
   return (
     <div className="border-b border-gray-700">
       <div className="p-3 flex items-center justify-end gap-1">
-        <button onClick={handleSave} className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600" aria-label="Salva itinerario">
+        <button
+          onClick={handleSave}
+          disabled={!member}
+          title={!member ? 'Accedi alla libreria condivisa per salvare' : undefined}
+          className={member
+            ? 'px-2.5 py-1 bg-gradient-to-r from-green-500 to-emerald-600 text-gray-950 font-semibold rounded-lg text-xs shadow-sm transition-all active:scale-[0.97] hover:from-green-400 hover:to-emerald-500'
+            : 'px-2.5 py-1 bg-gray-700/60 text-gray-500 rounded-lg text-xs cursor-not-allowed'}
+          aria-label="Salva itinerario"
+        >
           Salva
         </button>
-        <button onClick={() => setMainView('library')} className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600" aria-label="Apri libreria percorsi">
+        <button onClick={() => setMainView('library')} className="px-2 py-1 bg-gray-700 rounded-lg text-xs transition-all active:scale-[0.97] hover:bg-gray-600" aria-label="Apri libreria percorsi">
           Carica
         </button>
         <button
@@ -135,15 +141,15 @@ export function ItineraryHeader() {
             resetItinerary();
             toast.info('Nuovo itinerario creato');
           }}
-          className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600"
+          className="px-2 py-1 bg-gray-700 rounded-lg text-xs transition-all active:scale-[0.97] hover:bg-gray-600"
           aria-label="Nuovo itinerario"
         >
           Nuovo
         </button>
-        <button onClick={handleExportJSON} className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600" title="Esporta JSON" aria-label="Esporta JSON">
+        <button onClick={handleExportJSON} className="px-2 py-1 bg-gray-700 rounded-lg text-xs transition-all active:scale-[0.97] hover:bg-gray-600" title="Esporta JSON" aria-label="Esporta JSON">
           ↓
         </button>
-        <button onClick={handleImportJSON} className="px-2 py-1 bg-gray-700 rounded text-xs hover:bg-gray-600" title="Importa JSON" aria-label="Importa JSON">
+        <button onClick={handleImportJSON} className="px-2 py-1 bg-gray-700 rounded-lg text-xs transition-all active:scale-[0.97] hover:bg-gray-600" title="Importa JSON" aria-label="Importa JSON">
           ↑
         </button>
       </div>
@@ -164,7 +170,7 @@ export function ItineraryHeader() {
         <SaveRouteModal
           initialName={itineraryName}
           onClose={() => setShowSaveModal(false)}
-          onConfirm={(name, notes) => { persist(name, notes); setShowSaveModal(false); }}
+          onConfirm={(name, notes) => { void persist(name, notes); setShowSaveModal(false); }}
         />
       )}
     </div>
