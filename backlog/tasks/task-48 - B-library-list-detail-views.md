@@ -1,7 +1,7 @@
 ---
 id: TASK-48
 title: "[B] Libreria mobile: lista ↔ dettaglio come viste separate"
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-06-05 19:45'
 labels:
