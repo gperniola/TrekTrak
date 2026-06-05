@@ -1,0 +1,12 @@
+-- ⚠️ SUPERATA da 20260605000007: questa revoca ROMPE la RLS.
+-- Le policy SELECT chiamano is_member() e la valutazione richiede EXECUTE al ruolo
+-- chiamante; revocandolo da PUBLIC/authenticated i membri non leggono piu i dati.
+-- La 000007 sposta la funzione in schema `private` (non esposto da PostgREST) come
+-- soluzione corretta. Lasciata qui solo per fedelta allo storico applicato sul DB.
+--
+-- is_member() è usata solo dentro le policy RLS, mai chiamata direttamente dai client.
+-- Revoca l'EXECUTE pubblico per non esporla come endpoint RPC /rest/v1/rpc/is_member
+-- (Supabase security advisor 0028/0029: SECURITY DEFINER function executable by anon/authenticated).
+-- La RLS continua a funzionare: le funzioni richiamate nelle policy non richiedono il privilegio
+-- EXECUTE al ruolo che esegue la query (verificato empiricamente). service_role la conserva.
+revoke execute on function public.is_member() from public, anon, authenticated;
