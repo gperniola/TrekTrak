@@ -4,6 +4,14 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.9.1] — 2026-06-05 — Hotfix
+
+### Fixed
+- **Onboarding mobile**: al primo accesso da mobile un utente autenticato ma senza username veniva lasciato sulla mappa col menu chiuso, nascondendo lo step di scelta username. Ora il drawer si apre automaticamente sulla **Libreria** (one-shot, solo sotto il breakpoint `lg`) così la scelta username è la prima cosa visibile.
+
+### Chore
+- `token-hash` (nota con il token d'invito in chiaro) aggiunto a `.gitignore`.
+
 ## [0.9.0] — 2026-06-05 — "Libreria condivisa cloud"
 
 La libreria percorsi diventa **condivisa e sincronizzata sul cloud** (Supabase), ad accesso **a invito** e **senza password**. I membri di un gruppo raccolgono insieme i percorsi e ne tengono un diario comune delle uscite. Sviluppata in 6 fasi (backend/RLS → sync → auth → UI → geometria tracciato → branding email). Spec e piani in `backlog/docs/shared-library-*`.
@@ -174,6 +182,7 @@ Campagna di code review approfondita: 32 fix in 7 round su type safety, React pa
 ### Added
 - Prima release MVP: creazione itinerari con waypoint e tratte, validazione manuale di altitudine / distanza / azimuth / dislivelli, profilo altimetrico colorato, layout mobile con drawer a tutto schermo, tutorial interattivo, validazione cumulativa, import/export JSON, export GPX 1.1, export PDF (sintetico + roadbook).
 
+[0.9.1]: https://github.com/gperniola/TrekTrak/releases/tag/v0.9.1
 [0.9.0]: https://github.com/gperniola/TrekTrak/releases/tag/v0.9.0
 [0.8.0]: https://github.com/gperniola/TrekTrak/releases/tag/v0.8.0
 [0.7.1]: https://github.com/gperniola/TrekTrak/releases/tag/v0.7.1
