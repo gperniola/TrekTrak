@@ -88,6 +88,7 @@ interface ItineraryState {
 
   setAppMode: (mode: AppMode) => void;
   setItineraryName: (name: string) => void;
+  setItineraryId: (id: string) => void;
   addWaypoint: () => void;
   addWaypointAtPosition: (lat: number, lon: number) => void;
   removeWaypoint: (id: string) => void;
@@ -158,6 +159,8 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
   },
 
   setItineraryName: (name) => set({ itineraryName: name }),
+
+  setItineraryId: (id) => set({ itineraryId: id }),
 
   addWaypoint: () => {
     const { waypoints, legs } = get();
