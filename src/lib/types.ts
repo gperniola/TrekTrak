@@ -77,6 +77,8 @@ export interface Itinerary {
   completions?: RouteCompletion[];
   metrics?: RouteMetrics;
   sortIndex?: number;
+  /** Username del creatore (risolto dal cloud, solo per visualizzazione). */
+  createdByUsername?: string;
 }
 
 export interface RouteCompletion {
