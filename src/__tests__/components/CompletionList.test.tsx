@@ -1,7 +1,15 @@
+import { jest } from '@jest/globals';
+const mockConfirm = jest.fn();
+jest.mock('@/stores/notificationStore', () => ({
+  confirm: (...a: unknown[]) => mockConfirm(...a),
+  toast: { error: jest.fn(), success: jest.fn(), warning: jest.fn(), info: jest.fn() },
+}));
+
 import { describe, expect, test, beforeEach } from '@jest/globals';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { CompletionList } from '@/components/panel/CompletionList';
 import { useAuthStore } from '@/stores/authStore';
+import { useRouteLibraryStore } from '@/stores/routeLibraryStore';
 import type { Itinerary } from '@/lib/types';
 
 const routeWith = (completions: Itinerary['completions']): Itinerary => ({
@@ -10,6 +18,7 @@ const routeWith = (completions: Itinerary['completions']): Itinerary => ({
 
 beforeEach(() => {
   useAuthStore.setState({ member: { id: 'me', username: 'gio', role: 'member' } });
+  mockConfirm.mockReset();
 });
 
 describe('CompletionList permessi e meteo', () => {
@@ -42,5 +51,30 @@ describe('CompletionList permessi e meteo', () => {
       { id: 'c4', personName: 'gio', date: '2026-05-01', notes: '', createdBy: 'me', weather: 'pioggia' },
     ])} />);
     expect(screen.getByText(/pioggia/i)).toBeInTheDocument();
+  });
+});
+
+describe('CompletionList — conferma eliminazione (TASK-49)', () => {
+  test('annullando la conferma NON elimina', async () => {
+    const del = jest.fn(async () => {});
+    useRouteLibraryStore.setState({ deleteCompletion: del as never });
+    mockConfirm.mockResolvedValue(false);
+    render(<CompletionList route={routeWith([
+      { id: 'c1', personName: 'gio', date: '2026-05-01', notes: '', createdBy: 'me' },
+    ])} />);
+    fireEvent.click(screen.getByRole('button', { name: /elimina completamento/i }));
+    await waitFor(() => expect(mockConfirm).toHaveBeenCalled());
+    expect(del).not.toHaveBeenCalled();
+  });
+
+  test('confermando elimina il completamento', async () => {
+    const del = jest.fn(async () => {});
+    useRouteLibraryStore.setState({ deleteCompletion: del as never });
+    mockConfirm.mockResolvedValue(true);
+    render(<CompletionList route={routeWith([
+      { id: 'c1', personName: 'gio', date: '2026-05-01', notes: '', createdBy: 'me' },
+    ])} />);
+    fireEvent.click(screen.getByRole('button', { name: /elimina completamento/i }));
+    await waitFor(() => expect(del).toHaveBeenCalledWith('r1', 'c1'));
   });
 });

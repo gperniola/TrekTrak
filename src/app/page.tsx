@@ -1,13 +1,12 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { LeftPanel } from '@/components/panel/LeftPanel';
 import { MapWrapper } from '@/components/map/MapWrapper';
 import { ElevationProfile } from '@/components/map/ElevationProfile';
 import { PreviewElevationProfile } from '@/components/map/PreviewElevationProfile';
 import { ToleranceSettings } from '@/components/settings/ToleranceSettings';
-import { ModeSwitch } from '@/components/panel/ModeSwitch';
+import { BottomNav } from '@/components/panel/BottomNav';
 import dynamic from 'next/dynamic';
 import { LearnTutorial } from '@/components/tutorial/LearnTutorial';
 import { WhatsNew } from '@/components/tutorial/WhatsNew';
@@ -27,22 +26,22 @@ import { ToastContainer } from '@/components/shared/Toast';
 import { ConfirmModalContainer } from '@/components/shared/ConfirmModal';
 import { InviteModal } from '@/components/auth/InviteModal';
 import { BrandMark } from '@/components/shared/BrandMark';
+import { MapToolsFab } from '@/components/map/MapToolsFab';
 
 export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
   const [showMapSettings, setShowMapSettings] = useState(false);
 
   const mainView = useUIStore((s) => s.mainView);
-  const drawerOpen = useUIStore((s) => s.drawerOpen);
+  const mobileTab = useUIStore((s) => s.mobileTab);
   const searchOpen = useUIStore((s) => s.searchOpen);
   const quizActive = useUIStore((s) => s.quizActive);
   const progressOpen = useUIStore((s) => s.progressOpen);
-  const setDrawerOpen = useUIStore((s) => s.setDrawerOpen);
+  const setMobileTab = useUIStore((s) => s.setMobileTab);
   const setSearchOpen = useUIStore((s) => s.setSearchOpen);
   const deactivateQuiz = useUIStore((s) => s.deactivateQuiz);
   const closeProgress = useUIStore((s) => s.closeProgress);
 
-  const selectedRouteId = useRouteLibraryStore((s) => s.selectedRouteId);
   const previewRoute = useRouteLibraryStore((s) => s.routes.find((r) => r.id === s.selectedRouteId));
   const clearRouteSelection = useRouteLibraryStore((s) => s.select);
 
@@ -55,8 +54,6 @@ export default function Home() {
   // registrazione/accesso ha la precedenza: sopprimiamo l'onboarding di prima
   // visita (tutorial + What's New) per non sovrapporlo.
   const inInviteFlow = invited && !isMember;
-
-  useBodyScrollLock(drawerOpen);
 
   // Initialize auth store once on mount (session, invite, member).
   useEffect(() => { void useAuthStore.getState().init(); }, []);
@@ -80,67 +77,20 @@ export default function Home() {
     history.replaceState(null, '', window.location.pathname);
   }, []);
 
-  const drawerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!drawerOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setDrawerOpen(false);
-    };
-    window.addEventListener('keydown', handleKeyDown);
-
-    const drawerEl = drawerRef.current;
-    if (drawerEl) {
-      const focusable = drawerEl.querySelectorAll<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      );
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      first?.focus();
-
-      const trapFocus = (e: KeyboardEvent) => {
-        if (e.key !== 'Tab') return;
-        if (e.shiftKey) {
-          if (document.activeElement === first) { e.preventDefault(); last?.focus(); }
-        } else {
-          if (document.activeElement === last) { e.preventDefault(); first?.focus(); }
-        }
-      };
-      drawerEl.addEventListener('keydown', trapFocus);
-
-      return () => {
-        window.removeEventListener('keydown', handleKeyDown);
-        drawerEl.removeEventListener('keydown', trapFocus);
-      };
-    }
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [drawerOpen]);
-
-  // Auto-close mobile drawer when a route is selected in library view,
-  // so the map preview becomes visible on mobile.
-  useEffect(() => {
-    if (mainView === 'library' && selectedRouteId) setDrawerOpen(false);
-  }, [selectedRouteId, mainView, setDrawerOpen]);
-
   // Primo accesso da mobile: appena l'utente è autenticato ma non ha ancora uno username
-  // (sessione presente, nessuna riga member), apri il drawer sulla Libreria — così la prima
-  // cosa che vede è la scelta dello username, invece di restare sulla mappa col menu chiuso.
+  // (sessione presente, nessuna riga member), seleziona la tab Libreria — così la prima cosa
+  // che vede è la scelta dello username, invece di restare sulla mappa.
   // Scatta una sola volta (ref guard) e solo sotto il breakpoint lg (desktop ha il pannello fisso).
-  const onboardingDrawerShown = useRef(false);
+  const onboardingShown = useRef(false);
   useEffect(() => {
-    if (onboardingDrawerShown.current || authLoading) return;
+    if (onboardingShown.current || authLoading) return;
     if (authSession && !isMember) {
-      onboardingDrawerShown.current = true;
+      onboardingShown.current = true;
       if (typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches) {
-        useUIStore.getState().setMainView('library');
-        setDrawerOpen(true);
+        useUIStore.getState().setMobileTab('library');
       }
     }
-  }, [authLoading, authSession, isMember, setDrawerOpen]);
+  }, [authLoading, authSession, isMember]);
 
   return (
     <main className="h-dvh flex flex-col lg:flex-row overflow-hidden">
@@ -154,15 +104,8 @@ export default function Home() {
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {/* Mobile top bar */}
         <div className="lg:hidden shrink-0 bg-gray-900">
-          {/* Row 1: Hamburger | Title | Search */}
+          {/* Slim top row: Title | Search | Settings */}
           <div className="flex items-center justify-between px-2 py-1">
-            <button
-              onClick={() => { setSearchOpen(false); setDrawerOpen(true); }}
-              className="p-2 text-lg text-gray-300 hover:text-white min-w-[44px] min-h-[44px] flex items-center justify-center"
-              aria-label="Apri menu"
-            >
-              ☰
-            </button>
             <h1><BrandMark size="sm" /></h1>
             <div className="flex items-center gap-0.5">
               <button
@@ -182,20 +125,19 @@ export default function Home() {
               </button>
             </div>
           </div>
-          {/* Row 2: Mode switch (Learn / Track) */}
-          <ModeSwitch />
         </div>
 
         {/* Map */}
         <div className="flex-1 relative min-h-0 overflow-hidden">
           <MapWrapper />
+          <MapToolsFab />
 
           {/* Mobile-only preview banner: shown when browsing the library and a route is selected */}
           {mainView === 'library' && previewRoute && (
             <div className="lg:hidden absolute top-2 left-2 right-2 z-[1000] bg-gray-900/95 border border-gray-700 rounded px-3 py-2 flex items-center justify-between text-xs">
               <span className="truncate text-gray-200">Anteprima: {previewRoute.name || 'Senza nome'}</span>
               <div className="flex gap-2 shrink-0 ml-2">
-                <button onClick={() => setDrawerOpen(true)} className="text-green-400 min-h-[44px] flex items-center">Apri libreria</button>
+                <button onClick={() => setMobileTab('library')} className="text-green-400 min-h-[44px] flex items-center">Apri libreria</button>
                 <button onClick={() => clearRouteSelection(null)} className="text-gray-400 min-h-[44px] flex items-center">Chiudi</button>
               </div>
             </div>
@@ -218,6 +160,13 @@ export default function Home() {
               Mappa &#9881;&#xFE0F;
             </button>
           </div>
+
+          {/* Mobile panel sheet — covers the map when on Editor/Libreria tabs */}
+          {mobileTab !== 'map' && (
+            <div className="lg:hidden absolute inset-0 z-[1100] bg-gray-950 flex flex-col">
+              <LeftPanel className="w-full h-full" showSwitch={false} viewOverride={mobileTab === 'library' ? 'library' : 'editor'} />
+            </div>
+          )}
         </div>
 
         {/* Elevation Profile — in library mode mostra il profilo del percorso selezionato */}
@@ -228,40 +177,10 @@ export default function Home() {
                 : <div className="h-full flex items-center justify-center text-xs text-gray-500 px-3 text-center">Seleziona un percorso per vederne il profilo.</div>)
             : <ElevationProfile />}
         </div>
-      </div>
 
-      {/* Mobile drawer — full screen overlay */}
-      {drawerOpen && (
-        <div ref={drawerRef} className="lg:hidden fixed inset-0 z-[1100] bg-gray-950 flex flex-col" role="dialog" aria-modal="true" aria-label="Menu navigazione">
-          <div className="flex items-center justify-between px-2 py-1 border-b border-gray-700">
-            <span className="text-sm font-medium text-gray-300 px-2">Menu</span>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => { setDrawerOpen(false); setShowMapSettings(true); }}
-                className="px-3 py-2 text-xs text-gray-400 hover:text-white min-h-[44px] flex items-center"
-              >
-                Mappa
-              </button>
-              <button
-                onClick={() => { setDrawerOpen(false); setShowSettings(true); }}
-                className="px-3 py-2 text-xs text-gray-400 hover:text-white min-h-[44px] flex items-center"
-              >
-                Impostazioni
-              </button>
-              <button
-                onClick={() => setDrawerOpen(false)}
-                className="p-2 text-gray-400 hover:text-white text-xl leading-none min-w-[44px] min-h-[44px] flex items-center justify-center"
-                aria-label="Chiudi menu"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-          <div className="flex-1 overflow-hidden">
-            <LeftPanel className="w-full h-full" />
-          </div>
-        </div>
-      )}
+        {/* Bottom navigation — mobile only, always visible */}
+        <BottomNav />
+      </div>
 
       {/* Settings Modals */}
       {showSettings && <ToleranceSettings onClose={() => setShowSettings(false)} />}

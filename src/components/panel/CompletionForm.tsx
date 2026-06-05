@@ -40,17 +40,17 @@ export function CompletionForm({
         <div className="flex-1">
           <label className="block text-[10px] text-gray-500 uppercase" htmlFor={`${idPrefix}-date`}>Data</label>
           <input id={`${idPrefix}-date`} type="date" value={date} onChange={(e) => setDate(e.target.value)}
-            className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-sm focus:border-green-500 focus:outline-none" />
+            className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-2 text-sm focus:border-green-500 focus:outline-none" />
         </div>
         <div className="w-16">
           <label className="block text-[10px] text-gray-500 uppercase" htmlFor={`${idPrefix}-hours`}>Ore</label>
           <input id={`${idPrefix}-hours`} type="number" min={0} value={hours} onChange={(e) => setHours(e.target.value)}
-            className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-sm focus:border-green-500 focus:outline-none" />
+            className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-2 text-sm focus:border-green-500 focus:outline-none" />
         </div>
         <div className="w-16">
           <label className="block text-[10px] text-gray-500 uppercase" htmlFor={`${idPrefix}-min`}>Minuti</label>
           <input id={`${idPrefix}-min`} type="number" min={0} max={59} value={minutes} onChange={(e) => setMinutes(e.target.value)}
-            className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-sm focus:border-green-500 focus:outline-none" />
+            className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-2 text-sm focus:border-green-500 focus:outline-none" />
         </div>
       </div>
       <div>
@@ -60,7 +60,7 @@ export function CompletionForm({
       <div>
         <label className="block text-[10px] text-gray-500 uppercase" htmlFor={`${idPrefix}-weather`}>Meteo</label>
         <select id={`${idPrefix}-weather`} value={weather} onChange={(e) => setWeather(e.target.value)}
-          className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-sm focus:border-green-500 focus:outline-none">
+          className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-2 text-sm focus:border-green-500 focus:outline-none">
           <option value="">— non specificato —</option>
           {WEATHER_OPTIONS.map((o) => <option key={o.code} value={o.code}>{o.icon} {o.label}</option>)}
         </select>
@@ -68,11 +68,11 @@ export function CompletionForm({
       <div>
         <label className="block text-[10px] text-gray-500 uppercase" htmlFor={`${idPrefix}-notes`}>Note</label>
         <textarea id={`${idPrefix}-notes`} value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} maxLength={1000} placeholder="Note aggiuntive..."
-          className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-sm focus:border-green-500 focus:outline-none resize-none" />
+          className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-2 text-sm focus:border-green-500 focus:outline-none resize-none" />
       </div>
       <div className="flex gap-2">
-        <button onClick={onCancel} className="flex-1 py-1.5 bg-gray-700 rounded text-xs hover:bg-gray-600">Annulla</button>
-        <button onClick={submit} className="flex-1 py-1.5 bg-green-600 text-black rounded text-xs font-bold hover:bg-green-500">Salva</button>
+        <button onClick={onCancel} className="flex-1 py-2.5 min-h-[44px] bg-gray-700 rounded text-xs hover:bg-gray-600">Annulla</button>
+        <button onClick={submit} className="flex-1 py-2.5 min-h-[44px] bg-green-600 text-black rounded text-xs font-bold hover:bg-green-500">Salva</button>
       </div>
     </div>
   );

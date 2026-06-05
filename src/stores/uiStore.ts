@@ -5,9 +5,9 @@ interface UIState {
   rulerActive: boolean;
   quizActive: boolean;
   progressOpen: boolean;
-  drawerOpen: boolean;
   searchOpen: boolean;
   mainView: 'editor' | 'library';
+  mobileTab: 'map' | 'editor' | 'library';
 
   toggleCompass: () => void;
   toggleRuler: () => void;
@@ -17,9 +17,9 @@ interface UIState {
   deactivateQuiz: () => void;
   openProgress: () => void;
   closeProgress: () => void;
-  setDrawerOpen: (open: boolean) => void;
   setSearchOpen: (open: boolean) => void;
   setMainView: (view: 'editor' | 'library') => void;
+  setMobileTab: (tab: 'map' | 'editor' | 'library') => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -27,9 +27,9 @@ export const useUIStore = create<UIState>((set) => ({
   rulerActive: false,
   quizActive: false,
   progressOpen: false,
-  drawerOpen: false,
   searchOpen: false,
   mainView: 'editor',
+  mobileTab: 'map',
 
   toggleCompass: () => set((s) => ({
     compassActive: !s.compassActive,
@@ -51,7 +51,10 @@ export const useUIStore = create<UIState>((set) => ({
   deactivateQuiz: () => set({ quizActive: false }),
   openProgress: () => set({ progressOpen: true, quizActive: false }),
   closeProgress: () => set({ progressOpen: false }),
-  setDrawerOpen: (open) => set({ drawerOpen: open }),
   setSearchOpen: (open) => set({ searchOpen: open }),
   setMainView: (view) => set({ mainView: view }),
+  // Bottom-nav tab (mobile only). 'map' lascia il pannello chiuso; editor/library
+  // sincronizzano anche mainView così la logica esistente (preview, RouteLibrary,
+  // LeftPanel) continua a funzionare senza modifiche.
+  setMobileTab: (tab) => set(tab === 'map' ? { mobileTab: tab } : { mobileTab: tab, mainView: tab }),
 }));

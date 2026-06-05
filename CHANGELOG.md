@@ -4,6 +4,23 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.10.0] — 2026-06-05 — "Navigazione mobile rifondata"
+
+Fase B del ridisegno usabilità mobile (TASK-39): nuova shell mobile a **bottom navigation**, solo sotto il breakpoint `lg` — il desktop conserva la sidebar fissa, invariato. Sviluppata e revisionata in 6 task (TASK-44 → 49) con esecuzione subagent-driven (TDD) e code-review finale. Spec/piani in `backlog/docs/mobile-shell-B-*`. 553 test.
+
+### Added
+- **Bottom navigation** (Mappa · Editor · Libreria) al posto di hamburger + top-bar densa + drawer a tutto schermo; la mappa resta sempre visibile, Editor/Libreria salgono come sheet (`BottomNav`, `uiStore.mobileTab`).
+- **FAB speed-dial** sulla mappa per i tool (bussola/righello/quiz), con icona + etichetta e tool attivo evidenziato (`MapToolsFab`).
+- **Libreria mobile lista ↔ dettaglio** come viste separate, con "← Tutti i percorsi" e "Sulla mappa".
+
+### Changed
+- **Learn/Track** nell'header dell'Editor; **⚙️** unico per le impostazioni; rimosse le duplicazioni della shell mobile.
+- **Diario completamenti tap-friendly**: azioni ✎/✕ ≥44px con **conferma sull'eliminazione**, scarponi difficoltà e form più comodi.
+- **Touch target ≥44px** sui controlli in-pannello, applicati solo su mobile (`max-lg:`) per non alterare il desktop.
+
+### Removed
+- Hamburger, drawer a tutto schermo e seconda riga della top-bar mobile; stato `drawerOpen` ormai inutilizzato.
+
 ## [0.9.2] — 2026-06-05 — "Pulizia UI (fase A)"
 
 Primo passo del riordino usabilità (fase A di TASK-39, `backlog/docs/mobile-usability-analysis.md`): riduzione del rumore su **componenti condivisi**, quindi migliora sia mobile sia desktop.
@@ -191,6 +208,7 @@ Campagna di code review approfondita: 32 fix in 7 round su type safety, React pa
 ### Added
 - Prima release MVP: creazione itinerari con waypoint e tratte, validazione manuale di altitudine / distanza / azimuth / dislivelli, profilo altimetrico colorato, layout mobile con drawer a tutto schermo, tutorial interattivo, validazione cumulativa, import/export JSON, export GPX 1.1, export PDF (sintetico + roadbook).
 
+[0.10.0]: https://github.com/gperniola/TrekTrak/releases/tag/v0.10.0
 [0.9.2]: https://github.com/gperniola/TrekTrak/releases/tag/v0.9.2
 [0.9.1]: https://github.com/gperniola/TrekTrak/releases/tag/v0.9.1
 [0.9.0]: https://github.com/gperniola/TrekTrak/releases/tag/v0.9.0
