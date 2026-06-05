@@ -82,8 +82,15 @@ Riprogettare attorno ai flussi ("crea itinerario", "consulta libreria", "verific
 - **TASK-42** — Separare **"Progresso"** dagli export (è didattica, non export): collocazione propria.
 - **TASK-43** — Alleggerire il **tutorial iniziale** (oggi 8 passi) a 3-4 essenziali / disclosure progressiva.
 
-### B — successiva (placeholder)
-Bottom navigation mobile-first + tool mappa in FAB contestuale + dedup shell mobile. Da scomporre quando si parte con B.
+### B — task derivati (scomposti, vedi §6/§7)
+- **TASK-45** — Definizione design della shell mobile (bottom nav) — *spike, de-risk*.
+- **TASK-46** — Bottom navigation mobile (shell) + dedup shell (ModeSwitch/⚙️ rinviati da A).
+- **TASK-47** — Tool mappa in FAB contestuale.
+- **TASK-48** — Libreria mobile: lista ↔ dettaglio come viste separate.
+- **TASK-49** — Diario completamenti tap-friendly.
+- **TASK-44** — Touch target ≥44px (trasversale, applicato dentro 46-49).
+
+Ordine consigliato: **45** (design) → **46** (shell) → poi 47 / 48 / 49 in parallelo, con **44** applicato in ciascuno. Solo mobile (`<lg`); desktop invariato.
 
 ## 5. Prossimi passi
 1. ~~Implementare A (TASK-40 → 43)~~ ✅ fatto (v0.9.2).
