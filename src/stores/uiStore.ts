@@ -8,6 +8,7 @@ interface UIState {
   drawerOpen: boolean;
   searchOpen: boolean;
   mainView: 'editor' | 'library';
+  mobileTab: 'map' | 'editor' | 'library';
 
   toggleCompass: () => void;
   toggleRuler: () => void;
@@ -20,6 +21,7 @@ interface UIState {
   setDrawerOpen: (open: boolean) => void;
   setSearchOpen: (open: boolean) => void;
   setMainView: (view: 'editor' | 'library') => void;
+  setMobileTab: (tab: 'map' | 'editor' | 'library') => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -30,6 +32,7 @@ export const useUIStore = create<UIState>((set) => ({
   drawerOpen: false,
   searchOpen: false,
   mainView: 'editor',
+  mobileTab: 'map',
 
   toggleCompass: () => set((s) => ({
     compassActive: !s.compassActive,
@@ -54,4 +57,8 @@ export const useUIStore = create<UIState>((set) => ({
   setDrawerOpen: (open) => set({ drawerOpen: open }),
   setSearchOpen: (open) => set({ searchOpen: open }),
   setMainView: (view) => set({ mainView: view }),
+  // Bottom-nav tab (mobile only). 'map' lascia il pannello chiuso; editor/library
+  // sincronizzano anche mainView così la logica esistente (preview, RouteLibrary,
+  // LeftPanel) continua a funzionare senza modifiche.
+  setMobileTab: (tab) => set(tab === 'map' ? { mobileTab: tab } : { mobileTab: tab, mainView: tab }),
 }));
