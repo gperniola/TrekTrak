@@ -7,6 +7,8 @@ interface RouteRow { id: string; data: Record<string, unknown>; created_by: stri
 interface CompletionRow { id: string; route_id: string; created_by: string; person: string; date: string; duration_minutes: number | null; notes: string; }
 
 function mapCompletion(r: CompletionRow): RouteCompletion {
+  // NB: la colonna `difficulty` esiste in DB ma la UI (e il tipo RouteCompletion) la
+  // gestiranno in Fase 4; qui non viene letta/scritta per ora.
   return { id: r.id, personName: r.person, date: r.date, durationMinutes: r.duration_minutes ?? undefined, notes: r.notes ?? '' };
 }
 
@@ -17,6 +19,10 @@ export async function fetchRoutes(): Promise<Itinerary[]> {
     supabase.from('completions').select('*'),
     supabase.from('members').select('id, username'),
   ]);
+  // Propaga gli errori invece di restituire silenziosamente una lista vuota/parziale.
+  if (routesRes.error) throw new Error(routesRes.error.message);
+  if (compsRes.error) throw new Error(compsRes.error.message);
+  if (membersRes.error) throw new Error(membersRes.error.message);
   const routeRows = (routesRes.data ?? []) as RouteRow[];
   const compRows = (compsRes.data ?? []) as CompletionRow[];
   const memberRows = (membersRes.data ?? []) as { id: string; username: string }[];
@@ -61,7 +67,7 @@ export async function saveRouteToCloud(it: Itinerary, memberId: string): Promise
     }
   }
   const id = crypto.randomUUID();
-  const { data: maxRows } = await supabase.from('routes').select('sort_index').order('sort_index', { ascending: false });
+  const { data: maxRows } = await supabase.from('routes').select('sort_index').order('sort_index', { ascending: false }).limit(1);
   const maxSort = maxRows && maxRows[0] ? (maxRows[0] as { sort_index: number }).sort_index : -1;
   const { error } = await supabase.from('routes').insert({ id, data: dataPayload(it), created_by: memberId, sort_index: maxSort + 1 });
   if (error) throw new Error((error as { message: string }).message);
