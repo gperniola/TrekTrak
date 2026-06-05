@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:subagent-driven-development. Steps con checkbox (`- [ ]`). Logica/UI testate con mock; verifica e2e manuale.
 
+**STATO: ✅ COMPLETATA (2026-06-05)** — difficoltà 🥾, creato-da (scheda+card), Meteo/PDF, completamenti in colonna; + rifiniture: rimosso "chi" (auto da utente loggato), rimossa stima Munter, meteo facoltativo (migration 0005), permessi owner-only su completamento/percorso con warning cascata. 517 test verdi, build ok. Richiede `db push` della migration 0005 per il meteo.
+
 **Goal:** Arricchire la libreria condivisa: difficoltà percepita 🥾 1-5 nei completamenti, attribuzione "creato da @username", lista completamenti in colonna, e azioni **Meteo** / **PDF** per percorso direttamente in libreria.
 
 **Architecture:** Si aggiunge `difficulty` al modello completamento (colonna DB già esistente) e lo si mappa in `lib/sync`. Un componente `DifficultyRating` (5 scarponi) gestisce input/visualizzazione. `RouteDetailCard` mostra il creatore e i pulsanti Meteo/PDF riusando `buildMeteoUrl` e `lib/export-pdf` (lazy). Niente nuove dipendenze.
