@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useUIStore } from '@/stores/uiStore';
 import { useRouteLibraryStore } from '@/stores/routeLibraryStore';
 import { useAuthStore } from '@/stores/authStore';
@@ -17,6 +17,7 @@ export function MainViewSwitch() {
   // l'utente è autenticato ma non ancora membro e deve poter scegliere lo username,
   // anche su un browser dove il flag d'invito non è presente.
   const showLibrary = invited || isMember || hasSession;
+  const authed = isMember || hasSession;
 
   // Defensive fallback: if the library becomes inaccessible while it's the
   // active view, switch back to the editor. Done in an effect (not during
@@ -24,6 +25,18 @@ export function MainViewSwitch() {
   useEffect(() => {
     if (!showLibrary && mainView === 'library') setMainView('editor');
   }, [showLibrary, mainView, setMainView]);
+
+  // Landing predefinita per chi è autenticato: la libreria condivisa, non l'editor.
+  // Scatta una sola volta alla transizione "non loggato → loggato" (ref guard), così
+  // non sovrascrive un'eventuale scelta manuale dell'utente nel resto della sessione.
+  const didDefault = useRef(false);
+  useEffect(() => {
+    if (!didDefault.current && authed) {
+      didDefault.current = true;
+      refresh();
+      setMainView('library');
+    }
+  }, [authed, refresh, setMainView]);
 
   const go = (view: 'editor' | 'library') => {
     if (view === 'library') refresh();
