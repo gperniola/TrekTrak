@@ -1,7 +1,7 @@
 ---
 id: TASK-44
 title: Touch target ≥44px sui controlli in-pannello (parte di B)
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-06-05 19:30'
 labels:

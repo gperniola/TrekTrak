@@ -125,17 +125,17 @@ export function RouteDetailCard() {
       <div className="flex flex-wrap gap-2">
         <button
           onClick={handleLoad}
-          className="flex-1 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-gray-950 rounded-lg text-xs font-bold shadow-sm transition-all active:scale-[0.98] hover:from-green-400 hover:to-emerald-500"
+          className="flex-1 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-gray-950 rounded-lg text-xs font-bold shadow-sm transition-all active:scale-[0.98] hover:from-green-400 hover:to-emerald-500 max-lg:min-h-[44px]"
         >
           Carica nell&apos;editor
         </button>
-        <button onClick={handlePDF} className="px-3 py-2 bg-green-500 text-black rounded-lg text-xs font-bold transition-all active:scale-[0.97] hover:bg-green-400" aria-label="Scarica PDF">PDF</button>
+        <button onClick={handlePDF} className="px-3 py-2 bg-green-500 text-black rounded-lg text-xs font-bold transition-all active:scale-[0.97] hover:bg-green-400 max-lg:min-h-[44px]" aria-label="Scarica PDF">PDF</button>
         {(() => { const u = buildMeteoUrl(route.waypoints); return u ? (
-          <button onClick={() => window.open(u, '_blank')} className="px-3 py-2 bg-cyan-600 text-black rounded-lg text-xs font-bold transition-all active:scale-[0.97] hover:bg-cyan-500" aria-label="Meteo">Meteo</button>
+          <button onClick={() => window.open(u, '_blank')} className="px-3 py-2 bg-cyan-600 text-black rounded-lg text-xs font-bold transition-all active:scale-[0.97] hover:bg-cyan-500 max-lg:min-h-[44px]" aria-label="Meteo">Meteo</button>
         ) : null; })()}
         <button
           onClick={() => exportItineraryJSON(route)}
-          className="px-3 py-2 bg-gray-700 rounded-lg text-xs transition-all active:scale-[0.97] hover:bg-gray-600"
+          className="px-3 py-2 bg-gray-700 rounded-lg text-xs transition-all active:scale-[0.97] hover:bg-gray-600 max-lg:min-h-[44px]"
           aria-label="Esporta JSON"
         >
           ↓
@@ -143,7 +143,7 @@ export function RouteDetailCard() {
         {canManageRoute && (
           <button
             onClick={handleDelete}
-            className="px-3 py-2 bg-red-600 rounded-lg text-xs transition-all active:scale-[0.97] hover:bg-red-500"
+            className="px-3 py-2 bg-red-600 rounded-lg text-xs transition-all active:scale-[0.97] hover:bg-red-500 max-lg:min-h-[44px]"
           >
             Elimina
           </button>

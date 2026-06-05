@@ -83,7 +83,7 @@ export function ModeSwitch() {
           role="tab"
           aria-selected={!isTrack}
           onClick={() => handleToggle('learn')}
-          className={`flex-1 py-1.5 rounded-md text-xs font-bold transition-all active:scale-[0.98] ${
+          className={`flex-1 py-1.5 rounded-md text-xs font-bold transition-all active:scale-[0.98] max-lg:min-h-[44px] ${
             !isTrack
               ? 'bg-gradient-to-r from-purple-500 to-fuchsia-600 text-white shadow-sm shadow-purple-900/40'
               : 'text-gray-400 hover:text-white'
@@ -95,7 +95,7 @@ export function ModeSwitch() {
           role="tab"
           aria-selected={isTrack}
           onClick={() => handleToggle('track')}
-          className={`flex-1 py-1.5 rounded-md text-xs font-bold transition-all active:scale-[0.98] ${
+          className={`flex-1 py-1.5 rounded-md text-xs font-bold transition-all active:scale-[0.98] max-lg:min-h-[44px] ${
             isTrack
               ? 'bg-gradient-to-r from-green-400 to-emerald-600 text-gray-950 shadow-sm shadow-emerald-900/40'
               : 'text-gray-400 hover:text-white'

@@ -378,7 +378,7 @@ export function ActionBar() {
           onClick={() => handlePDF('summary')}
           disabled={!canExportPdf}
           title={!canExportPdf ? 'Servono almeno 2 waypoint' : undefined}
-          className="flex-1 py-2 bg-green-500 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 py-2 bg-green-500 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed max-lg:min-h-[44px]"
         >
           PDF Sintetico
         </button>
@@ -386,7 +386,7 @@ export function ActionBar() {
           onClick={() => handlePDF('roadbook')}
           disabled={!canExportPdf}
           title={!canExportPdf ? 'Servono almeno 2 waypoint' : undefined}
-          className="flex-1 py-2 bg-green-600 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 py-2 bg-green-600 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed max-lg:min-h-[44px]"
         >
           PDF Roadbook
         </button>
@@ -394,7 +394,7 @@ export function ActionBar() {
           onClick={handleGPX}
           disabled={!canExportGpx}
           title={!canExportGpx ? 'Servono almeno 2 waypoint con coordinate' : undefined}
-          className="flex-1 py-2 bg-blue-500 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-blue-400 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 py-2 bg-blue-500 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-blue-400 disabled:opacity-50 disabled:cursor-not-allowed max-lg:min-h-[44px]"
         >
           GPX
         </button>
@@ -403,7 +403,7 @@ export function ActionBar() {
           return meteoUrl ? (
             <button
               onClick={() => window.open(meteoUrl, '_blank')}
-              className="flex-1 py-2 bg-cyan-600 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-cyan-500"
+              className="flex-1 py-2 bg-cyan-600 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-cyan-500 max-lg:min-h-[44px]"
             >
               Meteo
             </button>
@@ -413,7 +413,7 @@ export function ActionBar() {
           onClick={handleShareLink}
           disabled={waypoints.length < 2}
           title={waypoints.length < 2 ? 'Servono almeno 2 waypoint per condividere via link' : undefined}
-          className="flex-1 py-2 bg-amber-500 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 py-2 bg-amber-500 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed max-lg:min-h-[44px]"
         >
           {linkCopied ? 'Copiato!' : 'Copia link'}
         </button>
@@ -424,7 +424,7 @@ export function ActionBar() {
           <button
             onClick={handleVerify}
             disabled={verifying}
-            className="flex-1 py-2 bg-purple-500 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-purple-400 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 py-2 bg-purple-500 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-purple-400 disabled:opacity-50 disabled:cursor-not-allowed max-lg:min-h-[44px]"
           >
             {verifying ? 'Verificando...' : 'Verifica'}
           </button>
@@ -437,7 +437,7 @@ export function ActionBar() {
               onClick={openProgress}
               disabled={!hasHistory}
               title={hasHistory ? undefined : 'Completa una verifica o un quiz per vedere il tuo progresso'}
-              className="flex-1 py-2 bg-indigo-500 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 py-2 bg-indigo-500 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed max-lg:min-h-[44px]"
             >
               📊 Progresso
             </button>

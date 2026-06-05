@@ -32,7 +32,7 @@ function Row({ route, index }: { route: Itinerary; index: number }) {
       <span className="text-xs text-gray-500 w-5 text-right tabular-nums">{index + 1}</span>
       {sortMode === 'manual' && (
         <button {...attributes} {...listeners} onClick={(e) => e.stopPropagation()}
-          className="text-gray-600 hover:text-gray-300 cursor-grab touch-none" aria-label="Trascina per riordinare">⠿</button>
+          className="text-gray-600 hover:text-gray-300 cursor-grab touch-none max-lg:min-w-[44px] max-lg:min-h-[44px] flex items-center justify-center" aria-label="Trascina per riordinare">⠿</button>
       )}
       <div className="flex-1 min-w-0">
         <div className="text-sm font-medium truncate">{route.name || 'Senza nome'}</div>
@@ -68,7 +68,7 @@ export function RouteList() {
         <span className="text-xs text-gray-400">{routes.length} percorsi</span>
         <select
           value={sortMode} onChange={(e) => setSortMode(e.target.value as SortMode)}
-          className="bg-gray-800 border border-gray-600 rounded text-xs px-1.5 py-1 text-gray-300"
+          className="bg-gray-800 border border-gray-600 rounded text-xs px-1.5 py-1 text-gray-300 max-lg:min-h-[44px]"
           aria-label="Ordina per"
         >
           {(Object.keys(SORT_LABELS) as SortMode[]).map((m) => (

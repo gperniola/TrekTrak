@@ -119,13 +119,13 @@ export function ItineraryHeader() {
           disabled={!member}
           title={!member ? 'Accedi alla libreria condivisa per salvare' : undefined}
           className={member
-            ? 'px-2.5 py-1 bg-gradient-to-r from-green-500 to-emerald-600 text-gray-950 font-semibold rounded-lg text-xs shadow-sm transition-all active:scale-[0.97] hover:from-green-400 hover:to-emerald-500'
-            : 'px-2.5 py-1 bg-gray-700/60 text-gray-500 rounded-lg text-xs cursor-not-allowed'}
+            ? 'px-2.5 py-1 bg-gradient-to-r from-green-500 to-emerald-600 text-gray-950 font-semibold rounded-lg text-xs shadow-sm transition-all active:scale-[0.97] hover:from-green-400 hover:to-emerald-500 max-lg:min-h-[44px]'
+            : 'px-2.5 py-1 bg-gray-700/60 text-gray-500 rounded-lg text-xs cursor-not-allowed max-lg:min-h-[44px]'}
           aria-label="Salva itinerario"
         >
           Salva
         </button>
-        <button onClick={() => setMainView('library')} className="px-2 py-1 bg-gray-700 rounded-lg text-xs transition-all active:scale-[0.97] hover:bg-gray-600" aria-label="Apri libreria percorsi">
+        <button onClick={() => setMainView('library')} className="px-2 py-1 bg-gray-700 rounded-lg text-xs transition-all active:scale-[0.97] hover:bg-gray-600 max-lg:min-h-[44px]" aria-label="Apri libreria percorsi">
           Carica
         </button>
         <button
@@ -141,15 +141,15 @@ export function ItineraryHeader() {
             resetItinerary();
             toast.info('Nuovo itinerario creato');
           }}
-          className="px-2 py-1 bg-gray-700 rounded-lg text-xs transition-all active:scale-[0.97] hover:bg-gray-600"
+          className="px-2 py-1 bg-gray-700 rounded-lg text-xs transition-all active:scale-[0.97] hover:bg-gray-600 max-lg:min-h-[44px]"
           aria-label="Nuovo itinerario"
         >
           Nuovo
         </button>
-        <button onClick={handleExportJSON} className="px-2 py-1 bg-gray-700 rounded-lg text-xs transition-all active:scale-[0.97] hover:bg-gray-600" title="Esporta JSON" aria-label="Esporta JSON">
+        <button onClick={handleExportJSON} className="px-2 py-1 bg-gray-700 rounded-lg text-xs transition-all active:scale-[0.97] hover:bg-gray-600 max-lg:min-h-[44px] max-lg:min-w-[44px]" title="Esporta JSON" aria-label="Esporta JSON">
           ↓
         </button>
-        <button onClick={handleImportJSON} className="px-2 py-1 bg-gray-700 rounded-lg text-xs transition-all active:scale-[0.97] hover:bg-gray-600" title="Importa JSON" aria-label="Importa JSON">
+        <button onClick={handleImportJSON} className="px-2 py-1 bg-gray-700 rounded-lg text-xs transition-all active:scale-[0.97] hover:bg-gray-600 max-lg:min-h-[44px] max-lg:min-w-[44px]" title="Importa JSON" aria-label="Importa JSON">
           ↑
         </button>
       </div>
