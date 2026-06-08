@@ -4,6 +4,11 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.10.1] — 2026-06-08 — Hotfix
+
+### Fixed
+- **Pannello mobile completamente scrollabile**: lo sheet Editor/Libreria copriva solo l'area mappa con un singolo blocco interno scrollabile, lasciando su schermi piccoli una finestrella minuscola e le azioni in fondo tagliate. Ora lo sheet copre mappa + profilo (tutta l'area sopra la bottom nav) e scorre come un'unica pagina; lo scroll interno dei componenti resta solo su desktop (`lg:`), che è invariato.
+
 ## [0.10.0] — 2026-06-05 — "Navigazione mobile rifondata"
 
 Fase B del ridisegno usabilità mobile (TASK-39): nuova shell mobile a **bottom navigation**, solo sotto il breakpoint `lg` — il desktop conserva la sidebar fissa, invariato. Sviluppata e revisionata in 6 task (TASK-44 → 49) con esecuzione subagent-driven (TDD) e code-review finale. Spec/piani in `backlog/docs/mobile-shell-B-*`. 553 test.
@@ -208,6 +213,7 @@ Campagna di code review approfondita: 32 fix in 7 round su type safety, React pa
 ### Added
 - Prima release MVP: creazione itinerari con waypoint e tratte, validazione manuale di altitudine / distanza / azimuth / dislivelli, profilo altimetrico colorato, layout mobile con drawer a tutto schermo, tutorial interattivo, validazione cumulativa, import/export JSON, export GPX 1.1, export PDF (sintetico + roadbook).
 
+[0.10.1]: https://github.com/gperniola/TrekTrak/releases/tag/v0.10.1
 [0.10.0]: https://github.com/gperniola/TrekTrak/releases/tag/v0.10.0
 [0.9.2]: https://github.com/gperniola/TrekTrak/releases/tag/v0.9.2
 [0.9.1]: https://github.com/gperniola/TrekTrak/releases/tag/v0.9.1
