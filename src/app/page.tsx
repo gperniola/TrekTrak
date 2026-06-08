@@ -27,6 +27,9 @@ import { ConfirmModalContainer } from '@/components/shared/ConfirmModal';
 import { InviteModal } from '@/components/auth/InviteModal';
 import { BrandMark } from '@/components/shared/BrandMark';
 import { MapToolsFab } from '@/components/map/MapToolsFab';
+import { MoreMenu } from '@/components/panel/MoreMenu';
+import { nextBackAction } from '@/lib/back-nav';
+import { confirm as appConfirm } from '@/stores/notificationStore';
 
 export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
@@ -41,6 +44,8 @@ export default function Home() {
   const setSearchOpen = useUIStore((s) => s.setSearchOpen);
   const deactivateQuiz = useUIStore((s) => s.deactivateQuiz);
   const closeProgress = useUIStore((s) => s.closeProgress);
+  const moreMenuOpen = useUIStore((s) => s.moreMenuOpen);
+  const setMoreMenuOpen = useUIStore((s) => s.setMoreMenuOpen);
 
   const previewRoute = useRouteLibraryStore((s) => s.routes.find((r) => r.id === s.selectedRouteId));
   const clearRouteSelection = useRouteLibraryStore((s) => s.select);
@@ -91,6 +96,58 @@ export default function Home() {
       }
     }
   }, [authLoading, authSession, isMember]);
+
+  // Tasto Indietro (mobile): chiude prima eventuali overlay/menu, poi torna alla Mappa
+  // da un'altra scheda, infine chiede conferma d'uscita dalla Mappa. Implementato con la
+  // History API: teniamo una entry "guardia" e gestiamo popstate. La priorità è in
+  // nextBackAction (lib/back-nav). backRef è riassegnato a ogni render per leggere stato fresco.
+  const backRef = useRef<() => boolean>(() => false);
+  backRef.current = () => {
+    const action = nextBackAction({
+      moreMenuOpen,
+      mapSettingsOpen: showMapSettings,
+      settingsOpen: showSettings,
+      progressOpen,
+      quizActive,
+      searchOpen,
+      mobileTab,
+    });
+    switch (action) {
+      case 'closeMore': setMoreMenuOpen(false); return true;
+      case 'closeMapSettings': setShowMapSettings(false); return true;
+      case 'closeSettings': setShowSettings(false); return true;
+      case 'closeProgress': closeProgress(); return true;
+      case 'closeQuiz': deactivateQuiz(); return true;
+      case 'closeSearch': setSearchOpen(false); return true;
+      case 'toMap': setMobileTab('map'); return true;
+      default: return false; // 'exit'
+    }
+  };
+  const exitingRef = useRef(false);
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia('(max-width: 1023px)').matches) return;
+    window.history.pushState(null, '');
+    const onPop = () => {
+      if (exitingRef.current) return;
+      if (backRef.current()) {
+        window.history.pushState(null, ''); // riarma la guardia: resta nell'app
+        return;
+      }
+      // Sulla mappa, nulla aperto → conferma uscita
+      void appConfirm({
+        title: 'Uscire da TrekTrak?',
+        message: 'Vuoi lasciare la pagina? Le modifiche non salvate andranno perse.',
+        confirmText: 'Esci',
+        variant: 'error',
+      }).then((ok) => {
+        if (ok) { exitingRef.current = true; window.history.back(); }
+        else { window.history.pushState(null, ''); }
+      });
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <main className="h-dvh flex flex-col lg:flex-row overflow-hidden">
@@ -190,6 +247,7 @@ export default function Home() {
       {/* Settings Modals */}
       {showSettings && <ToleranceSettings onClose={() => setShowSettings(false)} />}
       {showMapSettings && <MapSettings onClose={() => setShowMapSettings(false)} />}
+      <MoreMenu />
 
       {quizActive && <QuizOverlay onClose={deactivateQuiz} />}
 

@@ -4,6 +4,17 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.10.2] — 2026-06-08 — "Mobile: menu Altro + tasto Indietro"
+
+Rifiniture della navigazione mobile (solo `<lg`, desktop invariato). TASK-50.
+
+### Added
+- **Menu "Altro"** come quarta voce della bottom nav: apre una tendina con **Meteo**, **PDF sintetico**, **PDF roadbook**, **GPX** sull'itinerario corrente (disabilitati quando non applicabili). Si chiude dopo l'azione o toccando fuori.
+- **Gestione del tasto Indietro** del telefono (History API): chiude prima eventuali overlay/menu aperti, poi torna alla **Mappa** da un'altra scheda, infine (sulla Mappa, nulla aperto) chiede conferma con un popup in-app "Uscire da TrekTrak?". Logica di priorità in `lib/back-nav.ts` (pura, unit-tested).
+
+### Changed
+- Bottom nav: i 3 pulsanti di navigazione passano da `role=tab` a pulsanti con `aria-current` per ospitare in modo accessibile il pulsante "Altro".
+
 ## [0.10.1] — 2026-06-08 — Hotfix
 
 ### Fixed
@@ -213,6 +224,7 @@ Campagna di code review approfondita: 32 fix in 7 round su type safety, React pa
 ### Added
 - Prima release MVP: creazione itinerari con waypoint e tratte, validazione manuale di altitudine / distanza / azimuth / dislivelli, profilo altimetrico colorato, layout mobile con drawer a tutto schermo, tutorial interattivo, validazione cumulativa, import/export JSON, export GPX 1.1, export PDF (sintetico + roadbook).
 
+[0.10.2]: https://github.com/gperniola/TrekTrak/releases/tag/v0.10.2
 [0.10.1]: https://github.com/gperniola/TrekTrak/releases/tag/v0.10.1
 [0.10.0]: https://github.com/gperniola/TrekTrak/releases/tag/v0.10.0
 [0.9.2]: https://github.com/gperniola/TrekTrak/releases/tag/v0.9.2

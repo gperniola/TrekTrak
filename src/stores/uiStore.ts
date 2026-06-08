@@ -8,6 +8,7 @@ interface UIState {
   searchOpen: boolean;
   mainView: 'editor' | 'library';
   mobileTab: 'map' | 'editor' | 'library';
+  moreMenuOpen: boolean;
 
   toggleCompass: () => void;
   toggleRuler: () => void;
@@ -20,6 +21,7 @@ interface UIState {
   setSearchOpen: (open: boolean) => void;
   setMainView: (view: 'editor' | 'library') => void;
   setMobileTab: (tab: 'map' | 'editor' | 'library') => void;
+  setMoreMenuOpen: (open: boolean) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -30,6 +32,7 @@ export const useUIStore = create<UIState>((set) => ({
   searchOpen: false,
   mainView: 'editor',
   mobileTab: 'map',
+  moreMenuOpen: false,
 
   toggleCompass: () => set((s) => ({
     compassActive: !s.compassActive,
@@ -57,4 +60,5 @@ export const useUIStore = create<UIState>((set) => ({
   // sincronizzano anche mainView così la logica esistente (preview, RouteLibrary,
   // LeftPanel) continua a funzionare senza modifiche.
   setMobileTab: (tab) => set(tab === 'map' ? { mobileTab: tab } : { mobileTab: tab, mainView: tab }),
+  setMoreMenuOpen: (open) => set({ moreMenuOpen: open }),
 }));

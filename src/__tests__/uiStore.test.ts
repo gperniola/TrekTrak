@@ -5,6 +5,13 @@ beforeEach(() => {
   useUIStore.setState({ mobileTab: 'map', mainView: 'editor' });
 });
 
+test('moreMenuOpen: default false e setter', () => {
+  useUIStore.setState({ moreMenuOpen: false });
+  expect(useUIStore.getState().moreMenuOpen).toBe(false);
+  useUIStore.getState().setMoreMenuOpen(true);
+  expect(useUIStore.getState().moreMenuOpen).toBe(true);
+});
+
 describe('uiStore.mobileTab', () => {
   test('default tab is map', () => {
     expect(useUIStore.getState().mobileTab).toBe('map');

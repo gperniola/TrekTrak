@@ -9,26 +9,40 @@ import { BottomNav } from '@/components/panel/BottomNav';
 import { useUIStore } from '@/stores/uiStore';
 
 beforeEach(() => {
-  useUIStore.setState({ mobileTab: 'map', mainView: 'editor' });
+  useUIStore.setState({ mobileTab: 'map', mainView: 'editor', moreMenuOpen: false });
 });
 
 describe('BottomNav', () => {
-  test('mostra le tre schede', () => {
+  test('mostra le quattro voci', () => {
     render(<BottomNav />);
-    expect(screen.getByRole('tab', { name: /mappa/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /editor/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /libreria/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /mappa/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /editor/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /libreria/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^altro$/i })).toBeInTheDocument();
   });
 
   test('cliccare una scheda aggiorna mobileTab', () => {
     render(<BottomNav />);
-    fireEvent.click(screen.getByRole('tab', { name: /editor/i }));
+    fireEvent.click(screen.getByRole('button', { name: /editor/i }));
     expect(useUIStore.getState().mobileTab).toBe('editor');
   });
 
-  test('la scheda attiva è segnata aria-selected', () => {
+  test('la scheda attiva ha aria-current=page', () => {
     useUIStore.setState({ mobileTab: 'library', mainView: 'library' });
     render(<BottomNav />);
-    expect(screen.getByRole('tab', { name: /libreria/i })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('button', { name: /libreria/i })).toHaveAttribute('aria-current', 'page');
+  });
+
+  test('Altro apre il menu', () => {
+    render(<BottomNav />);
+    fireEvent.click(screen.getByRole('button', { name: /^altro$/i }));
+    expect(useUIStore.getState().moreMenuOpen).toBe(true);
+  });
+
+  test('cliccare una scheda chiude il menu Altro', () => {
+    useUIStore.setState({ moreMenuOpen: true });
+    render(<BottomNav />);
+    fireEvent.click(screen.getByRole('button', { name: /editor/i }));
+    expect(useUIStore.getState().moreMenuOpen).toBe(false);
   });
 });
