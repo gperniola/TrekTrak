@@ -64,7 +64,7 @@ export function WaypointList() {
   const maxWaypoints = 50;
 
   return (
-    <div className="flex-1 overflow-y-auto p-2 space-y-2">
+    <div className="lg:flex-1 lg:min-h-0 lg:overflow-y-auto p-2 space-y-2">
       <div className="text-xs uppercase text-gray-400 px-2">Waypoint</div>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={wpIds} strategy={verticalListSortingStrategy}>

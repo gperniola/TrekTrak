@@ -13,7 +13,7 @@ export function RouteLibrary() {
 
   return (
     <LibraryAuthGate>
-      <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
+      <div className="flex flex-col lg:flex-1 lg:min-h-0 lg:overflow-y-auto">
         {/* Lista: sempre su desktop; su mobile solo quando nessun percorso è selezionato. */}
         <div className={selectedId ? 'hidden lg:block' : undefined}>
           <RouteList />

@@ -127,55 +127,60 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Map */}
-        <div className="flex-1 relative min-h-0 overflow-hidden">
-          <MapWrapper />
-          <MapToolsFab />
+        {/* Map + Elevation wrapper — relative so the mobile panel sheet can cover both
+            (map + elevation strip) and be fully scrollable on its own. */}
+        <div className="relative flex-1 flex flex-col min-h-0">
+          {/* Map */}
+          <div className="flex-1 relative min-h-0 overflow-hidden">
+            <MapWrapper />
+            <MapToolsFab />
 
-          {/* Mobile-only preview banner: shown when browsing the library and a route is selected */}
-          {mainView === 'library' && previewRoute && (
-            <div className="lg:hidden absolute top-2 left-2 right-2 z-[1000] bg-gray-900/95 border border-gray-700 rounded px-3 py-2 flex items-center justify-between text-xs">
-              <span className="truncate text-gray-200">Anteprima: {previewRoute.name || 'Senza nome'}</span>
-              <div className="flex gap-2 shrink-0 ml-2">
-                <button onClick={() => setMobileTab('library')} className="text-green-400 min-h-[44px] flex items-center">Apri libreria</button>
-                <button onClick={() => clearRouteSelection(null)} className="text-gray-400 min-h-[44px] flex items-center">Chiudi</button>
+            {/* Mobile-only preview banner: shown when browsing the library and a route is selected */}
+            {mainView === 'library' && previewRoute && (
+              <div className="lg:hidden absolute top-2 left-2 right-2 z-[1000] bg-gray-900/95 border border-gray-700 rounded px-3 py-2 flex items-center justify-between text-xs">
+                <span className="truncate text-gray-200">Anteprima: {previewRoute.name || 'Senza nome'}</span>
+                <div className="flex gap-2 shrink-0 ml-2">
+                  <button onClick={() => setMobileTab('library')} className="text-green-400 min-h-[44px] flex items-center">Apri libreria</button>
+                  <button onClick={() => clearRouteSelection(null)} className="text-gray-400 min-h-[44px] flex items-center">Chiudi</button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Settings toggles — desktop only */}
-          <div className="hidden lg:flex absolute top-3 left-3 z-[1000] gap-1">
-            <button
-              onClick={() => setShowSettings(true)}
-              className="bg-gray-800/90 px-2 py-1 rounded text-xs text-gray-400 hover:text-white"
-              aria-label="Apri impostazioni tolleranze"
-            >
-            Impostazioni
-            </button>
-            <button
-              onClick={() => setShowMapSettings(true)}
-              className="bg-gray-800/90 px-2 py-1 rounded text-xs text-gray-400 hover:text-white"
-              aria-label="Impostazioni mappa"
-            >
-              Mappa &#9881;&#xFE0F;
-            </button>
+            {/* Settings toggles — desktop only */}
+            <div className="hidden lg:flex absolute top-3 left-3 z-[1000] gap-1">
+              <button
+                onClick={() => setShowSettings(true)}
+                className="bg-gray-800/90 px-2 py-1 rounded text-xs text-gray-400 hover:text-white"
+                aria-label="Apri impostazioni tolleranze"
+              >
+              Impostazioni
+              </button>
+              <button
+                onClick={() => setShowMapSettings(true)}
+                className="bg-gray-800/90 px-2 py-1 rounded text-xs text-gray-400 hover:text-white"
+                aria-label="Impostazioni mappa"
+              >
+                Mappa &#9881;&#xFE0F;
+              </button>
+            </div>
           </div>
 
-          {/* Mobile panel sheet — covers the map when on Editor/Libreria tabs */}
+          {/* Elevation Profile — in library mode mostra il profilo del percorso selezionato */}
+          <div className="h-[100px] lg:h-[120px] bg-gray-900 border-t border-gray-700 shrink-0">
+            {mainView === 'library'
+              ? (previewRoute
+                  ? <PreviewElevationProfile route={previewRoute} />
+                  : <div className="h-full flex items-center justify-center text-xs text-gray-500 px-3 text-center">Seleziona un percorso per vederne il profilo.</div>)
+              : <ElevationProfile />}
+          </div>
+
+          {/* Mobile panel sheet — covers map + elevation; the sheet itself scrolls so the
+              whole Editor/Libreria panel is reachable (inner scroll is desktop-only). */}
           {mobileTab !== 'map' && (
-            <div className="lg:hidden absolute inset-0 z-[1100] bg-gray-950 flex flex-col">
-              <LeftPanel className="w-full h-full" showSwitch={false} viewOverride={mobileTab === 'library' ? 'library' : 'editor'} />
+            <div className="lg:hidden absolute inset-0 z-[1100] bg-gray-950 overflow-y-auto overscroll-contain">
+              <LeftPanel className="w-full" showSwitch={false} viewOverride={mobileTab === 'library' ? 'library' : 'editor'} />
             </div>
           )}
-        </div>
-
-        {/* Elevation Profile — in library mode mostra il profilo del percorso selezionato */}
-        <div className="h-[100px] lg:h-[120px] bg-gray-900 border-t border-gray-700 shrink-0">
-          {mainView === 'library'
-            ? (previewRoute
-                ? <PreviewElevationProfile route={previewRoute} />
-                : <div className="h-full flex items-center justify-center text-xs text-gray-500 px-3 text-center">Seleziona un percorso per vederne il profilo.</div>)
-            : <ElevationProfile />}
         </div>
 
         {/* Bottom navigation — mobile only, always visible */}
