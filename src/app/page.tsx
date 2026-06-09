@@ -156,7 +156,13 @@ export default function Home() {
     // non riesca a riconciliare la rotta e forzi un HARD RELOAD (mappa+posizione si
     // "refreshano"). Spreadando lo stato esistente, Next vede la stessa rotta e non ricarica.
     // La logica del back usa i ref pushedDepth/skipPop, non legge history.state.
-    const pushGuard = () => window.history.pushState({ ...window.history.state, ttGuard: true }, '');
+    const pushGuard = () => {
+      // Idempotente: se la guardia è già in cima NON ne accumuliamo un'altra. Senza questo,
+      // più chiamate (React StrictMode in dev, o un eventuale remount) impilano più guardie e
+      // l'uscita non funziona più (un solo history.back() non basta a superarle tutte).
+      if (window.history.state && (window.history.state as { ttGuard?: boolean }).ttGuard) return;
+      window.history.pushState({ ...window.history.state, ttGuard: true }, '');
+    };
     pushGuard(); // guardia base (per la conferma d'uscita)
     const onPop = () => {
       if (skipPop.current > 0) { skipPop.current--; return; } // popstate auto-inflitto (da history.go)
