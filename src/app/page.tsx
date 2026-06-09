@@ -30,6 +30,8 @@ import { BrandMark } from '@/components/shared/BrandMark';
 import { MapToolsFab } from '@/components/map/MapToolsFab';
 import { MoreMenu } from '@/components/panel/MoreMenu';
 import { nextBackAction } from '@/lib/back-nav';
+import { isBackDebug, logBack } from '@/lib/back-debug';
+import { BackDebug } from '@/components/shared/BackDebug';
 import { confirm as appConfirm } from '@/stores/notificationStore';
 
 export default function Home() {
@@ -127,15 +129,20 @@ export default function Home() {
   const exitingRef = useRef(false);
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia('(max-width: 1023px)').matches) return;
+    const dbg = isBackDebug();
     const arm = () => window.history.pushState({ ttBack: true }, '');
     arm(); // guardia iniziale: una entry da "consumare" col tasto Indietro
+    if (dbg) logBack(`mount arm len=${window.history.length}`);
     const onPop = () => {
-      if (exitingRef.current) return;
-      // Ri-arma SUBITO la guardia, in ogni caso: così l'app non esce mai per sbaglio,
-      // nemmeno durante il popup di conferma (async). Ogni Indietro consuma una guardia
-      // e ne ricrea una → la profondità resta costante e c'è sempre qualcosa da consumare.
-      arm();
-      if (backRef.current()) return; // ha chiuso un overlay o è tornato alla Mappa
+      if (exitingRef.current) { if (dbg) logBack(`pop skip(exiting) len=${window.history.length}`); return; }
+      const tab = useUIStore.getState().mobileTab;
+      const lenBefore = window.history.length;
+      // Ri-arma la guardia in modo DEFERITO: alcuni browser mobili ignorano pushState
+      // chiamato sincrono dentro l'handler popstate. setTimeout(0) lo fa applicare dopo.
+      setTimeout(arm, 0);
+      const handled = backRef.current(); // chiude overlay o torna alla Mappa
+      if (dbg) logBack(`pop tab=${tab} len=${lenBefore} handled=${handled}`);
+      if (handled) return;
       // Sulla Mappa, nulla aperto → conferma uscita (popup in-app)
       void appConfirm({
         title: 'Uscire da TrekTrak?',
@@ -143,7 +150,8 @@ export default function Home() {
         confirmText: 'Esci',
         variant: 'error',
       }).then((ok) => {
-        if (!ok) return; // resta nell'app (già ri-armata)
+        if (dbg) logBack(`confirm → ${ok ? 'esci' : 'resta'}`);
+        if (!ok) return; // resta nell'app (la guardia è già stata ri-armata)
         exitingRef.current = true;
         window.removeEventListener('popstate', onPop);
         window.history.go(-2); // scarta la guardia ri-armata + la entry corrente per uscire
@@ -158,6 +166,7 @@ export default function Home() {
     <main className="h-dvh flex flex-col lg:flex-row overflow-hidden">
       <OfflineBanner />
       <UpdateBanner />
+      <BackDebug />
       {/* Desktop sidebar — hidden on mobile */}
       <div className="hidden lg:flex">
         <LeftPanel />
