@@ -132,16 +132,17 @@ export default function Home() {
     const dbg = isBackDebug();
     const arm = () => window.history.pushState({ ttBack: true }, '');
     arm(); // guardia iniziale: una entry da "consumare" col tasto Indietro
-    if (dbg) logBack(`mount arm len=${window.history.length}`);
-    const onPop = () => {
-      if (exitingRef.current) { if (dbg) logBack(`pop skip(exiting) len=${window.history.length}`); return; }
+    if (dbg) logBack(`mount arm len=${window.history.length} ref="${document.referrer || '(none)'}" guard=${!!(window.history.state && window.history.state.ttBack)}`);
+    const onPop = (e: PopStateEvent) => {
+      const hasGuard = !!(e.state && (e.state as { ttBack?: boolean }).ttBack);
+      if (exitingRef.current) { if (dbg) logBack(`pop skip(exiting) guard=${hasGuard} len=${window.history.length}`); return; }
       const tab = useUIStore.getState().mobileTab;
       const lenBefore = window.history.length;
       // Ri-arma la guardia in modo DEFERITO: alcuni browser mobili ignorano pushState
       // chiamato sincrono dentro l'handler popstate. setTimeout(0) lo fa applicare dopo.
       setTimeout(arm, 0);
       const handled = backRef.current(); // chiude overlay o torna alla Mappa
-      if (dbg) logBack(`pop tab=${tab} len=${lenBefore} handled=${handled}`);
+      if (dbg) logBack(`pop tab=${tab} guard=${hasGuard} len=${lenBefore} handled=${handled}`);
       if (handled) return;
       // Sulla Mappa, nulla aperto → conferma uscita (popup in-app)
       void appConfirm({
@@ -158,7 +159,15 @@ export default function Home() {
       });
     };
     window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
+    // Traccia l'istante in cui l'app sta effettivamente uscendo: se questo compare
+    // SENZA un 'pop ... handled=false' + 'confirm → esci' prima, vuol dire che il
+    // browser ha navigato indietro saltando la guardia (popstate non l'ha fermato).
+    const onHide = () => { if (dbg) logBack(`PAGEHIDE len=${window.history.length} exiting=${exitingRef.current}`); };
+    window.addEventListener('pagehide', onHide);
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      window.removeEventListener('pagehide', onHide);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
