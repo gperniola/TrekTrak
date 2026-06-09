@@ -4,6 +4,14 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.10.7] — 2026-06-09 — Tasto Indietro: re-arm sincrono della guardia
+
+### Fixed
+- **Tasto Indietro mobile esce dall'app dopo poche pressioni**: la diagnostica `?debug=back` (v0.10.6) ha mostrato che dopo `editor→mappa`/`libreria→mappa` la guardia in cronologia non veniva ricreata in tempo (era ri-armata con `setTimeout(0)`, deferito), quindi la pressione successiva non faceva nemmeno scattare `popstate` e il browser usciva di colpo (popup mai mostrato). Ora la guardia è **ri-armata in modo sincrono** come prima istruzione dell'handler `popstate`: ogni pressione del tasto Indietro trova sempre un'entry da consumare e l'handler viene sempre invocato.
+
+### Changed (diagnostica temporanea)
+- Log `?debug=back` arricchito con `persisted` su `pagehide`/`pageshow` per distinguere la sospensione BFCache (non un'uscita) da un'uscita reale.
+
 ## [0.10.6] — 2026-06-09 — Tasto Indietro: diagnostica persistente
 
 ### Changed (diagnostica temporanea)
