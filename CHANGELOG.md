@@ -4,6 +4,14 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.10.9] — 2026-06-09 — Tasto Indietro: stop al reload + pulizia diagnostica
+
+### Fixed
+- **Niente più "refresh" di mappa e posizione premendo Indietro o uscendo**: le nostre `history.pushState`/`replaceState` sovrascrivevano lo **stato interno del router di Next.js** (App Router lo conserva in `history.state`: `__NA`, `__PRIVATE_NEXTJS_INTERNALS_TREE`). Al `popstate` il router non riusciva a riconciliare la rotta e forzava un **hard reload** della pagina (la mappa si rimontava e `GeolocateOnMount` ri-centrava sul GPS). Ora preserviamo lo stato di Next in ogni manipolazione della cronologia (spread di `history.state`), così il tasto Indietro chiude i livelli e mostra la conferma d'uscita **senza ricaricare**. Verificato in emulazione mobile.
+
+### Removed
+- Rimossa tutta la diagnostica temporanea del tasto Indietro: overlay `?debug=back`, `lib/back-debug.ts`, `components/shared/BackDebug.tsx` e relativi log.
+
 ## [0.10.8] — 2026-06-09 — Tasto Indietro: history per livello di navigazione
 
 ### Fixed
