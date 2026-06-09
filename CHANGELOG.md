@@ -4,6 +4,12 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.10.4] — 2026-06-09 — "Aggiornamenti PWA visibili"
+
+### Added
+- **Avviso di nuova versione**: quando il service worker rileva un aggiornamento, compare un banner "È disponibile una nuova versione" con pulsante **Ricarica** (`UpdateBanner`). Risolve il caso in cui la PWA continuava a mostrare la versione in cache finché non si chiudeva/riapriva del tutto.
+- **Indicatore di versione** ("TrekTrak v…") in fondo a Impostazioni mappa (⚙️), per verificare a colpo d'occhio quale build si sta usando. Versione esposta da `package.json` via `NEXT_PUBLIC_APP_VERSION`.
+
 ## [0.10.3] — 2026-06-09 — Hotfix
 
 ### Fixed
@@ -229,6 +235,7 @@ Campagna di code review approfondita: 32 fix in 7 round su type safety, React pa
 ### Added
 - Prima release MVP: creazione itinerari con waypoint e tratte, validazione manuale di altitudine / distanza / azimuth / dislivelli, profilo altimetrico colorato, layout mobile con drawer a tutto schermo, tutorial interattivo, validazione cumulativa, import/export JSON, export GPX 1.1, export PDF (sintetico + roadbook).
 
+[0.10.4]: https://github.com/gperniola/TrekTrak/releases/tag/v0.10.4
 [0.10.3]: https://github.com/gperniola/TrekTrak/releases/tag/v0.10.3
 [0.10.2]: https://github.com/gperniola/TrekTrak/releases/tag/v0.10.2
 [0.10.1]: https://github.com/gperniola/TrekTrak/releases/tag/v0.10.1
