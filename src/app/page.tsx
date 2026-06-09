@@ -30,8 +30,6 @@ import { BrandMark } from '@/components/shared/BrandMark';
 import { MapToolsFab } from '@/components/map/MapToolsFab';
 import { MoreMenu } from '@/components/panel/MoreMenu';
 import { nextBackAction } from '@/lib/back-nav';
-import { isBackDebug, logBack } from '@/lib/back-debug';
-import { BackDebug } from '@/components/shared/BackDebug';
 import { confirm as appConfirm } from '@/stores/notificationStore';
 
 export default function Home() {
@@ -82,7 +80,9 @@ export default function Home() {
       const id = Math.random().toString(36).substring(2, 11);
       store.loadItinerary(id, decoded.name, decoded.waypoints, decoded.legs);
     }
-    history.replaceState(null, '', window.location.pathname);
+    // Preserviamo lo stato del router di Next (history.state) mentre ripuliamo l'hash:
+    // passare null lo azzererebbe e farebbe ricaricare la pagina al primo popstate.
+    history.replaceState(window.history.state, '', window.location.pathname);
   }, []);
 
   // Primo accesso da mobile: appena l'utente è autenticato ma non ha ancora uno username
@@ -151,51 +151,39 @@ export default function Home() {
   // CHIUDERE un livello leggendo lo stato. La guardia base serve solo alla conferma d'uscita.
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia('(max-width: 1023px)').matches) return;
-    const dbg = isBackDebug();
-    window.history.pushState({ ttBase: true }, ''); // guardia base (per la conferma d'uscita)
-    if (dbg) logBack(`mount base len=${window.history.length} ref="${document.referrer || '(none)'}"`);
+    // IMPORTANTE: preserviamo lo stato interno del router di Next (App Router lo tiene in
+    // history.state). Sovrascriverlo con un oggetto nostro fa sì che, al popstate, il router
+    // non riesca a riconciliare la rotta e forzi un HARD RELOAD (mappa+posizione si
+    // "refreshano"). Spreadando lo stato esistente, Next vede la stessa rotta e non ricarica.
+    // La logica del back usa i ref pushedDepth/skipPop, non legge history.state.
+    const pushGuard = () => window.history.pushState({ ...window.history.state, ttGuard: true }, '');
+    pushGuard(); // guardia base (per la conferma d'uscita)
     const onPop = () => {
-      if (skipPop.current > 0) {
-        skipPop.current--;
-        if (dbg) logBack(`pop skip(self) depth=${pushedDepth.current} len=${window.history.length}`);
-        return;
-      }
-      if (exitingRef.current) { if (dbg) logBack(`pop skip(exiting)`); return; }
+      if (skipPop.current > 0) { skipPop.current--; return; } // popstate auto-inflitto (da history.go)
+      if (exitingRef.current) return;
       if (pushedDepth.current > 0) {
         // Una entry di livello è stata consumata dal tasto Indietro → chiudi UN livello.
         // Decrementiamo PRIMA, così l'effetto di sync (reagendo al calo di backDepth) vede
         // cronologia e UI già allineate e non tocca la history (niente doppia rimozione).
         pushedDepth.current--;
-        const handled = backRef.current();
-        if (dbg) logBack(`pop close depth→${pushedDepth.current} handled=${handled}`);
+        backRef.current();
         return;
       }
       // Guardia base consumata → conferma uscita dalla Mappa
-      if (dbg) logBack(`pop base → confirm len=${window.history.length}`);
       void appConfirm({
         title: 'Uscire da TrekTrak?',
         message: 'Vuoi lasciare la pagina? Le modifiche non salvate andranno perse.',
         confirmText: 'Esci',
         variant: 'error',
       }).then((ok) => {
-        if (dbg) logBack(`confirm → ${ok ? 'esci' : 'resta'}`);
-        if (!ok) { window.history.pushState({ ttBase: true }, ''); return; } // ripristina la guardia base
+        if (!ok) { pushGuard(); return; } // resta nell'app → ripristina la guardia base
         exitingRef.current = true;
         window.removeEventListener('popstate', onPop);
         window.history.back(); // esci dall'app
       });
     };
     window.addEventListener('popstate', onPop);
-    // Diagnostica: persisted=true su pagehide/pageshow = BFCache (sospensione/ripristino), non un'uscita.
-    const onHide = (e: PageTransitionEvent) => { if (dbg) logBack(`PAGEHIDE persisted=${e.persisted} len=${window.history.length}`); };
-    const onShow = (e: PageTransitionEvent) => { if (dbg) logBack(`PAGESHOW persisted=${e.persisted} len=${window.history.length}`); };
-    window.addEventListener('pagehide', onHide);
-    window.addEventListener('pageshow', onShow);
-    return () => {
-      window.removeEventListener('popstate', onPop);
-      window.removeEventListener('pagehide', onHide);
-      window.removeEventListener('pageshow', onShow);
-    };
+    return () => window.removeEventListener('popstate', onPop);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -206,17 +194,16 @@ export default function Home() {
   // come "auto-inflitti" (skipPop) e ignorati dall'handler.
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia('(max-width: 1023px)').matches) return;
-    const dbg = isBackDebug();
     if (backDepth > pushedDepth.current) {
       const n = backDepth - pushedDepth.current;
-      for (let i = 0; i < n; i++) window.history.pushState({ ttDepth: pushedDepth.current + i + 1 }, '');
+      // Spread di history.state: preserva lo stato del router di Next (vedi nota sopra)
+      // così il popstate non innesca un hard reload.
+      for (let i = 0; i < n; i++) window.history.pushState({ ...window.history.state, ttDepth: pushedDepth.current + i + 1 }, '');
       pushedDepth.current = backDepth;
-      if (dbg) logBack(`sync push +${n} → depth=${pushedDepth.current} len=${window.history.length}`);
     } else if (backDepth < pushedDepth.current) {
       const diff = pushedDepth.current - backDepth;
       pushedDepth.current = backDepth;
       skipPop.current += diff;
-      if (dbg) logBack(`sync pop -${diff} → depth=${pushedDepth.current}`);
       window.history.go(-diff);
     }
   }, [backDepth]);
@@ -225,7 +212,6 @@ export default function Home() {
     <main className="h-dvh flex flex-col lg:flex-row overflow-hidden">
       <OfflineBanner />
       <UpdateBanner />
-      <BackDebug />
       {/* Desktop sidebar — hidden on mobile */}
       <div className="hidden lg:flex">
         <LeftPanel />
