@@ -214,6 +214,11 @@ export function MapSettings({ onClose }: { onClose: () => void }) {
             ))}
           </select>
         </div>
+
+        {/* Versione app — utile per verificare di avere l'ultima release */}
+        <div className="pt-3 mt-1 border-t border-gray-700 text-center">
+          <span className="text-[10px] text-gray-500">TrekTrak v{process.env.NEXT_PUBLIC_APP_VERSION}</span>
+        </div>
       </div>
     </div>
   );

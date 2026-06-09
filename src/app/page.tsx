@@ -22,6 +22,7 @@ import { useRouteLibraryStore } from '@/stores/routeLibraryStore';
 import { useAuthStore } from '@/stores/authStore';
 import { decodeItinerary } from '@/lib/share-url';
 import { OfflineBanner } from '@/components/shared/OfflineBanner';
+import { UpdateBanner } from '@/components/shared/UpdateBanner';
 import { ToastContainer } from '@/components/shared/Toast';
 import { ConfirmModalContainer } from '@/components/shared/ConfirmModal';
 import { InviteModal } from '@/components/auth/InviteModal';
@@ -156,6 +157,7 @@ export default function Home() {
   return (
     <main className="h-dvh flex flex-col lg:flex-row overflow-hidden">
       <OfflineBanner />
+      <UpdateBanner />
       {/* Desktop sidebar — hidden on mobile */}
       <div className="hidden lg:flex">
         <LeftPanel />
