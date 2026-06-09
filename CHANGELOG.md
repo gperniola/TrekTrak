@@ -4,6 +4,14 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.10.5] — 2026-06-09 — Tasto Indietro: tentativo fix + diagnostica
+
+### Fixed (tentativo)
+- **Tasto Indietro mobile**: la ri-armatura della guardia in cronologia ora è **deferita** (`setTimeout(0)`) invece che sincrona dentro `popstate` — alcuni browser mobili ignorano `pushState` chiamato dentro l'handler `popstate`, causando lo svuotamento della guardia e l'uscita dopo qualche pressione.
+
+### Added (diagnostica temporanea)
+- Overlay di debug del tasto Indietro attivabile con `?debug=back` (disattiva con `?debug=off`): mostra gli eventi del gestore per diagnosticare il comportamento sul dispositivo reale.
+
 ## [0.10.4] — 2026-06-09 — "Aggiornamenti PWA visibili"
 
 ### Added
@@ -235,6 +243,7 @@ Campagna di code review approfondita: 32 fix in 7 round su type safety, React pa
 ### Added
 - Prima release MVP: creazione itinerari con waypoint e tratte, validazione manuale di altitudine / distanza / azimuth / dislivelli, profilo altimetrico colorato, layout mobile con drawer a tutto schermo, tutorial interattivo, validazione cumulativa, import/export JSON, export GPX 1.1, export PDF (sintetico + roadbook).
 
+[0.10.5]: https://github.com/gperniola/TrekTrak/releases/tag/v0.10.5
 [0.10.4]: https://github.com/gperniola/TrekTrak/releases/tag/v0.10.4
 [0.10.3]: https://github.com/gperniola/TrekTrak/releases/tag/v0.10.3
 [0.10.2]: https://github.com/gperniola/TrekTrak/releases/tag/v0.10.2
