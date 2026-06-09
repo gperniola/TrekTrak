@@ -102,8 +102,10 @@ export default function Home() {
 
   // Tasto Indietro (mobile): chiude prima eventuali overlay/menu, poi torna alla Mappa
   // da un'altra scheda, infine chiede conferma d'uscita dalla Mappa. Implementato con la
-  // History API: teniamo una entry "guardia" e gestiamo popstate. La priorità è in
-  // nextBackAction (lib/back-nav). backRef è riassegnato a ogni render per leggere stato fresco.
+  // History API spingendo una entry per ogni livello aperto AL MOMENTO della navigazione
+  // (vedi l'effetto di sync più sotto), così il tasto Indietro consuma entry reali del
+  // browser. backRef.current() chiude UN livello secondo la priorità di nextBackAction
+  // (lib/back-nav); è riassegnato a ogni render per leggere lo stato fresco.
   const backRef = useRef<() => boolean>(() => false);
   backRef.current = () => {
     const action = nextBackAction({
@@ -126,28 +128,50 @@ export default function Home() {
       default: return false; // 'exit'
     }
   };
+  // Profondità "annullabile col tasto Indietro": quanti livelli sono aperti sopra la
+  // Mappa. Deve combaciare col numero di passi che nextBackAction impiega a tornare alla
+  // base: ogni overlay/menu = +1, e trovarsi su una scheda diversa dalla Mappa = +1.
+  const backDepth =
+    (moreMenuOpen ? 1 : 0) +
+    (showMapSettings ? 1 : 0) +
+    (showSettings ? 1 : 0) +
+    (progressOpen ? 1 : 0) +
+    (quizActive ? 1 : 0) +
+    (searchOpen ? 1 : 0) +
+    (mobileTab !== 'map' ? 1 : 0);
+
   const exitingRef = useRef(false);
+  const pushedDepth = useRef(0); // # di entry "di livello" spinte in cronologia sopra la guardia base
+  const skipPop = useRef(0);     // popstate auto-inflitti (da history.go) da ignorare
+
+  // Mount (mobile): guardia base + gestione popstate. CHIAVE: non ri-pushiamo MAI dentro
+  // popstate per navigare (sul mobile pushState dentro popstate è inaffidabile → era la
+  // causa del bug). Le entry "di livello" sono spinte AL MOMENTO della navigazione
+  // dall'effetto di sync qui sotto (dove pushState è affidabile); qui popstate si limita a
+  // CHIUDERE un livello leggendo lo stato. La guardia base serve solo alla conferma d'uscita.
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia('(max-width: 1023px)').matches) return;
     const dbg = isBackDebug();
-    const arm = () => window.history.pushState({ ttBack: true }, '');
-    arm(); // guardia iniziale: una entry da "consumare" col tasto Indietro
-    if (dbg) logBack(`mount arm len=${window.history.length} ref="${document.referrer || '(none)'}" guard=${!!(window.history.state && window.history.state.ttBack)}`);
+    window.history.pushState({ ttBase: true }, ''); // guardia base (per la conferma d'uscita)
+    if (dbg) logBack(`mount base len=${window.history.length} ref="${document.referrer || '(none)'}"`);
     const onPop = () => {
-      // Ri-arma la guardia SUBITO, in modo SINCRONO: ripristina immediatamente
-      // l'entry da "consumare", così OGNI pressione successiva del tasto Indietro
-      // fa di nuovo scattare popstate. Il re-arm deferito (setTimeout) NON faceva
-      // in tempo prima del back successivo sul dispositivo reale → la guardia si
-      // esauriva e l'app usciva senza che popstate venisse nemmeno chiamato
-      // (diagnosticato col log ?debug=back in v0.10.6).
-      arm();
-      if (exitingRef.current) { if (dbg) logBack(`pop skip(exiting) len=${window.history.length}`); return; }
-      const tab = useUIStore.getState().mobileTab;
-      const lenBefore = window.history.length;
-      const handled = backRef.current(); // chiude overlay o torna alla Mappa
-      if (dbg) logBack(`pop tab=${tab} len=${lenBefore} handled=${handled}`);
-      if (handled) return;
-      // Sulla Mappa, nulla aperto → conferma uscita (popup in-app)
+      if (skipPop.current > 0) {
+        skipPop.current--;
+        if (dbg) logBack(`pop skip(self) depth=${pushedDepth.current} len=${window.history.length}`);
+        return;
+      }
+      if (exitingRef.current) { if (dbg) logBack(`pop skip(exiting)`); return; }
+      if (pushedDepth.current > 0) {
+        // Una entry di livello è stata consumata dal tasto Indietro → chiudi UN livello.
+        // Decrementiamo PRIMA, così l'effetto di sync (reagendo al calo di backDepth) vede
+        // cronologia e UI già allineate e non tocca la history (niente doppia rimozione).
+        pushedDepth.current--;
+        const handled = backRef.current();
+        if (dbg) logBack(`pop close depth→${pushedDepth.current} handled=${handled}`);
+        return;
+      }
+      // Guardia base consumata → conferma uscita dalla Mappa
+      if (dbg) logBack(`pop base → confirm len=${window.history.length}`);
       void appConfirm({
         title: 'Uscire da TrekTrak?',
         message: 'Vuoi lasciare la pagina? Le modifiche non salvate andranno perse.',
@@ -155,17 +179,15 @@ export default function Home() {
         variant: 'error',
       }).then((ok) => {
         if (dbg) logBack(`confirm → ${ok ? 'esci' : 'resta'}`);
-        if (!ok) return; // resta nell'app (la guardia è già stata ri-armata)
+        if (!ok) { window.history.pushState({ ttBase: true }, ''); return; } // ripristina la guardia base
         exitingRef.current = true;
         window.removeEventListener('popstate', onPop);
-        window.history.go(-2); // scarta la guardia ri-armata + la entry corrente per uscire
+        window.history.back(); // esci dall'app
       });
     };
     window.addEventListener('popstate', onPop);
-    // Diagnostica: pagehide/pageshow con persisted=true = BFCache (sospensione/ripristino,
-    // non un'uscita reale). Se PAGEHIDE persisted=false compare senza un 'confirm → esci'
-    // prima, allora è un'uscita non intercettata.
-    const onHide = (e: PageTransitionEvent) => { if (dbg) logBack(`PAGEHIDE persisted=${e.persisted} len=${window.history.length} exiting=${exitingRef.current}`); };
+    // Diagnostica: persisted=true su pagehide/pageshow = BFCache (sospensione/ripristino), non un'uscita.
+    const onHide = (e: PageTransitionEvent) => { if (dbg) logBack(`PAGEHIDE persisted=${e.persisted} len=${window.history.length}`); };
     const onShow = (e: PageTransitionEvent) => { if (dbg) logBack(`PAGESHOW persisted=${e.persisted} len=${window.history.length}`); };
     window.addEventListener('pagehide', onHide);
     window.addEventListener('pageshow', onShow);
@@ -176,6 +198,28 @@ export default function Home() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Sync cronologia ↔ profondità UI. Gira FUORI da popstate (a ogni cambio di backDepth),
+  // dove pushState è affidabile: spinge una entry per ogni livello aperto in più, e rimuove
+  // le entry in eccesso (history.go) quando un livello viene chiuso programmaticamente
+  // (es. tap su ✕, selezione percorso). I popstate generati da history.go sono marcati
+  // come "auto-inflitti" (skipPop) e ignorati dall'handler.
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia('(max-width: 1023px)').matches) return;
+    const dbg = isBackDebug();
+    if (backDepth > pushedDepth.current) {
+      const n = backDepth - pushedDepth.current;
+      for (let i = 0; i < n; i++) window.history.pushState({ ttDepth: pushedDepth.current + i + 1 }, '');
+      pushedDepth.current = backDepth;
+      if (dbg) logBack(`sync push +${n} → depth=${pushedDepth.current} len=${window.history.length}`);
+    } else if (backDepth < pushedDepth.current) {
+      const diff = pushedDepth.current - backDepth;
+      pushedDepth.current = backDepth;
+      skipPop.current += diff;
+      if (dbg) logBack(`sync pop -${diff} → depth=${pushedDepth.current}`);
+      window.history.go(-diff);
+    }
+  }, [backDepth]);
 
   return (
     <main className="h-dvh flex flex-col lg:flex-row overflow-hidden">
