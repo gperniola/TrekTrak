@@ -4,6 +4,14 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.10.8] — 2026-06-09 — Tasto Indietro: history per livello di navigazione
+
+### Fixed
+- **Tasto Indietro mobile finalmente affidabile** — riprogettato il meccanismo. Il problema di fondo: tenevamo **una sola entry "guardia"** e provavamo a ricrearla *dentro* l'handler `popstate`, ma sul mobile `pushState` chiamato dentro `popstate` è **inaffidabile** (sia sincrono che deferito), quindi la guardia si esauriva e l'app usciva "a tratti", senza mostrare il popup. Ora la cronologia rispecchia la **profondità di navigazione**: ogni livello aperto (scheda diversa dalla Mappa, overlay, menu) spinge una entry **al momento della navigazione** (dove `pushState` è affidabile), e `popstate` si limita a **chiudere un livello** leggendo lo stato — non ri-pusha mai durante il pop. Le chiusure programmatiche (tap su ✕) riallineano la cronologia con `history.go`. La guardia base resta solo per la conferma d'uscita dalla Mappa.
+
+### Changed (diagnostica temporanea)
+- Log `?debug=back` aggiornato al nuovo modello: `sync push/pop`, `pop close`, `pop base → confirm`, `pop skip(self)`.
+
 ## [0.10.7] — 2026-06-09 — Tasto Indietro: re-arm sincrono della guardia
 
 ### Fixed
