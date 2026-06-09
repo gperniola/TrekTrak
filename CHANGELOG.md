@@ -4,6 +4,12 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.10.10] — 2026-06-09 — Tasto Indietro: uscita affidabile + mappa che non salta
+
+### Fixed
+- **"Esci" ora esce davvero** (tornando alla pagina precedente): la guardia in cronologia per la conferma d'uscita poteva **accumularsi** (React StrictMode in dev, o un remount), così un solo `history.back()` non bastava a superarle tutte e l'app restava sulla stessa pagina. Ora `pushGuard` è **idempotente**: mai due guardie in cima → l'uscita supera la guardia e lascia l'app. Verificato in emulazione mobile (la pagina naviga via).
+- **La mappa non "salta" più sulla posizione GPS**: `GeolocateOnMount` vola sul GPS **solo alla prima apertura della sessione**; ad ogni mount successivo **ripristina l'ultima vista** (centro+zoom, salvata in `sessionStorage`). Così, anche se ci fosse un remount o un reload, la mappa resta dov'era invece di ri-centrarsi bruscamente sulla posizione attuale.
+
 ## [0.10.9] — 2026-06-09 — Tasto Indietro: stop al reload + pulizia diagnostica
 
 ### Fixed
