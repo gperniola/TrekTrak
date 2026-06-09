@@ -126,22 +126,26 @@ export default function Home() {
   const exitingRef = useRef(false);
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia('(max-width: 1023px)').matches) return;
-    window.history.pushState(null, '');
+    const arm = () => window.history.pushState({ ttBack: true }, '');
+    arm(); // guardia iniziale: una entry da "consumare" col tasto Indietro
     const onPop = () => {
       if (exitingRef.current) return;
-      if (backRef.current()) {
-        window.history.pushState(null, ''); // riarma la guardia: resta nell'app
-        return;
-      }
-      // Sulla mappa, nulla aperto → conferma uscita
+      // Ri-arma SUBITO la guardia, in ogni caso: così l'app non esce mai per sbaglio,
+      // nemmeno durante il popup di conferma (async). Ogni Indietro consuma una guardia
+      // e ne ricrea una → la profondità resta costante e c'è sempre qualcosa da consumare.
+      arm();
+      if (backRef.current()) return; // ha chiuso un overlay o è tornato alla Mappa
+      // Sulla Mappa, nulla aperto → conferma uscita (popup in-app)
       void appConfirm({
         title: 'Uscire da TrekTrak?',
         message: 'Vuoi lasciare la pagina? Le modifiche non salvate andranno perse.',
         confirmText: 'Esci',
         variant: 'error',
       }).then((ok) => {
-        if (ok) { exitingRef.current = true; window.history.back(); }
-        else { window.history.pushState(null, ''); }
+        if (!ok) return; // resta nell'app (già ri-armata)
+        exitingRef.current = true;
+        window.removeEventListener('popstate', onPop);
+        window.history.go(-2); // scarta la guardia ri-armata + la entry corrente per uscire
       });
     };
     window.addEventListener('popstate', onPop);

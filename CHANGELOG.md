@@ -4,6 +4,11 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.10.3] — 2026-06-09 — Hotfix
+
+### Fixed
+- **Tasto Indietro mobile inaffidabile** (regressione v0.10.2): nel ramo "uscita" la guardia in cronologia non veniva ricreata prima del popup di conferma (async), così durante il gesto reale l'app poteva uscire direttamente (popup mai mostrato; a volte uscita anche da una scheda diversa dalla Mappa). Ora ogni `popstate` **ri-arma subito la guardia** in modo sincrono e incondizionato: l'app non "cade fuori" mai, il popup di conferma compare in modo affidabile sulla Mappa, dalle altre schede Indietro torna alla Mappa e gli overlay si chiudono per primi. L'uscita confermata è best-effort (`history.go(-2)`).
+
 ## [0.10.2] — 2026-06-08 — "Mobile: menu Altro + tasto Indietro"
 
 Rifiniture della navigazione mobile (solo `<lg`, desktop invariato). TASK-50.
@@ -224,6 +229,7 @@ Campagna di code review approfondita: 32 fix in 7 round su type safety, React pa
 ### Added
 - Prima release MVP: creazione itinerari con waypoint e tratte, validazione manuale di altitudine / distanza / azimuth / dislivelli, profilo altimetrico colorato, layout mobile con drawer a tutto schermo, tutorial interattivo, validazione cumulativa, import/export JSON, export GPX 1.1, export PDF (sintetico + roadbook).
 
+[0.10.3]: https://github.com/gperniola/TrekTrak/releases/tag/v0.10.3
 [0.10.2]: https://github.com/gperniola/TrekTrak/releases/tag/v0.10.2
 [0.10.1]: https://github.com/gperniola/TrekTrak/releases/tag/v0.10.1
 [0.10.0]: https://github.com/gperniola/TrekTrak/releases/tag/v0.10.0
