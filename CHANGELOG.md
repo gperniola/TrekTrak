@@ -4,6 +4,12 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.10.6] — 2026-06-09 — Tasto Indietro: diagnostica persistente
+
+### Changed (diagnostica temporanea)
+- Il log dell'overlay `?debug=back` ora è **persistito in localStorage**: sopravvive all'uscita/ricarica dell'app, così l'evento d'uscita (proprio quello che ci interessa) non va più perso. `?debug=clear` svuota il log.
+- Tracciate informazioni aggiuntive: presenza della guardia in cronologia (`event.state.ttBack`), `referrer` e lunghezza cronologia al mount, ed evento `pagehide` nell'istante in cui l'app esce — per distinguere "popstate non ha fermato la navigazione" da "guardia esaurita".
+
 ## [0.10.5] — 2026-06-09 — Tasto Indietro: tentativo fix + diagnostica
 
 ### Fixed (tentativo)
