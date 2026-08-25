@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { EmergencyLayersPanel } from '@/components/map/emergency/EmergencyLayersPanel';
 import { useUIStore } from '@/stores/uiStore';
 import { useItineraryStore } from '@/stores/itineraryStore';
@@ -90,5 +90,65 @@ describe('EmergencyLayersPanel', () => {
     });
     render(<EmergencyLayersPanel />);
     expect(screen.getByText(/FIRMS non raggiungibile/)).toBeInTheDocument();
+  });
+
+  test('footer mostra le fonti attive dei layer accesi', async () => {
+    localStorage.setItem('trektrak_emergency_disclaimer_seen', '1');
+    render(<EmergencyLayersPanel />);
+    fireEvent.click(screen.getAllByRole('switch')[0]);
+    await waitFor(() =>
+      expect(useItineraryStore.getState().settings.mapDisplay.emergencyLayers).toContain('fires-hotspots'));
+    expect(screen.getByText(/Fonti:/)).toBeInTheDocument();
+    expect(screen.getByText(/NASA FIRMS/)).toBeInTheDocument();
+  });
+
+  test('nessun layer attivo → nessuna riga fonti nel footer', () => {
+    render(<EmergencyLayersPanel />);
+    expect(screen.queryByText(/Fonti:/)).not.toBeInTheDocument();
+  });
+
+  test('toggle concorrente durante disclaimer pendente non perde modifiche (no stale closure)', async () => {
+    let resolveConfirm: (value: boolean) => void = () => {};
+    (confirm as jest.Mock).mockImplementation(
+      () => new Promise<boolean>((resolve) => { resolveConfirm = resolve; })
+    );
+    render(<EmergencyLayersPanel />);
+    fireEvent.click(screen.getAllByRole('switch')[0]); // fires-hotspots: apre il disclaimer, resta pending
+    await waitFor(() => expect(confirm).toHaveBeenCalledTimes(1));
+
+    // Simula un altro toggle "concorrente" committato altrove mentre il dialog è aperto
+    act(() => {
+      const settings = useItineraryStore.getState().settings;
+      useItineraryStore.setState({
+        settings: {
+          ...settings,
+          mapDisplay: { ...settings.mapDisplay, emergencyLayers: [...settings.mapDisplay.emergencyLayers, 'fires-burned'] },
+        },
+      });
+    });
+
+    resolveConfirm(true);
+
+    await waitFor(() => {
+      const layers = useItineraryStore.getState().settings.mapDisplay.emergencyLayers;
+      expect(layers).toContain('fires-hotspots');
+      expect(layers).toContain('fires-burned');
+    });
+  });
+
+  test('doppio tap sullo stesso switch non apre due dialog di disclaimer', async () => {
+    let resolveConfirm: (value: boolean) => void = () => {};
+    (confirm as jest.Mock).mockImplementation(
+      () => new Promise<boolean>((resolve) => { resolveConfirm = resolve; })
+    );
+    render(<EmergencyLayersPanel />);
+    const sw = screen.getAllByRole('switch')[0];
+    fireEvent.click(sw);
+    fireEvent.click(sw);
+    await waitFor(() => expect(confirm).toHaveBeenCalledTimes(1));
+    resolveConfirm(true);
+    await waitFor(() =>
+      expect(useItineraryStore.getState().settings.mapDisplay.emergencyLayers).toContain('fires-hotspots'));
+    expect(confirm).toHaveBeenCalledTimes(1);
   });
 });

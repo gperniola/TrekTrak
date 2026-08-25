@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useUIStore } from '@/stores/uiStore';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { useEmergencyStore } from '@/stores/emergencyStore';
@@ -8,6 +8,7 @@ import { saveSettings, KEYS } from '@/lib/storage';
 import { confirm as appConfirm } from '@/stores/notificationStore';
 import { EMERGENCY_LAYERS, type EmergencyLayerDef, type EmergencyLayerId, type EmergencyCategory } from '@/lib/emergency-layers';
 import { dayOptions } from '@/lib/dpc';
+import type { AppSettings } from '@/lib/types';
 
 const CATEGORY_LABELS: Record<EmergencyCategory, string> = {
   incendi: '🔥 Incendi',
@@ -30,31 +31,49 @@ function LayerRow({ def }: { def: EmergencyLayerDef }) {
   const setDpcSelectedDate = useEmergencyStore((s) => s.setDpcSelectedDate);
 
   const active = settings.mapDisplay.emergencyLayers.includes(def.id);
+  // Guardia anti-rientranza: un secondo tap mentre il disclaimer è in attesa di risposta
+  // (await appConfirm) viene ignorato invece di aprire un secondo dialog.
+  const pendingRef = useRef(false);
 
-  const persist = (list: EmergencyLayerId[]) => {
-    const newSettings = { ...settings, mapDisplay: { ...settings.mapDisplay, emergencyLayers: list } };
+  const persist = (base: AppSettings, list: EmergencyLayerId[]) => {
+    const newSettings = { ...base, mapDisplay: { ...base.mapDisplay, emergencyLayers: list } };
     updateSettings(newSettings);
     saveSettings(newSettings);
   };
 
   const handleToggle = async () => {
-    if (active) {
-      persist(settings.mapDisplay.emergencyLayers.filter((id) => id !== def.id));
-      stopLayer(def.id);
-      return;
+    if (pendingRef.current) return;
+    pendingRef.current = true;
+    try {
+      // Legge lo stato fresco dello store (non la chiusura di `settings` catturata al render):
+      // tra il click e questo punto — e soprattutto dopo l'`await appConfirm` sotto — un altro
+      // toggle può aver già aggiornato i settings altrove; costruire la nuova lista da qui evita
+      // di sovrascriverlo (stale closure / lost update).
+      const base = useItineraryStore.getState().settings;
+      const isActiveNow = base.mapDisplay.emergencyLayers.includes(def.id);
+      if (isActiveNow) {
+        persist(base, base.mapDisplay.emergencyLayers.filter((id) => id !== def.id));
+        stopLayer(def.id);
+        return;
+      }
+      let seen = false;
+      try { seen = localStorage.getItem(KEYS.emergencyDisclaimer) === '1'; } catch { /* noop */ }
+      if (!seen) {
+        const ok = await appConfirm({
+          title: 'Layer di emergenza', message: DISCLAIMER,
+          variant: 'info', confirmText: 'Ho capito', cancelText: 'Annulla',
+        });
+        if (!ok) return;
+        try { localStorage.setItem(KEYS.emergencyDisclaimer, '1'); } catch { /* noop */ }
+      }
+      const fresh = useItineraryStore.getState().settings;
+      if (!fresh.mapDisplay.emergencyLayers.includes(def.id)) {
+        persist(fresh, [...fresh.mapDisplay.emergencyLayers, def.id]);
+      }
+      startLayer(def.id);
+    } finally {
+      pendingRef.current = false;
     }
-    let seen = false;
-    try { seen = localStorage.getItem(KEYS.emergencyDisclaimer) === '1'; } catch { /* noop */ }
-    if (!seen) {
-      const ok = await appConfirm({
-        title: 'Layer di emergenza', message: DISCLAIMER,
-        variant: 'info', confirmText: 'Ho capito', cancelText: 'Annulla',
-      });
-      if (!ok) return;
-      try { localStorage.setItem(KEYS.emergencyDisclaimer, '1'); } catch { /* noop */ }
-    }
-    persist([...settings.mapDisplay.emergencyLayers, def.id]);
-    startLayer(def.id);
   };
 
   return (
@@ -69,9 +88,11 @@ function LayerRow({ def }: { def: EmergencyLayerDef }) {
           aria-checked={active}
           aria-label={def.label}
           onClick={handleToggle}
-          className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${active ? 'bg-amber-500' : 'bg-gray-600'}`}
+          className="relative shrink-0 flex items-center justify-center max-lg:min-h-[44px] max-lg:min-w-[44px] max-lg:px-2"
         >
-          <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${active ? 'translate-x-5' : ''}`} />
+          <span className={`relative w-11 h-6 rounded-full transition-colors ${active ? 'bg-amber-500' : 'bg-gray-600'}`}>
+            <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${active ? 'translate-x-5' : ''}`} />
+          </span>
         </button>
       </div>
 
@@ -120,9 +141,14 @@ function LayerRow({ def }: { def: EmergencyLayerDef }) {
   );
 }
 
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]+>/g, '');
+}
+
 export function EmergencyLayersPanel() {
   const open = useUIStore((s) => s.emergencyPanelOpen);
   const setOpen = useUIStore((s) => s.setEmergencyPanelOpen);
+  const activeIds = useItineraryStore((s) => s.settings.mapDisplay.emergencyLayers);
 
   useEffect(() => {
     if (!open) return;
@@ -134,6 +160,10 @@ export function EmergencyLayersPanel() {
   if (!open) return null;
 
   const categories = Array.from(new Set(EMERGENCY_LAYERS.map((l) => l.category)));
+  const activeDefs = EMERGENCY_LAYERS.filter((l) => activeIds.includes(l.id));
+  const sourcesText = activeDefs.length > 0
+    ? 'Fonti: ' + activeDefs.map((d) => stripHtml(d.attribution)).join(' · ')
+    : null;
 
   return (
     <div
@@ -155,6 +185,9 @@ export function EmergencyLayersPanel() {
         </div>
       ))}
       <div className="text-[9px] text-gray-500 mt-2">{DISCLAIMER}</div>
+      {sourcesText && (
+        <div className="text-[9px] text-gray-500 mt-1">{sourcesText}</div>
+      )}
     </div>
   );
 }
