@@ -35,7 +35,7 @@ export const EMERGENCY_LAYERS: EmergencyLayerDef[] = [
     label: 'Focolai attivi (24h)',
     description: 'Anomalie termiche rilevate da satellite (VIIRS, ~375 m)',
     kind: 'points',
-    attribution: 'Fire data: <a href="https://firms.modaps.eosdis.nasa.gov/">NASA FIRMS</a>',
+    attribution: 'Dati incendi: <a href="https://firms.modaps.eosdis.nasa.gov/">NASA FIRMS</a>',
     refreshMinutes: 15,
     legend: [
       { color: '#ef4444', label: 'Rilevato nelle ultime 6 ore' },
