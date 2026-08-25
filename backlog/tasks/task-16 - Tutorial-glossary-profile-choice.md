@@ -30,10 +30,10 @@ Top-4 cross-persona. Cfr. `backlog/docs/persona-usability-tests.md` sezione "Top
 ## Task
 
 ### A. Scelta del profilo all'onboarding
-- [ ] Aggiungere uno step iniziale al tutorial: card "Che livello sei?" con 2 opzioni
+- [x] Aggiungere uno step iniziale al tutorial: card "Che livello sei?" con 2 opzioni
   - **"Sto imparando"** → setta `appMode = 'learn'` di default, abilita glossario contestuale
   - **"Sono un esperto"** → setta `appMode = 'track'` di default
-- [ ] Salvare la scelta in localStorage (`trektrak_user_level`) e usare per defaults futuri
+- [x] Salvare la scelta in localStorage (`trektrak_user_level`) e usare per defaults futuri
 - [ ] Mostrabile da Impostazioni per cambiare in seguito
 
 ### B. Glossario contestuale
@@ -47,17 +47,21 @@ Top-4 cross-persona. Cfr. `backlog/docs/persona-usability-tests.md` sezione "Top
 - [ ] Nei tip del badge di validazione (`didactic-tips.ts`) linkare al termine: "Verifica la **declinazione magnetica** della zona" → click su "declinazione" apre glossario
 
 ### C. Riapertura tutorial
-- [ ] In `ToleranceSettings` (o nuovo "Aiuto") aggiungere bottone "Rivedi tutorial"
-- [ ] Click → reset `localStorage.tutorialSeen` + reload del componente
+- [x] In `ToleranceSettings` (o nuovo "Aiuto") aggiungere bottone "Rivedi tutorial"
+- [x] Click → reset `localStorage.tutorialSeen` + reload del componente (implementato come "Rivedi tutorial al prossimo avvio")
 
 ### D. Tutorial più contestuale
 - [ ] Mostrare il tutorial in popover laterale invece che modal centrale, così la mappa resta visibile (vedi `ui-critical-analysis.md` 7.1)
 
 ## Acceptance criteria
 
-- [ ] All'onboarding viene chiesto il livello, e setta default coerente
+- [x] All'onboarding viene chiesto il livello, e setta default coerente
 - [ ] Cliccando ⓘ su un campo si vede la definizione (glossario)
-- [ ] Esiste un bottone "Rivedi tutorial" raggiungibile post-onboarding
+- [x] Esiste un bottone "Rivedi tutorial" raggiungibile post-onboarding
+
+## Stato audit 2026-08-25
+
+A (tranne cambio livello da Impostazioni) e C risultano già implementati nel codice (`LearnTutorial.tsx`, `ToleranceSettings.tsx`) e sono stati spuntati retroattivamente. **Resta da fare: B (glossario contestuale — `src/lib/glossary.ts` non esiste) e D (tutorial in popover laterale, coincide con [[task-38-tutorial-side-panel-layout]]).**
 
 ## Riferimenti
 

@@ -25,10 +25,10 @@ Raggruppa i deferred minori della campagna polish/v0.6.2 che non meritano una ta
   - Perché `NEXT_PUBLIC_ORS_API_KEY` è esposta nel bundle client (pattern standard per ORS via CORS)
   - Come ottenere e limitare la propria key (dashboard ORS, restrizioni domain/referrer)
   - Cosa succede se manca (`isRoutingAvailable()` ritorna false, fallback a classic)
-- [ ] Aggiornare `.env.example` con commento esplicativo
+- [x] Aggiornare `.env.example` con commento esplicativo
 
 ### R7-05 — Tooltip su "Copia link" disabilitato
-- [ ] In `panel/ActionBar.tsx`, quando il bottone "Copia link" è disabilitato, aggiungere `title="Servono almeno 2 waypoint con coordinate valide"` (e `aria-describedby` per screen reader)
+- [x] In `panel/ActionBar.tsx`, quando il bottone "Copia link" è disabilitato, aggiungere `title="Servono almeno 2 waypoint con coordinate valide"` (e `aria-describedby` per screen reader) — fatto via `title` (`ActionBar.tsx:415`), senza `aria-describedby`
 
 ### R5-08 — Leaflet marker aria-label
 - [ ] Indagare se Leaflet espone un'API per impostare `aria-label` sui marker creati via `L.marker(..., { icon })`. Probabilmente serve un wrapper custom o usare `Marker.bindTooltip()` con `permanent: false` per fornire un nome accessibile
@@ -37,4 +37,8 @@ Raggruppa i deferred minori della campagna polish/v0.6.2 che non meritano una ta
 ## Riferimenti
 
 - `backlog/docs/polish-v0.6.2-bug-log.md` righe R3-05, R5-08, R7-05
+
+## Stato audit 2026-08-25
+
+R7-05 e il commento in `.env.example` risultano già fatti (spuntati retroattivamente). **Resta da fare: la sezione README di R3-05 (perché la key ORS è esposta client-side e come limitarla per dominio — oggi il README copre solo il setup) e l'indagine R5-08 sugli aria-label dei marker Leaflet.**
 <!-- SECTION:DESCRIPTION:END -->

@@ -1,7 +1,7 @@
 ---
 id: TASK-39
 title: Studio e analisi approfondita usabilità mobile
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-06-05 18:00'
 labels:
@@ -22,17 +22,21 @@ Già applicata una micro-fix puntuale (apertura drawer su Libreria al primo logi
 
 ## Task
 
-- [ ] **Audit dello stato attuale**: mappare tutti i controlli/menu visibili su mobile e la loro gerarchia (top bar, ModeSwitch, drawer, tab annidate, tool, FAB mappa, banner anteprima libreria).
-- [ ] **Identificare i punti di attrito** per i flussi chiave su mobile: primo accesso/onboarding, creazione itinerario, consultazione libreria + diario, switch Editor↔Libreria, uso dei tool.
-- [ ] **Persona usability test mobile** (estendere `backlog/docs/persona-usability-tests.md` con sessioni mirate al touch/small-screen).
-- [ ] **Proposte di ridisegno**: ridurre il carico cognitivo (es. bottom nav unica? raggruppare i tool? progressive disclosure? separare nettamente "naviga" da "modifica"?). Valutare pattern mobile-first.
-- [ ] Tradurre le conclusioni in task atomici di implementazione.
+- [x] **Audit dello stato attuale**: mappare tutti i controlli/menu visibili su mobile e la loro gerarchia (top bar, ModeSwitch, drawer, tab annidate, tool, FAB mappa, banner anteprima libreria).
+- [x] **Identificare i punti di attrito** per i flussi chiave su mobile: primo accesso/onboarding, creazione itinerario, consultazione libreria + diario, switch Editor↔Libreria, uso dei tool.
+- [x] **Persona usability test mobile** (estendere `backlog/docs/persona-usability-tests.md` con sessioni mirate al touch/small-screen).
+- [x] **Proposte di ridisegno**: ridurre il carico cognitivo (es. bottom nav unica? raggruppare i tool? progressive disclosure? separare nettamente "naviga" da "modifica"?). Valutare pattern mobile-first.
+- [x] Tradurre le conclusioni in task atomici di implementazione.
 
 ## Acceptance criteria
 
-- [ ] Documento di analisi in `backlog/docs/` con audit + attriti + raccomandazioni prioritizzate.
-- [ ] Almeno 2-3 direzioni di ridisogno valutate con trade-off.
-- [ ] Backlog di task implementativi derivati.
+- [x] Documento di analisi in `backlog/docs/` con audit + attriti + raccomandazioni prioritizzate.
+- [x] Almeno 2-3 direzioni di ridisogno valutate con trade-off.
+- [x] Backlog di task implementativi derivati.
+
+## Esito (chiusura 2026-08-25)
+
+Completato in due fasi rilasciate: **fase A** (task 40-43, v0.9.2) e **fase B** (task 44-49, v0.10.0) + follow-up task 50 (v0.10.2). Analisi in `backlog/docs/mobile-usability-analysis.md`, design fase B in `backlog/docs/mobile-shell-B-*`. Status allineato retroattivamente durante l'audit igiene backlog.
 
 ## Riferimenti
 
