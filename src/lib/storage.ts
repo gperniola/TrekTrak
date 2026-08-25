@@ -1,6 +1,7 @@
 import type { Itinerary, AppSettings, ValidationSession, Waypoint, Leg, RouteCompletion } from './types';
 import { DEFAULT_TOLERANCES, DEFAULT_MAP_DISPLAY, BASE_MAPS, SAMPLE_INTERVAL_OPTIONS } from './types';
 import { computeRouteMetrics } from './calculations';
+import { isEmergencyLayerId } from './emergency-layers';
 
 export const SCHEMA_VERSION = 3;
 
@@ -240,11 +241,16 @@ export function loadSettings(): AppSettings {
             if (!(k in DEFAULT_MAP_DISPLAY)) return false;
             if (k === 'sampleInterval') return typeof v === 'number' && SAMPLE_INTERVAL_OPTIONS.some((o) => o.value === v);
             if (k === 'baseMap') return typeof v === 'string' && BASE_MAPS.some((m) => m.id === v);
+            if (k === 'emergencyLayers') return Array.isArray(v);
             return typeof v === 'boolean';
           })
         ),
       },
     };
+    // Drop any persisted emergency layer id no longer present in the registry
+    // (e.g. removed/renamed layer between app versions).
+    settings.mapDisplay.emergencyLayers =
+      (settings.mapDisplay.emergencyLayers as unknown[]).filter(isEmergencyLayerId);
     // If the saved baseMap is no longer available at runtime (e.g., user removed the
     // Thunderforest API key), fall back to the first available map to avoid a broken tile layer.
     const chosenMap = BASE_MAPS.find((m) => m.id === settings.mapDisplay.baseMap);

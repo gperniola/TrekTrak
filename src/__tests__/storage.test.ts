@@ -246,3 +246,27 @@ describe('library helpers', () => {
     expect(people.filter((p) => p.toLowerCase() === 'gio')).toHaveLength(1);
   });
 });
+
+describe('loadSettings — emergencyLayers', () => {
+  test('default [] quando assente (settings legacy)', () => {
+    localStorage.setItem('trektrak_settings', JSON.stringify({
+      tolerances: {}, mapDisplay: { coloredPath: false },
+    }));
+    expect(loadSettings().mapDisplay.emergencyLayers).toEqual([]);
+    expect(loadSettings().mapDisplay.coloredPath).toBe(false);
+  });
+
+  test('id validi preservati, id sconosciuti scartati', () => {
+    localStorage.setItem('trektrak_settings', JSON.stringify({
+      tolerances: {}, mapDisplay: { emergencyLayers: ['fires-fwi', 'gone-layer', 'dpc-alerts'] },
+    }));
+    expect(loadSettings().mapDisplay.emergencyLayers).toEqual(['fires-fwi', 'dpc-alerts']);
+  });
+
+  test('valore non-array ignorato → default []', () => {
+    localStorage.setItem('trektrak_settings', JSON.stringify({
+      tolerances: {}, mapDisplay: { emergencyLayers: 'fires-fwi' },
+    }));
+    expect(loadSettings().mapDisplay.emergencyLayers).toEqual([]);
+  });
+});
