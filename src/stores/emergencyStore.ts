@@ -62,9 +62,11 @@ export const useEmergencyStore = create<EmergencyState>((set, get) => ({
     try {
       if (id === 'fires-hotspots') {
         const fires = await fetchFiresClient();
+        if (get().layers[id].status === 'idle') return; // stopLayer during flight: discard
         set((s) => ({ fires, layers: { ...s.layers, [id]: { status: 'ready', error: null, lastFetch: Date.now() } } }));
       } else if (id === 'dpc-alerts') {
         const dpc = await fetchDpcClient();
+        if (get().layers[id].status === 'idle') return; // stopLayer during flight: discard
         set((s) => {
           const dates = dpc.days.map((d) => d.date);
           const keep = s.dpcSelectedDate != null && dates.includes(s.dpcSelectedDate);
@@ -76,6 +78,7 @@ export const useEmergencyStore = create<EmergencyState>((set, get) => ({
         });
       }
     } catch (e) {
+      if (get().layers[id].status === 'idle') return; // stopLayer during flight: discard
       const message = e instanceof Error ? e.message : 'Errore di rete';
       // Spec §6: toast UNA volta per transizione in errore (non a ogni retry fallito).
       if (get().layers[id].status !== 'error') {
