@@ -24,28 +24,31 @@ export function EmergencyPointsLayer({ points }: { points: FirePoint[] }) {
   const now = new Date();
   return (
     <>
-      {points.map((p, i) => (
-        <CircleMarker
-          key={`${p.lat}-${p.lon}-${p.acquiredAt}-${i}`}
-          center={[p.lat, p.lon]}
-          radius={6}
-          pane={EMERGENCY_PANE}
-          pathOptions={{ color: fireColor(p.acquiredAt, now), fillColor: fireColor(p.acquiredAt, now), fillOpacity: 0.7, weight: 1 }}
-        >
-          <Popup>
-            <div className="min-w-[170px] text-xs">
-              <div className="font-bold mb-1">🔥 Anomalia termica</div>
-              <div>Rilevata: {formatAcquired(p.acquiredAt)}</div>
-              <div>Satellite: {p.satellite}</div>
-              <div>Potenza (FRP): {p.frp} MW</div>
-              <div>Confidenza: {CONFIDENCE_LABELS[p.confidence]}</div>
-              <div className="text-[10px] text-gray-500 mt-1">
-                Rilevazione satellitare NASA FIRMS — non è la conferma di un incendio in corso.
+      {points.map((p) => {
+        const c = fireColor(p.acquiredAt, now);
+        return (
+          <CircleMarker
+            key={`${p.lat}-${p.lon}-${p.acquiredAt}-${p.satellite}`}
+            center={[p.lat, p.lon]}
+            radius={6}
+            pane={EMERGENCY_PANE}
+            pathOptions={{ color: c, fillColor: c, fillOpacity: 0.7, weight: 1 }}
+          >
+            <Popup>
+              <div className="min-w-[170px] text-xs">
+                <div className="font-bold mb-1">🔥 Anomalia termica</div>
+                <div>Rilevata: {formatAcquired(p.acquiredAt)}</div>
+                <div>Satellite: {p.satellite}</div>
+                <div>Potenza (FRP): {p.frp} MW</div>
+                <div>Confidenza: {CONFIDENCE_LABELS[p.confidence]}</div>
+                <div className="text-[10px] text-gray-500 mt-1">
+                  Rilevazione satellitare NASA FIRMS — non è la conferma di un incendio in corso.
+                </div>
               </div>
-            </div>
-          </Popup>
-        </CircleMarker>
-      ))}
+            </Popup>
+          </CircleMarker>
+        );
+      })}
     </>
   );
 }
