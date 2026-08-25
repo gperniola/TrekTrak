@@ -24,9 +24,23 @@ export const CircleMarker = ({ children, ...props }: { children?: React.ReactNod
   <div data-testid="circle-marker" data-pathoptions={JSON.stringify(props.pathOptions ?? {})}>{children}</div>
 );
 
-export const GeoJSON = (props: Record<string, unknown>) => (
-  <div data-testid="geojson-layer" data-features={JSON.stringify((props.data as { features?: unknown[] })?.features?.length ?? 0)} />
-);
+export const GeoJSON = (props: Record<string, unknown>) => {
+  let captured = '';
+  const stubLayer = {
+    bindPopup: (html: string) => {
+      captured = html;
+    },
+  };
+  props.onEachFeature?.(props.data, stubLayer);
+  return (
+    <div
+      data-testid="geojson-layer"
+      data-features={JSON.stringify((props.data as { features?: unknown[] })?.features?.length ?? 0)}
+      data-pane={String(props.pane ?? '')}
+      data-popup={captured}
+    />
+  );
+};
 
 export const useMap = () => ({
   getCenter: () => ({ lat: 45, lng: 10 }),

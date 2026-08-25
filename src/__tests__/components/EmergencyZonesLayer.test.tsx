@@ -19,6 +19,15 @@ describe('EmergencyZonesLayer', () => {
     render(<EmergencyZonesLayer zones={[zone(0), zone(1), zone(3)]} dayLabel="Oggi 25/08" issuedLabel="25/08 14:15" />);
     const layers = screen.getAllByTestId('geojson-layer');
     expect(layers).toHaveLength(2); // la zona verde non viene disegnata
+
+    // Assert popup binding and pane wiring
+    expect(layers[0]).toHaveAttribute('data-pane', 'emergency');
+    expect(layers[0]).toHaveAttribute('data-popup', expect.stringContaining('Z1'));
+    expect(layers[0]).toHaveAttribute('data-popup', expect.stringContaining('Bollettino del'));
+
+    expect(layers[1]).toHaveAttribute('data-pane', 'emergency');
+    expect(layers[1]).toHaveAttribute('data-popup', expect.stringContaining('Z3'));
+    expect(layers[1]).toHaveAttribute('data-popup', expect.stringContaining('Bollettino del'));
   });
 
   test('nessuna zona in allerta → nulla', () => {
