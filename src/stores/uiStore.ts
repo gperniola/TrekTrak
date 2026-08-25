@@ -9,6 +9,7 @@ interface UIState {
   mainView: 'editor' | 'library';
   mobileTab: 'map' | 'editor' | 'library';
   moreMenuOpen: boolean;
+  emergencyPanelOpen: boolean;
 
   toggleCompass: () => void;
   toggleRuler: () => void;
@@ -22,6 +23,7 @@ interface UIState {
   setMainView: (view: 'editor' | 'library') => void;
   setMobileTab: (tab: 'map' | 'editor' | 'library') => void;
   setMoreMenuOpen: (open: boolean) => void;
+  setEmergencyPanelOpen: (open: boolean) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -33,6 +35,7 @@ export const useUIStore = create<UIState>((set) => ({
   mainView: 'editor',
   mobileTab: 'map',
   moreMenuOpen: false,
+  emergencyPanelOpen: false,
 
   toggleCompass: () => set((s) => ({
     compassActive: !s.compassActive,
@@ -61,4 +64,5 @@ export const useUIStore = create<UIState>((set) => ({
   // LeftPanel) continua a funzionare senza modifiche.
   setMobileTab: (tab) => set(tab === 'map' ? { mobileTab: tab } : { mobileTab: tab, mainView: tab }),
   setMoreMenuOpen: (open) => set({ moreMenuOpen: open }),
+  setEmergencyPanelOpen: (open) => set({ emergencyPanelOpen: open }),
 }));
