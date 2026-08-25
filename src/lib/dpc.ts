@@ -34,9 +34,10 @@ export function parseDpcTopology(topology: unknown): DpcZone[] {
   const topo = topology as Topology | null;
   if (!topo || topo.type !== 'Topology' || !topo.objects) return [];
   // Il nome dell'object può variare: prendi la prima GeometryCollection.
-  const objName = Object.keys(topo.objects).find(
-    (k) => (topo.objects[k] as GeometryCollection).type === 'GeometryCollection'
-  );
+  const objName = Object.keys(topo.objects).find((k) => {
+    const obj = topo.objects[k] as GeometryCollection | null | undefined;
+    return obj != null && obj.type === 'GeometryCollection';
+  });
   if (!objName) return [];
   let fc: GeoJSON.FeatureCollection;
   try {

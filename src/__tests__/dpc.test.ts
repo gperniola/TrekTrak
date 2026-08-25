@@ -63,6 +63,10 @@ describe('parseDpcTopology', () => {
     expect(parseDpcTopology(null)).toEqual([]);
     expect(parseDpcTopology({ type: 'Topology', objects: {} })).toEqual([]);
   });
+
+  test('objects con entry malformata (null) → [] senza lanciare', () => {
+    expect(parseDpcTopology({ type: 'Topology', objects: { zone: null } })).toEqual([]);
+  });
 });
 
 describe('zonePopupHtml', () => {
