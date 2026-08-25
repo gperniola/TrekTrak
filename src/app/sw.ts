@@ -1,5 +1,5 @@
 import { defaultCache } from '@serwist/next/worker';
-import { CacheFirst, ExpirationPlugin, Serwist } from 'serwist';
+import { CacheFirst, ExpirationPlugin, NetworkOnly, Serwist } from 'serwist';
 import type { PrecacheEntry, SerwistGlobalConfig } from 'serwist';
 
 declare global {
@@ -24,6 +24,10 @@ const serwist = new Serwist({
   clientsClaim: true,
   navigationPreload: true,
   runtimeCaching: [
+    // Dati di emergenza: MAI serviti da cache (dati stantii = rischio, non feature).
+    { matcher: /\/api\/(fires|dpc-alerts)/, handler: new NetworkOnly() },
+    { matcher: /^https:\/\/maps\.effis\.emergency\.copernicus\.eu\//i, handler: new NetworkOnly() },
+    { matcher: /^https:\/\/raw\.githubusercontent\.com\/pcm-dpc\//i, handler: new NetworkOnly() },
     ...defaultCache,
     {
       matcher: /^https:\/\/.*\.tile\.openstreetmap\.org\/.*/i,
