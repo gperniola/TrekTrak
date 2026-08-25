@@ -63,6 +63,7 @@ const BASE_STATE = {
       baseMap: 'osm',
       showHikingTrails: false,
       showCoordinateGrid: false,
+      emergencyLayers: [],
     },
   },
   appMode: 'learn' as AppMode,
