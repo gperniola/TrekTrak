@@ -27,6 +27,11 @@ describe('fetchFiresClient', () => {
     global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 503, json: async () => ({ error: 'no key' }) });
     await expect(fetchFiresClient()).rejects.toThrow();
   });
+
+  test('fetch di rete fallita → messaggio in italiano, non il TypeError del browser', async () => {
+    global.fetch = jest.fn().mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(fetchFiresClient()).rejects.toThrow('Rete non disponibile');
+  });
 });
 
 describe('fetchDpcClient', () => {
@@ -66,5 +71,15 @@ describe('fetchDpcClient', () => {
       .mockResolvedValueOnce({ ok: true, json: async () => INFO })
       .mockRejectedValue(new Error('down'));
     await expect(fetchDpcClient()).rejects.toThrow();
+  });
+
+  test('fetch di rete fallita (discovery) → messaggio in italiano, non il TypeError del browser', async () => {
+    global.fetch = jest.fn().mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(fetchDpcClient()).rejects.toThrow('Rete non disponibile');
+  });
+
+  test('discovery non-ok con messaggio del proxy → propagato invece del generico', async () => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 503, json: async () => ({ error: 'xyz' }) });
+    await expect(fetchDpcClient()).rejects.toThrow('xyz');
   });
 });

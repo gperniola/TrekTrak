@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useMap } from 'react-leaflet';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { useEmergencyStore } from '@/stores/emergencyStore';
-import { EMERGENCY_LAYERS, EMERGENCY_PANE, getEmergencyLayer } from '@/lib/emergency-layers';
+import { EMERGENCY_PANE, getEmergencyLayer } from '@/lib/emergency-layers';
 import { dayOptions } from '@/lib/dpc';
 import { EmergencyWmsLayer } from './EmergencyWmsLayer';
 import { EmergencyPointsLayer } from './EmergencyPointsLayer';

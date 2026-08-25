@@ -16,7 +16,7 @@ App web didattica per l'apprendimento della cartografia manuale attraverso la cr
 | **lz-string** | Compressione URL per condivisione itinerari |
 | **@serwist/next** | Service worker, caching offline, installabilita' PWA |
 | **Tailwind CSS** | Styling mobile-first, dark theme |
-| **Jest** | ~437 test unitari e di integrazione |
+| **Jest** | ~647 test unitari e di integrazione |
 
 ### API Esterne
 
@@ -315,7 +315,7 @@ src/
 │   ├── export-gpx.ts       # Generazione GPX
 │   ├── export-json.ts      # Import/export JSON
 │   └── storage.ts          # Persistenza localStorage
-└── __tests__/              # ~437 test (28 suite)
+└── __tests__/              # ~647 test (66 suite)
 ```
 
 ---
