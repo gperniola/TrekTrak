@@ -4,6 +4,20 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.11.0] — 2026-08-25 — "Layer di emergenza (fase 1)"
+
+Prima fase dei layer di emergenza sulla mappa (TASK-52): 4 layer opzionali con dati satellitari e bollettini ufficiali, pensati per la sicurezza sul campo. Spec in `backlog/docs/emergency-layers-design.md`. 642 test.
+
+### Added
+- **Pulsante ⚠️ sulla mappa** che apre il pannello "Layer di emergenza" (caricato con dynamic import, impatto marginale sul First Load JS): attiva/disattiva i 4 layer, con legenda, orario di aggiornamento e fonti sempre visibili.
+- **Focolai attivi (NASA FIRMS)**: hotspot rilevati da satellite nelle ultime 24 ore, tramite proxy server `/api/fires` (`FIRMS_MAP_KEY` mai esposta al client); refresh automatico ogni 15 minuti.
+- **Aree bruciate e pericolo incendio (Copernicus EFFIS)**: area percorsa dal fuoco nell'anno corrente e indice di pericolo incendio previsto (FWI) del giorno, come layer WMS semi-trasparenti sotto il tracciato.
+- **Allerte meteo-idro e frane (Dipartimento Protezione Civile)**: zone di allerta (gialla/arancione/rossa) per rischio idraulico, temporali e idrogeologico, dal bollettino ufficiale (`/api/dpc-alerts` + GitHub raw), con selettore giorno (oggi/domani) e popup con i 3 rischi.
+- **Disclaimer** alla prima attivazione di un layer di emergenza: i dati possono essere incompleti o in ritardo e non sostituiscono i canali ufficiali di allerta (112 in caso di emergenza).
+
+### Changed
+- **Service worker**: le richieste dei dati di emergenza (`/api/fires`, `/api/dpc-alerts`, tile WMS EFFIS, bollettini DPC da GitHub raw) sono escluse dal caching offline (`NetworkOnly`) — dati stantii in questo ambito sono un rischio, non una feature.
+
 ## [0.10.10] — 2026-06-09 — Tasto Indietro: uscita affidabile + mappa che non salta
 
 ### Fixed

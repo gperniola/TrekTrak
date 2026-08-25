@@ -26,6 +26,9 @@ App web didattica per l'apprendimento della cartografia manuale attraverso la cr
 | **OpenRouteService** | Trail routing (percorso su sentiero), opzionale |
 | **Nominatim** (OpenStreetMap) | Ricerca localita' sulla mappa |
 | **Meteoblue** | Link diretto a previsioni meteo per la zona dell'itinerario |
+| **NASA FIRMS** | Layer emergenza: focolai incendio rilevati da satellite (ultime 24h) |
+| **Copernicus EFFIS** | Layer emergenza: aree bruciate e indice di pericolo incendio (FWI) |
+| **DPC** (Dipartimento Protezione Civile) | Layer emergenza: bollettini di criticità idrogeologica/idraulica (CC-BY 4.0) |
 
 ---
 
@@ -182,6 +185,11 @@ NEXT_PUBLIC_THUNDERFOREST_API_KEY=la_tua_api_key
 # Opzionale: OpenRouteService (trail routing su sentiero)
 # Registrati su https://openrouteservice.org/ per ottenere una API key gratuita
 NEXT_PUBLIC_ORS_API_KEY=la_tua_api_key
+
+# Opzionale: NASA FIRMS (layer "Focolai attivi" — hotspot incendi da satellite)
+# Chiave gratuita: https://firms.modaps.eosdis.nasa.gov/api/map_key/
+# Server-only (usata dalla API route /api/fires): NON prefissare con NEXT_PUBLIC_, mai nel bundle client
+FIRMS_MAP_KEY=la_tua_api_key
 ```
 
 Senza API key, l'app funziona comunque con OpenTopoMap come mappa e calcoli in linea d'aria.

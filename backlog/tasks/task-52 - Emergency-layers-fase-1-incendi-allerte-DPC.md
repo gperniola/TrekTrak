@@ -28,8 +28,8 @@ La fase 2 (valanghe/neve/sismi, v0.12.0) è [[task-51]] e riusa l'infrastruttura
 - [x] Ricerca fonti con verifica endpoint reali (report 2026-08-25)
 - [x] Brainstorming requisiti + design approvato a sezioni
 - [x] Spec scritta: `backlog/docs/emergency-layers-design.md`
-- [ ] Piano di implementazione (writing-plans)
-- [ ] Implementazione TDD su `feature/emergency-layers`
+- [x] Piano di implementazione (writing-plans)
+- [x] Implementazione TDD su `feature/emergency-layers`
 - [ ] Release v0.11.0
 
 ## Acceptance criteria
