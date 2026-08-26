@@ -30,9 +30,14 @@ Raggruppa i deferred minori della campagna polish/v0.6.2 che non meritano una ta
 ### R7-05 — Tooltip su "Copia link" disabilitato
 - [x] In `panel/ActionBar.tsx`, quando il bottone "Copia link" è disabilitato, aggiungere `title="Servono almeno 2 waypoint con coordinate valide"` (e `aria-describedby` per screen reader) — fatto via `title` (`ActionBar.tsx:415`), senza `aria-describedby`
 
-### R5-08 — Leaflet marker aria-label
-- [ ] Indagare se Leaflet espone un'API per impostare `aria-label` sui marker creati via `L.marker(..., { icon })`. Probabilmente serve un wrapper custom o usare `Marker.bindTooltip()` con `permanent: false` per fornire un nome accessibile
-- [ ] Se non fattibile in modo pulito, archiviare come limitazione nota
+### R5-08 — Leaflet marker aria-label → spostato su [[task-53]]
+- [x] Indagine chiusa (2026-08-26). Non serve un wrapper: la causa a monte e' che `L.Marker`
+      ha `keyboard: true` per default e Leaflet mette `role="button"` + `tabindex="0"`
+      sull'elemento icona, quindi ogni marker divIcon e' un ruolo interattivo senza nome
+      accessibile. La correzione e' decidere marker per marker se e' davvero operabile da
+      tastiera (`keyboard: false` per quelli decorativi, nome accessibile per gli altri).
+- [x] Il lavoro vero e' tracciato in [[task-53]], insieme al contrasto della BottomNav:
+      insieme valgono i 14 punti Lighthouse che separano l'app dal target a11y di 97.
 
 ## Riferimenti
 

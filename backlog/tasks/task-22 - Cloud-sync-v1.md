@@ -1,7 +1,7 @@
 ---
 id: TASK-22
 title: Cloud sync v1 (opzionale, multi-device)
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-05-15 19:00'
 labels:
@@ -17,6 +17,10 @@ ordinal: 22000
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
+> **Superato dalla v0.9.0 "Libreria condivisa cloud" (2026-06-05).** Quella release ha
+> consegnato esattamente questo: libreria su Supabase con accesso a invito, magic-link,
+> membri e ruoli con RLS, e sincronizzazione multi-device. Chiuso senza lavoro aggiuntivo.
+
 **Origine.** Persona C (esperta) C.6 + Persona D (principiante) D.6 — entrambe trovano frustrante che gli itinerari salvati siano **solo su un device**. PC a casa, telefono in escursione → dati separati.
 
 ## Costo
