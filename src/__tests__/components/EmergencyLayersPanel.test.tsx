@@ -107,6 +107,19 @@ describe('EmergencyLayersPanel', () => {
     expect(screen.queryByText(/Fonti:/)).not.toBeInTheDocument();
   });
 
+  test('due layer della stessa fonte → EFFIS citato una volta sola', () => {
+    const settings = useItineraryStore.getState().settings;
+    useItineraryStore.setState({
+      settings: {
+        ...settings,
+        mapDisplay: { ...settings.mapDisplay, emergencyLayers: ['fires-burned', 'fires-fwi'] },
+      },
+    });
+    render(<EmergencyLayersPanel />);
+    const footer = screen.getByText(/Fonti:/).textContent ?? '';
+    expect(footer.match(/Copernicus EFFIS/g)).toHaveLength(1);
+  });
+
   test('toggle concorrente durante disclaimer pendente non perde modifiche (no stale closure)', async () => {
     let resolveConfirm: (value: boolean) => void = () => {};
     (confirm as jest.Mock).mockImplementation(

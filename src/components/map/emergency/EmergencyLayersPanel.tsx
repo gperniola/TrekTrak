@@ -161,9 +161,10 @@ export function EmergencyLayersPanel() {
 
   const categories = Array.from(new Set(EMERGENCY_LAYERS.map((l) => l.category)));
   const activeDefs = EMERGENCY_LAYERS.filter((l) => activeIds.includes(l.id));
-  const sourcesText = activeDefs.length > 0
-    ? 'Fonti: ' + activeDefs.map((d) => stripHtml(d.attribution)).join(' · ')
-    : null;
+  // Fonti deduplicate: aree bruciate e FWI vengono entrambi da EFFIS, con attivi tutti e
+  // due comparirebbe "Copernicus EFFIS · Copernicus EFFIS".
+  const sources = Array.from(new Set(activeDefs.map((d) => stripHtml(d.attribution))));
+  const sourcesText = sources.length > 0 ? 'Fonti: ' + sources.join(' · ') : null;
 
   return (
     <div

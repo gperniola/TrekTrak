@@ -11,7 +11,7 @@ export function EmergencyLayersButton() {
   return (
     <button
       onClick={() => setOpen(!open)}
-      aria-label="Layer di emergenza"
+      aria-label={activeCount > 0 ? `Layer di emergenza, ${activeCount} attivi` : 'Layer di emergenza'}
       aria-expanded={open}
       title="Layer di emergenza (incendi, allerte)"
       className="absolute bottom-16 right-3 z-[1000] w-10 h-10 rounded-full shadow-lg flex items-center justify-center text-lg bg-gray-800/90 text-amber-400 hover:bg-gray-700 transition-colors"
