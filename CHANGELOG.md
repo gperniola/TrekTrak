@@ -6,7 +6,9 @@ Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il p
 
 ## [0.11.0] — 2026-08-25 — "Layer di emergenza (fase 1)"
 
-Prima fase dei layer di emergenza sulla mappa (TASK-52): 4 layer opzionali con dati satellitari e bollettini ufficiali, pensati per la sicurezza sul campo. Spec in `backlog/docs/emergency-layers-design.md`. 652 test.
+Prima fase dei layer di emergenza sulla mappa (TASK-52): 4 layer opzionali con dati satellitari e bollettini ufficiali, pensati per la sicurezza sul campo. Spec in `backlog/docs/emergency-layers-design.md`. 706 test.
+
+Il rilascio è passato per una **campagna di code review in tre round** (2026-08-26), da cui sono usciti 29 problemi distinti, chiusi in quattro ondate. Il filo conduttore dei più gravi era sempre lo stesso: un layer rotto o con dati vecchi che si presentava come funzionante e aggiornato. Su una feature che si consulta per decidere se salire su un sentiero, è peggio del layer assente.
 
 ### Added
 - **Pulsante ⚠️ sulla mappa** che apre il pannello "Layer di emergenza" (caricato con dynamic import, impatto marginale sul First Load JS): attiva/disattiva i 4 layer, con legenda, orario di aggiornamento e fonti sempre visibili.
@@ -22,6 +24,40 @@ Prima fase dei layer di emergenza sulla mappa (TASK-52): 4 layer opzionali con d
 - **La mappa non crasha più riaprendo l'app con un layer di emergenza attivo**: il pane `emergency` veniva creato in un `useEffect` del contenitore, ma React esegue gli effetti dei **figli prima di quelli del padre** — i layer WMS si agganciavano quando il pane non esisteva ancora e Leaflet moriva su `getPane('emergency').appendChild` di `undefined`, distruggendo il sottoalbero della mappa. Si vedeva solo sul percorso di riattivazione persistita, cioè quello reale: accendi un layer, chiudi l'app, riapri. Ora i layer figli si montano **solo a pane pronto**. Il mock di react-leaflet nei test non modellava il registro dei pane e nascondeva il difetto: ora `createPane`/`getPane` hanno stato e un test di regressione verifica che il pane esista nell'istante in cui il layer si aggancia.
 - **Fonti senza doppioni nel pannello**: con aree bruciate e pericolo FWI accesi insieme il footer elencava `Copernicus EFFIS · Copernicus EFFIS` — le due attribution sono identiche e venivano concatenate senza deduplica.
 - **Conteggio dei layer attivi annunciato agli screen reader**: il badge sul pulsante ⚠️ era solo visivo; ora il nome accessibile è "Layer di emergenza, N attivi".
+
+#### Dalla campagna di review — bloccanti
+
+- **Ogni tocco sul pannello dei layer non sporca più l'itinerario**: pulsante e pannello sono figli DOM di `MapContainer` e non fermavano la propagazione, così il click risaliva a `.leaflet-container`, Leaflet sparava l'evento `click` della mappa e `MapEvents` lo interpretava come "aggiungi waypoint" — un waypoint spurio, più una chiamata di reverse-geocoding, a ogni tap. Wheel e drag sul pannello, allo stesso modo, zoomavano e pannavano invece di scrollare. La guardia è ora in un hook condiviso (`useMapOverlayGuard`) e usa il flag `_leaflet_disable_click`, non `stopPropagation`: fermare la propagazione del click avrebbe soddisfatto Leaflet ma tagliato fuori la delega eventi di React, rendendo gli switch inerti. I test verificano entrambe le direzioni.
+- **Su mobile lo sheet non copre più la bottom navigation**: era ancorato a `bottom-0` sopra una `nav` senza z-index, quindi le quattro destinazioni erano irraggiungibili e, senza backdrop, il pannello non si chiudeva nemmeno toccando fuori. Ora si fermano a `bottom-14`, con backdrop, e pannello e menu "Altro" sono mutuamente esclusivi (due sheet sovrapposti rendevano ambigua anche la priorità del tasto Indietro).
+
+#### Dalla campagna di review — dati sbagliati mostrati come buoni
+
+- **Una risposta FIRMS non-CSV non viene più letta come "zero incendi"**: con MAP_KEY invalida o quota esaurita FIRMS risponde `200` con testo semplice; il parser tornava `[]` e il proxy metteva in cache 15 minuti un payload vuoto **come successo**, con il pannello che scriveva "Aggiornato alle HH:MM". Ora `parseFirmsCsv` distingue "corpo non riconosciuto" (`null` → 502) da "header valido, nessuna riga" (`[]`), e i risultati **parziali** sono marcati come tali e messi in cache per 2 minuti invece di 15.
+- **Un bollettino DPC troppo vecchio non viene più servito come buono**: il fallback su cache stantia non aveva tetto d'età, e con due date entrambe passate `defaultDpcDate` tornava `null`, quindi nessuna zona veniva disegnata mentre il layer restava "ready" con orario fresco. Ora la cache scade a 6 ore e il caso ha uno stato esplicito **"nessun dato disponibile"**.
+- **I layer WMS possono finalmente segnalare un guasto**: partivano `ready` a scatola chiusa e `refreshLayer` non li trattava affatto, quindi un'interruzione EFFIS dava tile bianchi con il pannello che dichiarava il layer funzionante. Ora lo stato lo decidono i tile (`tileload`/`tileerror`, con soglia perché un tile fuori copertura non è un guasto), e l'orario di aggiornamento si mostra anche per loro.
+- **Spegnere un layer ne butta i dati**: `stopLayer` azzerava solo lo stato, così riaccendendolo si ridisegnavano subito i dati di ore prima — e con `lastFetch` a `null` il pannello nascondeva sia l'orario sia l'avviso di staleness, cioè dati vecchi senza alcun riferimento temporale.
+- **"Pericolo incendio oggi" non mostra più la previsione di ieri**: il `TIME` dei WMS non veniva mai ricalcolato (nessun timer, `refreshMinutes: null`), quindi una sessione aperta oltre la mezzanotte continuava a chiedere il giorno prima. Un tick condiviso da 5 minuti rivaluta giorno corrente e staleness — che prima non compariva mai, perché `isStale` leggeva `Date.now()` in fase di render e nulla provocava un nuovo render proprio quando i refresh si fermavano.
+- **Il giorno DPC selezionato prima di mezzanotte non resta selezionato dopo**: la mappa continuava a disegnare le zone di ieri come selezione corrente. E con un bollettino di due giorni non compaiono più due pulsanti entrambi etichettati "Ieri".
+- **Niente più focolai fantasma a (0,0)**: `Number('')` vale `0` e supera `Number.isFinite`, quindi una riga con lat/lon vuote — risposta troncata o colonne sfasate — diventava un focolaio nel Golfo di Guinea. Aggiunta anche la validazione dei range.
+
+#### Dalla campagna di review — robustezza
+
+- **`/api/fires` non può più restare appesa**: `clearTimeout` scattava all'arrivo degli header, disarmando l'AbortController prima di `res.text()`; un body che si blocca a metà teneva la funzione occupata fino a quando la piattaforma la uccideva.
+- **Timeout e guardia anti-accumulo lato client**: le fetch del browser non avevano alcun timeout (layer bloccato su "Caricamento" per sempre) e `refreshLayer` non controllava se una richiesta era già in volo, quindi l'intervallo le impilava e una risposta tardiva poteva sovrascrivere dati più nuovi.
+- **Discovery DPC: da 6 chiamate a GitHub a 1**, come prescrive la spec (`/commits/master` porta già l'elenco dei file), con deadline complessiva e **cache negativa** — prima ogni richiesta ritentava, su una GET pubblica, bruciando il rate limit di 60/ora per IP in modo auto-amplificante.
+- **La regex del bollettino ora matcha i file che il modulo stesso costruisce**: pretendeva l'id subito dopo `files/`, quindi **non** riconosceva la forma canonica `files/topojson/<id>_today.json`; funzionava solo perché i commit toccano anche altri path. E ignora gli id di `preview/`, che esistono prima dei topojson pubblicati e danno 404 su entrambi i giorni.
+- **Payload validati e messaggi sempre in italiano**: `res.json()` stava fuori dalla protezione di `safeFetch` e nessuno controllava la forma della risposta, così un corpo malformato (captive portal, risposta troncata) arrivava al render come `points={undefined}` e faceva crashare l'albero React — nel progetto non esiste alcun ErrorBoundary che limiti il danno al singolo layer. `/api/dpc-alerts` inoltre propagava il testo grezzo di upstream (`GitHub API: HTTP 403`, messaggi di abort e DNS in inglese) fino al toast.
+
+#### Dalla campagna di review — perf, spec e accessibilità
+
+- **Focolai su renderer canvas** (spec §4.5), con popup costruito al click invece di uno per punto e un tetto di 400 marker (i più potenti): in stagione la bbox italiana su tre sensori dà migliaia di righe, e montarle tutte insieme bloccava la mappa per secondi sul telefono, che è il dispositivo per cui la feature esiste.
+- **I tile EFFIS non vengono più riscaricati a ogni re-render**: `params` era un oggetto letterale ricostruito ogni volta e react-leaflet lo confronta per riferimento, quindi chiamava `setParams` → `redraw()`.
+- **Zone DPC in una sola FeatureCollection**: prima un `<GeoJSON>` per zona, cioè decine di layer Leaflet distrutti e ricreati a ogni refresh e a ogni tap sul selettore giorni.
+- **Righe "non disponibile offline"** (spec §6): da offline i layer mostravano un errore di rete e i WMS tile bianchi senza spiegazione, mentre i dati di emergenza sono esclusi dalla cache di proposito.
+- **404 dalle fonti = "nessun dato disponibile", non errore** (spec §6): il pattern serviva già ora, ed è quello su cui la fase 2 si appoggerà per la stagionalità delle valanghe.
+- **Chiave FIRMS assente**: il pannello mostrava all'utente il nome della variabile d'ambiente del server; ora la riga dice che il layer non è disponibile su questa installazione (spec §4.3).
+- **Focus da tastiera visibile sugli switch**: erano una copia di `ToggleSwitch` che aveva perso il ring, quindi tabulando fra i quattro toggle non si vedeva dove fosse il fuoco.
+- **Un solo escaping condiviso** (`escapeMarkup`) al posto di tre copie divergenti, e un solo `toYmd`.
 
 ## [0.10.10] — 2026-06-09 — Tasto Indietro: uscita affidabile + mappa che non salta
 

@@ -65,7 +65,7 @@ export function getEmergencyLayer(id: EmergencyLayerId): EmergencyLayerDef;
 export function isEmergencyLayerId(v: unknown): v is EmergencyLayerId;
 ```
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // src/__tests__/emergency-layers.test.ts
@@ -136,12 +136,12 @@ describe('loadSettings — emergencyLayers', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `npm test -- src/__tests__/emergency-layers.test.ts src/__tests__/storage.test.ts`
 Expected: FAIL — modulo `@/lib/emergency-layers` inesistente; `emergencyLayers` undefined nei settings.
 
-- [ ] **Step 3: Implementa registry + estensioni types/storage**
+- [x] **Step 3: Implementa registry + estensioni types/storage**
 
 ```ts
 // src/lib/emergency-layers.ts (completo)
@@ -281,17 +281,17 @@ settings.mapDisplay.emergencyLayers =
   (settings.mapDisplay.emergencyLayers as unknown[]).filter(isEmergencyLayerId);
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npm test -- src/__tests__/emergency-layers.test.ts src/__tests__/storage.test.ts`
 Expected: PASS (tutti, inclusi i test storage preesistenti).
 
-- [ ] **Step 5: Run full suite (i settings toccano molti test)**
+- [x] **Step 5: Run full suite (i settings toccano molti test)**
 
 Run: `npm test`
 Expected: PASS — se qualche test fallisce per il nuovo campo (fixture di settings), aggiorna SOLO le fixture, non la logica.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/lib/emergency-layers.ts src/lib/types.ts src/lib/storage.ts src/__tests__/emergency-layers.test.ts src/__tests__/storage.test.ts
@@ -322,7 +322,7 @@ export interface FirePoint {
 export function parseFirmsCsv(csv: string): FirePoint[];
 ```
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // src/__tests__/firms.test.ts
@@ -367,12 +367,12 @@ describe('parseFirmsCsv', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm test -- src/__tests__/firms.test.ts`
 Expected: FAIL — `@/lib/firms` inesistente.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```ts
 // src/lib/firms.ts (completo)
@@ -431,12 +431,12 @@ export function parseFirmsCsv(csv: string): FirePoint[] {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npm test -- src/__tests__/firms.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/lib/firms.ts src/__tests__/firms.test.ts
@@ -467,7 +467,7 @@ export function _resetFiresCacheForTests(): void;
 ```
 - Route: `GET /api/fires` → 200 `FiresPayload` | 502/503 `{ error }` (consumata dal Task 6)
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // src/__tests__/fires-proxy.test.ts
@@ -533,12 +533,12 @@ describe('fetchFiresUpstream', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm test -- src/__tests__/fires-proxy.test.ts`
 Expected: FAIL — modulo inesistente.
 
-- [ ] **Step 3: Write implementation**
+- [x] **Step 3: Write implementation**
 
 ```ts
 // src/lib/fires-proxy.ts (completo)
@@ -620,12 +620,12 @@ In `.env.example`, dopo il blocco Thunderforest aggiungi:
 FIRMS_MAP_KEY=
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npm test -- src/__tests__/fires-proxy.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/lib/fires-proxy.ts src/app/api/fires/route.ts src/__tests__/fires-proxy.test.ts .env.example
@@ -666,7 +666,7 @@ export function defaultDpcDate(dates: string[], now: Date): string | null;
 export function bulletinDates(bulletinId: string): { today: string; tomorrow: string; issuedLabel: string };
 ```
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // src/__tests__/dpc.test.ts
@@ -779,13 +779,13 @@ describe('bulletinDates / dayOptions / defaultDpcDate', () => {
 });
 ```
 
-- [ ] **Step 2: Install deps + run test to verify it fails**
+- [x] **Step 2: Install deps + run test to verify it fails**
 
 Run: `npm install topojson-client` poi `npm install -D @types/topojson-client @types/geojson`
 Run: `npm test -- src/__tests__/dpc.test.ts`
 Expected: FAIL — `@/lib/dpc` inesistente.
 
-- [ ] **Step 3: Write implementation**
+- [x] **Step 3: Write implementation**
 
 ```ts
 // src/lib/dpc.ts (completo)
@@ -919,12 +919,12 @@ export function defaultDpcDate(dates: string[], now: Date): string | null {
 
 Nota TS: se `topojson-specification` non è risolto dai types installati, sostituisci i tipi `Topology`/`GeometryCollection` con interfacce locali minime (`{ type: string; objects: Record<string, unknown>; arcs: unknown[] }`) e passa da `feature(topo as never, ...)` — la validazione runtime resta quella del try/catch.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npm test -- src/__tests__/dpc.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/lib/dpc.ts src/__tests__/dpc.test.ts package.json package-lock.json
@@ -957,7 +957,7 @@ export function _resetDpcCacheForTests(): void;
 ```
 - Route: `GET /api/dpc-alerts` → 200 `DpcBulletinInfo` | 502 `{ error }` (consumata dal Task 6)
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // src/__tests__/dpc-discovery.test.ts
@@ -1046,12 +1046,12 @@ describe('discoverLatestBulletin', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm test -- src/__tests__/dpc-discovery.test.ts`
 Expected: FAIL — modulo inesistente.
 
-- [ ] **Step 3: Write implementation**
+- [x] **Step 3: Write implementation**
 
 ```ts
 // src/lib/dpc-discovery.ts (completo)
@@ -1136,12 +1136,12 @@ export async function GET() {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npm test -- src/__tests__/dpc-discovery.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/lib/dpc-discovery.ts src/app/api/dpc-alerts/route.ts src/__tests__/dpc-discovery.test.ts
@@ -1191,7 +1191,7 @@ Note implementative vincolanti:
 - In `fetchDpcClient`: chiama `/api/dpc-alerts`, poi scarica i due TopoJSON con `Promise.allSettled` — basta che UNO riesca; giorno fallito = escluso da `days`. Entrambi falliti → throw.
 - Errore di refresh con dati già presenti: mantieni i dati, `status: 'error'` + `error` valorizzato (il pannello mostra il badge, la mappa continua a disegnare i dati vecchi).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // src/__tests__/emergency-api.test.ts
@@ -1371,12 +1371,12 @@ describe('emergencyStore', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `npm test -- src/__tests__/emergency-api.test.ts src/__tests__/emergencyStore.test.ts`
 Expected: FAIL — moduli inesistenti.
 
-- [ ] **Step 3: Write implementation**
+- [x] **Step 3: Write implementation**
 
 ```ts
 // src/lib/emergency-api.ts (completo)
@@ -1516,12 +1516,12 @@ export const useEmergencyStore = create<EmergencyState>((set, get) => ({
 }));
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npm test -- src/__tests__/emergency-api.test.ts src/__tests__/emergencyStore.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/lib/emergency-api.ts src/stores/emergencyStore.ts src/__tests__/emergency-api.test.ts src/__tests__/emergencyStore.test.ts
@@ -1541,7 +1541,7 @@ git commit -m "feat(emergency): store runtime con auto-refresh, staleness e clie
 - Consumes: `EmergencyLayerDef` con `wms` (Task 1)
 - Produces: `export function EmergencyWmsLayer({ def }: { def: EmergencyLayerDef }): JSX.Element | null` (usato dal Task 11). Esporta anche `export function wmsTimeParam(mode: 'today' | 'yearToDate', now: Date): string` per i test.
 
-- [ ] **Step 1: Estendi il mock react-leaflet (prerequisito di TUTTI i test componente successivi)**
+- [x] **Step 1: Estendi il mock react-leaflet (prerequisito di TUTTI i test componente successivi)**
 
 Aggiungi a `src/__tests__/components/__mocks__/react-leaflet.tsx`:
 
@@ -1567,7 +1567,7 @@ e dentro l'oggetto ritornato da `useMap` aggiungi:
   attributionControl: { addAttribution: jest.fn(), removeAttribution: jest.fn() },
 ```
 
-- [ ] **Step 2: Write the failing test**
+- [x] **Step 2: Write the failing test**
 
 ```tsx
 // src/__tests__/components/EmergencyWmsLayer.test.tsx
@@ -1603,12 +1603,12 @@ describe('EmergencyWmsLayer', () => {
 });
 ```
 
-- [ ] **Step 3: Run test to verify it fails**
+- [x] **Step 3: Run test to verify it fails**
 
 Run: `npm test -- src/__tests__/components/EmergencyWmsLayer.test.tsx`
 Expected: FAIL — componente inesistente.
 
-- [ ] **Step 4: Write implementation**
+- [x] **Step 4: Write implementation**
 
 ```tsx
 // src/components/map/emergency/EmergencyWmsLayer.tsx (completo)
@@ -1650,12 +1650,12 @@ export function EmergencyWmsLayer({ def }: { def: EmergencyLayerDef }) {
 
 Aggiungi in cima `import type L from 'leaflet';`.
 
-- [ ] **Step 5: Run tests to verify they pass (inclusa la suite componenti esistente, per il mock modificato)**
+- [x] **Step 5: Run tests to verify they pass (inclusa la suite componenti esistente, per il mock modificato)**
 
 Run: `npm test -- src/__tests__/components/`
 Expected: PASS — tutti, nessuna regressione da mock esteso.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/components/map/emergency/EmergencyWmsLayer.tsx src/__tests__/components/EmergencyWmsLayer.test.tsx src/__tests__/components/__mocks__/react-leaflet.tsx
@@ -1674,7 +1674,7 @@ git commit -m "feat(emergency): renderer WMS con parametro TIME (EFFIS)"
 - Consumes: `FirePoint` (Task 2), `EMERGENCY_PANE` (Task 1), mock `CircleMarker`/`Popup` (Task 7)
 - Produces: `export function EmergencyPointsLayer({ points }: { points: FirePoint[] }): JSX.Element`; esporta anche `export function fireColor(acquiredAt: string, now: Date): string` per i test (usati dal Task 11)
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```tsx
 // src/__tests__/components/EmergencyPointsLayer.test.tsx
@@ -1709,12 +1709,12 @@ describe('EmergencyPointsLayer', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm test -- src/__tests__/components/EmergencyPointsLayer.test.tsx`
 Expected: FAIL — componente inesistente.
 
-- [ ] **Step 3: Write implementation**
+- [x] **Step 3: Write implementation**
 
 ```tsx
 // src/components/map/emergency/EmergencyPointsLayer.tsx (completo)
@@ -1771,12 +1771,12 @@ export function EmergencyPointsLayer({ points }: { points: FirePoint[] }) {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npm test -- src/__tests__/components/EmergencyPointsLayer.test.tsx`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/components/map/emergency/EmergencyPointsLayer.tsx src/__tests__/components/EmergencyPointsLayer.test.tsx
@@ -1795,7 +1795,7 @@ git commit -m "feat(emergency): renderer punti FIRMS con popup e colore per rece
 - Consumes: `DpcZone`, `DPC_LEVEL_COLORS`, `zonePopupHtml` (Task 4), `EMERGENCY_PANE` (Task 1), mock `GeoJSON` (Task 7)
 - Produces: `export function EmergencyZonesLayer({ zones, dayLabel, issuedLabel }: { zones: DpcZone[]; dayLabel: string; issuedLabel: string }): JSX.Element`; esporta `export function zoneStyle(level: 1 | 2 | 3): L.PathOptions` per i test (usato dal Task 11)
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```tsx
 // src/__tests__/components/EmergencyZonesLayer.test.tsx
@@ -1829,12 +1829,12 @@ describe('EmergencyZonesLayer', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm test -- src/__tests__/components/EmergencyZonesLayer.test.tsx`
 Expected: FAIL — componente inesistente.
 
-- [ ] **Step 3: Write implementation**
+- [x] **Step 3: Write implementation**
 
 ```tsx
 // src/components/map/emergency/EmergencyZonesLayer.tsx (completo)
@@ -1873,12 +1873,12 @@ export function EmergencyZonesLayer({
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npm test -- src/__tests__/components/EmergencyZonesLayer.test.tsx`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/components/map/emergency/EmergencyZonesLayer.tsx src/__tests__/components/EmergencyZonesLayer.test.tsx
@@ -1911,7 +1911,7 @@ Comportamento del pannello (vincolante):
 - Footer: nota disclaimer breve + attribution testuale delle fonti attive.
 - Chiusura: pulsante ✕ (`aria-label="Chiudi"`) e tasto `Escape` (pattern MapSettings).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```tsx
 // src/__tests__/components/EmergencyLayersPanel.test.tsx
@@ -2011,12 +2011,12 @@ describe('EmergencyLayersPanel', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm test -- src/__tests__/components/EmergencyLayersPanel.test.tsx`
 Expected: FAIL — componente/campo store inesistenti.
 
-- [ ] **Step 3: Implementa uiStore, KEYS, Button e Panel**
+- [x] **Step 3: Implementa uiStore, KEYS, Button e Panel**
 
 `uiStore.ts`: aggiungi `emergencyPanelOpen: false` allo stato, `setEmergencyPanelOpen: (open: boolean) => void` all'interfaccia e `setEmergencyPanelOpen: (open) => set({ emergencyPanelOpen: open }),` all'implementazione.
 
@@ -2219,12 +2219,12 @@ export function EmergencyLayersPanel() {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npm test -- src/__tests__/components/EmergencyLayersPanel.test.tsx`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/components/map/emergency/EmergencyLayersPanel.tsx src/components/map/emergency/EmergencyLayersButton.tsx src/stores/uiStore.ts src/lib/storage.ts src/__tests__/components/EmergencyLayersPanel.test.tsx
@@ -2251,7 +2251,7 @@ Comportamento (vincolante):
 - Render per kind: `wms` → `<EmergencyWmsLayer def={def} />`; `points` (se `fires` presente) → `<EmergencyPointsLayer points={fires.points} />`; `zones` (se `dpc` e `dpcSelectedDate` presenti) → `<EmergencyZonesLayer zones={dayCorrente.zones} dayLabel={labelDaDayOptions} issuedLabel={dpc.issuedLabel} />`.
 - In `InteractiveMap.tsx`: `const EmergencyLayers = dynamic(() => import('./emergency/EmergencyLayers'), { ssr: false });` a livello di modulo (pattern `MapWrapper`/`page.tsx`), import statico invece per `EmergencyLayersButton` e `EmergencyLayersPanel` (sono leggeri); mount dentro `<MapContainer>`: `<EmergencyLayers />` subito dopo `<CoordinateGrid />`, e `<EmergencyLayersButton />` + `<EmergencyLayersPanel />` accanto a `<MyLocationButton />`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```tsx
 // src/__tests__/components/EmergencyLayers.test.tsx
@@ -2302,12 +2302,12 @@ describe('EmergencyLayers', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm test -- src/__tests__/components/EmergencyLayers.test.tsx`
 Expected: FAIL — componente inesistente.
 
-- [ ] **Step 3: Write implementation**
+- [x] **Step 3: Write implementation**
 
 ```tsx
 // src/components/map/emergency/EmergencyLayers.tsx (completo)
@@ -2383,17 +2383,17 @@ In `InteractiveMap.tsx`:
 - nel JSX, dopo `{showCoordinateGrid && <CoordinateGrid />}`: `<EmergencyLayers />`
 - dopo `<MyLocationButton hidden={compassActive} />`: `<EmergencyLayersButton />` e `<EmergencyLayersPanel />`
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npm test -- src/__tests__/components/`
 Expected: PASS — inclusi gli smoke test esistenti di InteractiveMap.
 Nota: se uno smoke test esistente fallisse sul nuovo `next/dynamic` in InteractiveMap, aggiungi in `jest.config.js` → `moduleNameMapper` un mock di `next/dynamic` che risolve subito il componente (pattern: mock che chiama la factory e ritorna il default export); non riscrivere i test esistenti.
 
-- [ ] **Step 5: Verifica manuale sul dev server**
+- [x] **Step 5: Verifica manuale sul dev server**
 
 Run: `npm run dev` → attiva ogni layer, controlla: pane sotto i tracciati, popup, attribution, badge sul pulsante ⚠️, persistenza al reload (layer riattivati). Con `FIRMS_MAP_KEY` mancante il layer focolai deve mostrare l'errore nel pannello senza rompere gli altri.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/components/map/emergency/EmergencyLayers.tsx src/components/map/InteractiveMap.tsx src/__tests__/components/EmergencyLayers.test.tsx
@@ -2411,7 +2411,7 @@ git commit -m "feat(emergency): orchestratore layer su mappa con pane, attributi
 - Consumes: `uiStore.emergencyPanelOpen`/`setEmergencyPanelOpen` (Task 10)
 - Produces: `BackNavState` esteso con `emergencyPanelOpen: boolean`; nuova azione `'closeEmergencyPanel'`
 
-- [ ] **Step 1: Write the failing test (aggiunte a back-nav.test.ts)**
+- [x] **Step 1: Write the failing test (aggiunte a back-nav.test.ts)**
 
 Nel test esistente ogni stato base andrà esteso col nuovo campo `emergencyPanelOpen: false` (aggiorna la fixture/helper esistente). Aggiungi:
 
@@ -2423,12 +2423,12 @@ test('pannello emergenza aperto → closeEmergencyPanel, con priorità dopo more
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm test -- src/__tests__/back-nav.test.ts`
 Expected: FAIL — campo/azione inesistenti (errore TS).
 
-- [ ] **Step 3: Implementa**
+- [x] **Step 3: Implementa**
 
 `back-nav.ts`: aggiungi `emergencyPanelOpen: boolean;` a `BackNavState`, `'closeEmergencyPanel'` alla union `BackNavAction`, e in `nextBackAction` — subito dopo il check `moreMenuOpen`:
 
@@ -2444,16 +2444,16 @@ case 'closeEmergencyPanel': setEmergencyPanelOpen(false); return true;
 
 e in `backDepth` aggiungi `(emergencyPanelOpen ? 1 : 0) +`.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npm test -- src/__tests__/back-nav.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Verifica manuale mobile (dev server, viewport mobile)**
+- [x] **Step 5: Verifica manuale mobile (dev server, viewport mobile)**
 
 Apri il pannello ⚠️ → tasto Indietro lo chiude senza uscire dall'app né cambiare tab.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/lib/back-nav.ts src/app/page.tsx src/__tests__/back-nav.test.ts
@@ -2471,7 +2471,7 @@ git commit -m "feat(emergency): tasto Indietro mobile chiude il pannello layer"
 - Consumes: nulla di nuovo
 - Produces: regole `NetworkOnly` PRIMA di `...defaultCache` (l'ordine è first-match-wins)
 
-- [ ] **Step 1: Implementa (niente unit test: il SW non gira in jsdom — verifica via build + manuale)**
+- [x] **Step 1: Implementa (niente unit test: il SW non gira in jsdom — verifica via build + manuale)**
 
 In `src/app/sw.ts`: aggiungi `NetworkOnly` all'import da `'serwist'` e inserisci in `runtimeCaching` — **PRIMA** di `...defaultCache`:
 
@@ -2482,12 +2482,12 @@ In `src/app/sw.ts`: aggiungi `NetworkOnly` all'import da `'serwist'` e inserisci
 { matcher: /^https:\/\/raw\.githubusercontent\.com\/pcm-dpc\//i, handler: new NetworkOnly() },
 ```
 
-- [ ] **Step 2: Verify build**
+- [x] **Step 2: Verify build**
 
 Run: `npm run build`
 Expected: build ok, service worker generato senza errori.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/app/sw.ts
@@ -2505,11 +2505,11 @@ git commit -m "feat(emergency): dati emergenza esclusi dal caching del service w
 - Consumes: tutto il lavoro precedente
 - Produces: release pronta per la review finale
 
-- [ ] **Step 1: Version bump + CHANGELOG**
+- [x] **Step 1: Version bump + CHANGELOG**
 
 `package.json`: `"version": "0.11.0"`. In `CHANGELOG.md` aggiungi in cima la sezione `## [0.11.0]` con data odierna: layer emergenza (focolai FIRMS, aree bruciate e FWI EFFIS, allerte meteo-idro/frane DPC), pannello ⚠️ sulla mappa, disclaimer, refresh automatico, esclusione dal caching offline — stile delle sezioni esistenti.
 
-- [ ] **Step 2: WhatsNew**
+- [x] **Step 2: WhatsNew**
 
 In `RELEASES` (in TESTA all'array, `src/components/tutorial/WhatsNew.tsx:76`):
 
@@ -2538,21 +2538,21 @@ In `RELEASES` (in TESTA all'array, `src/components/tutorial/WhatsNew.tsx:76`):
 },
 ```
 
-- [ ] **Step 3: README**
+- [x] **Step 3: README**
 
 In `README.md`: aggiungi `FIRMS_MAP_KEY` al blocco `.env.local` (sezione setup, dopo ORS) con le due righe di commento su come ottenerla e che è server-only; nella tabella delle fonti/servizi aggiungi NASA FIRMS, Copernicus EFFIS e DPC (bollettini criticità, CC-BY 4.0).
 
-- [ ] **Step 4: Aggiorna task-52**
+- [x] **Step 4: Aggiorna task-52**
 
 In `backlog/tasks/task-52 - Emergency-layers-fase-1-incendi-allerte-DPC.md`: spunta le voci "Piano di implementazione" e "Implementazione TDD"; la voce "Release v0.11.0" e lo status Done SOLO dopo il merge/release effettivi.
 
-- [ ] **Step 5: Verifica finale completa**
+- [x] **Step 5: Verifica finale completa**
 
 Run: `npm test` → Expected: PASS, ~600+ test.
 Run: `npm run lint` → Expected: nessun errore.
 Run: `npm run build` → Expected: build ok; annota il First Load JS della route `/` e confronta con ~253 kB (l'orchestratore è dynamic: l'aumento deve essere marginale).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add package.json CHANGELOG.md src/components/tutorial/WhatsNew.tsx README.md "backlog/tasks/task-52 - Emergency-layers-fase-1-incendi-allerte-DPC.md"
@@ -2563,10 +2563,39 @@ git commit -m "chore(release): v0.11.0 — layer di emergenza fase 1"
 
 ## Checklist manuale pre-merge (sessione principale, con l'utente)
 
-- [ ] `FIRMS_MAP_KEY` reale in `.env.local`: i focolai compaiono (se ci sono incendi in Italia oggi)
-- [ ] FWI EFFIS visibile e semi-trasparente sotto il tracciato; TIME corretto (data odierna)
-- [ ] Bollettino DPC del giorno: zone colorate coerenti con https://mappe.protezionecivile.gov.it, popup con i 3 rischi
-- [ ] Selettore giorni: comportamento corretto prima/dopo le ~16:00 (bollettino di ieri vs oggi)
-- [ ] Mobile: pannello come bottom sheet, tasto Indietro lo chiude, touch target ok
-- [ ] Offline (devtools): righe "errore/non aggiornati" nel pannello, nessun dato emergenza da cache
-- [ ] Lighthouse a11y ≥ 97
+Verificata il 2026-08-26 su dev server, in emulazione mobile con Chrome DevTools.
+
+- [x] `FIRMS_MAP_KEY` reale in `.env.local`: i focolai compaiono (se ci sono incendi in Italia oggi)
+      → 685 hotspot da 3 sensori VIIRS; `/api/fires` 200 con punti, `frp`/`confidence`/`acquiredAt` parsati
+- [x] FWI EFFIS visibile e semi-trasparente sotto il tracciato; TIME corretto (data odierna)
+      → GetMap 200 `image/png` con `TIME=2026-08-26`; il tracciato resta sopra (pane z-index 350).
+      Nota: il MapServer di EFFIS richiede il parametro `STYLES`, che Leaflet manda di default
+- [x] Selettore giorni: comportamento corretto prima/dopo le ~16:00 (bollettino di ieri vs oggi)
+      → verificato nel caso reale del 26/08 mattina con bollettino `20260825_1415`:
+      "Ieri 25/08" disabilitato, "Oggi 26/08" selezionato di default
+- [x] Mobile: pannello come bottom sheet, tasto Indietro lo chiude, touch target ok
+      → Indietro chiude il pannello senza uscire né ricaricare; sheet ora sopra la BottomNav
+      (prima la copriva), con backdrop che chiude al tocco fuori
+- [ ] Bollettino DPC del giorno: zone colorate coerenti con https://mappe.protezionecivile.gov.it,
+      popup con i 3 rischi — **richiede confronto visivo con la mappa ufficiale**
+- [ ] Offline (devtools): righe "non disponibile offline" nel pannello, nessun dato emergenza da cache
+      → le righe sono state implementate e coperte da test; **la verifica del service worker
+      richiede build di produzione** (`npm run build && npm start`), Serwist è disabilitato in dev
+- [ ] Lighthouse a11y ≥ 97 — **non raggiunto: 92-96**. Le due failure sono preesistenti ed
+      estranee a questo task: `aria-command-name` sui marker divIcon di Leaflet e
+      `color-contrast` sui pulsanti della `BottomNav` (v0.10.0). Da valutare a parte
+
+## Campagna di code review (2026-08-26)
+
+Tre round di review approfondita sul diff `develop..feature/emergency-layers`, deduplicati in
+29 problemi distinti e chiusi in quattro ondate. Dettaglio nel CHANGELOG v0.11.0, sezione Fixed.
+
+- [x] Ondata A — bloccanti: propagazione dei click sugli overlay, sheet sopra la BottomNav,
+      timeout che copre la lettura del body, errori DPC in italiano, punti fantasma a (0,0), focus ring
+- [x] Ondata B — integrità dei dati: payload azzerato con il layer, stato d'errore reale per i WMS,
+      stato `nodata` esplicito, tetto d'età sulla cache di discovery, TIME ricalcolato al cambio giorno,
+      riselezione del giorno DPC, guardia in-flight, cache negativa, validazione dei payload, regex bollettino
+- [x] Ondata C — perf e spec: renderer canvas + popup on-demand + tetto sui focolai, zone in una sola
+      FeatureCollection, `params` WMS memoizzati, righe offline, 404 come "nessun dato", chiave FIRMS assente
+- [x] Ondata D — test e contabilità: handler delle route API coperti davvero, harness del pane a prova
+      di mutazione ed estesa a punti e zone, reset dello store nella suite del pannello, caselle del piano

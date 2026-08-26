@@ -30,14 +30,19 @@ La fase 2 (valanghe/neve/sismi, v0.12.0) è [[task-51]] e riusa l'infrastruttura
 - [x] Spec scritta: `backlog/docs/emergency-layers-design.md`
 - [x] Piano di implementazione (writing-plans)
 - [x] Implementazione TDD su `feature/emergency-layers`
+- [x] Campagna di code review: 3 round, 29 problemi distinti, chiusi in 4 ondate (2026-08-26)
 - [ ] Release v0.11.0
 
 ## Acceptance criteria
 
-- [ ] I 4 layer attivabili dal pannello sulla mappa, con popup, legenda, timestamp e disclaimer
-- [ ] `FIRMS_MAP_KEY` mai esposta nel client; proxy con cache funzionante
-- [ ] Dati emergenza esclusi dal caching del service worker
-- [ ] Nessuna regressione sui 563 test; First Load invariato (dynamic import)
+- [x] I 4 layer attivabili dal pannello sulla mappa, con popup, legenda, timestamp e disclaimer
+- [x] `FIRMS_MAP_KEY` mai esposta nel client; proxy con cache funzionante
+- [x] Dati emergenza esclusi dal caching del service worker (regole `NetworkOnly` verificate;
+      la prova a runtime richiede build di produzione, Serwist è disabilitato in dev)
+- [x] Nessuna regressione sui 563 test; First Load invariato (dynamic import)
+      → 706 test, First Load 317 kB contro 316 kB di `develop`
+- [ ] Lighthouse a11y ≥ 97: **non raggiunto (92-96)**, per due failure preesistenti estranee
+      a questo task (`aria-command-name` sui marker Leaflet, `color-contrast` sulla BottomNav)
 
 ## Riferimenti
 
