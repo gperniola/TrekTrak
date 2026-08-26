@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import EmergencyLayers from '@/components/map/emergency/EmergencyLayers';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { useEmergencyStore } from '@/stores/emergencyStore';
+import { __paneAtLayerMount, __resetPanes } from './__mocks__/react-leaflet';
 
 jest.mock('@/lib/emergency-api', () => ({
   fetchFiresClient: jest.fn().mockResolvedValue({
@@ -23,6 +24,7 @@ describe('EmergencyLayers', () => {
     (['fires-hotspots', 'fires-burned', 'fires-fwi', 'dpc-alerts'] as const)
       .forEach((id) => useEmergencyStore.getState().stopLayer(id));
     setActive([]);
+    __resetPanes();
   });
 
   test('nessun layer attivo → nulla sulla mappa', () => {
@@ -41,5 +43,15 @@ describe('EmergencyLayers', () => {
     setActive(['fires-hotspots']);
     render(<EmergencyLayers />);
     await waitFor(() => expect(screen.getByTestId('circle-marker')).toBeInTheDocument());
+  });
+
+  // Regressione: al reload con layer persistiti i figli si agganciavano PRIMA che il padre
+  // creasse il pane (React esegue gli effetti dei figli prima di quelli del padre), quindi
+  // Leaflet faceva getPane('emergency').appendChild → TypeError e la mappa crashava.
+  test('layer wms già attivo al mount → il pane esiste quando il layer si aggancia', async () => {
+    setActive(['fires-fwi']);
+    render(<EmergencyLayers />);
+    await waitFor(() => expect(__paneAtLayerMount.length).toBeGreaterThan(0));
+    expect(__paneAtLayerMount).not.toContainEqual({ pane: 'emergency', existed: false });
   });
 });

@@ -18,6 +18,9 @@ Prima fase dei layer di emergenza sulla mappa (TASK-52): 4 layer opzionali con d
 ### Changed
 - **Service worker**: le richieste dei dati di emergenza (`/api/fires`, `/api/dpc-alerts`, tile WMS EFFIS, bollettini DPC da GitHub raw) sono escluse dal caching offline (`NetworkOnly`) — dati stantii in questo ambito sono un rischio, non una feature.
 
+### Fixed
+- **La mappa non crasha più riaprendo l'app con un layer di emergenza attivo**: il pane `emergency` veniva creato in un `useEffect` del contenitore, ma React esegue gli effetti dei **figli prima di quelli del padre** — i layer WMS si agganciavano quando il pane non esisteva ancora e Leaflet moriva su `getPane('emergency').appendChild` di `undefined`, distruggendo il sottoalbero della mappa. Si vedeva solo sul percorso di riattivazione persistita, cioè quello reale: accendi un layer, chiudi l'app, riapri. Ora i layer figli si montano **solo a pane pronto**. Il mock di react-leaflet nei test non modellava il registro dei pane e nascondeva il difetto: ora `createPane`/`getPane` hanno stato e un test di regressione verifica che il pane esista nell'istante in cui il layer si aggancia.
+
 ## [0.10.10] — 2026-06-09 — Tasto Indietro: uscita affidabile + mappa che non salta
 
 ### Fixed

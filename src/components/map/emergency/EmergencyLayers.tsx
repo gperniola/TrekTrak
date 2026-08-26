@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useMap } from 'react-leaflet';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { useEmergencyStore } from '@/stores/emergencyStore';
@@ -20,11 +20,18 @@ export function EmergencyLayers() {
   const dpcSelectedDate = useEmergencyStore((s) => s.dpcSelectedDate);
 
   // Pane dedicato: sopra i tile (200), sotto i tracciati (overlayPane 400).
+  // ATTENZIONE all'ordine: React esegue gli effetti dei FIGLI prima di quelli del padre,
+  // quindi i layer figli si agganciavano alla mappa quando il pane non esisteva ancora e
+  // Leaflet crashava su `getPane(pane).appendChild(...)`. Si vedeva al reload con layer
+  // persistiti (activeIds già pieno al primo render). Perciò i figli si montano solo a
+  // pane pronto.
+  const [paneReady, setPaneReady] = useState(false);
   useEffect(() => {
     if (!map.getPane(EMERGENCY_PANE)) {
       const pane = map.createPane(EMERGENCY_PANE);
       pane.style.zIndex = '350';
     }
+    setPaneReady(true);
   }, [map]);
 
   // Riattivazione dei layer persistiti (startLayer è idempotente).
@@ -45,6 +52,8 @@ export function EmergencyLayers() {
   const dpcLabel = dpc && dpcSelectedDate
     ? dayOptions(dpc.days.map((d) => d.date), new Date()).find((o) => o.date === dpcSelectedDate)?.label ?? ''
     : '';
+
+  if (!paneReady) return null;
 
   return (
     <>

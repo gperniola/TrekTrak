@@ -1,5 +1,24 @@
 import React from 'react';
 
+// Leaflet reale: `createPane` registra il pane e `getPane` lo restituisce; agganciare un
+// layer a un pane inesistente fa `getPane(pane).appendChild(...)` → TypeError. Il mock
+// modella il registro e annota, nell'effetto del layer (lo stesso istante in cui Leaflet
+// farebbe l'appendChild), se il pane c'era: cosi' i test possono cogliere l'ordine sbagliato.
+const panes = new Map<string, { style: Record<string, string> }>();
+const paneAtLayerMount: Array<{ pane: string; existed: boolean }> = [];
+
+export const __paneAtLayerMount = paneAtLayerMount;
+
+export function __resetPanes(): void {
+  panes.clear();
+  paneAtLayerMount.length = 0;
+}
+
+function recordPaneAtMount(pane: unknown): void {
+  const name = pane == null ? '' : String(pane);
+  paneAtLayerMount.push({ pane: name, existed: name === '' || panes.has(name) });
+}
+
 export const MapContainer = ({ children }: { children?: React.ReactNode }) => (
   <div data-testid="map-container">{children}</div>
 );
@@ -16,9 +35,19 @@ export const Popup = ({ children }: { children?: React.ReactNode }) => (
 
 export const Polyline = () => <div data-testid="polyline" />;
 
-export const WMSTileLayer = (props: Record<string, unknown>) => (
-  <div data-testid="wms-tile-layer" data-params={JSON.stringify(props.params ?? {})} data-opacity={String(props.opacity ?? '')} />
-);
+export const WMSTileLayer = (props: Record<string, unknown>) => {
+  React.useEffect(() => {
+    recordPaneAtMount(props.pane);
+  }, [props.pane]);
+  return (
+    <div
+      data-testid="wms-tile-layer"
+      data-params={JSON.stringify(props.params ?? {})}
+      data-opacity={String(props.opacity ?? '')}
+      data-pane={String(props.pane ?? '')}
+    />
+  );
+};
 
 export const CircleMarker = ({ children, ...props }: { children?: React.ReactNode } & Record<string, unknown>) => (
   <div data-testid="circle-marker" data-pathoptions={JSON.stringify(props.pathOptions ?? {})}>{children}</div>
@@ -56,8 +85,12 @@ export const useMap = () => ({
   fitBounds: jest.fn(),
   on: jest.fn(),
   off: jest.fn(),
-  getPane: (_name: string) => undefined,
-  createPane: jest.fn(() => ({ style: {} })),
+  getPane: (name: string) => panes.get(name),
+  createPane: (name: string) => {
+    const el = { style: {} as Record<string, string> };
+    panes.set(name, el);
+    return el;
+  },
   attributionControl: { addAttribution: jest.fn(), removeAttribution: jest.fn() },
 });
 
