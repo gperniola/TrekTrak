@@ -15,19 +15,36 @@ describe('zoneStyle', () => {
 });
 
 describe('EmergencyZonesLayer', () => {
-  test('disegna solo le zone con allerta (verdi filtrate)', () => {
+  // Un solo layer Leaflet per tutte le zone, non uno per zona: in una giornata
+  // arancione erano decine di layer separati, distrutti e ricreati a ogni refresh e a
+  // ogni tap sul selettore giorni.
+  test('un solo layer con una feature per zona in allerta (verdi filtrate)', () => {
     render(<EmergencyZonesLayer zones={[zone(0), zone(1), zone(3)]} dayLabel="Oggi 25/08" issuedLabel="25/08 14:15" />);
     const layers = screen.getAllByTestId('geojson-layer');
-    expect(layers).toHaveLength(2); // la zona verde non viene disegnata
-
-    // Assert popup binding and pane wiring
+    expect(layers).toHaveLength(1);
+    expect(layers[0]).toHaveAttribute('data-features', '2');
     expect(layers[0]).toHaveAttribute('data-pane', 'emergency');
-    expect(layers[0]).toHaveAttribute('data-popup', expect.stringContaining('Z1'));
-    expect(layers[0]).toHaveAttribute('data-popup', expect.stringContaining('Bollettino del'));
+  });
 
-    expect(layers[1]).toHaveAttribute('data-pane', 'emergency');
-    expect(layers[1]).toHaveAttribute('data-popup', expect.stringContaining('Z3'));
-    expect(layers[1]).toHaveAttribute('data-popup', expect.stringContaining('Bollettino del'));
+  test('ogni zona ha il suo popup, con nome e bollettino', () => {
+    render(<EmergencyZonesLayer zones={[zone(0), zone(1), zone(3)]} dayLabel="Oggi 25/08" issuedLabel="25/08 14:15" />);
+    const popups = JSON.parse(
+      screen.getByTestId('geojson-layer').getAttribute('data-popups') ?? '[]'
+    ) as string[];
+    expect(popups).toHaveLength(2);
+    expect(popups[0]).toContain('Z1');
+    expect(popups[1]).toContain('Z3');
+    popups.forEach((p) => expect(p).toContain('Bollettino del'));
+  });
+
+  // Con una sola collection lo stile deve restare per-feature, altrimenti tutte le
+  // zone finirebbero dello stesso colore.
+  test('lo stile segue il livello della singola zona', () => {
+    render(<EmergencyZonesLayer zones={[zone(1), zone(3)]} dayLabel="Oggi" issuedLabel="x" />);
+    const styles = JSON.parse(
+      screen.getByTestId('geojson-layer').getAttribute('data-styles') ?? '[]'
+    ) as Array<{ color: string }>;
+    expect(styles.map((s) => s.color)).toEqual(['#eab308', '#dc2626']);
   });
 
   test('nessuna zona in allerta → nulla', () => {
