@@ -4,6 +4,11 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.11.2] — 2026-08-26 — Hotfix: i focolai tornano visibili
+
+### Fixed
+- **I focolai della zona che stai guardando non sparivano più dietro al tetto di performance.** Il limite di 400 marker introdotto nella v0.11.0 ordinava per potenza su **tutta l'Italia**: misurato sui dati reali, 2298 focolai in Italia e 289 nella vista, di cui ne passavano **3** — perché per entrare nei primi 400 servivano 53,8 MW mentre in quell'area la media era 6,4. Il criterio era sbagliato: che un incendio a 600 km sia più potente non ha nessuna rilevanza per ciò che va disegnato qui. Ora si scarta quello che è **fuori schermo** (con un margine, così un pan breve non scopre aree vuote), e il tetto resta solo come rete di sicurezza per la mappa zoomata su mezza Europa, dove i punti sono sub-pixel comunque.
+
 ## [0.11.1] — 2026-08-26 — Tap sui focolai + aree bruciate interrogabili
 
 ### Fixed
