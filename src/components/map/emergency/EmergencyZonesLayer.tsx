@@ -39,6 +39,11 @@ export function EmergencyZonesLayer({
       key={`dpc-${dayLabel}-${issuedLabel}-${alerted.length}`}
       data={collection}
       pane={EMERGENCY_PANE}
+      // Le zone stanno sul renderer SVG, dove il bersaglio del click è il <path> e la
+      // mappa non entra fra i bersagli: il waypoint spurio qui non si verifica. Lo
+      // mettiamo comunque esplicito, perché il giorno in cui queste passassero a canvas
+      // per performance il difetto tornerebbe in silenzio.
+      bubblingMouseEvents={false}
       style={(f) => {
         const z = alerted[(f?.properties as { __zoneIndex?: number } | undefined)?.__zoneIndex ?? 0];
         return zoneStyle((z?.maxLevel ?? 1) as 1 | 2 | 3);

@@ -62,6 +62,7 @@ export const CircleMarker = ({ children, ...props }: { children?: React.ReactNod
       data-pathoptions={JSON.stringify(props.pathOptions ?? {})}
       data-pane={String(props.pane ?? '')}
       data-renderer={String((props.renderer as { __renderer?: string } | undefined)?.__renderer ?? '')}
+      data-bubbling={String(props.bubblingMouseEvents)}
       onClick={() => handlers?.click?.({ latlng: props.center })}
     >
       {children}
