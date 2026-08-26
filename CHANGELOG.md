@@ -4,9 +4,9 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
-## [0.11.0] — 2026-08-25 — "Layer di emergenza (fase 1)"
+## [0.11.0] — 2026-08-26 — "Layer di emergenza (fase 1)"
 
-Prima fase dei layer di emergenza sulla mappa (TASK-52): 4 layer opzionali con dati satellitari e bollettini ufficiali, pensati per la sicurezza sul campo. Spec in `backlog/docs/emergency-layers-design.md`. 706 test.
+Prima fase dei layer di emergenza sulla mappa (TASK-52): 4 layer opzionali con dati satellitari e bollettini ufficiali, pensati per la sicurezza sul campo. Spec in `backlog/docs/emergency-layers-design.md`. 708 test.
 
 Il rilascio è passato per una **campagna di code review in tre round** (2026-08-26), da cui sono usciti 29 problemi distinti, chiusi in quattro ondate. Il filo conduttore dei più gravi era sempre lo stesso: un layer rotto o con dati vecchi che si presentava come funzionante e aggiornato. Su una feature che si consulta per decidere se salire su un sentiero, è peggio del layer assente.
 

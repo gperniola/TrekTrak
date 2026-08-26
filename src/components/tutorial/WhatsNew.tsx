@@ -76,7 +76,7 @@ function ColoredPathMockup() {
 const RELEASES: Release[] = [
   {
     version: '0.11.0',
-    date: '2026-08-25',
+    date: '2026-08-26',
     steps: [
       {
         title: 'Layer di emergenza',
