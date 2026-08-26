@@ -20,7 +20,8 @@ describe('fetchFiresClient', () => {
     });
     const r = await fetchFiresClient();
     expect(r.fetchedAt).toBe('2026-08-25T10:00:00Z');
-    expect(global.fetch).toHaveBeenCalledWith('/api/fires');
+    // Il secondo argomento porta il signal dell'AbortController (timeout client).
+    expect(global.fetch).toHaveBeenCalledWith('/api/fires', expect.objectContaining({ signal: expect.anything() }));
   });
 
   test('errore HTTP → throw con messaggio', async () => {

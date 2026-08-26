@@ -1,5 +1,6 @@
 import { feature } from 'topojson-client';
 import type { Topology, GeometryCollection } from 'topojson-specification';
+import { escapeMarkup } from './escape-markup';
 
 export type DpcLevel = 0 | 1 | 2 | 3;
 
@@ -59,9 +60,7 @@ export function parseDpcTopology(topology: unknown): DpcZone[] {
   });
 }
 
-function esc(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
+const esc = escapeMarkup;
 
 function riskRow(label: string, level: DpcLevel): string {
   const color = level === 0 ? '#22c55e' : DPC_LEVEL_COLORS[level];
@@ -81,7 +80,10 @@ export function zonePopupHtml(zone: DpcZone, dayLabel: string, issuedLabel: stri
     `<div style="color:#6b7280;margin-top:6px;font-size:10px">${esc(issuedLabel)}</div></div>`;
 }
 
-function toYmd(d: Date): string {
+/** Data locale in `YYYY-MM-DD`. Unica implementazione: la copia in EmergencyWmsLayer
+ *  era identica carattere per carattere, e una divergenza avrebbe fatto scivolare il
+ *  parametro TIME dei WMS rispetto alle date dei giorni DPC. */
+export function toYmd(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
@@ -109,11 +111,14 @@ export interface DayOption { date: string; label: string; disabled: boolean; }
 export function dayOptions(dates: string[], now: Date): DayOption[] {
   const today = toYmd(now);
   const tomorrow = toYmd(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1));
+  const yesterday = toYmd(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
   return dates.map((date) => {
     let prefix: string;
     if (date === today) prefix = 'Oggi';
     else if (date === tomorrow) prefix = 'Domani';
-    else if (date < today) prefix = 'Ieri';
+    // Solo il giorno prima è "Ieri": con un bollettino vecchio di due giorni, prima
+    // uscivano due pulsanti entrambi etichettati "Ieri" con date diverse.
+    else if (date === yesterday) prefix = 'Ieri';
     else prefix = 'Il';
     return { date, label: `${prefix} ${ddmm(date)}`, disabled: date < today };
   });

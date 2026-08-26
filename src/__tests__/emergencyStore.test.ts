@@ -49,10 +49,40 @@ describe('emergencyStore', () => {
     expect(fetchFiresClient).toHaveBeenCalledTimes(1);
   });
 
-  test('layer wms: ready immediato senza fetch', () => {
+  // Prima i WMS partivano 'ready' a scatola chiusa: un'interruzione EFFIS dava tile
+  // bianchi con il pannello che dichiarava il layer funzionante. Ora lo stato lo
+  // decidono i tile.
+  test('layer wms: parte in loading, senza fetch', () => {
     useEmergencyStore.getState().startLayer('fires-fwi');
-    expect(useEmergencyStore.getState().layers['fires-fwi'].status).toBe('ready');
+    expect(useEmergencyStore.getState().layers['fires-fwi'].status).toBe('loading');
     expect(fetchFiresClient).not.toHaveBeenCalled();
+  });
+
+  test('layer wms: primo tile buono → ready con orario', () => {
+    useEmergencyStore.getState().startLayer('fires-fwi');
+    useEmergencyStore.getState().reportWmsTile('fires-fwi', 'load');
+    const rt = useEmergencyStore.getState().layers['fires-fwi'];
+    expect(rt.status).toBe('ready');
+    expect(rt.lastFetch).not.toBeNull();
+  });
+
+  test('layer wms: un tile fallito isolato non è un guasto', () => {
+    useEmergencyStore.getState().startLayer('fires-fwi');
+    useEmergencyStore.getState().reportWmsTile('fires-fwi', 'error');
+    expect(useEmergencyStore.getState().layers['fires-fwi'].status).toBe('loading');
+  });
+
+  test('layer wms: errori ripetuti senza nessun tile buono → error', () => {
+    useEmergencyStore.getState().startLayer('fires-fwi');
+    for (let i = 0; i < 3; i++) useEmergencyStore.getState().reportWmsTile('fires-fwi', 'error');
+    expect(useEmergencyStore.getState().layers['fires-fwi'].status).toBe('error');
+  });
+
+  test('layer wms: dopo un tile buono gli errori non declassano il layer', () => {
+    useEmergencyStore.getState().startLayer('fires-fwi');
+    useEmergencyStore.getState().reportWmsTile('fires-fwi', 'load');
+    for (let i = 0; i < 5; i++) useEmergencyStore.getState().reportWmsTile('fires-fwi', 'error');
+    expect(useEmergencyStore.getState().layers['fires-fwi'].status).toBe('ready');
   });
 
   test('auto-refresh: dopo refreshMinutes rifetcha', async () => {
@@ -169,5 +199,62 @@ describe('emergencyStore', () => {
     expect(st.layers['dpc-alerts'].error).toBe('bollettino giù');
     expect(st.dpc).toEqual(dpcOk);
     expect(st.dpcSelectedDate).toBe('2026-08-25');
+  });
+  // Tenendo il payload, riaccendere il layer ridisegnava subito i dati di ore prima,
+  // e con lastFetch a null il pannello nascondeva sia l'orario sia l'avviso di
+  // staleness: dati vecchi senza alcun riferimento temporale.
+  test('stopLayer azzera il payload del layer', async () => {
+    useEmergencyStore.getState().startLayer('fires-hotspots');
+    await flush();
+    expect(useEmergencyStore.getState().fires).not.toBeNull();
+    useEmergencyStore.getState().stopLayer('fires-hotspots');
+    expect(useEmergencyStore.getState().fires).toBeNull();
+  });
+
+  test('stopLayer(dpc) azzera bollettino e giorno selezionato', async () => {
+    useEmergencyStore.getState().startLayer('dpc-alerts');
+    await flush();
+    expect(useEmergencyStore.getState().dpc).not.toBeNull();
+    useEmergencyStore.getState().stopLayer('dpc-alerts');
+    expect(useEmergencyStore.getState().dpc).toBeNull();
+    expect(useEmergencyStore.getState().dpcSelectedDate).toBeNull();
+  });
+
+  // Bollettino tutto nel passato: prima restava "ready" con orario fresco e mappa
+  // vuota, cioe' assenza di dati indistinguibile da "nessuna allerta".
+  test('bollettino con soli giorni passati → stato nodata, senza toast rosso', async () => {
+    (fetchDpcClient as jest.Mock).mockResolvedValue({
+      bulletinId: '20200101_1415',
+      issuedLabel: '01/01 14:15',
+      days: [{ date: '2020-01-01', zones: [] }, { date: '2020-01-02', zones: [] }],
+    });
+    useEmergencyStore.getState().startLayer('dpc-alerts');
+    await flush();
+    const st = useEmergencyStore.getState();
+    expect(st.layers['dpc-alerts'].status).toBe('nodata');
+    expect(st.dpcSelectedDate).toBeNull();
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  test('guardia in-flight: refresh concorrenti non si accumulano', async () => {
+    let resolveFetch: (v: unknown) => void = () => {};
+    (fetchFiresClient as jest.Mock).mockImplementation(
+      () => new Promise((res) => { resolveFetch = res; })
+    );
+    useEmergencyStore.getState().startLayer('fires-hotspots');
+    void useEmergencyStore.getState().refreshLayer('fires-hotspots');
+    void useEmergencyStore.getState().refreshLayer('fires-hotspots');
+    expect(fetchFiresClient).toHaveBeenCalledTimes(1);
+    resolveFetch(firesOk);
+    await flush();
+  });
+
+  test('un giorno selezionato scivolato nel passato viene riselezionato', async () => {
+    useEmergencyStore.getState().startLayer('dpc-alerts');
+    await flush();
+    // simula la selezione fatta ieri, rimasta attiva dopo la mezzanotte
+    useEmergencyStore.setState({ dpcSelectedDate: '2020-01-01' });
+    await useEmergencyStore.getState().refreshLayer('dpc-alerts');
+    expect(useEmergencyStore.getState().dpcSelectedDate).not.toBe('2020-01-01');
   });
 });

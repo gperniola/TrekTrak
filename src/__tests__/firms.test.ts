@@ -25,9 +25,18 @@ describe('parseFirmsCsv', () => {
     expect(parseFirmsCsv(csv)).toHaveLength(1);
   });
 
-  test('csv vuoto o solo header → []', () => {
-    expect(parseFirmsCsv('')).toEqual([]);
+  test('solo header → [] (zero incendi, dato valido)', () => {
     expect(parseFirmsCsv(HEADER)).toEqual([]);
+  });
+
+  // FIRMS risponde 200 con testo semplice quando la MAP_KEY è invalida o la quota è
+  // esaurita: distinguere questo caso da "zero incendi" evita di mettere in cache per
+  // 15 minuti un layer vuoto spacciato per aggiornato.
+  test('corpo che non è un CSV FIRMS → null, non []', () => {
+    expect(parseFirmsCsv('')).toBeNull();
+    expect(parseFirmsCsv('Invalid MAP_KEY')).toBeNull();
+    expect(parseFirmsCsv('<html><body>maintenance</body></html>')).toBeNull();
+    expect(parseFirmsCsv('foo,bar,baz\n1,2,3')).toBeNull();
   });
 
   test('colonne risolte dal header, non per posizione', () => {
@@ -35,5 +44,35 @@ describe('parseFirmsCsv', () => {
     const pts = parseFirmsCsv(csv);
     expect(pts[0].frp).toBe(7.7);
     expect(pts[0].acquiredAt).toBe('2026-08-25T00:05:00Z');
+  });
+
+  // `Number('')` è 0 e passa `Number.isFinite`: una riga con lat/lon vuote (risposta
+  // troncata o colonne sfasate) diventava un focolaio fantasma a (0,0).
+  test('lat/lon vuote → riga scartata, non un punto a (0,0)', () => {
+    const csv = [
+      'latitude,longitude,acq_date,acq_time,satellite,confidence,frp',
+      ',,2026-08-25,1200,N20,n,3.3',
+      '  ,  ,2026-08-25,1200,N20,n,3.3',
+    ].join('\n');
+    expect(parseFirmsCsv(csv)).toEqual([]);
+  });
+
+  test('lat/lon fuori range → riga scartata', () => {
+    const csv = [
+      'latitude,longitude,acq_date,acq_time,satellite,confidence,frp',
+      '91.5,13.0,2026-08-25,1200,N20,n,3.3',
+      '42.0,181.2,2026-08-25,1200,N20,n,3.3',
+      '-90.1,13.0,2026-08-25,1200,N20,n,3.3',
+    ].join('\n');
+    expect(parseFirmsCsv(csv)).toEqual([]);
+  });
+
+  test('lat/lon ai limiti del range → accettate', () => {
+    const csv = [
+      'latitude,longitude,acq_date,acq_time,satellite,confidence,frp',
+      '90,180,2026-08-25,1200,N20,n,3.3',
+      '-90,-180,2026-08-25,1200,N20,n,3.3',
+    ].join('\n');
+    expect(parseFirmsCsv(csv)).toHaveLength(2);
   });
 });

@@ -109,3 +109,22 @@ describe('bulletinDates / dayOptions / defaultDpcDate', () => {
     expect(defaultDpcDate(['2026-08-22', '2026-08-23'], now)).toBeNull();
   });
 });
+
+describe('dayOptions con bollettino vecchio', () => {
+  // Prima ogni data passata prendeva il prefisso "Ieri": con un bollettino di due
+  // giorni comparivano due pulsanti "Ieri" con date diverse.
+  test('solo il giorno prima è "Ieri", i più vecchi hanno prefisso neutro', () => {
+    const now = new Date('2026-08-26T09:00:00');
+    const opts = dayOptions(['2026-08-24', '2026-08-25'], now);
+    expect(opts[0].label).toBe('Il 24/08');
+    expect(opts[1].label).toBe('Ieri 25/08');
+    expect(opts.every((o) => o.disabled)).toBe(true);
+  });
+
+  test('oggi e domani restano etichettati e abilitati', () => {
+    const now = new Date('2026-08-26T09:00:00');
+    const opts = dayOptions(['2026-08-26', '2026-08-27'], now);
+    expect(opts.map((o) => o.label)).toEqual(['Oggi 26/08', 'Domani 27/08']);
+    expect(opts.every((o) => o.disabled)).toBe(false);
+  });
+});

@@ -57,4 +57,54 @@ describe('fetchFiresUpstream', () => {
     await fetchFiresUpstream();
     expect(global.fetch).toHaveBeenCalledTimes(6);
   });
+  // Se `clearTimeout` scatta agli header invece che a fine body, l'AbortController e'
+  // disarmato e `res.text()` resta appeso: questo test non terminerebbe mai.
+  test('il timeout copre la lettura del body: un CSV che si blocca a meta viene abortito', async () => {
+    global.fetch = jest.fn().mockImplementation((_url: string, init: RequestInit) => {
+      const signal = init.signal as AbortSignal;
+      return Promise.resolve({
+        ok: true,
+        text: () => new Promise<string>((_res, rej) => {
+          signal.addEventListener('abort', () => rej(new Error('aborted')));
+        }),
+      });
+    });
+    const promise = fetchFiresUpstream();
+    await jest.advanceTimersByTimeAsync(9000);
+    const r = await promise;
+    expect(r.status).toBe(502);
+  });
+  // Il caso peggiore: FIRMS risponde 200 con testo non-CSV (MAP_KEY invalida, quota
+  // esaurita). Prima veniva letto come "zero incendi" e messo in cache 15 minuti.
+  test('tutti i sensori con corpo non-CSV -> 502, non zero incendi', async () => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: true, text: async () => 'Invalid MAP_KEY' });
+    const r = await fetchFiresUpstream();
+    expect(r.status).toBe(502);
+  });
+
+  test('risultato parziale: marcato partial e con TTL breve', async () => {
+    const fn = jest.fn()
+      .mockResolvedValueOnce({ ok: true, text: async () => CSV })
+      .mockResolvedValueOnce({ ok: false })
+      .mockResolvedValueOnce({ ok: false });
+    global.fetch = fn;
+    const r = await fetchFiresUpstream();
+    expect(r.status).toBe(200);
+    if (r.status === 200) {
+      expect(r.data.partial).toBe(true);
+      expect(r.data.points).toHaveLength(1);
+    }
+    const callsSoFar = fn.mock.calls.length;
+    jest.advanceTimersByTime(3 * 60 * 1000);
+    fn.mockResolvedValue({ ok: true, text: async () => CSV });
+    await fetchFiresUpstream();
+    expect(fn.mock.calls.length).toBeGreaterThan(callsSoFar);
+  });
+
+  test('risposta completa: nessun flag partial', async () => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: true, text: async () => CSV });
+    const r = await fetchFiresUpstream();
+    expect(r.status).toBe(200);
+    if (r.status === 200) expect(r.data.partial).toBeUndefined();
+  });
 });
