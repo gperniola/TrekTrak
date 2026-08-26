@@ -9,6 +9,7 @@ import { dayOptions } from '@/lib/dpc';
 import { EmergencyWmsLayer } from './EmergencyWmsLayer';
 import { EmergencyPointsLayer } from './EmergencyPointsLayer';
 import { EmergencyZonesLayer } from './EmergencyZonesLayer';
+import { EmergencyFeatureInfo } from './EmergencyFeatureInfo';
 
 export function EmergencyLayers() {
   const map = useMap();
@@ -53,6 +54,10 @@ export function EmergencyLayers() {
     ? dayOptions(dpc.days.map((d) => d.date), new Date()).find((o) => o.date === dpcSelectedDate)?.label ?? ''
     : '';
 
+  // Layer attivi che rispondono a GetFeatureInfo: sono quelli che la pressione lunga
+  // sulla mappa può interrogare.
+  const queryableDefs = activeIds.map(getEmergencyLayer).filter((d) => d.wms?.queryable);
+
   if (!paneReady) return null;
 
   return (
@@ -66,6 +71,7 @@ export function EmergencyLayers() {
         }
         return null;
       })}
+      {queryableDefs.length > 0 && <EmergencyFeatureInfo defs={queryableDefs} />}
     </>
   );
 }

@@ -135,6 +135,12 @@ function LayerRow({ def }: { def: EmergencyLayerDef }) {
           {runtime.status === 'nodata' && (
             <div className="text-[10px] text-gray-300">Nessun dato disponibile{runtime.error ? ` — ${runtime.error}` : ''}</div>
           )}
+          {/* Il gesto va detto: una pressione lunga non si scopre da sola. */}
+          {def.wms?.queryable && (
+            <div className="text-[10px] text-gray-400">
+              Tieni premuto sulla mappa per i dettagli dell&apos;area
+            </div>
+          )}
           {runtime.partial && runtime.status === 'ready' && (
             <div className="text-[10px] text-amber-400">⚠ dati parziali: alcune fonti non hanno risposto</div>
           )}

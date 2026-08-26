@@ -112,7 +112,21 @@ const mapInstance = {
     getSouth: () => 44,
     getEast: () => 11,
     getWest: () => 9,
+    getSouthWest: () => ({ lat: 44, lng: 9 }),
+    getNorthEast: () => ({ lat: 46, lng: 11 }),
   }),
+  getSize: () => ({ x: 500, y: 635 }),
+  latLngToContainerPoint: () => ({ x: 250, y: 318 }),
+  // Proiezione Web Mercator, come il CRS di default: serve al GetFeatureInfo, che
+  // interroga in EPSG:3857 per avere una corrispondenza pixel↔coordinata lineare.
+  options: {
+    crs: {
+      project: ({ lat, lng }: { lat: number; lng: number }) => ({
+        x: (lng * 20037508.34) / 180,
+        y: (Math.log(Math.tan(((90 + lat) * Math.PI) / 360)) / (Math.PI / 180)) * (20037508.34 / 180),
+      }),
+    },
+  },
   flyTo: jest.fn(),
   setView: jest.fn(),
   fitBounds: jest.fn(),
@@ -133,4 +147,35 @@ export function __mapInstance() {
 
 export const useMap = () => mapInstance;
 
-export const useMapEvents = (_handlers: Record<string, unknown>) => null;
+/**
+ * Handler registrati con `useMapEvents`, per tipo di evento: i test possono farli
+ * scattare come farebbe Leaflet. Prima venivano ignorati, quindi nessun test poteva
+ * verificare cosa succede a un evento della mappa.
+ */
+const mapEventHandlers = new Map<string, Array<(e: unknown) => void>>();
+
+export function __fireMapEvent(type: string, e: unknown): void {
+  (mapEventHandlers.get(type) ?? []).forEach((fn) => fn(e));
+}
+
+export function __resetMapEvents(): void {
+  mapEventHandlers.clear();
+}
+
+export const useMapEvents = (handlers: Record<string, (e: unknown) => void>) => {
+  React.useEffect(() => {
+    const entries = Object.entries(handlers);
+    entries.forEach(([type, fn]) => {
+      const list = mapEventHandlers.get(type) ?? [];
+      list.push(fn);
+      mapEventHandlers.set(type, list);
+    });
+    return () => {
+      entries.forEach(([type, fn]) => {
+        const list = (mapEventHandlers.get(type) ?? []).filter((h) => h !== fn);
+        mapEventHandlers.set(type, list);
+      });
+    };
+  });
+  return null;
+};

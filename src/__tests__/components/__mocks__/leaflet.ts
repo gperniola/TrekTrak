@@ -87,11 +87,18 @@ export function __resetPopups(): void {
 }
 
 const popup = jest.fn(() => {
+  // Registrato PER RIFERIMENTO: un popup reale cambia contenuto dopo l'apertura
+  // (apertura immediata con "attendere", poi il risultato della query). Con una copia
+  // i test vedevano per sempre il primo contenuto.
   const state: { content: string; latlng: unknown } = { content: '', latlng: null };
+  let opened = false;
   const api = {
     setLatLng(latlng: unknown) { state.latlng = latlng; return api; },
     setContent(content: string) { state.content = content; return api; },
-    openOn() { openedPopups.push({ ...state }); return api; },
+    openOn() {
+      if (!opened) { openedPopups.push(state); opened = true; }
+      return api;
+    },
   };
   return api;
 });
