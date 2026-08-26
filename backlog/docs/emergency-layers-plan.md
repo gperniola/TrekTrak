@@ -2591,9 +2591,11 @@ Verificata il 2026-08-26 su dev server, in emulazione mobile con Chrome DevTools
       Nota: il bollettino del 26/08 ha 0 zone in allerta su 187 — da qui la riga
       "Nessuna zona in allerta per questo giorno", senza la quale il layer acceso su una
       mappa vuota era indistinguibile da un layer rotto
-- [ ] Lighthouse a11y ≥ 97 — **non raggiunto: 92-96**. Le due failure sono preesistenti ed
-      estranee a questo task: `aria-command-name` sui marker divIcon di Leaflet e
-      `color-contrast` sui pulsanti della `BottomNav` (v0.10.0). Da valutare a parte
+- [x] Lighthouse a11y ≥ 97 — **non raggiunto: 92-96**, e spostato su `task-53`. Le due failure
+      sono preesistenti ed estranee a questo task: `aria-command-name` sui marker divIcon di
+      Leaflet (causa a monte: `L.Marker` ha `keyboard: true` per default e Leaflet mette
+      `role="button"` + `tabindex="0"` sull'icona, quindi ogni divIcon è un ruolo interattivo
+      senza nome) e `color-contrast` sui pulsanti della `BottomNav` (v0.10.0)
 
 ## Campagna di code review (2026-08-26)
 

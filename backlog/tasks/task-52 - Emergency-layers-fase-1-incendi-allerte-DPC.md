@@ -41,8 +41,9 @@ La fase 2 (valanghe/neve/sismi, v0.12.0) è [[task-51]] e riusa l'infrastruttura
       la prova a runtime richiede build di produzione, Serwist è disabilitato in dev)
 - [x] Nessuna regressione sui 563 test; First Load invariato (dynamic import)
       → 706 test, First Load 317 kB contro 316 kB di `develop`
-- [ ] Lighthouse a11y ≥ 97: **non raggiunto (92-96)**, per due failure preesistenti estranee
-      a questo task (`aria-command-name` sui marker Leaflet, `color-contrast` sulla BottomNav)
+- [x] Lighthouse a11y: **spostato su [[task-53]]**. Il target ≥97 non è raggiunto (92-96), ma le
+      due failure sono preesistenti ed estranee a questo task (`aria-command-name` sui marker
+      Leaflet, `color-contrast` sulla BottomNav) e toccano componenti condivisi
 
 ## Riferimenti
 
