@@ -58,6 +58,7 @@ Il rilascio è passato per una **campagna di code review in tre round** (2026-08
 - **Chiave FIRMS assente**: il pannello mostrava all'utente il nome della variabile d'ambiente del server; ora la riga dice che il layer non è disponibile su questa installazione (spec §4.3).
 - **Focus da tastiera visibile sugli switch**: erano una copia di `ToggleSwitch` che aveva perso il ring, quindi tabulando fra i quattro toggle non si vedeva dove fosse il fuoco.
 - **Un solo escaping condiviso** (`escapeMarkup`) al posto di tre copie divergenti, e un solo `toYmd`.
+- **Le giornate senza allerte lo dicono**: quando il bollettino è valido ma nessuna zona supera il livello 0 — il caso più frequente: il 26/08 erano 0 zone su 187 — il layer acceso restava su una mappa vuota, indistinguibile da un layer rotto. Ora il pannello scrive "Nessuna zona in allerta per questo giorno". Emerso verificando col bollettino reale, non dai test.
 
 ## [0.10.10] — 2026-06-09 — Tasto Indietro: uscita affidabile + mappa che non salta
 

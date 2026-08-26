@@ -39,6 +39,10 @@ function LayerRow({ def }: { def: EmergencyLayerDef }) {
   const setDpcSelectedDate = useEmergencyStore((s) => s.setDpcSelectedDate);
 
   const active = settings.mapDisplay.emergencyLayers.includes(def.id);
+  // Giornata calma: bollettino valido, nessuna zona sopra il livello 0. È il caso
+  // più frequente, e senza dirlo espressamente resta una mappa vuota da interpretare.
+  const selectedDay = dpc?.days.find((d) => d.date === dpcSelectedDate);
+  const calmDay = selectedDay != null && selectedDay.zones.every((z) => z.maxLevel === 0);
   // Guardia anti-rientranza: un secondo tap mentre il disclaimer è in attesa di risposta
   // (await appConfirm) viene ignorato invece di aprire un secondo dialog.
   const pendingRef = useRef(false);
@@ -160,6 +164,12 @@ function LayerRow({ def }: { def: EmergencyLayerDef }) {
                 ))}
               </div>
               <div className="text-[10px] text-gray-400">Bollettino del {dpc.issuedLabel}</div>
+              {/* Giornata calma: il bollettino c'è ed è valido, semplicemente non
+                  dichiara allerte. Senza dirlo, il layer acceso su una mappa vuota è
+                  indistinguibile da un layer rotto — e sono la maggioranza dei giorni. */}
+              {calmDay && (
+                <div className="text-[10px] text-green-400">Nessuna zona in allerta per questo giorno</div>
+              )}
             </div>
           )}
         </div>

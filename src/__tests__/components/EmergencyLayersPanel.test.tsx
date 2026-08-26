@@ -263,4 +263,48 @@ describe('EmergencyLayersPanel', () => {
       expect(sw.className).toMatch(/focus-visible:ring/);
     });
   });
+  // Trovato verificando col bollettino reale del 26/08: giornata calma, 0 zone in
+  // allerta su 187. Il layer resta legittimamente "ready", ma la mappa e' vuota e
+  // per l'utente e' indistinguibile da un layer rotto. Va detto a parole.
+  test('giorno senza zone in allerta: lo dichiara invece di lasciare la mappa muta', () => {
+    setActive(['dpc-alerts']);
+    useEmergencyStore.setState({
+      dpc: {
+        bulletinId: '20260825_1415',
+        issuedLabel: '25/08 14:15',
+        days: [{ date: '2026-08-26', zones: [
+          { name: 'Zona calma', idraulico: 0, temporali: 0, idrogeologico: 0, maxLevel: 0,
+            feature: { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [] } } },
+        ] }],
+      } as never,
+      dpcSelectedDate: '2026-08-26',
+      layers: {
+        ...useEmergencyStore.getState().layers,
+        'dpc-alerts': { status: 'ready', error: null, lastFetch: Date.now() },
+      },
+    });
+    render(<EmergencyLayersPanel />);
+    expect(screen.getByText(/Nessuna zona in allerta/)).toBeInTheDocument();
+  });
+
+  test('giorno con zone in allerta: nessun avviso di giornata calma', () => {
+    setActive(['dpc-alerts']);
+    useEmergencyStore.setState({
+      dpc: {
+        bulletinId: '20260825_1415',
+        issuedLabel: '25/08 14:15',
+        days: [{ date: '2026-08-26', zones: [
+          { name: 'Zona gialla', idraulico: 1, temporali: 0, idrogeologico: 0, maxLevel: 1,
+            feature: { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [] } } },
+        ] }],
+      } as never,
+      dpcSelectedDate: '2026-08-26',
+      layers: {
+        ...useEmergencyStore.getState().layers,
+        'dpc-alerts': { status: 'ready', error: null, lastFetch: Date.now() },
+      },
+    });
+    render(<EmergencyLayersPanel />);
+    expect(screen.queryByText(/Nessuna zona in allerta/)).not.toBeInTheDocument();
+  });
 });

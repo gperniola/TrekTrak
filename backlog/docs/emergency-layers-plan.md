@@ -2576,11 +2576,21 @@ Verificata il 2026-08-26 su dev server, in emulazione mobile con Chrome DevTools
 - [x] Mobile: pannello come bottom sheet, tasto Indietro lo chiude, touch target ok
       → Indietro chiude il pannello senza uscire né ricaricare; sheet ora sopra la BottomNav
       (prima la copriva), con backdrop che chiude al tocco fuori
-- [ ] Bollettino DPC del giorno: zone colorate coerenti con https://mappe.protezionecivile.gov.it,
-      popup con i 3 rischi — **richiede confronto visivo con la mappa ufficiale**
-- [ ] Offline (devtools): righe "non disponibile offline" nel pannello, nessun dato emergenza da cache
-      → le righe sono state implementate e coperte da test; **la verifica del service worker
-      richiede build di produzione** (`npm run build && npm start`), Serwist è disabilitato in dev
+- [x] Offline (devtools): righe "non disponibile offline" nel pannello, nessun dato emergenza da cache
+      → verificato su **build di produzione** con service worker `active`: le 4 richieste di
+      emergenza vengono eseguite e **nessuna finisce nelle cache** (37 entry di precache, zero
+      URL di emergenza), e da offline ogni layer attivo mostra "⚠ non disponibile offline"
+      accanto all'orario del dato già a schermo
+- [~] Bollettino DPC del giorno: zone colorate coerenti con https://mappe.protezionecivile.gov.it,
+      popup con i 3 rischi
+      → **parser verificato contro i bollettini reali**: gli unici valori in circolazione sono
+      "Assenza di fenomeni significativi prevedibili / NESSUNA ALLERTA" → 0 e
+      "Ordinaria / ALLERTA GIALLA" → 1; sul bollettino del 25/08 risultano 33 zone gialle in
+      Emilia-Romagna, Toscana, Umbria, Lazio, Marche e Abruzzo (regioni contigue, coerenti).
+      Resta da confrontare a occhio la **posizione dei poligoni** con la mappa ufficiale.
+      Nota: il bollettino del 26/08 ha 0 zone in allerta su 187 — da qui la riga
+      "Nessuna zona in allerta per questo giorno", senza la quale il layer acceso su una
+      mappa vuota era indistinguibile da un layer rotto
 - [ ] Lighthouse a11y ≥ 97 — **non raggiunto: 92-96**. Le due failure sono preesistenti ed
       estranee a questo task: `aria-command-name` sui marker divIcon di Leaflet e
       `color-contrast` sui pulsanti della `BottomNav` (v0.10.0). Da valutare a parte
