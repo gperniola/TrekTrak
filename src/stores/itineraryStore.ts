@@ -92,6 +92,11 @@ interface ItineraryState {
   addWaypoint: () => void;
   addWaypointAtPosition: (lat: number, lon: number) => void;
   removeWaypoint: (id: string) => void;
+  /**
+   * Svuota i waypoint mantenendo l'itinerario: nome, id e data restano. Diverso da
+   * `resetItinerary`, che genera un itinerario nuovo e butta anche il nome.
+   */
+  clearWaypoints: () => void;
   updateWaypoint: (id: string, data: Partial<Waypoint>) => void;
   updateWaypointPosition: (id: string, lat: number, lon: number) => void;
   updateLeg: (id: string, data: Partial<Leg>) => void;
@@ -213,6 +218,12 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
       newLegs.push(existing ? { ...existing, validationState: undefined } : createEmptyLeg(reordered[i].id, reordered[i + 1].id));
     }
     set({ waypoints: reordered, legs: newLegs });
+  },
+
+  clearWaypoints: () => {
+    // `profileHover`/`profileFlyTo` puntano a waypoint: lasciarli farebbe riferire il
+    // profilo altimetrico a punti che non esistono più.
+    set({ waypoints: [], legs: [], profileHover: null, profileFlyTo: null });
   },
 
   updateWaypoint: (id, data) => {

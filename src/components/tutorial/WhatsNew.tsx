@@ -75,6 +75,19 @@ function ColoredPathMockup() {
  */
 const RELEASES: Release[] = [
   {
+    version: '0.11.3',
+    date: '2026-08-26',
+    steps: [
+      {
+        // L'icona si vede, ma che si possa togliere SOLO l'ultimo no: è quella la
+        // parte che vale la pena dire.
+        title: 'Cancellare i waypoint',
+        text: 'Il cestino sulla mappa (appare quando c\'è almeno un waypoint) ti chiede se cancellarli tutti o solo l\'ultimo che hai aggiunto. Comodo quando tocchi il punto sbagliato: togli solo quello, senza rifare il percorso.',
+        icon: '🗑️',
+      },
+    ],
+  },
+  {
     version: '0.11.1',
     date: '2026-08-26',
     steps: [

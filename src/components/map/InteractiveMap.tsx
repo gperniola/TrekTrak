@@ -15,6 +15,7 @@ import { CompassOverlay } from './CompassTool';
 import { RulerTool } from './RulerTool';
 import { CoordinateGrid } from './CoordinateGrid';
 import { MyLocationButton } from './MyLocationButton';
+import { ClearWaypointsButton } from './ClearWaypointsButton';
 import { EmergencyLayersButton } from './emergency/EmergencyLayersButton';
 import { EmergencyLayersPanel } from './emergency/EmergencyLayersPanel';
 import type { BaseMapDef } from '@/lib/types';
@@ -222,6 +223,7 @@ export function InteractiveMap() {
         </>
       )}
       <MyLocationButton hidden={compassActive} />
+      {!libraryPreview && <ClearWaypointsButton />}
       <EmergencyLayersButton />
       <EmergencyLayersPanel />
       <CompassOverlay active={compassActive} onDeactivate={deactivateCompass} />
