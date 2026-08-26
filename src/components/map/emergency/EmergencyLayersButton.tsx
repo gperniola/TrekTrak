@@ -2,15 +2,26 @@
 
 import { useUIStore } from '@/stores/uiStore';
 import { useItineraryStore } from '@/stores/itineraryStore';
+import { useMapOverlayGuard } from '../useMapOverlayGuard';
 
 export function EmergencyLayersButton() {
   const open = useUIStore((s) => s.emergencyPanelOpen);
   const setOpen = useUIStore((s) => s.setEmergencyPanelOpen);
+  const setMoreMenuOpen = useUIStore((s) => s.setMoreMenuOpen);
   const activeCount = useItineraryStore((s) => s.settings.mapDisplay.emergencyLayers.length);
+  const guard = useMapOverlayGuard<HTMLButtonElement>();
+
+  const toggle = () => {
+    // Mutua esclusione col menu "Altro": due sheet mobile sovrapposti renderebbero
+    // ambigua anche la priorità del tasto Indietro.
+    if (!open) setMoreMenuOpen(false);
+    setOpen(!open);
+  };
 
   return (
     <button
-      onClick={() => setOpen(!open)}
+      ref={guard}
+      onClick={toggle}
       aria-label={activeCount > 0 ? `Layer di emergenza, ${activeCount} attivi` : 'Layer di emergenza'}
       aria-expanded={open}
       title="Layer di emergenza (incendi, allerte)"

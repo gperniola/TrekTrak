@@ -16,6 +16,8 @@ jest.mock('@/lib/emergency-api', () => ({
 }));
 
 describe('EmergencyLayersPanel', () => {
+  const IDS = ['fires-hotspots', 'fires-burned', 'fires-fwi', 'dpc-alerts'] as const;
+
   beforeEach(() => {
     localStorage.clear();
     (confirm as jest.Mock).mockClear().mockResolvedValue(true);
@@ -24,6 +26,17 @@ describe('EmergencyLayersPanel', () => {
     useItineraryStore.setState({
       settings: { ...settings, mapDisplay: { ...settings.mapDisplay, emergencyLayers: [] } },
     });
+    // Il reset dello store di emergenza mancava: lo stato {status:'error'} iniettato da
+    // un test sopravviveva a quelli successivi, e in "footer mostra le fonti attive" il
+    // successivo startLayer usciva subito (status !== 'idle') senza fetchare — il test
+    // passava per il motivo sbagliato, e la suite era ordine-dipendente.
+    IDS.forEach((id) => useEmergencyStore.getState().stopLayer(id));
+    useEmergencyStore.setState({ fires: null, dpc: null, dpcSelectedDate: null });
+  });
+
+  // startLayer arma intervalli reali da 15/30 minuti: senza stop restano appesi a fine run.
+  afterEach(() => {
+    IDS.forEach((id) => useEmergencyStore.getState().stopLayer(id));
   });
 
   test('chiuso → non renderizza nulla', () => {
@@ -163,5 +176,91 @@ describe('EmergencyLayersPanel', () => {
     await waitFor(() =>
       expect(useItineraryStore.getState().settings.mapDisplay.emergencyLayers).toContain('fires-hotspots'));
     expect(confirm).toHaveBeenCalledTimes(1);
+  });
+  function setActive(ids: string[]) {
+    const settings = useItineraryStore.getState().settings;
+    useItineraryStore.setState({
+      settings: { ...settings, mapDisplay: { ...settings.mapDisplay, emergencyLayers: ids as never } },
+    });
+  }
+
+  // Spec 6: da offline la riga dice "non disponibile offline". I dati di emergenza
+  // sono esclusi dalla cache del service worker di proposito, quindi non c'e' nulla
+  // da servire e presentarlo come errore di rete e' fuorviante.
+  describe('stato offline', () => {
+    const setOnline = (v: boolean) => {
+      Object.defineProperty(window.navigator, 'onLine', { value: v, configurable: true });
+    };
+    afterEach(() => setOnline(true));
+
+    test('offline: riga "non disponibile offline" invece dell errore di rete', () => {
+      setOnline(false);
+      setActive(['fires-hotspots']);
+      useEmergencyStore.setState({
+        layers: {
+          ...useEmergencyStore.getState().layers,
+          'fires-hotspots': { status: 'error', error: 'Rete non disponibile', lastFetch: null },
+        },
+      });
+      render(<EmergencyLayersPanel />);
+      expect(screen.getByText(/non disponibile offline/)).toBeInTheDocument();
+      expect(screen.queryByText(/Rete non disponibile/)).not.toBeInTheDocument();
+    });
+
+    test('online: la riga offline non compare', () => {
+      setOnline(true);
+      setActive(['fires-hotspots']);
+      render(<EmergencyLayersPanel />);
+      expect(screen.queryByText(/non disponibile offline/)).not.toBeInTheDocument();
+    });
+  });
+
+  // Prima questo caso restava "ready" con orario fresco e mappa vuota: assenza di
+  // dati indistinguibile da "nessuna allerta".
+  test('stato nodata: dice "Nessun dato disponibile", non un errore', () => {
+    setActive(['dpc-alerts']);
+    useEmergencyStore.setState({
+      layers: {
+        ...useEmergencyStore.getState().layers,
+        'dpc-alerts': { status: 'nodata', error: 'Nessun bollettino per oggi', lastFetch: Date.now() },
+      },
+    });
+    render(<EmergencyLayersPanel />);
+    expect(screen.getByText(/Nessun dato disponibile/)).toBeInTheDocument();
+  });
+
+  test('risultato parziale: la riga lo dichiara', () => {
+    setActive(['fires-hotspots']);
+    useEmergencyStore.setState({
+      layers: {
+        ...useEmergencyStore.getState().layers,
+        'fires-hotspots': { status: 'ready', error: null, lastFetch: Date.now(), partial: true },
+      },
+    });
+    render(<EmergencyLayersPanel />);
+    expect(screen.getByText(/dati parziali/)).toBeInTheDocument();
+  });
+
+  // Prima l'orario era dietro `def.refreshMinutes != null`, quindi i due layer EFFIS
+  // non mostravano mai ne' orario ne' avviso di staleness.
+  test('anche i layer WMS mostrano l orario di aggiornamento', () => {
+    setActive(['fires-fwi']);
+    useEmergencyStore.setState({
+      layers: {
+        ...useEmergencyStore.getState().layers,
+        'fires-fwi': { status: 'ready', error: null, lastFetch: Date.now() },
+      },
+    });
+    render(<EmergencyLayersPanel />);
+    expect(screen.getByText(/Aggiornato alle/)).toBeInTheDocument();
+  });
+
+  // Lo switch e' una copia di ToggleSwitch (settings/MapSettings.tsx) che aveva perso
+  // il focus ring: tabulando fra i quattro toggle non si vedeva dove fosse il fuoco.
+  test('gli switch hanno un indicatore di focus da tastiera', () => {
+    render(<EmergencyLayersPanel />);
+    screen.getAllByRole('switch').forEach((sw) => {
+      expect(sw.className).toMatch(/focus-visible:ring/);
+    });
   });
 });
