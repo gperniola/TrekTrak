@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import L from 'leaflet';
-import { CircleMarker, useMap } from 'react-leaflet';
+import { CircleMarker, useMap, useMapEvents } from 'react-leaflet';
 import type { FirePoint } from '@/lib/firms';
 import { EMERGENCY_PANE } from '@/lib/emergency-layers';
 import { escapeMarkup } from '@/lib/escape-markup';
@@ -10,12 +10,22 @@ import { escapeMarkup } from '@/lib/escape-markup';
 const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
 
 /**
- * Tetto ai marker disegnati. In stagione la bbox italiana su 24 ore per tre sensori
- * VIIRS può dare migliaia di righe: montarle tutte insieme, ognuna con il suo popup,
- * bloccava la mappa per secondi sul telefono — che è il dispositivo per cui la
- * feature esiste. Si tengono i focolai più potenti, che sono quelli che contano.
+ * Rete di sicurezza sul numero di marker, per il caso patologico della mappa
+ * zoomata su mezza Europa. NON è il meccanismo principale: quello è il culling sulla
+ * vista, qui sotto.
+ *
+ * Attenzione al perché: la prima versione applicava questo tetto ordinando per
+ * potenza su TUTTA l'Italia, e il risultato è stato che i focolai della zona
+ * guardata sparivano. Con 2298 punti in Italia e 289 nella vista, per entrare nei
+ * primi 400 serviva una potenza di 53,8 MW mentre lì la media era 6,4: ne restavano
+ * disegnati 3. Per chi guardava la mappa, "i focolai non compaiono più". Che un
+ * incendio a 600 km sia più potente non ha alcuna rilevanza per ciò che va disegnato
+ * qui.
  */
 const MAX_RENDERED = 400;
+
+/** Margine oltre il bordo, così un pan breve non scopre aree vuote. */
+const VIEW_PAD = 0.25;
 
 export function fireColor(acquiredAt: string, now: Date): string {
   return now.getTime() - new Date(acquiredAt).getTime() < SIX_HOURS_MS ? '#ef4444' : '#f97316';
@@ -44,10 +54,27 @@ export function EmergencyPointsLayer({ points }: { points: FirePoint[] }) {
   // nodo <path> nel DOM; su canvas sono disegni in un singolo elemento.
   const renderer = useMemo(() => L.canvas({ pane: EMERGENCY_PANE, padding: 0.3 }), []);
 
+  // Ricalcolo a fine pan/zoom (non a ogni frame): il culling dipende dalla vista.
+  const [viewTick, setViewTick] = useState(0);
+  useMapEvents({
+    moveend: () => setViewTick((t) => t + 1),
+    zoomend: () => setViewTick((t) => t + 1),
+  });
+
   const visible = useMemo(() => {
-    if (points.length <= MAX_RENDERED) return points;
-    return [...points].sort((a, b) => b.frp - a.frp).slice(0, MAX_RENDERED);
-  }, [points]);
+    const b = map.getBounds();
+    const latPad = (b.getNorth() - b.getSouth()) * VIEW_PAD;
+    const lonPad = (b.getEast() - b.getWest()) * VIEW_PAD;
+    const inView = points.filter((p) => (
+      p.lat >= b.getSouth() - latPad && p.lat <= b.getNorth() + latPad
+      && p.lon >= b.getWest() - lonPad && p.lon <= b.getEast() + lonPad
+    ));
+    if (inView.length <= MAX_RENDERED) return inView;
+    // Solo se la vista da sola supera il tetto (mappa molto larga) si sceglie, e
+    // allora la potenza è il criterio sensato.
+    return [...inView].sort((a, b2) => b2.frp - a.frp).slice(0, MAX_RENDERED);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [points, map, viewTick]);
 
   const now = new Date();
   return (

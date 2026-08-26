@@ -6,7 +6,9 @@ import { __paneAtLayerMount, __resetPanes } from './__mocks__/react-leaflet';
 
 jest.mock('@/lib/emergency-api', () => ({
   fetchFiresClient: jest.fn().mockResolvedValue({
-    points: [{ lat: 42, lon: 13, frp: 5, confidence: 'high', acquiredAt: '2026-08-25T09:00:00Z', satellite: 'N20' }],
+    // Dentro i bounds della mappa mockata (44..46, 9..11): il layer focolai scarta i
+    // punti fuori dalla vista, quindi un fixture fuori non verrebbe disegnato.
+    points: [{ lat: 45, lon: 10, frp: 5, confidence: 'high', acquiredAt: '2026-08-25T09:00:00Z', satellite: 'N20' }],
     fetchedAt: '2026-08-25T10:00:00Z',
   }),
   fetchDpcClient: jest.fn().mockResolvedValue({
