@@ -9,7 +9,23 @@ jest.mock('@/lib/emergency-api', () => ({
     points: [{ lat: 42, lon: 13, frp: 5, confidence: 'high', acquiredAt: '2026-08-25T09:00:00Z', satellite: 'N20' }],
     fetchedAt: '2026-08-25T10:00:00Z',
   }),
-  fetchDpcClient: jest.fn().mockResolvedValue({ bulletinId: '20260825_1415', issuedLabel: '25/08 14:15', days: [] }),
+  fetchDpcClient: jest.fn().mockResolvedValue({
+    bulletinId: '20260825_1415',
+    issuedLabel: '25/08 14:15',
+    // La data deve essere quella odierna, altrimenti `defaultDpcDate` non seleziona
+    // nulla e il layer zone non viene renderizzato.
+    days: [{
+      date: new Date().toISOString().slice(0, 10),
+      zones: [{
+        name: 'Zona test', idraulico: 2, temporali: 0, idrogeologico: 0, maxLevel: 2,
+        feature: {
+          type: 'Feature',
+          properties: {},
+          geometry: { type: 'Polygon', coordinates: [[[13, 42], [13.1, 42], [13.1, 42.1], [13, 42]]] },
+        },
+      }],
+    }],
+  }),
 }));
 
 function setActive(ids: string[]) {
@@ -48,10 +64,38 @@ describe('EmergencyLayers', () => {
   // Regressione: al reload con layer persistiti i figli si agganciavano PRIMA che il padre
   // creasse il pane (React esegue gli effetti dei figli prima di quelli del padre), quindi
   // Leaflet faceva getPane('emergency').appendChild → TypeError e la mappa crashava.
+  //
+  // L'asserzione va in due parti: DEVE esserci un aggancio sul pane 'emergency' (altrimenti
+  // la prima versione di questo test passava anche togliendo del tutto la prop `pane`, perche'
+  // un nome vuoto veniva considerato "esistente"), e nessuno di quegli agganci deve essere
+  // avvenuto a pane mancante.
+  function expectPaneReadyAtMount() {
+    const emergency = __paneAtLayerMount.filter((r) => r.pane === 'emergency');
+    expect(emergency.length).toBeGreaterThan(0);
+    expect(emergency.every((r) => r.existed)).toBe(true);
+  }
+
   test('layer wms già attivo al mount → il pane esiste quando il layer si aggancia', async () => {
     setActive(['fires-fwi']);
     render(<EmergencyLayers />);
     await waitFor(() => expect(__paneAtLayerMount.length).toBeGreaterThan(0));
-    expect(__paneAtLayerMount).not.toContainEqual({ pane: 'emergency', existed: false });
+    expectPaneReadyAtMount();
+  });
+
+  // La stessa garanzia serve per gli altri due tipi di layer: l'harness copriva solo
+  // WMSTileLayer, quindi una regressione su focolai o allerte — che sono proprio i
+  // layer persistiti nello scenario del crash — sarebbe passata in CI.
+  test('layer points già attivo al mount → il pane esiste quando i marker si agganciano', async () => {
+    setActive(['fires-hotspots']);
+    render(<EmergencyLayers />);
+    await waitFor(() => expect(screen.getByTestId('circle-marker')).toBeInTheDocument());
+    expectPaneReadyAtMount();
+  });
+
+  test('layer zones già attivo al mount → il pane esiste quando il GeoJSON si aggancia', async () => {
+    setActive(['dpc-alerts']);
+    render(<EmergencyLayers />);
+    await waitFor(() => expect(screen.getByTestId('geojson-layer')).toBeInTheDocument());
+    expectPaneReadyAtMount();
   });
 });
