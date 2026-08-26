@@ -16,8 +16,9 @@ function ConfirmDialog({ request }: { request: ConfirmRequest }) {
   const cancelBtnRef = useRef<HTMLButtonElement>(null);
   const style = VARIANT_STYLES[request.variant];
 
-  const accept = () => resolveConfirm(request.id, true);
-  const dismiss = () => resolveConfirm(request.id, false);
+  const accept = () => resolveConfirm(request.id, 'primary');
+  const acceptSecondary = () => resolveConfirm(request.id, 'secondary');
+  const dismiss = () => resolveConfirm(request.id, null);
 
   useEffect(() => {
     // For destructive actions (error variant), focus the Cancel button so
@@ -75,18 +76,28 @@ function ConfirmDialog({ request }: { request: ConfirmRequest }) {
             </p>
           </div>
         </div>
-        <div className="flex justify-end gap-2 mt-4">
+        {/* Su mobile i pulsanti vanno in colonna: tre azioni in fila diventano
+            bersagli troppo stretti da centrare col pollice. */}
+        <div className="flex justify-end gap-2 mt-4 max-lg:flex-col-reverse max-lg:items-stretch">
           <button
             ref={cancelBtnRef}
             onClick={dismiss}
-            className="px-4 py-2 rounded text-sm bg-gray-700 hover:bg-gray-600 text-gray-100"
+            className="px-4 py-2 rounded text-sm bg-gray-700 hover:bg-gray-600 text-gray-100 max-lg:min-h-[44px]"
           >
             {request.cancelText}
           </button>
+          {request.secondaryText && (
+            <button
+              onClick={acceptSecondary}
+              className="px-4 py-2 rounded text-sm bg-gray-600 hover:bg-gray-500 text-gray-100 max-lg:min-h-[44px]"
+            >
+              {request.secondaryText}
+            </button>
+          )}
           <button
             ref={confirmBtnRef}
             onClick={accept}
-            className={`px-4 py-2 rounded text-sm font-medium ${style.confirmBtn}`}
+            className={`px-4 py-2 rounded text-sm font-medium max-lg:min-h-[44px] ${style.confirmBtn}`}
           >
             {request.confirmText}
           </button>

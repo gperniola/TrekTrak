@@ -12,6 +12,13 @@ export interface Toast {
   duration: number | null;
 }
 
+/**
+ * Esito di un dialog: l'azione primaria, quella secondaria (presente solo se il
+ * dialog offre tre scelte), oppure l'annullamento — che include Escape, click fuori
+ * e il pulsante Annulla.
+ */
+export type ConfirmChoice = 'primary' | 'secondary' | null;
+
 export interface ConfirmRequest {
   id: string;
   title?: string;
@@ -19,7 +26,9 @@ export interface ConfirmRequest {
   variant: 'confirm' | 'info' | 'error';
   confirmText: string;
   cancelText: string;
-  resolve: (value: boolean) => void;
+  /** Se presente, il dialog mostra una terza scelta fra Annulla e l'azione primaria. */
+  secondaryText?: string;
+  resolve: (value: ConfirmChoice) => void;
 }
 
 interface NotificationState {
@@ -29,10 +38,10 @@ interface NotificationState {
   pushToast: (toast: Omit<Toast, 'id'>) => string;
   dismissToast: (id: string) => void;
 
-  /** Push a confirm dialog and return a Promise that resolves to true (Conferma) or false (Annulla). */
-  requestConfirm: (req: Omit<ConfirmRequest, 'id' | 'resolve'>) => Promise<boolean>;
-  /** Called by the confirm modal UI when the user clicks Conferma or Annulla, or dismisses. */
-  resolveConfirm: (id: string, value: boolean) => void;
+  /** Push a confirm dialog and return a Promise that resolves to the chosen action. */
+  requestConfirm: (req: Omit<ConfirmRequest, 'id' | 'resolve'>) => Promise<ConfirmChoice>;
+  /** Called by the confirm modal UI when the user picks an action or dismisses. */
+  resolveConfirm: (id: string, value: ConfirmChoice) => void;
 }
 
 function makeId(): string {
@@ -53,7 +62,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   },
 
   requestConfirm: (req) => {
-    return new Promise<boolean>((resolve) => {
+    return new Promise<ConfirmChoice>((resolve) => {
       const id = makeId();
       set((s) => ({ confirms: [...s.confirms, { id, resolve, ...req }] }));
     });
@@ -84,6 +93,7 @@ export const toast = {
     useNotificationStore.getState().pushToast({ message, variant: 'error', duration: duration ?? 5000 }),
 };
 
+/** Dialog a due scelte. Resta booleano: le decine di chiamate esistenti non cambiano. */
 export function confirm(opts: {
   title?: string;
   message: string;
@@ -91,11 +101,29 @@ export function confirm(opts: {
   confirmText?: string;
   cancelText?: string;
 }): Promise<boolean> {
+  return choose(opts).then((c) => c === 'primary');
+}
+
+/**
+ * Dialog a tre scelte: azione primaria, azione secondaria, annulla. Serve quando la
+ * domanda non è sì/no — per esempio "cancellare tutti i waypoint, o solo l'ultimo?".
+ * Passa dallo stesso componente di `confirm`, quindi eredita focus, Escape e trap del
+ * tab senza duplicare un secondo modal.
+ */
+export function choose(opts: {
+  title?: string;
+  message: string;
+  variant?: 'confirm' | 'info' | 'error';
+  confirmText?: string;
+  secondaryText?: string;
+  cancelText?: string;
+}): Promise<ConfirmChoice> {
   return useNotificationStore.getState().requestConfirm({
     title: opts.title,
     message: opts.message,
     variant: opts.variant ?? 'confirm',
     confirmText: opts.confirmText ?? 'Conferma',
     cancelText: opts.cancelText ?? 'Annulla',
+    secondaryText: opts.secondaryText,
   });
 }
