@@ -47,6 +47,8 @@ export default function Home() {
   const closeProgress = useUIStore((s) => s.closeProgress);
   const moreMenuOpen = useUIStore((s) => s.moreMenuOpen);
   const setMoreMenuOpen = useUIStore((s) => s.setMoreMenuOpen);
+  const emergencyPanelOpen = useUIStore((s) => s.emergencyPanelOpen);
+  const setEmergencyPanelOpen = useUIStore((s) => s.setEmergencyPanelOpen);
 
   const previewRoute = useRouteLibraryStore((s) => s.routes.find((r) => r.id === s.selectedRouteId));
   const clearRouteSelection = useRouteLibraryStore((s) => s.select);
@@ -116,9 +118,11 @@ export default function Home() {
       quizActive,
       searchOpen,
       mobileTab,
+      emergencyPanelOpen,
     });
     switch (action) {
       case 'closeMore': setMoreMenuOpen(false); return true;
+      case 'closeEmergencyPanel': setEmergencyPanelOpen(false); return true;
       case 'closeMapSettings': setShowMapSettings(false); return true;
       case 'closeSettings': setShowSettings(false); return true;
       case 'closeProgress': closeProgress(); return true;
@@ -133,6 +137,7 @@ export default function Home() {
   // base: ogni overlay/menu = +1, e trovarsi su una scheda diversa dalla Mappa = +1.
   const backDepth =
     (moreMenuOpen ? 1 : 0) +
+    (emergencyPanelOpen ? 1 : 0) +
     (showMapSettings ? 1 : 0) +
     (showSettings ? 1 : 0) +
     (progressOpen ? 1 : 0) +

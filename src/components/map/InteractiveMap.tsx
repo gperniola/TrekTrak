@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import type L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -14,6 +15,8 @@ import { CompassOverlay } from './CompassTool';
 import { RulerTool } from './RulerTool';
 import { CoordinateGrid } from './CoordinateGrid';
 import { MyLocationButton } from './MyLocationButton';
+import { EmergencyLayersButton } from './emergency/EmergencyLayersButton';
+import { EmergencyLayersPanel } from './emergency/EmergencyLayersPanel';
 import type { BaseMapDef } from '@/lib/types';
 import { BASE_MAPS, HIKING_TRAILS_OVERLAY } from '@/lib/types';
 import { GeolocateOnMount, DEFAULT_CENTER, DEFAULT_ZOOM, MAX_ZOOM } from './GeolocateOnMount';
@@ -24,6 +27,8 @@ import { ProfileHoverMarker } from './ProfileHoverMarker';
 import { QuizBoundsSync } from './QuizBoundsSync';
 import { useRouteLibraryStore } from '@/stores/routeLibraryStore';
 import { PreviewRouteLayer } from './PreviewRouteLayer';
+
+const EmergencyLayers = dynamic(() => import('./emergency/EmergencyLayers'), { ssr: false });
 
 function resolveBaseMap(chosen: string): BaseMapDef {
   const def = BASE_MAPS.find((m) => m.id === chosen && m.available);
@@ -184,6 +189,7 @@ export function InteractiveMap() {
         />
       )}
       {showCoordinateGrid && <CoordinateGrid />}
+      <EmergencyLayers />
       <GeolocateOnMount />
       <LocationSearch mobileSearchOpen={searchOpen} />
 
@@ -216,6 +222,8 @@ export function InteractiveMap() {
         </>
       )}
       <MyLocationButton hidden={compassActive} />
+      <EmergencyLayersButton />
+      <EmergencyLayersPanel />
       <CompassOverlay active={compassActive} onDeactivate={deactivateCompass} />
       <RulerTool active={rulerActive} onDeactivate={deactivateRuler} />
       <QuizBoundsSync />

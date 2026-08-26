@@ -1,7 +1,7 @@
 ---
 id: TASK-25
 title: Quiz — how-to azimuth, modalità raggio, adattivo
-status: In Progress
+status: To Do
 assignee: []
 created_date: '2026-05-15 19:00'
 labels:
@@ -54,4 +54,8 @@ ordinal: 25000
 - `src/lib/learning-stats.ts` (categoryStats)
 - `backlog/docs/persona-usability-tests.md` D.4
 - `backlog/docs/feature-suggestions.md` C2, C3
+
+## Stato audit 2026-08-25
+
+Riportato da "In Progress" a "To Do": nessun sotto-punto risulta implementato nel codice (nessun `quizHowToSeen`, nessun toggle raggio in `QuizOverlay`, `generateQuestionSet` non adattivo).
 <!-- SECTION:DESCRIPTION:END -->

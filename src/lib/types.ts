@@ -1,3 +1,5 @@
+import type { EmergencyLayerId } from './emergency-layers';
+
 export type ValidationStatus = 'unverified' | 'valid' | 'warning' | 'error';
 
 export interface ValidationResult {
@@ -191,6 +193,7 @@ export interface MapDisplaySettings {
   baseMap: BaseMapId;
   showHikingTrails: boolean;
   showCoordinateGrid: boolean;
+  emergencyLayers: EmergencyLayerId[];
 }
 
 export const DEFAULT_MAP_DISPLAY: MapDisplaySettings = {
@@ -200,6 +203,7 @@ export const DEFAULT_MAP_DISPLAY: MapDisplaySettings = {
   baseMap: 'thunderforest-outdoors',
   showHikingTrails: true,
   showCoordinateGrid: false,
+  emergencyLayers: [],
 };
 
 /**

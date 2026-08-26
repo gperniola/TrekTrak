@@ -20,12 +20,12 @@ Bundle di piccoli "UI cues" emersi dai persona test. Ognuno isolato è banale, i
 ## Sotto-task
 
 ### A. "Progresso" disabled finché non ci sono dati (B.7)
-- [ ] In `panel/ActionBar.tsx` il bottone `📊 Progresso` apre `ProgressOverlay`. Oggi è sempre attivo, l'overlay aperto a freddo mostra empty state
-- [ ] Disabilitare il bottone se `loadValidationHistory().length === 0 && loadQuizHistory().length === 0`
-- [ ] Tooltip sul disabled: "Completa una verifica o un quiz per vedere il tuo progresso"
+- [x] In `panel/ActionBar.tsx` il bottone `📊 Progresso` apre `ProgressOverlay`. Oggi è sempre attivo, l'overlay aperto a freddo mostra empty state
+- [x] Disabilitare il bottone se `loadValidationHistory().length === 0 && loadQuizHistory().length === 0`
+- [x] Tooltip sul disabled: "Completa una verifica o un quiz per vedere il tuo progresso"
 
 ### B. Tooltip scala SAC sulla "Difficoltà: T1" (B.6)
-- [ ] In `panel/SummaryBar.tsx:25-27`, rendere "Difficoltà: T1" un bottone/span con `title=` o popover dettagliato:
+- [x] In `panel/SummaryBar.tsx:25-27`, rendere "Difficoltà: T1" un bottone/span con `title=` o popover dettagliato:
   - T1 — Sentiero ben segnato, camminata semplice
   - T2 — Sentiero di montagna con tratti meno definiti
   - T3 — Sentiero alpino impegnativo, possibili passaggi esposti
@@ -40,8 +40,8 @@ Bundle di piccoli "UI cues" emersi dai persona test. Ognuno isolato è banale, i
 - [ ] Banner dismissibile, ricompare cambiando mappa
 
 ### D. Positive reinforcement nelle verifiche (D.5)
-- [ ] In `ActionBar.tsx` verify-flow, dopo aver calcolato il count valid/warning/error confrontare con l'ultima `ValidationSession` salvata
-- [ ] Se `validPercent` è migliorato rispetto all'ultima sessione, aggiungere al banner di Verifica un "📈 +N% rispetto alla precedente"
+- [x] In `ActionBar.tsx` verify-flow, dopo aver calcolato il count valid/warning/error confrontare con l'ultima `ValidationSession` salvata
+- [x] Se `validPercent` è migliorato rispetto all'ultima sessione, aggiungere al banner di Verifica un "📈 +N% rispetto alla precedente"
 - [ ] Anche nei tip didattici dei badge: "Stai migliorando su questo tipo di errore!" se la storia mostra un trend positivo (logic già in `learning-stats.computeTrendDirection`)
 
 ## Acceptance criteria
@@ -54,4 +54,8 @@ Bundle di piccoli "UI cues" emersi dai persona test. Ognuno isolato è banale, i
 - `backlog/docs/persona-usability-tests.md` B.6, B.7, C.2, D.5
 - Glossario in [[task-16-tutorial-glossary-profile-choice]] (T1-T6 può linkare là)
 - Toast in [[task-5-in-app-modal-and-toast]] (per banner zoom)
+
+## Stato audit 2026-08-25
+
+A, B (popover SAC in `SummaryBar.tsx`, senza link al glossario) e D (banner "+N%" in `ActionBar.tsx:301-320`) risultano già implementati e sono stati spuntati retroattivamente. **Resta da fare: C (banner "zoom oltre dettaglio nativo"), il tip trend positivo di D, e il link B→glossario (dipende da [[task-16-tutorial-glossary-profile-choice]]).**
 <!-- SECTION:DESCRIPTION:END -->

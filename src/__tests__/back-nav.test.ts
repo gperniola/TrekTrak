@@ -4,6 +4,7 @@ import { nextBackAction, type BackNavState } from '@/lib/back-nav';
 const base: BackNavState = {
   moreMenuOpen: false, mapSettingsOpen: false, settingsOpen: false,
   progressOpen: false, quizActive: false, searchOpen: false, mobileTab: 'map',
+  emergencyPanelOpen: false,
 };
 
 describe('nextBackAction (priorità tasto Indietro)', () => {
@@ -22,5 +23,10 @@ describe('nextBackAction (priorità tasto Indietro)', () => {
     expect(nextBackAction({ ...base, settingsOpen: true, progressOpen: true })).toBe('closeSettings');
     expect(nextBackAction({ ...base, progressOpen: true, quizActive: true })).toBe('closeProgress');
     expect(nextBackAction({ ...base, quizActive: true, searchOpen: true })).toBe('closeQuiz');
+  });
+  test('pannello emergenza aperto → closeEmergencyPanel, con priorità dopo moreMenu', () => {
+    expect(nextBackAction({ ...base, emergencyPanelOpen: true })).toBe('closeEmergencyPanel');
+    expect(nextBackAction({ ...base, emergencyPanelOpen: true, moreMenuOpen: true })).toBe('closeMore');
+    expect(nextBackAction({ ...base, emergencyPanelOpen: true, mapSettingsOpen: true })).toBe('closeEmergencyPanel');
   });
 });

@@ -1,14 +1,8 @@
 import type { Waypoint, Leg } from './types';
 import { sanitizeFilename } from './format';
+import { escapeMarkup } from './escape-markup';
 
-function escapeXml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
+const escapeXml = escapeMarkup;
 
 function buildTrkptElements(waypoints: Waypoint[], legs: Leg[]): string {
   const validWps = waypoints.filter(

@@ -75,6 +75,27 @@ function ColoredPathMockup() {
  */
 const RELEASES: Release[] = [
   {
+    version: '0.11.0',
+    date: '2026-08-26',
+    steps: [
+      {
+        title: 'Layer di emergenza',
+        text: 'Nuovo pulsante ⚠️ sulla mappa: attiva i layer con i focolai rilevati da satellite (NASA FIRMS), le aree bruciate e il pericolo incendio previsto (Copernicus EFFIS).',
+        icon: '🔥',
+      },
+      {
+        title: 'Allerte meteo-idro',
+        text: 'Il layer Allerte DPC colora le zone di allerta della Protezione Civile (rischio idraulico, temporali e idrogeologico/frane), per oggi e domani, direttamente dal bollettino ufficiale.',
+        icon: '🌊',
+      },
+      {
+        title: 'Tocca per i dettagli',
+        text: 'Ogni focolaio e ogni zona di allerta è tappabile: data di rilevamento, potenza, confidenza, livelli di criticità. Con legenda, orario di aggiornamento e fonti sempre visibili.',
+        icon: '👆',
+      },
+    ],
+  },
+  {
     version: '0.4.0',
     date: '2026-04-11',
     steps: [
