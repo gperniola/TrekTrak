@@ -4,6 +4,14 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.11.1] — 2026-08-26 — Tap sui focolai + aree bruciate interrogabili
+
+### Fixed
+- **Toccare un focolaio non aggiunge più un waypoint all'itinerario.** Regressione della v0.11.0, introdotta dal passaggio dei focolai al renderer canvas: un tap apriva il popup *e* creava un waypoint, con tanto di chiamata di reverse-geocoding. Con il renderer SVG il bersaglio del click è il `<path>` e Leaflet risolve il layer; col canvas il bersaglio è la tela, quindi `_findEventTargets` non riconosce il layer e aggiunge la **mappa** come bersaglio di fallback, facendo scattare entrambi. Risolto con `bubblingMouseEvents: false` — il flag che il ciclo di Leaflet già controlla per fermarsi al layer. Toccando la mappa vuota il waypoint si aggiunge come sempre: resta possibile pianificare un percorso con i layer di emergenza accesi.
+
+### Added
+- **Aree bruciate interrogabili**: una **pressione lunga** sull'area (click destro su desktop) chiede a Copernicus EFFIS cosa c'è sotto quel punto e mostra la **data dell'incendio**. Il gesto non è il tap normale di proposito — sulla mappa il tap significa già "aggiungi waypoint" — ed è annunciato nella riga del layer, perché una pressione lunga non si scopre da sola. Il pericolo incendio (FWI) resta non interrogabile: EFFIS lo dichiara `queryable="0"` nelle proprie capabilities e il layer gemello `mf010.query` risponde senza attributi.
+
 ## [0.11.0] — 2026-08-26 — "Layer di emergenza (fase 1)"
 
 Prima fase dei layer di emergenza sulla mappa (TASK-52): 4 layer opzionali con dati satellitari e bollettini ufficiali, pensati per la sicurezza sul campo. Spec in `backlog/docs/emergency-layers-design.md`. 708 test.

@@ -93,4 +93,17 @@ describe('EmergencyPointsLayer', () => {
     render(<EmergencyPointsLayer points={few} />);
     expect(screen.getAllByTestId('circle-marker')).toHaveLength(5);
   });
+  // Regressione introdotta dal passaggio al renderer canvas: col canvas il bersaglio
+  // DOM e' la tela, non il <path>, quindi `Map._findEventTargets` non trova il layer e
+  // aggiunge la MAPPA come bersaglio di fallback. `_fireDOMEvent` fa allora scattare
+  // sia il marker sia la mappa (leaflet-src.js:4535-4541), e MapEvents interpreta il
+  // click della mappa come "aggiungi waypoint": tap su un focolaio = popup + waypoint
+  // spurio. `Path` ha `bubblingMouseEvents: true` per default, `Marker` false — da cui
+  // il fatto che i waypoint non avessero mai il problema.
+  test('i marker non propagano il click alla mappa (nessun waypoint sul tap del focolaio)', () => {
+    render(<EmergencyPointsLayer points={[P(), P({ lat: 43 })]} />);
+    screen.getAllByTestId('circle-marker').forEach((m) => {
+      expect(m).toHaveAttribute('data-bubbling', 'false');
+    });
+  });
 });

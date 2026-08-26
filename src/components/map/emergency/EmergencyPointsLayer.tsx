@@ -61,6 +61,13 @@ export function EmergencyPointsLayer({ points }: { points: FirePoint[] }) {
             radius={6}
             pane={EMERGENCY_PANE}
             renderer={renderer}
+            // Col renderer canvas il bersaglio DOM del click è la tela, non un <path>:
+            // `Map._findEventTargets` non riconosce il layer e aggiunge la MAPPA come
+            // bersaglio di fallback, quindi `_fireDOMEvent` fa scattare marker *e* mappa
+            // (leaflet-src.js:4535-4541) e MapEvents aggiunge un waypoint. `Path` ha
+            // `bubblingMouseEvents: true` per default — `Marker` no, ed è la ragione per
+            // cui i waypoint non hanno mai avuto questo problema.
+            bubblingMouseEvents={false}
             pathOptions={{ color: c, fillColor: c, fillOpacity: 0.7, weight: 1 }}
             // Il popup si costruisce al click, non al mount: prima ogni punto creava
             // subito un'istanza L.Popup con i suoi listener sulla mappa, rendendo il

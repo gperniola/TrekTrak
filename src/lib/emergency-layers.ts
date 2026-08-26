@@ -9,6 +9,13 @@ export interface WmsConfig {
   layers: string;
   timeMode: 'today' | 'yearToDate';
   opacity: number;
+  /**
+   * Il layer risponde a `GetFeatureInfo`, quindi si può interrogare con una pressione
+   * lunga sulla mappa. Va dichiarato per layer perché non è deducibile: EFFIS pubblica
+   * i tile del FWI ma non lo offre come queryable (`QUERY_LAYERS=mf010.fwi` risponde
+   * `LayerNotDefined`), mentre le aree bruciate rispondono con la data dell'incendio.
+   */
+  queryable?: boolean;
 }
 
 export interface EmergencyLayerDef {
@@ -51,7 +58,7 @@ export const EMERGENCY_LAYERS: EmergencyLayerDef[] = [
     attribution: '<a href="https://forest-fire.emergency.copernicus.eu/">Copernicus EFFIS</a>',
     refreshMinutes: null,
     legend: [{ color: '#7f1d1d', label: 'Area percorsa dal fuoco' }],
-    wms: { url: EFFIS_WMS_URL, layers: 'effis.nrt.ba.poly', timeMode: 'yearToDate', opacity: 0.7 },
+    wms: { url: EFFIS_WMS_URL, layers: 'effis.nrt.ba.poly', timeMode: 'yearToDate', opacity: 0.7, queryable: true },
   },
   {
     id: 'fires-fwi',

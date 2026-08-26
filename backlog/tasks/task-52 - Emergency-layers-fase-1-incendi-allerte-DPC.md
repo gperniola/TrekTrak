@@ -1,7 +1,7 @@
 ---
 id: TASK-52
 title: Layer emergenza fase 1 — incendi + allerte meteo-idro DPC (v0.11.0)
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-08-25 15:00'
 labels:
@@ -31,7 +31,7 @@ La fase 2 (valanghe/neve/sismi, v0.12.0) è [[task-51]] e riusa l'infrastruttura
 - [x] Piano di implementazione (writing-plans)
 - [x] Implementazione TDD su `feature/emergency-layers`
 - [x] Campagna di code review: 3 round, 29 problemi distinti, chiusi in 4 ondate (2026-08-26)
-- [ ] Release v0.11.0
+- [x] Release v0.11.0 — 2026-08-26, origin master + tag `v0.11.0`
 
 ## Acceptance criteria
 

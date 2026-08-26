@@ -75,6 +75,19 @@ function ColoredPathMockup() {
  */
 const RELEASES: Release[] = [
   {
+    version: '0.11.1',
+    date: '2026-08-26',
+    steps: [
+      {
+        // Una pressione lunga non si scopre da sola: se non la annunciamo qui, questa
+        // funzione non la troverà nessuno.
+        title: 'Dettagli delle aree bruciate',
+        text: 'Con il layer "Aree bruciate" attivo, tieni premuto su un\'area della mappa (o clic destro su computer) per sapere quando è passato il fuoco: TrekTrak lo chiede a Copernicus EFFIS e te lo mostra in un fumetto.',
+        icon: '🔥',
+      },
+    ],
+  },
+  {
     version: '0.11.0',
     date: '2026-08-26',
     steps: [
