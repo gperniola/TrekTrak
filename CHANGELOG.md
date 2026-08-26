@@ -4,6 +4,11 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.11.3] — 2026-08-26 — Cancellare i waypoint dalla mappa
+
+### Added
+- **Cestino sulla mappa per cancellare i waypoint**, col numero di waypoint nel badge. Compare solo se ce n'è almeno uno. Alla pressione chiede cosa fare: **cancellarli tutti**, **solo l'ultimo aggiunto**, o annullare — perché le due azioni sono diverse e nessuna è il contrario naturale dell'altra. "Solo l'ultimo" copre il caso frequente del tocco sbagliato. Il fuoco della tastiera parte da Annulla, così un Invio distratto non cancella l'itinerario, e su mobile i tre pulsanti vanno in colonna con altezza minima da pollice. Il nome dell'itinerario sopravvive alla cancellazione: non è un "nuovo itinerario".
+
 ## [0.11.2] — 2026-08-26 — Hotfix: i focolai tornano visibili
 
 ### Fixed
