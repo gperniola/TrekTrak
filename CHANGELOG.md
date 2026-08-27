@@ -4,6 +4,22 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.11.6] — 2026-08-27 — Legende vere, marker che non intralciano, controllo allerte leggero
+
+### Fixed
+- **Le legende dei layer Copernicus dicevano cose che sulla mappa non si vedevano.** Le aree bruciate dichiaravano una voce sola — un rosso che non corrisponde a nessuna classe — mentre il servizio le disegna in **quattro colori per recenza**: ultimo giorno, ultimi 7, ultimi 30, resto della stagione. Chi guardava una macchia azzurra o verde non aveva modo di sapere che stava leggendo *quando* è bruciata, che è l'informazione più utile del layer. Il pericolo incendio (FWI) ne dichiarava cinque su sei, con colori inventati: mancava proprio la classe più grave. Ora colori, nomi e soglie sono campionati e riletti dalla legenda che il servizio pubblica, decimali compresi — arrotondare `< 11,2` a `< 11` sposta il confine fra due classi rispetto al colore disegnato davvero.
+
+### Accessibility
+- **I marker decorativi non intralciano più la navigazione da tastiera.** I capi del righello, i punti del quiz, le etichette della griglia e i numeri dell'anteprima di percorso finivano nell'ordine di tabulazione come pulsanti senza nome: Leaflet mette `role="button"` e `tabIndex=0` su ogni marker per default, e `interactive={false}` blocca il mouse, non la tastiera — è la ragione per cui il difetto sembrava già gestito.
+- **I marker dei waypoint hanno un nome che si capisce**: "Waypoint 3" invece del solo "3", con il testo di supporto visibile ai soli screen reader.
+- **Le etichette non attive della barra di navigazione hanno contrasto sufficiente**: erano a 3,67 su un minimo di 4,5, a 11px.
+
+### Performance
+- **Il controllo "sono in una zona in allerta?" all'avvio scarica 2,4 KB invece di 400.** Il bollettino DPC pubblica un manifest giornaliero col riepilogo nazionale: se dice che in tutta Italia non ci sono allerte, nessuna posizione può cadere in una zona in allerta e le geometrie non servono. Misurato in produzione: 2.921 byte totali, zero richieste di geometrie. Nei giorni tranquilli — la maggioranza — il risparmio è pieno. Il manifest è solo un'ottimizzazione e fallisce nel verso giusto: se non è raggiungibile, o se il testo è formulato in un modo non riconosciuto, si scaricano le geometrie come prima. Non può produrre un falso "nessuna allerta".
+
+### DX
+- **I file di test sono type-checkati** (`npm run typecheck:tests`) e **ESLint fa qualcosa di utile** (`npm run lint`, prima apriva un prompt interattivo: in CI si sarebbe piantato). Il nuovo controllo ha trovato subito quattro derive vere nelle fixture: campi aggiunti al tipo e mai aggiunti alle fixture, un campo `notes` sui waypoint che nel tipo non esiste più, un campo obbligatorio assente, e fixture di stato non annotate che quindi non venivano mai confrontate con lo stato reale. Aggiunto `npm run check` che esegue tutti i gate. 808 test.
+
 ## [0.11.5] — 2026-08-27 — Allerta DPC dove ti trovi
 
 ### Added
