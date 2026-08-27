@@ -6,6 +6,7 @@ const base: BackNavState = {
   progressOpen: false, quizActive: false, searchOpen: false, mobileTab: 'map',
   emergencyPanelOpen: false,
   toolsFabOpen: false,
+  weatherOpen: false,
 };
 
 describe('nextBackAction (priorità tasto Indietro)', () => {

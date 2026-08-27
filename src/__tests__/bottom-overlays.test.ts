@@ -4,7 +4,7 @@ import { nextBackAction } from '@/lib/back-nav';
 const base = {
   moreMenuOpen: false, mapSettingsOpen: false, settingsOpen: false, progressOpen: false,
   quizActive: false, searchOpen: false, mobileTab: 'map' as const,
-  emergencyPanelOpen: false, toolsFabOpen: false,
+  emergencyPanelOpen: false, toolsFabOpen: false, weatherOpen: false,
 };
 
 beforeEach(() => {

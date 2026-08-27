@@ -28,6 +28,10 @@ const serwist = new Serwist({
     { matcher: /\/api\/(fires|dpc-alerts)/, handler: new NetworkOnly() },
     { matcher: /^https:\/\/maps\.effis\.emergency\.copernicus\.eu\//i, handler: new NetworkOnly() },
     { matcher: /^https:\/\/raw\.githubusercontent\.com\/pcm-dpc\//i, handler: new NetworkOnly() },
+    // Radar e previsione meteo: un fotogramma di due ore fa servito dalla cache come se
+    // fosse l'ultimo e' esattamente il difetto che questa regola esiste per evitare.
+    { matcher: /^https:\/\/(api|tilecache)\.rainviewer\.com\//i, handler: new NetworkOnly() },
+    { matcher: /^https:\/\/api\.open-meteo\.com\//i, handler: new NetworkOnly() },
     ...defaultCache,
     {
       matcher: /^https:\/\/.*\.tile\.openstreetmap\.org\/.*/i,
