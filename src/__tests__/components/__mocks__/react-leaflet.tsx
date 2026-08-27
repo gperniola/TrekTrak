@@ -25,7 +25,9 @@ export const MapContainer = ({ children }: { children?: React.ReactNode }) => (
   <div data-testid="map-container">{children}</div>
 );
 
-export const TileLayer = () => <div data-testid="tile-layer" />;
+export const TileLayer = (props: Record<string, unknown>) => (
+  <div data-testid="tile-layer" data-url={String(props.url ?? '')} data-pane={String(props.pane ?? '')} />
+);
 
 export const Marker = ({ children, ...props }: { children?: React.ReactNode } & Record<string, unknown>) => (
   <div
@@ -113,9 +115,16 @@ export const GeoJSON = (props: Record<string, unknown>) => {
  * nelle dipendenze — e le jest.fn() dell'attribution, ricreate ogni volta, erano
  * impossibili da asserire.
  */
+/**
+ * Zoom pilotabile dai test: il layer dei ripari si comporta in modo diverso sopra e
+ * sotto una soglia, e senza poterlo cambiare quella logica non e' verificabile.
+ */
+let zoomCorrente = 12;
+export function __setMapZoom(z: number) { zoomCorrente = z; }
+
 const mapInstance = {
   getCenter: () => ({ lat: 45, lng: 10 }),
-  getZoom: () => 12,
+  getZoom: () => zoomCorrente,
   getBounds: () => ({
     getNorth: () => 46,
     getSouth: () => 44,

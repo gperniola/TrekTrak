@@ -9,6 +9,8 @@ import { dayOptions } from '@/lib/dpc';
 import { EmergencyWmsLayer } from './EmergencyWmsLayer';
 import { EmergencyPointsLayer } from './EmergencyPointsLayer';
 import { EmergencyZonesLayer } from './EmergencyZonesLayer';
+import { EmergencyRadarLayer } from './EmergencyRadarLayer';
+import { EmergencyShelterLayer } from './EmergencyShelterLayer';
 import { EmergencyFeatureInfo } from './EmergencyFeatureInfo';
 
 export function EmergencyLayers() {
@@ -18,6 +20,8 @@ export function EmergencyLayers() {
   const startLayer = useEmergencyStore((s) => s.startLayer);
   const fires = useEmergencyStore((s) => s.fires);
   const dpc = useEmergencyStore((s) => s.dpc);
+  const radar = useEmergencyStore((s) => s.radar);
+  const shelters = useEmergencyStore((s) => s.shelters);
   const dpcSelectedDate = useEmergencyStore((s) => s.dpcSelectedDate);
 
   // Pane dedicato: sopra i tile (200), sotto i tracciati (overlayPane 400).
@@ -66,6 +70,8 @@ export function EmergencyLayers() {
         const def = getEmergencyLayer(id);
         if (def.kind === 'wms') return <EmergencyWmsLayer key={id} def={def} />;
         if (def.kind === 'points' && fires) return <EmergencyPointsLayer key={id} points={fires.points} />;
+        if (def.kind === 'tiles' && radar) return <EmergencyRadarLayer key={id} radar={radar} />;
+        if (def.kind === 'viewport') return <EmergencyShelterLayer key={id} shelters={shelters} />;
         if (def.kind === 'zones' && dpc && dpcDay) {
           return <EmergencyZonesLayer key={id} zones={dpcDay.zones} dayLabel={dpcLabel} issuedLabel={dpc.issuedLabel} />;
         }

@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { EMERGENCY_LAYERS, getEmergencyLayer, type EmergencyLayerId } from '@/lib/emergency-layers';
 import { fetchFiresClient, fetchDpcClient, type DpcData } from '@/lib/emergency-api';
+import { fetchRadarIndex, type RadarIndex } from '@/lib/radar-api';
+import type { Riparo } from '@/lib/shelters-api';
 import { NoDataError } from '@/lib/no-data-error';
 import { defaultDpcDate, toYmd } from '@/lib/dpc';
 import { toast } from '@/stores/notificationStore';
@@ -27,6 +29,12 @@ interface EmergencyState {
   fires: { points: FirePoint[]; fetchedAt: string; partial?: boolean } | null;
   dpc: DpcData | null;
   dpcSelectedDate: string | null;
+  /** Indice dei fotogrammi radar e quale si sta guardando. */
+  radar: RadarIndex | null;
+  radarFrame: number;
+  radarPlaying: boolean;
+  /** Ripari dell'area inquadrata: li aggiorna il componente, non un timer. */
+  shelters: Riparo[] | null;
   /** Orologio grossolano: fa rivalutare staleness e giorno corrente. Vedi `startTick`. */
   nowTick: number;
   startLayer: (id: EmergencyLayerId) => void;
@@ -34,6 +42,13 @@ interface EmergencyState {
   refreshLayer: (id: EmergencyLayerId) => Promise<void>;
   reportWmsTile: (id: EmergencyLayerId, outcome: 'load' | 'error') => void;
   setDpcSelectedDate: (date: string) => void;
+  setRadarFrame: (index: number) => void;
+  toggleRadarPlay: () => void;
+  /**
+   * Esito di un'interrogazione dei ripari sull'area inquadrata. Lo store non sa la
+   * bbox: la conosce solo il componente sulla mappa.
+   */
+  reportShelters: (esito: { shelters: Riparo[] } | { error: string } | { nodata: string }) => void;
   isStale: (id: EmergencyLayerId) => boolean;
 }
 
@@ -81,6 +96,12 @@ export const useEmergencyStore = create<EmergencyState>((set, get) => {
     fires: null,
     dpc: null,
     dpcSelectedDate: null,
+    radar: null,
+    // Si parte dal fotogramma piu' recente: e' quello che risponde a "che sta
+    // succedendo adesso", mentre l'animazione serve a capire da dove arriva.
+    radarFrame: -1,
+    radarPlaying: false,
+    shelters: null,
     nowTick: Date.now(),
 
     startLayer: (id) => {
@@ -98,6 +119,9 @@ export const useEmergencyStore = create<EmergencyState>((set, get) => {
       }
       set((s) => ({ layers: { ...s.layers, [id]: { status: 'loading', error: null, lastFetch: null } } }));
       syncTick();
+      // I layer legati alla vista li interroga il componente, che e' l'unico a
+      // conoscere l'area inquadrata: qui non si fa partire nulla.
+      if (def.kind === 'viewport') return;
       void get().refreshLayer(id);
       if (def.refreshMinutes != null && !timers.has(id)) {
         timers.set(id, setInterval(() => { void get().refreshLayer(id); }, def.refreshMinutes * 60 * 1000));
@@ -117,6 +141,8 @@ export const useEmergencyStore = create<EmergencyState>((set, get) => {
         layers: { ...s.layers, [id]: { ...IDLE } },
         ...(id === 'fires-hotspots' ? { fires: null } : {}),
         ...(id === 'dpc-alerts' ? { dpc: null, dpcSelectedDate: null } : {}),
+        ...(id === 'rain-radar' ? { radar: null, radarFrame: -1, radarPlaying: false } : {}),
+        ...(id === 'shelters' ? { shelters: null } : {}),
       }));
       syncTick();
     },
@@ -134,6 +160,17 @@ export const useEmergencyStore = create<EmergencyState>((set, get) => {
               ...s.layers,
               [id]: { status: 'ready', error: null, lastFetch: Date.now(), partial: fires.partial },
             },
+          }));
+        } else if (id === 'rain-radar') {
+          const radar = await fetchRadarIndex();
+          if (get().layers[id].status === 'idle') return; // stopLayer during flight
+          set((s) => ({
+            radar,
+            // Ogni aggiornamento porta un fotogramma nuovo in coda: se si stava
+            // guardando il piu' recente si resta sul piu' recente, altrimenti si
+            // rispetta la scelta dell'utente.
+            radarFrame: s.radarFrame < 0 ? -1 : Math.min(s.radarFrame, radar.frames.length - 1),
+            layers: { ...s.layers, [id]: { status: 'ready', error: null, lastFetch: Date.now() } },
           }));
         } else if (id === 'dpc-alerts') {
           const dpc = await fetchDpcClient();
@@ -206,6 +243,36 @@ export const useEmergencyStore = create<EmergencyState>((set, get) => {
       const message = 'Tile non disponibili';
       toast.error(`${getEmergencyLayer(id).label}: ${message}`);
       set((s) => ({ layers: { ...s.layers, [id]: { ...s.layers[id], status: 'error', error: message } } }));
+    },
+
+    setRadarFrame: (index) => {
+      const n = get().radar?.frames.length ?? 0;
+      if (n === 0) return;
+      // Fermare l'animazione quando si trascina a mano: continuare a scorrere sotto le
+      // dita e' il modo piu' rapido di rendere inutilizzabile uno slider.
+      set({ radarFrame: Math.max(0, Math.min(index, n - 1)), radarPlaying: false });
+    },
+
+    toggleRadarPlay: () => set((s) => ({ radarPlaying: !s.radarPlaying })),
+
+    reportShelters: (esito) => {
+      if (get().layers.shelters.status === 'idle') return; // layer spento nel frattempo
+      if ('shelters' in esito) {
+        set((s) => ({
+          shelters: esito.shelters,
+          layers: { ...s.layers, shelters: { status: 'ready', error: null, lastFetch: Date.now() } },
+        }));
+      } else if ('nodata' in esito) {
+        // "Avvicinati" non e' un errore: la fonte non e' stata nemmeno interrogata.
+        set((s) => ({
+          shelters: null,
+          layers: { ...s.layers, shelters: { status: 'nodata', error: esito.nodata, lastFetch: null } },
+        }));
+      } else {
+        set((s) => ({
+          layers: { ...s.layers, shelters: { status: 'error', error: esito.error, lastFetch: null } },
+        }));
+      }
     },
 
     setDpcSelectedDate: (date) => set({ dpcSelectedDate: date }),
