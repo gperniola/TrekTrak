@@ -5,6 +5,7 @@ import { useMapEvents, Marker, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import { haversineDistance, forwardAzimuth, azimuthToCardinal } from '@/lib/calculations';
 import { fetchElevation } from '@/lib/elevation-api';
+import { useMapOverlayGuard } from './useMapOverlayGuard';
 
 interface RulerPoint {
   lat: number;
@@ -35,6 +36,10 @@ export function RulerTool({ active, onDeactivate }: { active: boolean; onDeactiv
   // a newer click's point (race condition when clicking faster than the API resolves).
   const pointAGenRef = useRef(0);
   const pointBGenRef = useRef(0);
+  // Il riquadro delle misure copre una fetta di mappa: senza guardia, toccarlo
+  // piazzerebbe un punto del righello dietro di esso. I due riquadri non compaiono
+  // mai insieme, quindi una guardia sola basta.
+  const guardiaPannello = useMapOverlayGuard<HTMLDivElement>();
 
   useEffect(() => {
     mountedRef.current = true;
@@ -119,7 +124,7 @@ export function RulerTool({ active, onDeactivate }: { active: boolean; onDeactiv
         />
       )}
       {pointA && pointB && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000] bg-gray-900/90 rounded-lg px-4 py-2 flex gap-4 items-center text-sm max-w-[calc(100%-1rem)]">
+        <div ref={guardiaPannello} className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000] bg-gray-900/90 rounded-lg px-4 py-2 flex gap-4 items-center text-sm max-w-[calc(100%-1rem)]">
           <div className="text-center">
             <div className="text-blue-400 font-bold text-base">{distDisplay ?? '--'}</div>
             <div className="text-gray-500 text-[10px]">Distanza</div>
@@ -141,7 +146,7 @@ export function RulerTool({ active, onDeactivate }: { active: boolean; onDeactiv
         </div>
       )}
       {pointA && !pointB && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000] bg-gray-900/90 rounded-lg px-4 py-2 text-sm text-gray-300">
+        <div ref={guardiaPannello} className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000] bg-gray-900/90 rounded-lg px-4 py-2 text-sm text-gray-300">
           Clicca il secondo punto
         </div>
       )}

@@ -5,6 +5,7 @@ import { useMap, useMapEvents, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import { haversineDistance, forwardAzimuth } from '@/lib/calculations';
 import { fetchElevation } from '@/lib/elevation-api';
+import { useMapOverlayGuard } from './useMapOverlayGuard';
 
 interface CompassData {
   userLat: number;
@@ -146,11 +147,16 @@ export function CompassOverlay({ active, onDeactivate }: { active: boolean; onDe
     '#ef4444', map
   );
 
+  // Il pannello copre una fetta di mappa: senza guardia, toccarlo piazza un punto
+  // sotto di esso. I tre riquadri sono mutuamente esclusivi, quindi una guardia sola
+  // basta: passando da uno all'altro scollega il nodo precedente.
+  const guardiaPannello = useMapOverlayGuard<HTMLDivElement>();
+
   if (!active) return null;
 
   if (error) {
     return (
-      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-[1000] bg-red-900/90 rounded-lg px-4 py-2 text-sm text-red-200 max-w-[calc(100%-1rem)] text-center">
+      <div ref={guardiaPannello} className="absolute bottom-2 left-1/2 -translate-x-1/2 z-[1000] bg-red-900/90 rounded-lg px-4 py-2 text-sm text-red-200 max-w-[calc(100%-1rem)] text-center">
         {error}
       </div>
     );
@@ -158,7 +164,7 @@ export function CompassOverlay({ active, onDeactivate }: { active: boolean; onDe
 
   if (locating) {
     return (
-      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-[1000] bg-gray-900/90 rounded-lg px-4 py-2 text-sm text-gray-300">
+      <div ref={guardiaPannello} className="absolute bottom-2 left-1/2 -translate-x-1/2 z-[1000] bg-gray-900/90 rounded-lg px-4 py-2 text-sm text-gray-300">
         Localizzazione in corso...
       </div>
     );
@@ -189,7 +195,7 @@ export function CompassOverlay({ active, onDeactivate }: { active: boolean; onDe
       />
 
       {/* Overlay with compass data */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000] bg-gray-900/90 rounded-lg px-4 py-2 flex gap-4 items-center text-sm max-w-[calc(100%-1rem)]">
+      <div ref={guardiaPannello} className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000] bg-gray-900/90 rounded-lg px-4 py-2 flex gap-4 items-center text-sm max-w-[calc(100%-1rem)]">
         <div className="text-center">
           <div className="text-amber-400 font-bold text-base">{azimuth != null ? `${azimuth.toFixed(1)}°` : '--'}</div>
           <div className="text-gray-500 text-[10px]">Azimuth</div>
