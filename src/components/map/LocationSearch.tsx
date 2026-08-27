@@ -2,8 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useMap } from 'react-leaflet';
-import L from 'leaflet';
 import { searchLocation, type GeocodingResult } from '@/lib/geocoding-api';
+import { useMapOverlayGuard } from './useMapOverlayGuard';
 
 const LISTBOX_ID = 'location-search-listbox';
 const DEBOUNCE_MS = 400;
@@ -16,7 +16,7 @@ export function LocationSearch({ mobileSearchOpen }: { mobileSearchOpen?: boolea
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const abortRef = useRef<AbortController>();
@@ -27,30 +27,17 @@ export function LocationSearch({ mobileSearchOpen }: { mobileSearchOpen?: boolea
     setActiveIndex(-1);
   }, []);
 
-  // Prevent Leaflet from receiving click/scroll/touch through this overlay.
-  // NOTE: We intentionally do NOT use L.DomEvent.disableClickPropagation() because
-  // it also stops 'mousedown' propagation, which prevents React's event delegation
-  // from receiving onMouseDown handlers on dropdown items.
-  // Instead, we selectively stop click, dblclick, touchstart, and contextmenu
-  // (which trigger Leaflet map click/zoom/drag/tapHold), keeping mousedown free for React.
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    L.DomEvent.disableScrollPropagation(el);
-    const stop = L.DomEvent.stopPropagation;
-    L.DomEvent.on(el, 'click', stop);
-    L.DomEvent.on(el, 'dblclick', stop);
-    L.DomEvent.on(el, 'touchstart', stop);
-    L.DomEvent.on(el, 'contextmenu', stop);
-    // Set Leaflet's internal click-through guard flag
-    (el as unknown as Record<string, boolean>)['_leaflet_disable_click'] = true;
-    return () => {
-      L.DomEvent.off(el, 'click', stop);
-      L.DomEvent.off(el, 'dblclick', stop);
-      L.DomEvent.off(el, 'touchstart', stop);
-      L.DomEvent.off(el, 'contextmenu', stop);
-    };
-  }, []);
+  /**
+   * Guardia condivisa con gli altri overlay della mappa: prima era riscritta a mano
+   * qui, con la stessa logica e una pulizia incompleta. Il container serve anche al
+   * rilevamento del click fuori, quindi la ref combina le due cose in una callback
+   * stabile — inline si scollegherebbe e riaggancerebbe a ogni render.
+   */
+  const guardiaOverlay = useMapOverlayGuard<HTMLDivElement>();
+  const setContainer = useCallback((node: HTMLDivElement | null) => {
+    containerRef.current = node;
+    guardiaOverlay(node);
+  }, [guardiaOverlay]);
 
   // Debounced search with cancellation
   useEffect(() => {
@@ -164,7 +151,7 @@ export function LocationSearch({ mobileSearchOpen }: { mobileSearchOpen?: boolea
 
   return (
     <div
-      ref={containerRef}
+      ref={setContainer}
       className={`absolute z-[1001] max-w-[calc(100%-1.5rem)] ${
         mobileSearchOpen
           ? 'top-2 left-1/2 -translate-x-1/2 w-[calc(100%-1rem)]'

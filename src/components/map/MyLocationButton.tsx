@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useMap } from 'react-leaflet';
 import { fetchElevation } from '@/lib/elevation-api';
 import { usePositionStore } from '@/stores/positionStore';
+import { useMapOverlayGuard } from './useMapOverlayGuard';
 
 interface LocationData {
   lat: number;
@@ -14,6 +15,13 @@ interface LocationData {
 
 export function MyLocationButton({ hidden }: { hidden?: boolean }) {
   const map = useMap();
+  // Tre nodi indipendenti sopra la mappa, tre guardie: ognuna tiene il proprio nodo,
+  // quindi condividerne una scollegherebbe la precedente. Senza, il tocco sul mirino
+  // arrivava a `.leaflet-container` e MapEvents lo contava come tocco sulla mappa,
+  // piazzando un waypoint sotto il pulsante.
+  const guardiaPulsante = useMapOverlayGuard<HTMLButtonElement>();
+  const guardiaPopup = useMapOverlayGuard<HTMLDivElement>();
+  const guardiaErrore = useMapOverlayGuard<HTMLDivElement>();
   const [locating, setLocating] = useState(false);
   const [location, setLocation] = useState<LocationData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -94,9 +102,10 @@ export function MyLocationButton({ hidden }: { hidden?: boolean }) {
     <>
       {/* GPS button */}
       <button
+        ref={guardiaPulsante}
         onClick={handleClick}
         disabled={locating}
-        className={`absolute bottom-28 right-3 z-[1000] w-10 h-10 rounded-full shadow-lg flex items-center justify-center text-lg transition-colors ${
+        className={`absolute bottom-28 right-3 z-[1000] w-10 h-10 max-lg:w-11 max-lg:h-11 rounded-full shadow-lg flex items-center justify-center text-lg transition-colors ${
           locating
             ? 'bg-gray-700 text-gray-400 cursor-wait'
             : 'bg-gray-800/90 text-green-400 hover:bg-gray-700 hover:text-green-300'
@@ -119,7 +128,7 @@ export function MyLocationButton({ hidden }: { hidden?: boolean }) {
 
       {/* Location info popup */}
       {location && (
-        <div aria-live="polite" className="absolute bottom-40 right-3 z-[1000] bg-gray-900/95 border border-gray-600 rounded-lg p-3 shadow-xl max-w-[200px]">
+        <div ref={guardiaPopup} aria-live="polite" className="absolute bottom-40 right-3 z-[1000] bg-gray-900/95 border border-gray-600 rounded-lg p-3 shadow-xl max-w-[200px]">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[10px] text-gray-400 font-medium">LA MIA POSIZIONE</span>
             <button
@@ -162,7 +171,7 @@ export function MyLocationButton({ hidden }: { hidden?: boolean }) {
 
       {/* Error message */}
       {error && (
-        <div role="status" aria-live="polite" className="absolute bottom-40 right-3 z-[1000] bg-red-900/90 rounded-lg px-3 py-2 text-xs text-red-200 shadow-lg">
+        <div ref={guardiaErrore} role="status" aria-live="polite" className="absolute bottom-40 right-3 z-[1000] bg-red-900/90 rounded-lg px-3 py-2 text-xs text-red-200 shadow-lg">
           {error}
         </div>
       )}

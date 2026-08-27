@@ -10,6 +10,12 @@ interface UIState {
   mobileTab: 'map' | 'editor' | 'library';
   moreMenuOpen: boolean;
   emergencyPanelOpen: boolean;
+  /**
+   * Speed-dial degli strumenti sulla mappa. Sta nello store, non nel componente, perche'
+   * i pannelli che si aprono dal basso devono escludersi a vicenda: aperti insieme si
+   * sovrappongono e le voci finiscono una sotto l'altra.
+   */
+  toolsFabOpen: boolean;
 
   toggleCompass: () => void;
   toggleRuler: () => void;
@@ -24,6 +30,7 @@ interface UIState {
   setMobileTab: (tab: 'map' | 'editor' | 'library') => void;
   setMoreMenuOpen: (open: boolean) => void;
   setEmergencyPanelOpen: (open: boolean) => void;
+  setToolsFabOpen: (open: boolean) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -36,6 +43,7 @@ export const useUIStore = create<UIState>((set) => ({
   mobileTab: 'map',
   moreMenuOpen: false,
   emergencyPanelOpen: false,
+  toolsFabOpen: false,
 
   toggleCompass: () => set((s) => ({
     compassActive: !s.compassActive,
@@ -63,6 +71,16 @@ export const useUIStore = create<UIState>((set) => ({
   // sincronizzano anche mainView così la logica esistente (preview, RouteLibrary,
   // LeftPanel) continua a funzionare senza modifiche.
   setMobileTab: (tab) => set(tab === 'map' ? { mobileTab: tab } : { mobileTab: tab, mainView: tab }),
-  setMoreMenuOpen: (open) => set({ moreMenuOpen: open }),
-  setEmergencyPanelOpen: (open) => set({ emergencyPanelOpen: open }),
+  // I tre pannelli che vengono dal basso si escludono a vicenda: aprirne uno chiude gli
+  // altri. Senza questo il menu "Altro" e lo speed-dial degli strumenti si sovrapponevano,
+  // con la voce Quiz che finiva sotto il menu.
+  setMoreMenuOpen: (open) => set(open
+    ? { moreMenuOpen: true, toolsFabOpen: false, emergencyPanelOpen: false }
+    : { moreMenuOpen: false }),
+  setEmergencyPanelOpen: (open) => set(open
+    ? { emergencyPanelOpen: true, moreMenuOpen: false, toolsFabOpen: false }
+    : { emergencyPanelOpen: false }),
+  setToolsFabOpen: (open) => set(open
+    ? { toolsFabOpen: true, moreMenuOpen: false, emergencyPanelOpen: false }
+    : { toolsFabOpen: false }),
 }));

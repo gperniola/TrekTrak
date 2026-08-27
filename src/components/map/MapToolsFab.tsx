@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { useUIStore } from '@/stores/uiStore';
 
 const TOOLS = [
@@ -15,7 +14,10 @@ const TOOLS = [
  * collidere col controllo "La mia posizione" (bottom-right di Leaflet).
  */
 export function MapToolsFab() {
-  const [open, setOpen] = useState(false);
+  // Nello store, non locale: apre e chiude in mutua esclusione con il menu "Altro" e
+  // col pannello dei layer di emergenza.
+  const open = useUIStore((s) => s.toolsFabOpen);
+  const setOpen = useUIStore((s) => s.setToolsFabOpen);
   const compassActive = useUIStore((s) => s.compassActive);
   const rulerActive = useUIStore((s) => s.rulerActive);
   const quizActive = useUIStore((s) => s.quizActive);
@@ -49,7 +51,7 @@ export function MapToolsFab() {
         </button>
       ))}
       <button
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => setOpen(!open)}
         aria-label={open ? 'Chiudi strumenti' : 'Apri strumenti mappa'}
         aria-expanded={open}
         aria-pressed={anyActive}

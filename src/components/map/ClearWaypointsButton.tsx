@@ -67,7 +67,7 @@ export function ClearWaypointsButton() {
       onClick={handleClick}
       aria-label={`Cancella waypoint, ${waypoints.length} sulla mappa`}
       title="Cancella waypoint"
-      className="absolute bottom-40 right-3 z-[1000] w-10 h-10 rounded-full shadow-lg flex items-center justify-center text-lg
+      className="absolute bottom-40 right-3 z-[1000] w-10 h-10 max-lg:w-11 max-lg:h-11 rounded-full shadow-lg flex items-center justify-center text-lg
                  bg-gray-800/90 text-red-400 hover:bg-gray-700 transition-colors
                  focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
     >

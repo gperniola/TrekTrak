@@ -7,6 +7,9 @@ beforeEach(() => {
   useAuthStore.setState({
     dismissInvite: (jest.fn()) as never,
     requestAccess: (jest.fn(async () => ({ ok: true }))) as never,
+    // Il modale si apre perche' si e' arrivati da un link di invito: il token c'e'.
+    // Senza, al suo posto compare la spiegazione "si entra su invito".
+    inviteToken: 'tok-di-prova',
   });
 });
 
