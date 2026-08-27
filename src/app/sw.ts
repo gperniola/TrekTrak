@@ -32,6 +32,7 @@ const serwist = new Serwist({
     // fosse l'ultimo e' esattamente il difetto che questa regola esiste per evitare.
     { matcher: /^https:\/\/(api|tilecache)\.rainviewer\.com\//i, handler: new NetworkOnly() },
     { matcher: /^https:\/\/api\.open-meteo\.com\//i, handler: new NetworkOnly() },
+    { matcher: /^https:\/\/view\.eumetsat\.int\//i, handler: new NetworkOnly() },
     ...defaultCache,
     {
       matcher: /^https:\/\/.*\.tile\.openstreetmap\.org\/.*/i,

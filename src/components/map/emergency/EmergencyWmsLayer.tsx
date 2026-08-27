@@ -8,7 +8,10 @@ import { EMERGENCY_PANE } from '@/lib/emergency-layers';
 import { useEmergencyStore } from '@/stores/emergencyStore';
 import { toYmd } from '@/lib/dpc';
 
-export function wmsTimeParam(mode: 'today' | 'yearToDate', now: Date): string {
+export function wmsTimeParam(mode: 'today' | 'yearToDate' | 'latest', now: Date): string {
+  // `latest`: stringa vuota, cosi' il parametro TIME non viene aggiunto e il servizio
+  // serve l'istante piu' recente della sua dimensione temporale.
+  if (mode === 'latest') return '';
   const today = toYmd(now);
   return mode === 'today' ? today : `${now.getFullYear()}-01-01/${today}`;
 }
@@ -32,8 +35,10 @@ export function EmergencyWmsLayer({ def }: { def: EmergencyLayerDef }) {
       layers: def.wms?.layers ?? '',
       format: 'image/png',
       transparent: true,
-      time,
-    }) as L.WMSParams & { time: string },
+      // Con TIME vuoto la chiave non va messa affatto: passandola vuota alcuni server
+      // rispondono con un errore invece dell'ultimo istante disponibile.
+      ...(time === '' ? {} : { time }),
+    }) as L.WMSParams & { time?: string },
     [def.wms?.layers, time]
   );
 

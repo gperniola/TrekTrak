@@ -1,7 +1,8 @@
 import { ATTRIBUZIONE_RADAR } from './radar-api';
 import { ATTRIBUZIONE_RIPARI } from './shelters-api';
 
-export type EmergencyLayerId = 'fires-hotspots' | 'fires-burned' | 'fires-fwi' | 'dpc-alerts' | 'rain-radar' | 'shelters';
+export type EmergencyLayerId = 'fires-hotspots' | 'fires-burned' | 'fires-fwi' | 'dpc-alerts'
+  | 'rain-radar' | 'shelters' | 'storm-instability';
 /**
  * `viewport` = layer che si interroga sull'area inquadrata, non una volta per tutte:
  * comanda il componente, quindi `startLayer` non fa partire nessun refresh periodico.
@@ -14,7 +15,13 @@ export interface LegendEntry { color: string; label: string; }
 export interface WmsConfig {
   url: string;
   layers: string;
-  timeMode: 'today' | 'yearToDate';
+  /**
+   * `latest` = non si passa affatto il parametro TIME: il servizio serve l'istante piu'
+   * recente della sua dimensione temporale. Verificato su EUMETSAT: senza TIME
+   * l'immagine e' quella del default dichiarato nel capabilities, con TIME di tre ore
+   * prima si ottiene un'immagine diversa.
+   */
+  timeMode: 'today' | 'yearToDate' | 'latest';
   opacity: number;
   /**
    * Il layer risponde a `GetFeatureInfo`, quindi si può interrogare con una pressione
@@ -162,6 +169,45 @@ export const EMERGENCY_LAYERS: EmergencyLayerDef[] = [
       { color: '#93c5fd', label: 'Bivacco' },
       { color: '#a3a3a3', label: 'Ricovero / tettoia' },
     ],
+  },
+  {
+    id: 'storm-instability',
+    category: 'temporali',
+    label: 'Instabilit\u00e0 osservata (satellite)',
+    description: 'Lifted Index MSG: instabilit\u00e0 misurata adesso, non prevista (EUMETSAT)',
+    kind: 'wms',
+    attribution: 'Instabilit\u00e0: <a href="https://view.eumetsat.int/">EUMETSAT</a>',
+    refreshMinutes: null,
+    /*
+     * Legenda LETTA dalla barra ufficiale (GetLegendGraphic), non dedotta: la scala va
+     * da -16 a +20 K e i colori vanno rossi -> oliva -> viola -> marroni. I quattro
+     * colori qui sotto sono campionati dalla sequenza vera (38 tinte).
+     *
+     * La polarita' e' INVERSA rispetto al CAPE del pannello meteo — negativo =
+     * instabile — e i colori non sono intuitivi (il viola sta fra il giallo e il
+     * marrone). Per questo le etichette dicono la classe a parole e il valore in K,
+     * invece di lasciare interpretare la tinta.
+     */
+    legend: [
+      { color: '#c65151', label: 'Molto instabile (fino a -8 K)' },
+      { color: '#b6b33a', label: 'Instabile (-8 a -4 K)' },
+      { color: '#8176c4', label: 'Poco instabile (-4 a 0 K)' },
+      { color: '#af8357', label: 'Stabile (oltre 0 K)' },
+    ],
+    wms: {
+      url: 'https://view.eumetsat.int/geoserver/wms',
+      layers: 'msg_fes:gii_liftedindex',
+      timeMode: 'latest',
+      opacity: 0.45,
+      /*
+       * NON interrogabile, malgrado il capabilities dichiari `queryable="1"`.
+       * Misurato: GetFeatureInfo risponde con RED_BAND / GREEN_BAND / BLUE_BAND, cioe'
+       * i canali del PNG renderizzato, non il valore fisico in K. Dichiararlo
+       * interrogabile avrebbe fatto leggere "RED_BAND = 0" a chi tiene premuto: peggio
+       * che non offrire il gesto.
+       */
+      queryable: false,
+    },
   },
 ];
 
