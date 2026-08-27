@@ -77,7 +77,7 @@ function recalculateLeg(leg: Leg, paceFactor: number = 1): Leg {
   return { ...leg, estimatedTime: undefined, slope: undefined };
 }
 
-interface ItineraryState {
+export interface ItineraryState {
   itineraryId: string;
   itineraryName: string;
   createdAt: string;

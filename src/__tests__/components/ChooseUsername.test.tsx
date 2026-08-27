@@ -9,7 +9,7 @@ beforeEach(() => {
 
 describe('ChooseUsername', () => {
   test('username < 3 caratteri → non invia', () => {
-    const spy = jest.fn(async () => ({ ok: true }));
+    const spy = jest.fn(async (_username: string) => ({ ok: true }));
     useAuthStore.setState({ claimUsername: spy as never });
     render(<ChooseUsername />);
     fireEvent.change(screen.getByLabelText(/username/i), { target: { value: 'ab' } });
@@ -18,7 +18,7 @@ describe('ChooseUsername', () => {
   });
 
   test('username valido → chiama claimUsername', async () => {
-    const spy = jest.fn(async () => ({ ok: true }));
+    const spy = jest.fn(async (_username: string) => ({ ok: true }));
     useAuthStore.setState({ claimUsername: spy as never });
     render(<ChooseUsername />);
     fireEvent.change(screen.getByLabelText(/username/i), { target: { value: 'gio' } });

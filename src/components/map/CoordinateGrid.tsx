@@ -87,7 +87,7 @@ function LatLonLabel({ lat, lon, text, position, map }: {
       iconSize: [60, 14],
       iconAnchor: position === 'left' ? [0, 7] : [30, 0],
     });
-    const m = L.marker([lat, lon], { icon, interactive: false, pane: 'overlayPane' }).addTo(map);
+    const m = L.marker([lat, lon], { icon, interactive: false, keyboard: false, pane: 'overlayPane' }).addTo(map);
     return () => { m.remove(); };
   }, [lat, lon, text, position, map]);
 

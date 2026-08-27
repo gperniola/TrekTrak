@@ -33,7 +33,7 @@ describe('UserHeader', () => {
   });
 
   test('cambia username → chiama updateUsername', async () => {
-    const spy = jest.fn(async () => ({ ok: true }));
+    const spy = jest.fn(async (_username: string) => ({ ok: true }));
     useAuthStore.setState({ updateUsername: spy as never });
     render(<UserHeader />);
     fireEvent.click(screen.getByRole('button', { name: /menu utente|gio/i }));

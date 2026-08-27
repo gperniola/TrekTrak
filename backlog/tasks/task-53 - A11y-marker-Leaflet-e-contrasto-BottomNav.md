@@ -1,7 +1,7 @@
 ---
 id: TASK-53
 title: A11y — nome accessibile dei marker Leaflet e contrasto della BottomNav
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-08-26 16:00'
 labels:
@@ -54,14 +54,25 @@ l'app, quindi va guardata a occhio prima di darla per buona.
 
 ## Acceptance criteria
 
-- [ ] Nessuna failure `aria-command-name` con bussola attiva, righello attivo, quiz attivo e
-      itinerario con waypoint (i quattro casi vanno provati, non solo lo stato vuoto)
-- [ ] I marker decorativi non sono più nell'ordine di tabulazione
-- [ ] I marker interattivi hanno un nome accessibile che dice *quale* marker sono
-- [ ] Nessuna failure `color-contrast` sulla BottomNav, aspetto approvato a occhio
-- [ ] Lighthouse a11y ≥ 97 con mappa popolata e bottom nav visibile — la condizione in cui il
-      punteggio è stato misurato a 92-96, non a mappa vuota
-- [ ] Nessuna regressione sui 708 test
+- [x] Nessuna failure `aria-command-name` con bussola attiva, righello attivo, quiz attivo e
+      itinerario con waypoint
+      → **la causa era un'altra**: tutti i marker decorativi avevano già `interactive={false}`,
+      ma `keyboard` è `true` per default e NON dipende da `interactive` — Leaflet mette
+      comunque `tabIndex=0` e `role="button"` (leaflet-src.js:7914). Serviva `keyboard={false}`.
+      È la ragione per cui il difetto era sopravvissuto: sembrava già gestito.
+- [x] I marker decorativi non sono più nell'ordine di tabulazione
+      → verificato a mappa popolata: 5 marker, **0 tabulabili senza nome**
+- [x] I marker interattivi hanno un nome accessibile che dice *quale* marker sono
+      → "Waypoint 1" invece di "1", con testo di supporto nascosto alla vista
+- [x] Nessuna failure `color-contrast` sulla BottomNav
+      → `text-gray-500` su `bg-gray-900` misurava **3,67** (soglia AA 4,5 per testo normale,
+      e le etichette sono a 11px); `text-gray-400` misura **6,99**
+- [x] Lighthouse a11y ≥ 97 con mappa popolata e bottom nav visibile
+      → **100**, zero failure, sia in snapshot a mappa popolata sia in navigazione
+- [x] Nessuna regressione sui test → 789 verdi
+
+Resta aperto, ma fuori da questo task: `image-size-responsive` (peso 1) in best-practices,
+che sono i tile raster della mappa.
 
 ## Riferimenti
 

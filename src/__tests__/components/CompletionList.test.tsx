@@ -1,5 +1,7 @@
 import { jest } from '@jest/globals';
-const mockConfirm = jest.fn();
+import { asyncMock } from '../support/jest-mocks';
+
+const mockConfirm = asyncMock();
 jest.mock('@/stores/notificationStore', () => ({
   confirm: (...a: unknown[]) => mockConfirm(...a),
   toast: { error: jest.fn(), success: jest.fn(), warning: jest.fn(), info: jest.fn() },
@@ -56,7 +58,7 @@ describe('CompletionList permessi e meteo', () => {
 
 describe('CompletionList — conferma eliminazione (TASK-49)', () => {
   test('annullando la conferma NON elimina', async () => {
-    const del = jest.fn(async () => {});
+    const del = jest.fn(async (_routeId: string, _completionId: string) => {});
     useRouteLibraryStore.setState({ deleteCompletion: del as never });
     mockConfirm.mockResolvedValue(false);
     render(<CompletionList route={routeWith([
@@ -68,7 +70,7 @@ describe('CompletionList — conferma eliminazione (TASK-49)', () => {
   });
 
   test('confermando elimina il completamento', async () => {
-    const del = jest.fn(async () => {});
+    const del = jest.fn(async (_routeId: string, _completionId: string) => {});
     useRouteLibraryStore.setState({ deleteCompletion: del as never });
     mockConfirm.mockResolvedValue(true);
     render(<CompletionList route={routeWith([

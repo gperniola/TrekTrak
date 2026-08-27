@@ -1,6 +1,7 @@
 const REPO = 'pcm-dpc/DPC-Bollettini-Criticita-Idrogeologica-Idraulica';
 const COMMITS_API = `https://api.github.com/repos/${REPO}/commits`;
-const RAW_BASE = `https://raw.githubusercontent.com/${REPO}/master/files/topojson`;
+const FILES_BASE = `https://raw.githubusercontent.com/${REPO}/master/files`;
+const RAW_BASE = `${FILES_BASE}/topojson`;
 const CACHE_TTL_MS = 30 * 60 * 1000;
 /**
  * Oltre questo limite la cache non viene più servita come buona. Senza tetto un
@@ -21,6 +22,11 @@ export interface DpcBulletinInfo {
   bulletinId: string;
   topojsonToday: string;
   topojsonTomorrow: string;
+  /**
+   * Manifest giornaliero, ~2,4 KB contro i ~400 KB delle geometrie: contiene il
+   * riepilogo nazionale, che dice se per quel giorno ci sono allerte da qualche parte.
+   */
+  manifest: string;
 }
 
 export type DpcDiscoveryResult =
@@ -81,6 +87,7 @@ function toInfo(bulletinId: string): DpcBulletinInfo {
     bulletinId,
     topojsonToday: `${RAW_BASE}/${bulletinId}_today.json`,
     topojsonTomorrow: `${RAW_BASE}/${bulletinId}_tomorrow.json`,
+    manifest: `${FILES_BASE}/${bulletinId}.json`,
   };
 }
 

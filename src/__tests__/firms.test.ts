@@ -1,11 +1,23 @@
 import { parseFirmsCsv } from '@/lib/firms';
 
+/**
+ * `parseFirmsCsv` restituisce `null` quando il corpo non è un CSV FIRMS — distinzione
+ * che un altro test verifica esplicitamente. Dove invece il CSV è valido, questo
+ * wrapper afferma il caso e restringe il tipo, così i test leggono le righe senza
+ * asserzioni non nulle sparse.
+ */
+function parsed(csv: string) {
+  const pts = parseFirmsCsv(csv);
+  if (pts == null) throw new Error('parseFirmsCsv ha restituito null su un CSV valido');
+  return pts;
+}
+
 const HEADER = 'latitude,longitude,bright_ti4,scan,track,acq_date,acq_time,satellite,instrument,confidence,version,bright_ti5,frp,daynight';
 
 describe('parseFirmsCsv', () => {
   test('parse riga valida (acq_time a 3 cifre → padding)', () => {
     const csv = `${HEADER}\n42.10,13.50,330.1,0.4,0.4,2026-08-25,312,N20,VIIRS,n,2.0NRT,290.0,12.5,D`;
-    const pts = parseFirmsCsv(csv);
+    const pts = parsed(csv);
     expect(pts).toHaveLength(1);
     expect(pts[0]).toEqual({
       lat: 42.10, lon: 13.50, frp: 12.5, confidence: 'nominal',
@@ -16,7 +28,7 @@ describe('parseFirmsCsv', () => {
   test('mappa confidence l/n/h e valori ignoti → nominal', () => {
     const rows = ['l', 'h', 'x'].map((c, i) =>
       `42.${i},13.0,330,0.4,0.4,2026-08-25,1200,N21,VIIRS,${c},2.0NRT,290,5.0,D`);
-    const pts = parseFirmsCsv(`${HEADER}\n${rows.join('\n')}`);
+    const pts = parsed(`${HEADER}\n${rows.join('\n')}`);
     expect(pts.map((p) => p.confidence)).toEqual(['low', 'high', 'nominal']);
   });
 
@@ -41,7 +53,7 @@ describe('parseFirmsCsv', () => {
 
   test('colonne risolte dal header, non per posizione', () => {
     const csv = `frp,latitude,longitude,acq_date,acq_time,satellite,confidence\n7.7,41.9,12.5,2026-08-25,0005,N,h`;
-    const pts = parseFirmsCsv(csv);
+    const pts = parsed(csv);
     expect(pts[0].frp).toBe(7.7);
     expect(pts[0].acquiredAt).toBe('2026-08-25T00:05:00Z');
   });

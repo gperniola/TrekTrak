@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, test, beforeEach, jest } from '@jest/globals';
 import { useItineraryStore } from '@/stores/itineraryStore';
+import type { ItineraryState } from '@/stores/itineraryStore';
 import type { AppMode } from '@/lib/types';
 
 // Mock all async dependencies so the component stays in 'loading' phase
@@ -30,12 +31,17 @@ jest.mock('@/lib/calculations', () => ({
 
 import { QuizOverlay } from '@/components/quiz/QuizOverlay';
 
-const BASE_STATE = {
+/**
+ * Annotato: senza il tipo, `sampleInterval: 50` si allarga a `number` e la fixture
+ * non viene confrontata con lo stato reale dello store — è così che campi aggiunti
+ * dopo (es. `emergencyLayers`) restavano assenti senza che nulla lo segnalasse.
+ */
+const BASE_STATE: Partial<ItineraryState> = {
   itineraryId: 'test-id',
   itineraryName: '',
   waypoints: [
-    { id: 'wp1', order: 0, name: 'A', lat: 45.0, lon: 10.0, altitude: null, notes: '' },
-    { id: 'wp2', order: 1, name: 'B', lat: 45.1, lon: 10.1, altitude: null, notes: '' },
+    { id: 'wp1', order: 0, name: 'A', lat: 45.0, lon: 10.0, altitude: null },
+    { id: 'wp2', order: 1, name: 'B', lat: 45.1, lon: 10.1, altitude: null },
   ],
   legs: [],
   settings: {

@@ -1,9 +1,10 @@
 import { describe, expect, test, jest, beforeEach } from '@jest/globals';
+import { asyncMock } from './support/jest-mocks';
 
-const mockGetSession = jest.fn();
+const mockGetSession = asyncMock();
 const mockOnAuthStateChange = jest.fn(() => ({ data: { subscription: { unsubscribe: jest.fn() } } }));
-const mockSignOut = jest.fn();
-const mockMaybeSingle = jest.fn();
+const mockSignOut = asyncMock();
+const mockMaybeSingle = asyncMock();
 const mockFrom = jest.fn(() => ({ select: () => ({ eq: () => ({ maybeSingle: mockMaybeSingle }) }) }));
 jest.mock('@/lib/supabase', () => ({
   getSupabase: () => ({

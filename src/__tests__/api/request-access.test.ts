@@ -1,10 +1,11 @@
 /** @jest-environment node */
 import { describe, expect, test, jest, beforeEach } from '@jest/globals';
+import { asyncMock } from '../support/jest-mocks';
 
 const mockFrom = jest.fn();
-const mockListUsers = jest.fn();
-const mockSignInWithOtp = jest.fn();
-const mockInvite = jest.fn();
+const mockListUsers = asyncMock();
+const mockSignInWithOtp = asyncMock();
+const mockInvite = asyncMock();
 jest.mock('@/lib/supabase-admin', () => ({
   getAdminClient: () => ({
     from: mockFrom,

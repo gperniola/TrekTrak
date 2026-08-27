@@ -1,8 +1,9 @@
 /** @jest-environment node */
 import { describe, expect, test, jest, beforeEach } from '@jest/globals';
+import { asyncMock } from '../support/jest-mocks';
 
 const mockFrom = jest.fn();
-const mockGetUser = jest.fn();
+const mockGetUser = asyncMock();
 jest.mock('@/lib/supabase-admin', () => ({
   getAdminClient: () => ({ from: mockFrom, auth: { getUser: mockGetUser } }),
 }));
@@ -35,14 +36,15 @@ describe('claim-username route', () => {
 
   test('crea membro, il primo diventa admin', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'u1' } }, error: null });
-    const maybeSingle = jest.fn()
+    const maybeSingle = asyncMock()
       .mockResolvedValueOnce({ data: null }) // già membro? no
       .mockResolvedValueOnce({ data: null }); // username preso? no
     const select = jest.fn(() => ({
       eq: () => ({ maybeSingle }),
       ilike: () => ({ maybeSingle }),
     }));
-    const insert = jest.fn(() => ({ error: null }));
+    // La firma dichiara l'argomento perché il test lo asserisce più sotto.
+    const insert = jest.fn((_row: unknown) => ({ error: null }));
     mockFrom.mockImplementation(() => ({
       select: (_cols: string, opts?: { count?: string; head?: boolean }) =>
         opts?.head ? { count: 0 } : select(),
@@ -57,7 +59,7 @@ describe('claim-username route', () => {
 
   test('409 se username già preso', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'u2' } }, error: null });
-    const maybeSingle = jest.fn()
+    const maybeSingle = asyncMock()
       .mockResolvedValueOnce({ data: null }) // già membro? no
       .mockResolvedValueOnce({ data: { id: 'other' } }); // username preso? sì
     const select = jest.fn(() => ({

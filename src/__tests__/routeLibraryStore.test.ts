@@ -1,8 +1,10 @@
 import { describe, expect, test, jest, beforeEach } from '@jest/globals';
+import { asyncMock } from './support/jest-mocks';
 
-const mockFetch = jest.fn();
-const mockDelete = jest.fn(async () => {});
-const mockReorder = jest.fn(async () => {});
+const mockFetch = asyncMock();
+// Gli argomenti sono dichiarati perché i test li asseriscono.
+const mockDelete = jest.fn(async (_id: string) => {});
+const mockReorder = jest.fn(async (_ids: string[]) => {});
 jest.mock('@/lib/sync', () => ({
   fetchRoutes: () => mockFetch(),
   deleteRoute: (id: string) => mockDelete(id),

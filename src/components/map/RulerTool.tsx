@@ -105,10 +105,10 @@ export function RulerTool({ active, onDeactivate }: { active: boolean; onDeactiv
   return (
     <>
       {pointA && (
-        <Marker position={[pointA.lat, pointA.lon]} icon={markerA} interactive={false} />
+        <Marker position={[pointA.lat, pointA.lon]} icon={markerA} interactive={false} keyboard={false} />
       )}
       {pointB && (
-        <Marker position={[pointB.lat, pointB.lon]} icon={markerB} interactive={false} />
+        <Marker position={[pointB.lat, pointB.lon]} icon={markerB} interactive={false} keyboard={false} />
       )}
       {pointA && pointB && (
         <Polyline
