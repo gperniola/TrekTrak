@@ -4,6 +4,18 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.11.5] — 2026-08-27 — Allerta DPC dove ti trovi
+
+### Added
+- **All'avvio, se ti trovi in una zona con un'allerta della Protezione Civile in corso, un banner te lo dice** — con il livello, la zona e **ogni rischio col proprio livello** (per esempio "idraulico gialla, idrogeologico arancione", non un unico livello attribuito a tutti). Se non ci sono allerte, o la tua posizione non è disponibile, non compare nulla.
+
+  **La posizione non viene chiesta**: viene letta da chi la ha già ottenuta — la geolocalizzazione all'apertura della mappa o il pulsante "la mia posizione". È una garanzia strutturale, non un controllo che si può sbagliare: questa funzione non ha accesso alla geolocalizzazione, quindi non può far comparire alcun permesso da chiedere. Se nessuno ha ottenuto una posizione, tace. **Le coordinate non lasciano il dispositivo**: si scaricano le geometrie delle zone e il confronto avviene sul telefono.
+
+  È un banner in flusso come quello di "modalità offline", quindi non copre la navigazione. Il messaggio ricorda che è un bollettino per l'intera zona e non una misura sul posto, non sostituisce i canali ufficiali, e cita la fonte.
+
+### Fixed
+- **Le notifiche permanenti erano irraggiungibili**: il tipo dichiarava `duration: null` come "resta finché non la chiudi", ma il codice lo collassava a 3 secondi. Il componente che le disegna le gestiva già correttamente.
+
 ## [0.11.4] — 2026-08-27 — Il bollettino DPC torna raggiungibile
 
 ### Fixed
