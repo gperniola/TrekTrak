@@ -384,11 +384,23 @@ export function ActionBar() {
         </div>
       )}
       {/* Export e condivisione del percorso. TASK-41: disabilitati quando non c'è nulla da esportare. */}
+      {/*
+        Il motivo del grigio va SCRITTO, non messo in un `title`: su un telefono il
+        tooltip non esiste, quindi l'utente vedeva quattro pulsanti spenti e nessuna
+        spiegazione. `aria-describedby` lo lega ai pulsanti per chi usa uno screen reader.
+      */}
+      {(!canExportPdf || !canExportGpx) && (
+        <p id="motivo-export" className="text-[11px] text-amber-300/90 bg-amber-950/40 border border-amber-800/60 rounded px-2 py-1.5">
+          {waypoints.length < 2
+            ? 'Aggiungi almeno 2 waypoint per esportare o condividere.'
+            : 'Per il GPX servono almeno 2 waypoint con coordinate.'}
+        </p>
+      )}
       <div role="group" aria-label="Esporta e condividi" className="flex flex-wrap gap-2">
         <button
           onClick={() => handlePDF('summary')}
           disabled={!canExportPdf}
-          title={!canExportPdf ? 'Servono almeno 2 waypoint' : undefined}
+          aria-describedby={!canExportPdf ? 'motivo-export' : undefined}
           className="flex-1 py-2 bg-green-500 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed max-lg:min-h-[44px]"
         >
           PDF Sintetico
@@ -396,7 +408,7 @@ export function ActionBar() {
         <button
           onClick={() => handlePDF('roadbook')}
           disabled={!canExportPdf}
-          title={!canExportPdf ? 'Servono almeno 2 waypoint' : undefined}
+          aria-describedby={!canExportPdf ? 'motivo-export' : undefined}
           className="flex-1 py-2 bg-green-600 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed max-lg:min-h-[44px]"
         >
           PDF Roadbook
@@ -404,7 +416,7 @@ export function ActionBar() {
         <button
           onClick={handleGPX}
           disabled={!canExportGpx}
-          title={!canExportGpx ? 'Servono almeno 2 waypoint con coordinate' : undefined}
+          aria-describedby={!canExportGpx ? 'motivo-export' : undefined}
           className="flex-1 py-2 bg-blue-500 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-blue-400 disabled:opacity-50 disabled:cursor-not-allowed max-lg:min-h-[44px]"
         >
           GPX
@@ -423,7 +435,7 @@ export function ActionBar() {
         <button
           onClick={handleShareLink}
           disabled={waypoints.length < 2}
-          title={waypoints.length < 2 ? 'Servono almeno 2 waypoint per condividere via link' : undefined}
+          aria-describedby={waypoints.length < 2 ? 'motivo-export' : undefined}
           className="flex-1 py-2 bg-amber-500 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed max-lg:min-h-[44px]"
         >
           {linkCopied ? 'Copiato!' : 'Copia link'}
@@ -447,7 +459,7 @@ export function ActionBar() {
             <button
               onClick={openProgress}
               disabled={!hasHistory}
-              title={hasHistory ? undefined : 'Completa una verifica o un quiz per vedere il tuo progresso'}
+              aria-describedby={hasHistory ? undefined : 'motivo-progresso'}
               className="flex-1 py-2 bg-indigo-500 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed max-lg:min-h-[44px]"
             >
               📊 Progresso
@@ -455,6 +467,11 @@ export function ActionBar() {
           );
         })()}
       </div>
+      {loadValidationHistory().length === 0 && loadQuizHistory().length === 0 && (
+        <p id="motivo-progresso" className="text-[11px] text-gray-400">
+          Il Progresso si sblocca dopo la prima verifica o il primo quiz.
+        </p>
+      )}
     </div>
   );
 }

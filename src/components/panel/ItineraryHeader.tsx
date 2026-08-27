@@ -113,11 +113,24 @@ export function ItineraryHeader() {
 
   return (
     <div className="border-b border-gray-700">
+      {/*
+        "Salva" mette l'itinerario nella libreria condivisa, che e' ad invito: senza
+        accesso resta grigio. Il perche' era solo in un `title`, invisibile al tocco,
+        quindi su mobile il pulsante sembrava rotto. Va anche detto che il lavoro non
+        si perde: viene tenuto sul dispositivo da solo.
+      */}
+      {!member && (
+        <p id="motivo-salva" className="px-3 pt-3 text-[11px] text-gray-400 leading-snug">
+          &ldquo;Salva&rdquo; mette il percorso nella <strong className="font-medium text-gray-300">libreria condivisa</strong>, che
+          &egrave; ad accesso su invito. Senza accesso l&rsquo;itinerario resta comunque su questo
+          dispositivo: lo ritrovi riaprendo l&rsquo;app, e puoi esportarlo in JSON o GPX.
+        </p>
+      )}
       <div className="p-3 flex items-center justify-end gap-1">
         <button
           onClick={handleSave}
           disabled={!member}
-          title={!member ? 'Accedi alla libreria condivisa per salvare' : undefined}
+          aria-describedby={!member ? 'motivo-salva' : undefined}
           className={member
             ? 'px-2.5 py-1 bg-gradient-to-r from-green-500 to-emerald-600 text-gray-950 font-semibold rounded-lg text-xs shadow-sm transition-all active:scale-[0.97] hover:from-green-400 hover:to-emerald-500 max-lg:min-h-[44px]'
             : 'px-2.5 py-1 bg-gray-700/60 text-gray-500 rounded-lg text-xs cursor-not-allowed max-lg:min-h-[44px]'}

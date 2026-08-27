@@ -79,7 +79,7 @@ describe('ActionBar', () => {
 
   test('shows Progresso button', () => {
     render(<ActionBar />);
-    expect(screen.getByText(/Progresso/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Progresso/ })).toBeInTheDocument();
   });
 
   // TASK-41: export non invitano ad azioni inutili quando l'itinerario è vuoto
@@ -109,7 +109,7 @@ describe('ActionBar', () => {
   test('TASK-42: Progresso è in un gruppo separato dagli export', () => {
     render(<ActionBar />);
     const exportGroup = screen.getByRole('group', { name: /esporta/i });
-    const progresso = screen.getByText(/Progresso/).closest('button');
+    const progresso = screen.getByRole('button', { name: /Progresso/ });
     expect(exportGroup).toContainElement(screen.getByText('PDF Sintetico').closest('button'));
     expect(exportGroup).not.toContainElement(progresso);
   });

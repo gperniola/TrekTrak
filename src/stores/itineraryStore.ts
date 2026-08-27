@@ -105,6 +105,19 @@ export interface ItineraryState {
   updateSettings: (settings: AppSettings) => void;
   resetItinerary: () => void;
   loadItinerary: (id: string, name: string, waypoints: Waypoint[], legs: Leg[], createdAt?: string) => void;
+  /**
+   * Rimette in piedi l'itinerario autosalvato al riavvio.
+   *
+   * Diverso da `loadItinerary`, che ricostruisce la catena delle tratte e azzera le
+   * validazioni perche' tratta un itinerario che arriva da fuori. Qui i dati sono i
+   * nostri di un attimo prima: si rimettono come stavano, validazioni comprese.
+   * E diverso da `setAppMode`, che scambierebbe i valori fra Learn e Track: la
+   * modalita' salvata e' gia' quella a cui appartengono i valori salvati.
+   */
+  hydrateCurrent: (saved: {
+    itineraryId: string; itineraryName: string; createdAt: string;
+    appMode: AppMode; waypoints: Waypoint[]; legs: Leg[];
+  }) => void;
 
   profileHover: { distance: number; source: 'chart' | 'map' } | null;
   setProfileHover: (distance: number, source: 'chart' | 'map') => void;
@@ -342,6 +355,19 @@ export const useItineraryStore = create<ItineraryState>()((set, get) => ({
       createdAt: createdAt ?? new Date().toISOString(),
       waypoints: cleanWaypoints,
       legs: newLegs,
+      profileHover: null,
+      profileFlyTo: null,
+    });
+  },
+
+  hydrateCurrent: (saved) => {
+    set({
+      itineraryId: saved.itineraryId,
+      itineraryName: saved.itineraryName,
+      createdAt: saved.createdAt,
+      appMode: saved.appMode,
+      waypoints: saved.waypoints,
+      legs: saved.legs,
       profileHover: null,
       profileFlyTo: null,
     });

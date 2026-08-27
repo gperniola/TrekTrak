@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { KEYS } from '@/lib/storage';
+import { markWhatsNewSeen } from './WhatsNew';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { useItineraryStore } from '@/stores/itineraryStore';
 
@@ -143,27 +144,60 @@ const STEPS: TutorialStep[] = [
 const ESSENTIAL_COUNT = 4;
 
 /** Pseudo-step shown before step 0: user picks their level so the app sets sensible defaults. */
-function LevelChooser({ onChoose }: { onChoose: (level: 'beginner' | 'expert') => void }) {
+/**
+ * Le due carte restano a schermo anche dopo la scelta, con quella scelta marcata.
+ *
+ * Prima sparivano appena si toccava una delle due e il dialogo tornava al testo di
+ * benvenuto: non si sapeva cosa fosse stato scelto, ne' come cambiarlo. Il riscontro
+ * e' doppio — `aria-pressed` con la cornice per chi guarda, e una riga di testo che
+ * nomina la modalita' — perche' il colore da solo non e' un messaggio.
+ */
+function LevelChooser({ scelto, onChoose }: {
+  scelto: 'beginner' | 'expert' | null;
+  onChoose: (level: 'beginner' | 'expert') => void;
+}) {
+  const carta = (livello: 'beginner' | 'expert', attivo: string, spento: string) =>
+    `w-full text-left border rounded-lg p-3 max-lg:min-h-[44px] transition-colors ${
+      scelto === livello ? attivo : spento
+    }`;
   return (
     <div className="space-y-2 mt-3">
       <button
         onClick={() => onChoose('beginner')}
-        className="w-full text-left bg-purple-900/40 hover:bg-purple-900/60 border border-purple-600 rounded-lg p-3"
+        aria-pressed={scelto === 'beginner'}
+        className={carta('beginner',
+          'bg-purple-900/70 border-purple-400 ring-2 ring-purple-400/60',
+          'bg-purple-900/40 hover:bg-purple-900/60 border-purple-600')}
       >
-        <div className="text-sm font-bold text-purple-300">📚 Sto imparando</div>
+        <div className="text-sm font-bold text-purple-300">
+          📚 Sto imparando {scelto === 'beginner' && <span aria-hidden>✓</span>}
+        </div>
         <div className="text-[11px] text-gray-300 mt-1">
           Default modalità Learn: inserisco io i valori e li confronto con quelli reali.
         </div>
       </button>
       <button
         onClick={() => onChoose('expert')}
-        className="w-full text-left bg-green-900/40 hover:bg-green-900/60 border border-green-600 rounded-lg p-3"
+        aria-pressed={scelto === 'expert'}
+        className={carta('expert',
+          'bg-green-900/70 border-green-400 ring-2 ring-green-400/60',
+          'bg-green-900/40 hover:bg-green-900/60 border-green-600')}
       >
-        <div className="text-sm font-bold text-green-300">🥾 Sono esperto</div>
+        <div className="text-sm font-bold text-green-300">
+          🥾 Sono esperto {scelto === 'expert' && <span aria-hidden>✓</span>}
+        </div>
         <div className="text-[11px] text-gray-300 mt-1">
           Default modalità Track: l&apos;app calcola tutto, io rivedo e perfeziono.
         </div>
       </button>
+      {scelto != null && (
+        <p className="text-[11px] text-gray-300 bg-gray-800/70 rounded px-2 py-1.5">
+          {scelto === 'beginner'
+            ? 'Modalità Learn attiva: i valori li scrivi tu, poi «Verifica» li confronta con i reali.'
+            : 'Modalità Track attiva: l’app calcola distanza, dislivelli e azimut.'}
+          {' '}La cambi quando vuoi con l’interruttore Learn/Track.
+        </p>
+      )}
     </div>
   );
 }
@@ -171,6 +205,7 @@ function LevelChooser({ onChoose }: { onChoose: (level: 'beginner' | 'expert') =
 export function LearnTutorial() {
   const [step, setStep] = useState<number | null>(null);
   const [showLevelChooser, setShowLevelChooser] = useState(false);
+  const [livelloScelto, setLivelloScelto] = useState<'beginner' | 'expert' | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const setAppMode = useItineraryStore((s) => s.setAppMode);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -190,11 +225,13 @@ export function LearnTutorial() {
   const handleChooseLevel = (level: 'beginner' | 'expert') => {
     setAppMode(level === 'beginner' ? 'learn' : 'track');
     try {
-      localStorage.setItem('trektrak_user_level', level);
+      localStorage.setItem(KEYS.userLevel, level);
     } catch {
       // localStorage unavailable
     }
-    setShowLevelChooser(false);
+    setLivelloScelto(level);
+    // Le carte NON si nascondono: restano visibili con quella scelta marcata, cosi'
+    // si vede cosa e' stato scelto e si puo' cambiare idea.
   };
 
   // Escape key, focus trap, body scroll lock
@@ -239,6 +276,10 @@ export function LearnTutorial() {
     } catch {
       // localStorage unavailable
     }
+    // Chi ha appena fatto il tutorial non ha "novita'" da leggere: senza questo, al
+    // secondo avvio si ritrovava il popup delle note di rilascio a raccontargli
+    // funzioni che non ha mai conosciuto diversamente.
+    markWhatsNewSeen();
   }
 
   function changeStep(newStep: number | null) {
@@ -284,7 +325,7 @@ export function LearnTutorial() {
         <h2 className="text-base font-bold text-green-400 mb-2">{current.title}</h2>
         <p className="text-sm text-gray-300 leading-relaxed">{current.text}</p>
 
-        {step === 0 && showLevelChooser && <LevelChooser onChoose={handleChooseLevel} />}
+        {step === 0 && showLevelChooser && <LevelChooser scelto={livelloScelto} onChoose={handleChooseLevel} />}
         {current.mockup}
 
         {/* Step indicator */}

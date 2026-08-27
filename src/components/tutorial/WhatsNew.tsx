@@ -192,7 +192,27 @@ const RELEASES: Release[] = [
   },
 ];
 
-const CURRENT_VERSION = RELEASES[0].version;
+/**
+ * La sola voce mostrata: le note di rilascio raccontano l'ultima novita', non lo
+ * storico. Esportata perche' anche il tutorial deve poterla marcare come vista.
+ */
+export const CURRENT_WHATSNEW_VERSION = RELEASES[0].version;
+const CURRENT_VERSION = CURRENT_WHATSNEW_VERSION;
+
+/**
+ * Segna le novita' come gia' viste.
+ *
+ * Lo chiama il tutorial di primo avvio: a chi ha appena conosciuto l'app non si
+ * raccontano come "novita'" funzioni che non ha mai conosciuto diversamente. Le note
+ * di rilascio servono a chi c'era prima.
+ */
+export function markWhatsNewSeen(): void {
+  try {
+    localStorage.setItem(KEYS.whatsNewVersion, CURRENT_WHATSNEW_VERSION);
+  } catch {
+    // localStorage non disponibile
+  }
+}
 
 export function WhatsNew() {
   const [step, setStep] = useState<number | null>(null);

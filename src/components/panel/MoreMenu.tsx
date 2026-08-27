@@ -55,6 +55,18 @@ export function MoreMenu() {
         <button role="menuitem" disabled={!canPdf} onClick={() => handlePdf('summary')} className={itemCls}>📄 PDF sintetico</button>
         <button role="menuitem" disabled={!canPdf} onClick={() => handlePdf('roadbook')} className={itemCls}>📋 PDF roadbook</button>
         <button role="menuitem" disabled={!canGpx} onClick={handleGpx} className={itemCls}>🛰️ GPX</button>
+        {/*
+          Con l'itinerario vuoto tutte le voci sono grigie: senza questa riga il menu
+          era quattro voci spente e nessuna spiegazione, e su un telefono non c'e'
+          tooltip che possa dirlo.
+        */}
+        {(!canPdf || !canGpx || !meteoUrl) && (
+          <p className="px-3 py-2 text-[11px] text-amber-300/90 leading-snug">
+            {waypoints.length < 2
+              ? 'Aggiungi almeno 2 waypoint sulla mappa per usare queste voci.'
+              : 'Servono waypoint con coordinate: toccane uno sulla mappa per posizionarlo.'}
+          </p>
+        )}
       </div>
     </div>
   );

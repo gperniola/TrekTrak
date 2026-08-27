@@ -110,7 +110,15 @@ export function QuizOverlay({ onClose }: { onClose: () => void }) {
     emitQuizPoints(null, null);
 
     const bounds = mapBoundsRef;
-    if (!bounds) { onClose(); return; }
+    if (!bounds) {
+      // Chiudere in silenzio lasciava l'impressione di un pulsante rotto: il quiz si
+      // "attivava" e non compariva nulla. Le domande si costruiscono sull'area
+      // inquadrata, quindi senza mappa pronta non c'e' niente da chiedere.
+      const { toast } = await import('@/stores/notificationStore');
+      toast.warning('Il quiz usa l’area inquadrata: apri la mappa e riprova.');
+      onClose();
+      return;
+    }
 
     const pois = await fetchHikingPOIs(bounds);
     if (!mountedRef.current || gen !== sessionGenRef.current) return;

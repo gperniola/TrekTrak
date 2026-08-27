@@ -189,9 +189,17 @@ export function ElevationProfile() {
   // (In vista Libreria il pannello profilo è gestito da page.tsx con
   // PreviewElevationProfile: questo componente è montato solo in vista Editor.)
   if (profileData.length < 2) {
+    // Distinguere i due casi: con 3 waypoint senza quota, "aggiungi almeno 2 waypoint"
+    // e' una frase che non dice cosa fare — i waypoint ci sono, mancano le quote.
+    const conQuota = waypoints.filter((wp) => wp.altitude != null).length;
+    const messaggio = waypoints.length < 2
+      ? 'Tocca la mappa per aggiungere almeno 2 waypoint: qui comparir\u00e0 il profilo altimetrico'
+      : conQuota < 2
+        ? 'Inserisci la quota di almeno 2 waypoint nell\u2019Editor: qui comparir\u00e0 il profilo altimetrico'
+        : 'Servono almeno 2 waypoint con quota e coordinate per il profilo altimetrico';
     return (
-      <div className="h-full flex items-center justify-center text-gray-400 text-sm">
-        Aggiungi almeno 2 waypoint con quota per il profilo altimetrico
+      <div className="h-full flex items-center justify-center text-gray-400 text-sm text-center px-4">
+        {messaggio}
       </div>
     );
   }

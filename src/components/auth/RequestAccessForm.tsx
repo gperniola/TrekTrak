@@ -7,6 +7,11 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function RequestAccessForm({ hideHeader = false }: { hideHeader?: boolean }) {
   const requestAccess = useAuthStore((s) => s.requestAccess);
+  // Senza un link di invito la richiesta non puo' andare a buon fine: il server
+  // risponde 403 perche' i signup pubblici sono chiusi. Prima lo si scopriva solo
+  // dopo aver inviato l'email, con un "Invito non valido" incomprensibile a chi non
+  // ha mai avuto un invito.
+  const conInvito = useAuthStore((s) => s.inviteToken != null);
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +24,9 @@ export function RequestAccessForm({ hideHeader = false }: { hideHeader?: boolean
     const res = await requestAccess(email.trim());
     setBusy(false);
     if (res.ok) setSent(true);
-    else setError(res.error === 'invalid_invite' ? 'Invito non valido' : 'Errore, riprova');
+    else setError(res.error === 'invalid_invite'
+      ? 'Questo invito non \u00e8 pi\u00f9 valido: chiedi un link nuovo a chi te l\u2019ha mandato.'
+      : 'Non \u00e8 stato possibile inviare il link. Riprova.');
   };
 
   if (sent) {
@@ -30,12 +37,35 @@ export function RequestAccessForm({ hideHeader = false }: { hideHeader?: boolean
     );
   }
 
+  // Niente invito: si dice com'e', e soprattutto che l'app resta utilizzabile.
+  if (!conInvito) {
+    return (
+      <div className="p-4 space-y-3 text-sm">
+        {!hideHeader && <h3 className="text-sm font-bold text-green-400">Libreria condivisa</h3>}
+        <p className="text-xs text-gray-300 leading-relaxed">
+          La libreria &egrave; un&rsquo;area condivisa <strong className="font-medium">ad accesso su invito</strong>:
+          si entra aprendo un link di invito, non con una registrazione.
+        </p>
+        <p className="text-xs text-gray-400 leading-relaxed">
+          Senza invito l&rsquo;app funziona comunque per intero: l&rsquo;itinerario su cui lavori resta
+          su questo dispositivo e lo ritrovi riaprendo TrekTrak. Per portarlo altrove usa
+          <strong className="font-medium text-gray-300"> Esporta JSON</strong> o
+          <strong className="font-medium text-gray-300"> GPX</strong>, o
+          <strong className="font-medium text-gray-300"> Copia link</strong> per condividerlo.
+        </p>
+        <p className="text-[11px] text-gray-400">
+          Hai un link di invito? Aprilo: da l&igrave; l&rsquo;accesso si completa con la tua email.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 space-y-3">
       {!hideHeader && (
         <>
           <h3 className="text-sm font-bold text-green-400">Accesso area condivisa</h3>
-          <p className="text-xs text-gray-400">Inserisci la tua email: riceverai un link per entrare.</p>
+          <p className="text-xs text-gray-400">Invito riconosciuto. Inserisci la tua email: riceverai un link per entrare.</p>
         </>
       )}
       <label className="block text-[11px] uppercase tracking-wider text-gray-400" htmlFor="ra-email">Email</label>

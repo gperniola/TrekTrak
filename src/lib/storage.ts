@@ -14,6 +14,8 @@ export const KEYS = {
   whatsNewVersion: 'trektrak_whatsnew_version',
   quizHistory: 'trektrak_quiz_history',
   emergencyDisclaimer: 'trektrak_emergency_disclaimer_seen',
+  /** Livello dichiarato nell'onboarding: decide la modalità di partenza. */
+  userLevel: 'trektrak_user_level',
 } as const;
 
 const STORAGE_WARNING_BYTES = 4 * 1024 * 1024; // 4MB
