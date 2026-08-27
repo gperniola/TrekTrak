@@ -55,7 +55,7 @@ describe('DpcPositionWarning', () => {
     usePositionStore.setState({ lastKnown: null });
     useEmergencyStore.setState({ dpc: null });
     (fetchDpcTodayZones as jest.Mock).mockReset().mockResolvedValue({
-      date: OGGI(), bulletinId: '20260826_1422', zones: [zonaTranquilla, zonaGialla],
+      kind: 'zones', date: OGGI(), bulletinId: '20260826_1422', zones: [zonaTranquilla, zonaGialla],
     });
   });
 
@@ -115,7 +115,7 @@ describe('DpcPositionWarning', () => {
   test('geometrie illeggibili (zone vuote) → non conclude "nessuna allerta" e riproverà', async () => {
     usePositionStore.setState({ lastKnown: { ...BOLOGNA, at: Date.now() } });
     (fetchDpcTodayZones as jest.Mock).mockResolvedValue({
-      date: OGGI(), bulletinId: '20260826_1422', zones: [],
+      kind: 'zones', date: OGGI(), bulletinId: '20260826_1422', zones: [],
     });
     const { unmount } = render(<DpcPositionWarning />);
     await waitFor(() => expect(fetchDpcTodayZones).toHaveBeenCalled());
@@ -125,7 +125,7 @@ describe('DpcPositionWarning', () => {
     // secondo tentativo: ora le geometrie arrivano, e l'avviso deve comparire
     unmount();
     (fetchDpcTodayZones as jest.Mock).mockResolvedValue({
-      date: OGGI(), bulletinId: '20260826_1422', zones: [zonaGialla],
+      kind: 'zones', date: OGGI(), bulletinId: '20260826_1422', zones: [zonaGialla],
     });
     render(<DpcPositionWarning />);
     await waitFor(() => expect(avviso()).toBeInTheDocument());
@@ -140,7 +140,7 @@ describe('DpcPositionWarning', () => {
     unmount();
 
     (fetchDpcTodayZones as jest.Mock).mockResolvedValue({
-      date: OGGI(), bulletinId: '20260826_1800', zones: [zonaGialla],
+      kind: 'zones', date: OGGI(), bulletinId: '20260826_1800', zones: [zonaGialla],
     });
     render(<DpcPositionWarning />);
     await waitFor(() => expect(avviso()).toBeInTheDocument());
@@ -208,7 +208,7 @@ describe('DpcPositionWarning', () => {
   test('allerta arancione → banner in variante grave', async () => {
     usePositionStore.setState({ lastKnown: { ...BOLOGNA, at: Date.now() } });
     (fetchDpcTodayZones as jest.Mock).mockResolvedValue({
-      date: OGGI(), bulletinId: '20260826_1422',
+      kind: 'zones', date: OGGI(), bulletinId: '20260826_1422',
       zones: [{ ...zonaGialla, idrogeologico: 2, maxLevel: 2 }],
     });
     render(<DpcPositionWarning />);
@@ -228,5 +228,20 @@ describe('DpcPositionWarning', () => {
     expect(signal.aborted).toBe(false);
     unmount();
     expect(signal.aborted).toBe(true);
+  });
+  /**
+   * Il manifest (~2,4 KB) dice se in tutta Italia ci sono allerte: nei giorni
+   * tranquilli — la maggioranza — le geometrie (~400 KB) non vengono scaricate affatto
+   * e il controllo si conclude lì.
+   */
+  test('manifest dice "nessuna allerta" → nessun banner, geometrie mai scaricate', async () => {
+    usePositionStore.setState({ lastKnown: { ...BOLOGNA, at: Date.now() } });
+    (fetchDpcTodayZones as jest.Mock).mockResolvedValue({
+      kind: 'no-alerts', date: OGGI(), bulletinId: '20260826_1422',
+    });
+    render(<DpcPositionWarning />);
+    await waitFor(() => expect(fetchDpcTodayZones).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 40));
+    expect(avviso()).toBeNull();
   });
 });

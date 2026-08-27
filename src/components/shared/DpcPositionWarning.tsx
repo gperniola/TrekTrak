@@ -81,6 +81,10 @@ export function DpcPositionWarning() {
           const { fetchDpcTodayZones } = await import('@/lib/emergency-api');
           const scaricate = await fetchDpcTodayZones(controller.signal);
           if (controller.signal.aborted || scaricate == null) return;
+          // Il manifest (~2,4 KB) ha già detto che in tutta Italia non ci sono
+          // allerte: nessuna posizione può cadere in una zona in allerta, e le
+          // geometrie non sono state scaricate affatto.
+          if (scaricate.kind === 'no-alerts') return;
           dati = { zones: scaricate.zones, bulletinId: scaricate.bulletinId };
         } catch {
           // Controllo di cortesia all'avvio: un errore qui non va messo davanti

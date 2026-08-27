@@ -1,4 +1,4 @@
-import { fetchFiresClient, fetchDpcClient } from '@/lib/emergency-api';
+import { fetchDpcTodayZones, fetchFiresClient, fetchDpcClient } from '@/lib/emergency-api';
 
 const TOPO = { // stessa mini-topology del Task 4, 1 zona basta
   type: 'Topology',
@@ -82,5 +82,79 @@ describe('fetchDpcClient', () => {
   test('discovery non-ok con messaggio del proxy → propagato invece del generico', async () => {
     global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 503, json: async () => ({ error: 'xyz' }) });
     await expect(fetchDpcClient()).rejects.toThrow('xyz');
+  });
+});
+/**
+ * Il controllo di posizione all'avvio partiva scaricando ~400 KB compressi di
+ * geometrie a ogni sessione, non cacheabili, anche a chi non ha mai attivato il layer.
+ * Il manifest giornaliero pesa ~2,4 KB e dice se in tutta Italia ci sono allerte: nei
+ * giorni tranquilli, che sono la maggioranza, tanto basta.
+ */
+describe('fetchDpcTodayZones: il manifest evita il download delle geometrie', () => {
+  const realFetch = global.fetch;
+  const OGGI = new Date();
+  const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const idOggi = `${ymd(OGGI).replace(/-/g, '')}_1400`;
+
+  function mockRete(descrizioneOggi: string | undefined, opts: { manifestRotto?: boolean } = {}) {
+    const chiamate: string[] = [];
+    global.fetch = jest.fn((u: string) => {
+      const url = String(u);
+      chiamate.push(url);
+      if (url.includes('/api/dpc-alerts')) {
+        return Promise.resolve({ ok: true, status: 200, json: async () => ({
+          bulletinId: idOggi,
+          topojsonToday: 'https://raw.test/topojson/x_today.json',
+          topojsonTomorrow: 'https://raw.test/topojson/x_tomorrow.json',
+          manifest: 'https://raw.test/manifest.json',
+        }) });
+      }
+      if (url.includes('manifest.json')) {
+        if (opts.manifestRotto) return Promise.resolve({ ok: false, status: 500, json: async () => ({}) });
+        return Promise.resolve({ ok: true, status: 200, json: async () => ({
+          today: { html_descrition: descrizioneOggi },
+          tomorrow: {},
+        }) });
+      }
+      // geometrie: una topologia minima ma valida
+      return Promise.resolve({ ok: true, status: 200, json: async () => ({
+        type: 'Topology',
+        objects: { zone: { type: 'GeometryCollection', geometries: [] } },
+        arcs: [],
+      }) });
+    }) as unknown as typeof global.fetch;
+    return chiamate;
+  }
+
+  afterEach(() => { global.fetch = realFetch; });
+
+  test('giorno tranquillo → esito no-alerts e nessuna richiesta di topojson', async () => {
+    const chiamate = mockRete('ASSENZA DI FENOMENI SIGNIFICATIVI PREVEDIBILI / NESSUNA ALLERTA');
+    const r = await fetchDpcTodayZones();
+    expect(r?.kind).toBe('no-alerts');
+    expect(chiamate.some((u) => u.includes('topojson'))).toBe(false);
+  });
+
+  test('giorno con allerta → scarica le geometrie', async () => {
+    const chiamate = mockRete("ORDINARIA CRITICITA' PER RISCHIO TEMPORALI / ALLERTA GIALLA: Emilia Romagna");
+    const r = await fetchDpcTodayZones();
+    expect(r?.kind).toBe('zones');
+    expect(chiamate.some((u) => u.includes('topojson'))).toBe(true);
+  });
+
+  // Il manifest e' solo un'ottimizzazione: se non e' leggibile si lavora come prima.
+  // Non deve poter produrre un falso "nessuna allerta".
+  test('manifest non raggiungibile → scarica le geometrie', async () => {
+    const chiamate = mockRete(undefined, { manifestRotto: true });
+    const r = await fetchDpcTodayZones();
+    expect(r?.kind).toBe('zones');
+    expect(chiamate.some((u) => u.includes('topojson'))).toBe(true);
+  });
+
+  test('descrizione non riconosciuta → scarica le geometrie', async () => {
+    const chiamate = mockRete('Situazione in evoluzione su tutto il territorio');
+    const r = await fetchDpcTodayZones();
+    expect(r?.kind).toBe('zones');
+    expect(chiamate.some((u) => u.includes('topojson'))).toBe(true);
   });
 });
