@@ -38,16 +38,20 @@ export function _resetDpcCacheForTests(): void {
 }
 
 /**
- * Id di bollettino da un path di file del commit.
+ * Id di bollettino da un path di file del commit, qualunque sia la cartella.
  *
- * I path sotto `preview/` vengono ignorati di proposito: il preview della prossima
- * emissione compare prima dei topojson pubblicati, e costruire su quell'id gli URL
- * `_today`/`_tomorrow` dà 404 su entrambi i giorni. Il ramo `[a-z]+/` copre la forma
- * canonica `files/topojson/<id>_today.json` (che la vecchia regex non matchava
- * affatto: pretendeva l'id subito dopo `files/`).
+ * I preview NON vanno esclusi: il repo DPC committa spesso quelli da soli — il
+ * 26/08/2026 l'ultimo commit su master toccava unicamente
+ * `files/preview/20260826_1422_{oggi,domani}.png`, con i topojson dello stesso id già
+ * pubblicati. Escluderli buttava via l'unico segnale disponibile e il layer risultava
+ * sempre "non raggiungibile". Il rischio opposto — un preview più avanti dei
+ * topojson — si gestisce verificando che le geometrie esistano (vedi
+ * `hasPublishedGeometry`), non ignorando l'id.
+ *
+ * Il ramo `[a-z]+/` copre la forma canonica `files/topojson/<id>_today.json`, che la
+ * regex originale non matchava affatto: pretendeva l'id subito dopo `files/`.
  */
 export function bulletinIdFrom(filename: string): string | null {
-  if (filename.includes('/preview/')) return null;
   const m = /files\/(?:[a-z]+\/)?(\d{8}_\d{4})/.exec(filename);
   return m ? m[1] : null;
 }
@@ -80,10 +84,47 @@ function toInfo(bulletinId: string): DpcBulletinInfo {
   };
 }
 
-function firstBulletinId(files: Array<{ filename: string }> | undefined): string | null {
+/** Id trovati nei file di un commit, nell'ordine, senza ripetizioni. */
+function bulletinIdsIn(files: Array<{ filename: string }> | undefined): string[] {
+  const ids: string[] = [];
   for (const f of files ?? []) {
     const id = bulletinIdFrom(f.filename);
-    if (id) return id;
+    if (id && !ids.includes(id)) ids.push(id);
+  }
+  return ids;
+}
+
+/**
+ * Le geometrie di questo bollettino sono pubblicate?
+ *
+ * È la verifica che permette di accettare gli id di preview senza rischiare di
+ * costruire un layer su file inesistenti. Va su `raw.githubusercontent.com`, che non
+ * ha il rate limit dell'API, quindi costa poco. Basta controllare `_today`: se
+ * manca solo `_tomorrow`, il client mostra comunque il giorno che c'è.
+ */
+async function hasPublishedGeometry(bulletinId: string, signal: AbortSignal): Promise<boolean> {
+  const controller = new AbortController();
+  const onAbort = () => controller.abort();
+  signal.addEventListener('abort', onAbort);
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  try {
+    const res = await fetch(`${RAW_BASE}/${bulletinId}_today.json`, {
+      method: 'HEAD',
+      signal: controller.signal,
+    });
+    return res.ok;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+    signal.removeEventListener('abort', onAbort);
+  }
+}
+
+/** Il primo id, nell'ordine dato, che ha le geometrie effettivamente pubblicate. */
+async function firstWithGeometry(ids: string[], signal: AbortSignal): Promise<string | null> {
+  for (const id of ids) {
+    if (await hasPublishedGeometry(id, signal)) return id;
   }
   return null;
 }
@@ -101,14 +142,16 @@ export async function discoverLatestBulletin(): Promise<DpcDiscoveryResult> {
   const deadline = new AbortController();
   const deadlineTimer = setTimeout(() => deadline.abort(), TOTAL_DEADLINE_MS);
   try {
-    // Spec §4.3: una sola chiamata nel caso normale. Il commit di `master` porta
-    // già l'elenco dei file, quindi la lista dei commit serve solo se lì non c'è
-    // un bollettino (merge, commit di sola documentazione).
-    let id = firstBulletinId(
+    // Spec §4.3: una sola chiamata nel caso normale. Il commit di `master` porta già
+    // l'elenco dei file, quindi la lista dei commit serve solo se lì non si trova
+    // nessun id, o se quelli trovati non hanno le geometrie pubblicate.
+    const candidati = bulletinIdsIn(
       ((await getJson(`${COMMITS_API}/master`, deadline.signal)) as { files?: Array<{ filename: string }> }).files
     );
 
-    if (!id) {
+    let scelto = await firstWithGeometry(candidati, deadline.signal);
+
+    if (!scelto) {
       const commits = (await getJson(
         `${COMMITS_API}?per_page=${MAX_COMMITS_SCANNED}`, deadline.signal
       )) as Array<{ sha: string }>;
@@ -116,14 +159,16 @@ export async function discoverLatestBulletin(): Promise<DpcDiscoveryResult> {
         const detail = (await getJson(`${COMMITS_API}/${sha}`, deadline.signal)) as {
           files?: Array<{ filename: string }>;
         };
-        id = firstBulletinId(detail.files);
-        if (id) break;
+        const altri = bulletinIdsIn(detail.files).filter((c) => !candidati.includes(c));
+        candidati.push(...altri);
+        scelto = await firstWithGeometry(altri, deadline.signal);
+        if (scelto) break;
       }
     }
 
-    if (!id) throw new Error('Nessun bollettino trovato negli ultimi commit');
+    if (!scelto) throw new Error('Nessun bollettino con geometrie pubblicate negli ultimi commit');
 
-    const data = toInfo(id);
+    const data = toInfo(scelto);
     cache = { data, storedAt: Date.now() };
     return { status: 200, data };
   } catch {
