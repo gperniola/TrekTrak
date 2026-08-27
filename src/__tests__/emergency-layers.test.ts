@@ -15,7 +15,18 @@ describe('EMERGENCY_LAYERS registry', () => {
       if (l.kind === 'wms') {
         expect(l.wms).toBeDefined();
         expect(l.wms!.url).toMatch(/^https:\/\//);
-        expect(l.refreshMinutes).toBeNull();
+        /*
+         * Per un WMS `refreshMinutes` NON avvia timer: i tile si ricaricano da soli
+         * quando cambia la loro chiave. Serve a `isStale`, quindi va valorizzato solo
+         * per i prodotti che invecchiano dentro la giornata — quelli `latest` — e resta
+         * nullo per i prodotti giornalieri, dove il cambio di data fa già il suo
+         * lavoro.
+         */
+        if (l.wms!.timeMode === 'latest') {
+          expect(l.refreshMinutes).toBeGreaterThan(0);
+        } else {
+          expect(l.refreshMinutes).toBeNull();
+        }
       } else if (l.kind === 'viewport') {
         // Si interroga sull'area inquadrata: un refresh a tempo tempesterebbe un
         // servizio pubblico condiviso, quindi `refreshMinutes` deve restare nullo.

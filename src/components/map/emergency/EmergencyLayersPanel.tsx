@@ -149,7 +149,14 @@ function LayerRow({ def }: { def: EmergencyLayerDef }) {
             </div>
           )}
           {runtime.partial && runtime.status === 'ready' && (
-            <div className="text-[10px] text-amber-400">⚠ dati parziali: alcune fonti non hanno risposto</div>
+            <div className="text-[10px] text-amber-400">
+              {def.id === 'shelters'
+                // Per i ripari "parziale" ha un altro significato: l'elenco e' stato
+                // tagliato dal servizio. Riusare il messaggio delle fonti avrebbe detto
+                // una cosa falsa.
+                ? '⚠ troppi ripari in quest\u2019area: ne vedi solo una parte, avvicinati per l\u2019elenco completo'
+                : '⚠ dati parziali: alcune fonti non hanno risposto'}
+            </div>
           )}
           {/* L'orario ora si mostra per TUTTI i layer attivi, WMS inclusi: prima era
               dietro `def.refreshMinutes != null`, quindi i due layer EFFIS non avevano

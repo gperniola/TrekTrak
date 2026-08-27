@@ -230,20 +230,24 @@ function letturaVicina(serie: SerieOraria, quando: Date): PuntoOrario | null {
 }
 
 /**
- * Fasce critiche del giorno della partenza, contigue e in ordine.
+ * Fasce critiche nell'intervallo che interessa, contigue e in ordine.
  *
- * "Il giorno della partenza" si intende in ora **italiana**: e' il giorno scelto nel
- * menu a tendina, non quello UTC — che dopo le 22 sarebbe un altro.
+ * L'intervallo va dall'inizio del giorno (italiano) della partenza alla fine del giorno
+ * dell'arrivo: cosi' un cammino che attraversa la mezzanotte vede anche le ore critiche
+ * del giorno dopo, e resta il contesto per dire "la fascia cade quando sei rientrato".
+ *
+ * Prima il filtro era il solo giorno della partenza, e una salita notturna con
+ * temporale alle 3 veniva dichiarata tranquilla: partire di notte non e' un caso di
+ * scuola, e' la partenza classica per una vetta.
  */
-function fasceCritiche(serie: SerieOraria[], departure: Date): FinestraCritica[] {
-  const giornoLocale = giornoItaliano(departure);
+function fasceCritiche(serie: SerieOraria[], da: Date, a: Date): FinestraCritica[] {
   const istanti = new Set<number>();
   for (const s of serie) {
     if (!Array.isArray(s?.time)) continue;
     for (let i = 0; i < s.time.length; i++) {
       const t = new Date(`${s.time[i]}Z`);
       if (Number.isNaN(t.getTime())) continue;
-      if (giornoItaliano(t) !== giornoLocale) continue;
+      if (t.getTime() < da.getTime() || t.getTime() > a.getTime()) continue;
       const c = classifyHour({
         time: s.time[i],
         cape: s.cape?.[i] ?? Number.NaN,
@@ -276,6 +280,25 @@ function giornoItaliano(d: Date): string {
   return d.toLocaleDateString('en-CA', { timeZone: 'Europe/Rome' });
 }
 
+/**
+ * Mezzanotte italiana del giorno di `d`, come istante.
+ *
+ * Si ricava per differenza invece di costruire una data con l'offset a mano: l'offset
+ * italiano cambia due volte l'anno, e scriverlo fisso significa sbagliare per meta'
+ * dell'anno.
+ */
+function inizioGiornoItaliano(d: Date): Date {
+  const [y, m, g] = giornoItaliano(d).split('-').map(Number);
+  // si parte da mezzogiorno UTC (mai ambiguo) e si scende all'inizio del giorno locale
+  const mezzogiorno = Date.UTC(y, m - 1, g, 12, 0, 0);
+  const oreLocali = Number(new Date(mezzogiorno).toLocaleString('en-GB', { timeZone: 'Europe/Rome', hour: '2-digit', hour12: false }));
+  return new Date(mezzogiorno - oreLocali * 3600000);
+}
+
+function fineGiornoItaliano(d: Date): Date {
+  return new Date(inizioGiornoItaliano(d).getTime() + 24 * 3600000 - 1);
+}
+
 export function buildRouteWeather(input: {
   waypoints: Waypoint[];
   legs: Leg[];
@@ -304,7 +327,10 @@ export function buildRouteWeather(input: {
     };
   });
 
-  const windows = fasceCritiche(serie, departure);
+  // Estremi dell'intervallo da esaminare: dall'inizio del giorno della partenza alla
+  // fine del giorno in cui si arriva (ora italiana in entrambi i casi).
+  const arrivoUltimo = arrivi[waypoints.length - 1] ?? departure;
+  const windows = fasceCritiche(serie, inizioGiornoItaliano(departure), fineGiornoItaliano(arrivoUltimo));
 
   /*
    * Il verdetto guarda il tempo in cui si CAMMINA, non gli istanti dei punti
@@ -319,7 +345,7 @@ export function buildRouteWeather(input: {
    * E vale anche il contrario, che e' la parte utile: un temporale alle 18 non conta
    * se alle 15 sei al parcheggio.
    */
-  const arrivoFinale = arrivi[waypoints.length - 1] ?? departure;
+  const arrivoFinale = arrivoUltimo;
   // Intersezione fra intervalli di ISTANTI: niente aritmetica sulle ore, quindi niente
   // casi limite a mezzanotte e nessun fuso da indovinare.
   const hitWindow = windows.find((f) =>

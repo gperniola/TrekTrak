@@ -48,7 +48,9 @@ interface EmergencyState {
    * Esito di un'interrogazione dei ripari sull'area inquadrata. Lo store non sa la
    * bbox: la conosce solo il componente sulla mappa.
    */
-  reportShelters: (esito: { shelters: Riparo[] } | { error: string } | { nodata: string }) => void;
+  reportShelters: (
+    esito: { shelters: Riparo[]; troncato?: boolean } | { error: string } | { nodata: string }
+  ) => void;
   isStale: (id: EmergencyLayerId) => boolean;
 }
 
@@ -260,7 +262,12 @@ export const useEmergencyStore = create<EmergencyState>((set, get) => {
       if ('shelters' in esito) {
         set((s) => ({
           shelters: esito.shelters,
-          layers: { ...s.layers, shelters: { status: 'ready', error: null, lastFetch: Date.now() } },
+          layers: {
+            ...s.layers,
+            // `partial` e' il canale che il pannello usa gia' per dire "solo una parte
+            // delle fonti ha risposto": qui significa "solo una parte dei ripari".
+            shelters: { status: 'ready', error: null, lastFetch: Date.now(), partial: esito.troncato === true },
+          },
         }));
       } else if ('nodata' in esito) {
         // "Avvicinati" non e' un errore: la fonte non e' stata nemmeno interrogata.

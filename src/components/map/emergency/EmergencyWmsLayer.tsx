@@ -25,6 +25,21 @@ export function EmergencyWmsLayer({ def }: { def: EmergencyLayerDef }) {
 
   const time = def.wms ? wmsTimeParam(def.wms.timeMode, new Date(nowTick)) : '';
 
+  /*
+   * Bollo di rinfresco per i layer `latest`.
+   *
+   * Con TIME assente i tile non cambiavano mai URL, quindi Leaflet li teneva in cache e
+   * il layer mostrava per ore l'istante caricato all'accensione — sotto l'etichetta
+   * "instabilita' osservata adesso". E' la classe di difetto dominante della campagna
+   * della v0.11.0: dato vecchio presentato come attuale.
+   *
+   * Il bollo entra solo nella `key` (non nei parametri della richiesta), e cambia a
+   * scatti di 15 minuti, che e' il passo del prodotto MSG: piu' spesso sarebbe traffico
+   * inutile su un servizio pubblico.
+   */
+  const PASSO_MS = 15 * 60 * 1000;
+  const bollo = def.wms?.timeMode === 'latest' ? Math.floor(nowTick / PASSO_MS) : 0;
+
   // I params DEVONO essere memoizzati: react-leaflet li confronta per riferimento
   // (`props.params !== prevProps.params` in WMSTileLayer.js) e su differenza chiama
   // `setParams`, che fa `redraw()` — cioè scarta e riscarica tutti i tile visibili.
@@ -45,7 +60,7 @@ export function EmergencyWmsLayer({ def }: { def: EmergencyLayerDef }) {
   if (!def.wms) return null;
   return (
     <WMSTileLayer
-      key={`${def.id}-${time}`}
+      key={`${def.id}-${time}-${bollo}`}
       url={def.wms.url}
       params={params}
       opacity={def.wms.opacity}

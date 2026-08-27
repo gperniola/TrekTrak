@@ -4,6 +4,20 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.13.1] — 2026-08-27 — Otto correzioni dalla review
+
+Review del lavoro della giornata, cercando per prime le classi di difetto che in questo progetto si sono già ripetute. I primi quattro difetti sono stati riprodotti prima di essere corretti.
+
+### Fixed
+- **Chi parte di notte vedeva gli orari del sole del giorno prima.** Con partenza all'una del mattino l'app calcolava alba e tramonto del giorno precedente, e quindi anche l'avviso "arrivi dopo il tramonto" era sbagliato. La partenza notturna non è un caso di scuola: è quella classica per una vetta.
+- **Un temporale dopo la mezzanotte veniva dichiarato inesistente.** Le ore critiche venivano cercate solo nel giorno civile della partenza, quindi una salita notturna con instabilità alle 3 riceveva un tranquillo "Nessuna criticità prevista". Ora si guarda tutto l'arco del cammino, e resta la frase utile quando invece la finestra cade dopo il rientro.
+- **Nei campi in metri, "1.500" valeva un metro e mezzo.** In italiano il punto separa le migliaia, e chi scriveva 1.500 m di quota otteneva 1,5 senza accorgersene: tre ordini di grandezza su un dato che serve a leggere una carta. Ora nei campi in metri il separatore è quello delle migliaia, mentre nei chilometri e nei gradi il punto resta decimale.
+- **Un itinerario ripristinato senza il tracciato sui sentieri non lo diceva.** Quando lo spazio sul dispositivo si esaurisce, il salvataggio conserva i valori e lascia andare il tracciato dettagliato: al riavvio comparivano linee rette senza spiegazione, e sembrava che i dati si fossero corrotti. Adesso l'app avvisa che il tracciato non era stato salvato e che i valori invece ci sono tutti.
+- **Il layer dell'instabilità satellitare non si aggiornava mai.** È un prodotto che esce ogni quarto d'ora, ma restava a schermo quello caricato all'accensione — per ore, sotto l'etichetta "osservata adesso". Ora si rinfresca da sé, e se smette di aggiornarsi lo dichiara come fanno gli altri layer.
+- **I ripari erano tagliati a 200 senza dirlo.** In una zona densa si vedeva una parte credendo fosse tutto, e l'avviso riusato diceva una cosa falsa ("alcune fonti non hanno risposto"). Ora dice quello che succede: ne vedi una parte, avvicinati per l'elenco completo.
+- **La mappa interrogava il servizio dei ripari a ogni spostamento**, anche quando la nuova vista era già dentro quella scaricata: su un servizio pubblico che spesso è occupato significava più errori mostrati per gli stessi ripari. Ora l'area scaricata è più larga della vista e viene riusata.
+- **Nel pannello meteo il tasto Tab usciva dal pannello**, portando il fuoco sui comandi dietro, che sono coperti e inutilizzabili. Ora il fuoco resta dentro, come negli altri riquadri dell'app.
+
 ## [0.13.0] — 2026-08-27 — Instabilità osservata, non prevista
 
 ### Added

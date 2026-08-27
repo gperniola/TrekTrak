@@ -122,16 +122,26 @@ export const GeoJSON = (props: Record<string, unknown>) => {
 let zoomCorrente = 12;
 export function __setMapZoom(z: number) { zoomCorrente = z; }
 
+/**
+ * Anche i confini della vista sono pilotabili: il layer dei ripari decide se richiedere
+ * o riusare in base a QUANTO si e' spostata la mappa, e senza poterla spostare quella
+ * logica non e' verificabile.
+ */
+let boundsCorrenti = { south: 44, west: 9, north: 46, east: 11 };
+export function __setMapBounds(b: { south: number; west: number; north: number; east: number }) {
+  boundsCorrenti = b;
+}
+
 const mapInstance = {
   getCenter: () => ({ lat: 45, lng: 10 }),
   getZoom: () => zoomCorrente,
   getBounds: () => ({
-    getNorth: () => 46,
-    getSouth: () => 44,
-    getEast: () => 11,
-    getWest: () => 9,
-    getSouthWest: () => ({ lat: 44, lng: 9 }),
-    getNorthEast: () => ({ lat: 46, lng: 11 }),
+    getNorth: () => boundsCorrenti.north,
+    getSouth: () => boundsCorrenti.south,
+    getEast: () => boundsCorrenti.east,
+    getWest: () => boundsCorrenti.west,
+    getSouthWest: () => ({ lat: boundsCorrenti.south, lng: boundsCorrenti.west }),
+    getNorthEast: () => ({ lat: boundsCorrenti.north, lng: boundsCorrenti.east }),
   }),
   getSize: () => ({ x: 500, y: 635 }),
   latLngToContainerPoint: () => ({ x: 250, y: 318 }),

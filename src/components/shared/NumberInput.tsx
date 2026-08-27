@@ -17,9 +17,27 @@ import { ValidationBadge } from '@/components/validation/ValidationBadge';
  * `-` o `1,` appena battuti, sia per testo non numerico. Chi chiama distingue i tre
  * casi guardando anche il testo, che resta a schermo.
  */
-export function parseDecimale(testo: string): number | null {
-  const pulito = testo.trim().replace(',', '.');
-  if (pulito === '') return null;
+export function parseDecimale(testo: string, migliaia = false): number | null {
+  const grezzo = testo.trim();
+  if (grezzo === '') return null;
+
+  /*
+   * Separatore delle MIGLIAIA, non decimale.
+   *
+   * In italiano "1.500" sono millecinquecento, e nei campi in metri — quota, dislivelli
+   * — e' la scrittura naturale: nessuno inserisce un dislivello di un metro e mezzo.
+   * Senza questa regola chi scriveva 1.500 m di quota otteneva **1,5**, in silenzio.
+   *
+   * La regola e' quella tipografica: separatore seguito da esattamente tre cifre, e
+   * nient'altro dopo. Cosi' "1.5" resta uno e mezzo (che in metri e' improbabile ma
+   * innocuo) e non diventa quindici, che sarebbe una sorpresa peggiore del problema.
+   */
+  if (migliaia && /^-?\d{1,3}([.,]\d{3})+$/.test(grezzo)) {
+    const n = Number(grezzo.replace(/[.,]/g, ''));
+    return Number.isFinite(n) ? n : null;
+  }
+
+  const pulito = grezzo.replace(',', '.');
   // Una sola forma ammessa: segno opzionale, cifre, un punto, cifre. Cosi' `1.2.3`,
   // `1e5` e `abc` valgono tutti "non e' un numero" invece di diventare qualcos'altro.
   if (!/^-?\d*\.?\d*$/.test(pulito)) return null;
@@ -93,12 +111,16 @@ export function NumberInput({
   // Riallineo solo quando il valore cambia DAVVERO da fuori (modalita' Track che
   // compila, ripristino all'avvio): senza il confronto, ogni battuta rimbalzerebbe
   // indietro normalizzata e cancellerebbe la virgola appena scritta.
+  // I campi in metri (quota, dislivelli) portano numeri interi: la' punto e virgola
+  // sono separatori delle migliaia. Nei campi in km o gradi restano decimali.
+  const migliaia = unit === 'm';
+
   useEffect(() => {
-    if (parseDecimale(testo) !== value) setTesto(value == null ? '' : String(value));
+    if (parseDecimale(testo, migliaia) !== value) setTesto(value == null ? '' : String(value));
     // `testo` volutamente fuori dalle dipendenze: qui interessa solo l'arrivo di un
     // valore nuovo dall'esterno.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value]);
+  }, [value, migliaia]);
 
   return (
     <div className="flex flex-col gap-1">
@@ -137,7 +159,7 @@ export function NumberInput({
         onChange={(e) => {
           if (readOnly) return;
           const grezzo = e.target.value;
-          const num = parseDecimale(grezzo);
+          const num = parseDecimale(grezzo, migliaia);
           // Testo non numerico: non si tiene a schermo (diventerebbe un campo che
           // mostra "abc" con valore null) e non diventa 0.
           setTesto(num == null && grezzo.trim() !== '' && !/^-?[\d.,]*$/.test(grezzo.trim()) ? '' : grezzo);
