@@ -4,6 +4,27 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.11.8] — 2026-08-27 — Il lavoro non si perde più
+
+Rilascio nato da una review dedicata all'usabilità: percorrere l'app come la percorre chi la usa, a dito su un telefono e col mouse su un desktop, cercando gli attriti invece dei difetti di codice. Sono emersi dodici punti, due dei quali gravi.
+
+### Fixed
+- **L'itinerario su cui stai lavorando non si perde più.** Prima viveva solo nella memoria dell'app: bastava ricaricare la pagina e sparivano tutti i waypoint — e l'avviso di aggiornamento della PWA invita proprio a ricaricare. Chi non ha accesso alla libreria condivisa non aveva **nessun** modo di conservare un itinerario, perché "Salva" è riservato ai membri. Ora l'itinerario viene tenuto su questo dispositivo mentre lo costruisci, e lo ritrovi riaprendo l'app: waypoint, valori scritti a mano, nome e modalità. Il salvataggio avviene poco dopo ogni modifica e subito quando l'app va in secondo piano, perché al telefono capita di chiudere tutto senza preavviso. Se lo spazio finisce, vengono conservati i valori che hai scritto tu, che sono gli unici irrecuperabili.
+
+  Conseguenza: aprire un **link condiviso** ora chiede conferma, perché sostituirebbe un itinerario che prima non esisteva più comunque.
+- **La scelta "Sto imparando" viene rispettata.** Veniva registrata e mai riletta: alla riapertura l'app tornava in modalità Track, quella in cui calcola tutto da sé — l'opposto di quanto chiesto da chi ha detto di voler imparare. Adesso all'avvio vale la modalità dell'itinerario che stai riprendendo e, se non ce n'è uno, il livello che hai dichiarato.
+- **La virgola decimale funziona.** Scrivendo `1,5` — come si scrive in italiano — il campo si svuotava, e succedeva sull'attività principale dell'app: inserire distanze, quote e azimut. Ora si accettano virgola e punto, e la tastiera del telefono mostra il separatore. Valeva anche per le risposte del quiz.
+- **Quando un pulsante è grigio, l'app dice perché.** Il motivo era in un tooltip, che su un telefono non esiste: si vedevano quattro pulsanti spenti e nessuna spiegazione. Ora è scritto accanto ai pulsanti — export, Copia link, Progresso, Salva, e le voci del menu "Altro".
+- **Il messaggio del profilo altimetrico dice cosa manca davvero.** Con tre waypoint già sulla mappa continuava a chiedere di "aggiungere almeno 2 waypoint": mancavano le **quote**, e ora lo dice, indicando dove inserirle.
+- **La scelta iniziale del livello dà un riscontro.** Le due carte sparivano senza confermare nulla: non si sapeva cosa fosse stato scelto né come cambiarlo. Restano visibili, con quella scelta marcata, e si può cambiare idea.
+- **Il popup "Novità" non compare più a chi apre l'app per la prima volta.** Arrivava al secondo avvio, subito dopo il tutorial, a raccontare come "novità" funzioni che quella persona non ha mai conosciuto diversamente.
+- **Il menu "Altro" e gli strumenti della mappa non si sovrappongono più.** Si aprivano insieme e la voce "Quiz" finiva sotto il menu, quindi intoccabile. Il tasto Indietro ora chiude anche gli strumenti, come fa con gli altri pannelli.
+- **La Libreria dice come funziona.** Chiedeva un'email a chiunque promettendo un link d'accesso, e solo dopo l'invio rispondeva "Invito non valido" — incomprensibile per chi non ha mai avuto un invito. Ora spiega che è un'area ad accesso su invito e, soprattutto, che senza invito l'app funziona per intero: l'itinerario resta sul dispositivo e si porta altrove con JSON, GPX o "Copia link".
+- **Il quiz non si chiude più in silenzio** quando non c'è un'area di mappa su cui costruire le domande.
+
+### Accessibility
+- **Tocchi più facili sotto i 44px che l'app si è data**: campi numerici da 34px, e i tre pulsanti tondi sulla mappa da 40px. Su desktop restano come erano.
+
 ## [0.11.7] — 2026-08-27 — Popup Novità più corto
 
 ### Changed
