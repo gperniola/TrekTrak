@@ -54,10 +54,16 @@ export function QuizQuestionView({ question, questionNumber, totalQuestions, onA
   };
 
   const handleSubmit = () => {
-    // Stesso parser dei campi dell'editor: accetta "1,5" come "1.5". Con
-    // `parseFloat` e un campo `type="number"` la virgola non arrivava nemmeno qui,
-    // perche' il browser svuotava il campo prima.
-    const userValue = parseDecimale(input);
+    /*
+     * Stesso parser dei campi dell'editor, CON la regola delle migliaia quando la
+     * domanda e' in metri.
+     *
+     * Senza, chi rispondeva "1.500" a una domanda sull'altitudine otteneva 1,5 e
+     * prendeva **zero su una risposta giusta**: bocciato da un separatore. La
+     * correzione di ieri copriva i campi dell'editor, non questo — il quiz ha un input
+     * suo, ed e' la terza volta che lo stesso difetto ricompare in un secondo posto.
+     */
+    const userValue = parseDecimale(input, question.unit === 'm');
     if (userValue == null) return;
     const score = calculateQuizScore(userValue, question.realValue, question.type);
     const answer: QuizAnswer = { type: question.type, score, userValue, realValue: question.realValue };

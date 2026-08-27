@@ -43,11 +43,17 @@ export function CompletionForm({
             className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-2 text-sm focus:border-green-500 focus:outline-none" />
         </div>
         <div className="w-16">
+          {/*
+            campo-numerico-ok: ore e minuti sono interi in due campi separati, quindi
+            non serve alcun separatore decimale — il caso in cui `type="number"` va
+            benissimo. Altrove scarta la virgola e va evitato.
+          */}
           <label className="block text-[10px] text-gray-500 uppercase" htmlFor={`${idPrefix}-hours`}>Ore</label>
           <input id={`${idPrefix}-hours`} type="number" min={0} value={hours} onChange={(e) => setHours(e.target.value)}
             className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-2 text-sm focus:border-green-500 focus:outline-none" />
         </div>
         <div className="w-16">
+          {/* campo-numerico-ok: intero, come le ore qui sopra. */}
           <label className="block text-[10px] text-gray-500 uppercase" htmlFor={`${idPrefix}-min`}>Minuti</label>
           <input id={`${idPrefix}-min`} type="number" min={0} max={59} value={minutes} onChange={(e) => setMinutes(e.target.value)}
             className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-2 text-sm focus:border-green-500 focus:outline-none" />

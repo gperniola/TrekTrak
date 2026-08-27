@@ -22,6 +22,9 @@ export function EmergencyWmsLayer({ def }: { def: EmergencyLayerDef }) {
   // l'etichetta "Pericolo incendio oggi".
   const nowTick = useEmergencyStore((s) => s.nowTick);
   const reportWmsTile = useEmergencyStore((s) => s.reportWmsTile);
+  // Entra nella chiave: e' l'unico modo di far richiedere di nuovo i tile dopo un
+  // errore, perche' un layer WMS non passa da `refreshLayer`.
+  const tentativo = useEmergencyStore((s) => s.retryTick[def.id] ?? 0);
 
   const time = def.wms ? wmsTimeParam(def.wms.timeMode, new Date(nowTick)) : '';
 
@@ -60,7 +63,7 @@ export function EmergencyWmsLayer({ def }: { def: EmergencyLayerDef }) {
   if (!def.wms) return null;
   return (
     <WMSTileLayer
-      key={`${def.id}-${time}-${bollo}`}
+      key={`${def.id}-${time}-${bollo}-${tentativo}`}
       url={def.wms.url}
       params={params}
       opacity={def.wms.opacity}

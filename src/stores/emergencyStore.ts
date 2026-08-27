@@ -35,6 +35,12 @@ interface EmergencyState {
   radarPlaying: boolean;
   /** Ripari dell'area inquadrata: li aggiorna il componente, non un timer. */
   shelters: Riparo[] | null;
+  /**
+   * Contatore di tentativi per layer. Entra nella chiave dei layer WMS: senza, il
+   * "Riprova" non li rimontava, nessun tile veniva richiesto e il layer restava in
+   * "Caricamento..." per sempre — peggio dell'errore da cui si veniva.
+   */
+  retryTick: Record<EmergencyLayerId, number>;
   /** Orologio grossolano: fa rivalutare staleness e giorno corrente. Vedi `startTick`. */
   nowTick: number;
   startLayer: (id: EmergencyLayerId) => void;
@@ -48,6 +54,8 @@ interface EmergencyState {
    * Esito di un'interrogazione dei ripari sull'area inquadrata. Lo store non sa la
    * bbox: la conosce solo il componente sulla mappa.
    */
+  /** Rimette in piedi un layer dopo un errore, tile WMS compresi. */
+  retryLayer: (id: EmergencyLayerId) => void;
   reportShelters: (
     esito: { shelters: Riparo[]; troncato?: boolean } | { error: string } | { nodata: string }
   ) => void;
@@ -104,6 +112,7 @@ export const useEmergencyStore = create<EmergencyState>((set, get) => {
     radarFrame: -1,
     radarPlaying: false,
     shelters: null,
+    retryTick: Object.fromEntries(EMERGENCY_LAYERS.map((l) => [l.id, 0])) as Record<EmergencyLayerId, number>,
     nowTick: Date.now(),
 
     startLayer: (id) => {
@@ -256,6 +265,12 @@ export const useEmergencyStore = create<EmergencyState>((set, get) => {
     },
 
     toggleRadarPlay: () => set((s) => ({ radarPlaying: !s.radarPlaying })),
+
+    retryLayer: (id) => {
+      get().stopLayer(id);
+      set((s) => ({ retryTick: { ...s.retryTick, [id]: (s.retryTick[id] ?? 0) + 1 } }));
+      get().startLayer(id);
+    },
 
     reportShelters: (esito) => {
       if (get().layers.shelters.status === 'idle') return; // layer spento nel frattempo

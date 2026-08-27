@@ -29,6 +29,7 @@ function LayerRow({ def }: { def: EmergencyLayerDef }) {
   const runtime = useEmergencyStore((s) => s.layers[def.id]);
   const startLayer = useEmergencyStore((s) => s.startLayer);
   const stopLayer = useEmergencyStore((s) => s.stopLayer);
+  const retryLayer = useEmergencyStore((s) => s.retryLayer);
   const isStale = useEmergencyStore((s) => s.isStale);
   // `isStale` legge `Date.now()` in fase di render: senza qualcosa che provochi un
   // nuovo render, il badge "dati non aggiornati" non compariva mai — e cioè proprio
@@ -143,7 +144,7 @@ function LayerRow({ def }: { def: EmergencyLayerDef }) {
                 comunque.
               */}
               <button
-                onClick={() => { stopLayer(def.id); startLayer(def.id); }}
+                onClick={() => retryLayer(def.id)}
                 className="shrink-0 px-2 py-0.5 text-[10px] rounded bg-gray-700 hover:bg-gray-600 text-gray-100 max-lg:min-h-[32px]"
               >
                 Riprova
