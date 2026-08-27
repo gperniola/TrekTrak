@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { QuizQuestion as QuizQuestionType, QuizAnswer, QuestionType } from '@/lib/quiz';
 import { calculateQuizScore, azimuthDelta } from '@/lib/quiz';
+import { parseDecimale } from '@/components/shared/NumberInput';
 
 const TYPE_LABELS: Record<QuestionType, string> = {
   altitude: 'Altitudine',
@@ -53,8 +54,11 @@ export function QuizQuestionView({ question, questionNumber, totalQuestions, onA
   };
 
   const handleSubmit = () => {
-    const userValue = parseFloat(input);
-    if (isNaN(userValue)) return;
+    // Stesso parser dei campi dell'editor: accetta "1,5" come "1.5". Con
+    // `parseFloat` e un campo `type="number"` la virgola non arrivava nemmeno qui,
+    // perche' il browser svuotava il campo prima.
+    const userValue = parseDecimale(input);
+    if (userValue == null) return;
     const score = calculateQuizScore(userValue, question.realValue, question.type);
     const answer: QuizAnswer = { type: question.type, score, userValue, realValue: question.realValue };
     setResult(answer);
@@ -97,13 +101,16 @@ export function QuizQuestionView({ question, questionNumber, totalQuestions, onA
       {!answered ? (
         <div className="flex gap-2">
           <input
-            type="number"
+            type="text"
+            inputMode="decimal"
+            autoComplete="off"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }}
             placeholder={question.unit}
+            aria-label={`Risposta in ${question.unit}`}
             autoFocus
-            className="flex-1 bg-gray-800 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:border-purple-500 focus:outline-none"
+            className="flex-1 bg-gray-800 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:border-purple-500 focus:outline-none max-lg:min-h-[44px]"
           />
           <button
             onClick={handleSubmit}

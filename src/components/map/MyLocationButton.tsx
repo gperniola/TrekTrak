@@ -105,7 +105,7 @@ export function MyLocationButton({ hidden }: { hidden?: boolean }) {
         ref={guardiaPulsante}
         onClick={handleClick}
         disabled={locating}
-        className={`absolute bottom-28 right-3 z-[1000] w-10 h-10 rounded-full shadow-lg flex items-center justify-center text-lg transition-colors ${
+        className={`absolute bottom-28 right-3 z-[1000] w-10 h-10 max-lg:w-11 max-lg:h-11 rounded-full shadow-lg flex items-center justify-center text-lg transition-colors ${
           locating
             ? 'bg-gray-700 text-gray-400 cursor-wait'
             : 'bg-gray-800/90 text-green-400 hover:bg-gray-700 hover:text-green-300'
