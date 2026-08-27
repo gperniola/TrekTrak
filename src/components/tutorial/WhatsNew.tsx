@@ -75,38 +75,17 @@ function ColoredPathMockup() {
  */
 const RELEASES: Release[] = [
   {
+    // Una sola voce per tutta la linea 0.11.x, versionata come la release corrente:
+    // chi apre l'app dopo un po' deve sentirsi raccontare i LAYER DI EMERGENZA, che
+    // sono la novità che conta, non le correzioni e i dettagli usciti dopo. La
+    // pressione lunga sulle aree bruciate sta nel terzo passo perché riguarda gli
+    // stessi layer, non perché sia una novità a sé.
     version: '0.11.3',
     date: '2026-08-26',
     steps: [
       {
-        // L'icona si vede, ma che si possa togliere SOLO l'ultimo no: è quella la
-        // parte che vale la pena dire.
-        title: 'Cancellare i waypoint',
-        text: 'Il cestino sulla mappa (appare quando c\'è almeno un waypoint) ti chiede se cancellarli tutti o solo l\'ultimo che hai aggiunto. Comodo quando tocchi il punto sbagliato: togli solo quello, senza rifare il percorso.',
-        icon: '🗑️',
-      },
-    ],
-  },
-  {
-    version: '0.11.1',
-    date: '2026-08-26',
-    steps: [
-      {
-        // Una pressione lunga non si scopre da sola: se non la annunciamo qui, questa
-        // funzione non la troverà nessuno.
-        title: 'Dettagli delle aree bruciate',
-        text: 'Con il layer "Aree bruciate" attivo, tieni premuto su un\'area della mappa (o clic destro su computer) per sapere quando è passato il fuoco: TrekTrak lo chiede a Copernicus EFFIS e te lo mostra in un fumetto.',
-        icon: '🔥',
-      },
-    ],
-  },
-  {
-    version: '0.11.0',
-    date: '2026-08-26',
-    steps: [
-      {
         title: 'Layer di emergenza',
-        text: 'Nuovo pulsante ⚠️ sulla mappa: attiva i layer con i focolai rilevati da satellite (NASA FIRMS), le aree bruciate e il pericolo incendio previsto (Copernicus EFFIS).',
+        text: 'Nuovo pulsante ⚠️ sulla mappa: attiva i layer con i focolai rilevati da satellite (NASA FIRMS), le aree bruciate e il pericolo incendio previsto (Copernicus EFFIS). Con legenda, orario di aggiornamento e fonti sempre visibili.',
         icon: '🔥',
       },
       {
@@ -116,8 +95,13 @@ const RELEASES: Release[] = [
       },
       {
         title: 'Tocca per i dettagli',
-        text: 'Ogni focolaio e ogni zona di allerta è tappabile: data di rilevamento, potenza, confidenza, livelli di criticità. Con legenda, orario di aggiornamento e fonti sempre visibili.',
+        text: 'Ogni focolaio e ogni zona di allerta è tappabile: data di rilevamento, potenza, confidenza, livelli di criticità. Sulle aree bruciate tieni premuto (o clic destro) per sapere quando è passato il fuoco.',
         icon: '👆',
+      },
+      {
+        title: 'Non sostituiscono i canali ufficiali',
+        text: 'Sono dati satellitari e bollettini: possono essere incompleti o in ritardo. Servono a farsi un\'idea prima di partire, non a decidere in emergenza — per quello ci sono i canali ufficiali e il 112.',
+        icon: '⚠️',
       },
     ],
   },
