@@ -75,39 +75,31 @@ function ColoredPathMockup() {
  */
 const RELEASES: Release[] = [
   {
-    // Una sola voce per tutta la linea 0.11.x, versionata come la release corrente:
-    // chi apre l'app dopo un po' deve sentirsi raccontare i LAYER DI EMERGENZA, che
-    // sono la novità che conta, non le correzioni e i dettagli usciti dopo. La
-    // pressione lunga sulle aree bruciate sta nel terzo passo perché riguarda gli
-    // stessi layer, non perché sia una novità a sé.
+    // Una sola voce per tutta la linea 0.11.x: chi apre l'app dopo un po' deve
+    // sentirsi raccontare i LAYER DI EMERGENZA, che sono la novità che conta, non le
+    // correzioni e i dettagli usciti dopo. Quattro passi brevi: cosa sono, le allerte
+    // DPC, cosa si tocca, e il limite di questi dati.
     version: '0.11.5',
     date: '2026-08-27',
     steps: [
       {
-        // Un banner che compare solo in condizioni rare va spiegato prima, altrimenti
-        // quando compare non si capisce da dove esca né perché a volte non esca.
-        title: 'Allerta nella tua zona',
-        text: 'Se all’avvio ti trovi in una zona con un’allerta della Protezione Civile in corso, TrekTrak te lo dice con un avviso in alto. La tua posizione non viene chiesta: viene usata solo se l’hai già condivisa con la mappa, non lascia il telefono, e senza allerte non compare nulla.',
-        icon: '🌊',
-      },
-      {
         title: 'Layer di emergenza',
-        text: 'Nuovo pulsante ⚠️ sulla mappa: attiva i layer con i focolai rilevati da satellite (NASA FIRMS), le aree bruciate e il pericolo incendio previsto (Copernicus EFFIS). Con legenda, orario di aggiornamento e fonti sempre visibili.',
+        text: 'Nuovo pulsante ⚠️ sulla mappa: focolai rilevati da satellite (NASA FIRMS), aree bruciate e pericolo incendio previsto (Copernicus EFFIS). Ognuno con legenda, orario di aggiornamento e fonte.',
         icon: '🔥',
       },
       {
         title: 'Allerte meteo-idro',
-        text: 'Il layer Allerte DPC colora le zone di allerta della Protezione Civile (rischio idraulico, temporali e idrogeologico/frane), per oggi e domani, direttamente dal bollettino ufficiale.',
+        text: 'Le zone di allerta della Protezione Civile — idraulico, temporali, idrogeologico/frane — per oggi e domani, dal bollettino ufficiale.',
         icon: '🌊',
       },
       {
         title: 'Tocca per i dettagli',
-        text: 'Ogni focolaio e ogni zona di allerta è tappabile: data di rilevamento, potenza, confidenza, livelli di criticità. Sulle aree bruciate tieni premuto (o clic destro) per sapere quando è passato il fuoco.',
+        text: 'Focolai e zone di allerta si toccano. Sulle aree bruciate tieni premuto per sapere quando è passato il fuoco.',
         icon: '👆',
       },
       {
         title: 'Non sostituiscono i canali ufficiali',
-        text: 'Sono dati satellitari e bollettini: possono essere incompleti o in ritardo. Servono a farsi un\'idea prima di partire, non a decidere in emergenza — per quello ci sono i canali ufficiali e il 112.',
+        text: 'Dati satellitari e bollettini: possono essere incompleti o in ritardo. Servono a farsi un\'idea prima di partire, non a decidere in emergenza — per quello ci sono i canali ufficiali e il 112.',
         icon: '⚠️',
       },
     ],
