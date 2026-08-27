@@ -15,6 +15,9 @@ import { QuizOverlay } from '@/components/quiz/QuizOverlay';
 // TASK-4: ProgressOverlay imports Recharts (~150kB). Lazy-load to keep
 // first-paint bundle small — it's only mounted when the user opens the panel.
 const ProgressOverlay = dynamic(() => import('@/components/panel/ProgressOverlay').then((m) => ({ default: m.ProgressOverlay })), { ssr: false });
+// Trascinerebbe `lib/dpc` (e con esso topojson-client) più emergencyStore nel First
+// Load di `/`: è un controllo d'avvio, non serve al primo paint.
+const DpcPositionWarning = dynamic(() => import('@/components/shared/DpcPositionWarning').then((m) => ({ default: m.DpcPositionWarning })), { ssr: false });
 import { loadSettings } from '@/lib/storage';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { useUIStore } from '@/stores/uiStore';
@@ -223,6 +226,13 @@ export default function Home() {
     <main className="h-dvh flex flex-col lg:flex-row overflow-hidden">
       <OfflineBanner />
       <UpdateBanner />
+      {/* Allerta DPC nella zona dove ci si trova. In flusso come gli altri due banner:
+          non copre nulla, e in particolare non la bottom navigation. Il gate è
+          `justInvited` e non `inInviteFlow`: quest'ultimo resta vero per sempre a
+          chiunque sia arrivato da un invito e sia disconnesso, perché
+          `trektrak_invited` non viene mai rimosso — avrebbe spento la funzione per la
+          quasi totalità degli utenti. */}
+      {!justInvited && <DpcPositionWarning />}
       {/* Desktop sidebar — hidden on mobile */}
       <div className="hidden lg:flex">
         <LeftPanel />
@@ -329,6 +339,7 @@ export default function Home() {
 
       {/* What's New popup (shown once per version, after tutorial) */}
       {!inInviteFlow && <WhatsNew />}
+
 
       {/* Invite welcome popup — solo all'apertura del link di invito, se non autenticato */}
       {!authLoading && justInvited && !authSession && <InviteModal />}

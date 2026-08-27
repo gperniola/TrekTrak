@@ -54,7 +54,12 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
   pushToast: (toast) => {
     const id = makeId();
-    set((s) => ({ toasts: [...s.toasts, { id, ...toast, duration: toast.duration ?? 3000 }] }));
+    // `duration: null` significa "resta finché non la chiude l'utente", e il renderer
+    // lo gestisce già. Con `??` un null esplicito diventava 3000, quindi la toast
+    // permanente era irraggiungibile nonostante il tipo la dichiari: solo `undefined`
+    // deve cadere sul default.
+    const duration = toast.duration === undefined ? 3000 : toast.duration;
+    set((s) => ({ toasts: [...s.toasts, { id, ...toast, duration }] }));
     return id;
   },
   dismissToast: (id) => {

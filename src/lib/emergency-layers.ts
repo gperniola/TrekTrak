@@ -99,6 +99,19 @@ export function getEmergencyLayer(id: EmergencyLayerId): EmergencyLayerDef {
   return def;
 }
 
+/**
+ * Attribution senza markup, per i contesti di solo testo (banner, toast, popup
+ * costruiti a mano). Unica implementazione: la spoglia-HTML esisteva già come copia
+ * locale nel pannello.
+ */
+export function attributionText(id: EmergencyLayerId): string {
+  return stripAttributionMarkup(getEmergencyLayer(id).attribution);
+}
+
+export function stripAttributionMarkup(html: string): string {
+  return html.replace(/<[^>]+>/g, '');
+}
+
 export function isEmergencyLayerId(v: unknown): v is EmergencyLayerId {
   return typeof v === 'string' && EMERGENCY_LAYERS.some((l) => l.id === v);
 }

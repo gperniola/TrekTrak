@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useMap } from 'react-leaflet';
 import { fetchElevation } from '@/lib/elevation-api';
+import { usePositionStore } from '@/stores/positionStore';
 
 interface LocationData {
   lat: number;
@@ -50,8 +51,11 @@ export function MyLocationButton({ hidden }: { hidden?: boolean }) {
 
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
-        if (!mountedRef.current) return;
         const { latitude, longitude, accuracy } = pos.coords;
+        // Pubblicata anche da qui: chi la consuma copre così anche il caso in cui
+        // l'utente chieda la posizione a mano più tardi nella sessione.
+        usePositionStore.getState().setLastKnown({ lat: latitude, lon: longitude, accuracy });
+        if (!mountedRef.current) return;
         map.flyTo([latitude, longitude], Math.max(map.getZoom(), 15), { duration: 1 });
 
         const alt = await fetchElevation(latitude, longitude);

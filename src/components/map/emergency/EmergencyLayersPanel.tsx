@@ -6,7 +6,7 @@ import { useItineraryStore } from '@/stores/itineraryStore';
 import { useEmergencyStore } from '@/stores/emergencyStore';
 import { saveSettings, KEYS } from '@/lib/storage';
 import { confirm as appConfirm } from '@/stores/notificationStore';
-import { EMERGENCY_LAYERS, type EmergencyLayerDef, type EmergencyLayerId, type EmergencyCategory } from '@/lib/emergency-layers';
+import { EMERGENCY_LAYERS, stripAttributionMarkup, type EmergencyLayerDef, type EmergencyLayerId, type EmergencyCategory } from '@/lib/emergency-layers';
 import { dayOptions } from '@/lib/dpc';
 import { useMapOverlayGuard } from '../useMapOverlayGuard';
 import { useOnline } from '@/lib/useOnline';
@@ -184,10 +184,6 @@ function LayerRow({ def }: { def: EmergencyLayerDef }) {
   );
 }
 
-function stripHtml(html: string): string {
-  return html.replace(/<[^>]+>/g, '');
-}
-
 export function EmergencyLayersPanel() {
   const open = useUIStore((s) => s.emergencyPanelOpen);
   const setOpen = useUIStore((s) => s.setEmergencyPanelOpen);
@@ -208,7 +204,7 @@ export function EmergencyLayersPanel() {
   const activeDefs = EMERGENCY_LAYERS.filter((l) => activeIds.includes(l.id));
   // Fonti deduplicate: aree bruciate e FWI vengono entrambi da EFFIS, con attivi tutti e
   // due comparirebbe "Copernicus EFFIS · Copernicus EFFIS".
-  const sources = Array.from(new Set(activeDefs.map((d) => stripHtml(d.attribution))));
+  const sources = Array.from(new Set(activeDefs.map((d) => stripAttributionMarkup(d.attribution))));
   const sourcesText = sources.length > 0 ? 'Fonti: ' + sources.join(' · ') : null;
 
   return (
