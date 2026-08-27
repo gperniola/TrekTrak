@@ -27,8 +27,17 @@ export const MapContainer = ({ children }: { children?: React.ReactNode }) => (
 
 export const TileLayer = () => <div data-testid="tile-layer" />;
 
-export const Marker = ({ children }: { children?: React.ReactNode }) => (
-  <div data-testid="marker">{children}</div>
+export const Marker = ({ children, ...props }: { children?: React.ReactNode } & Record<string, unknown>) => (
+  <div
+    data-testid="marker"
+    // Leaflet mette role="button" e tabIndex=0 sull'icona quando `keyboard` è true, che
+    // è il default e NON dipende da `interactive`: i test devono poter distinguere un
+    // marker decorativo da uno operabile.
+    data-keyboard={String(props.keyboard !== false)}
+    data-interactive={String(props.interactive !== false)}
+  >
+    {children}
+  </div>
 );
 
 export const Popup = ({ children }: { children?: React.ReactNode }) => (

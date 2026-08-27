@@ -24,8 +24,8 @@ export function QuizMarkers({ pointA, pointB }: {
 }) {
   return (
     <>
-      {pointA && <Marker position={[pointA.lat, pointA.lon]} icon={quizIconA} interactive={false} />}
-      {pointB && <Marker position={[pointB.lat, pointB.lon]} icon={quizIconB} interactive={false} />}
+      {pointA && <Marker position={[pointA.lat, pointA.lon]} icon={quizIconA} interactive={false} keyboard={false} />}
+      {pointB && <Marker position={[pointB.lat, pointB.lon]} icon={quizIconB} interactive={false} keyboard={false} />}
     </>
   );
 }

@@ -45,4 +45,18 @@ describe('BottomNav', () => {
     fireEvent.click(screen.getByRole('button', { name: /editor/i }));
     expect(useUIStore.getState().moreMenuOpen).toBe(false);
   });
+  /**
+   * `text-gray-500` su `bg-gray-900` misura 3,67 di contrasto: sotto la soglia AA di
+   * 4,5 per testo normale, e queste etichette sono a 11px. Era una delle due voci che
+   * separavano l'app dal target Lighthouse di 97 (TASK-53).
+   */
+  test('le voci inattive hanno contrasto sufficiente', () => {
+    render(<BottomNav />);
+    const inattive = screen.getAllByRole('button').filter((b) => b.getAttribute('aria-current') == null);
+    expect(inattive.length).toBeGreaterThan(0);
+    inattive.forEach((b) => {
+      expect(b.className).not.toMatch(/text-gray-500/);
+      expect(b.className).toMatch(/text-gray-400/);
+    });
+  });
 });

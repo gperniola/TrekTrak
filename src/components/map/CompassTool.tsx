@@ -28,7 +28,7 @@ function useCrossMarker(lat: number, lon: number, color: string, map: L.Map) {
       iconSize: [20, 20],
       iconAnchor: [10, 10],
     });
-    const marker = L.marker([lat, lon], { icon, interactive: false }).addTo(map);
+    const marker = L.marker([lat, lon], { icon, interactive: false, keyboard: false }).addTo(map);
     markerRef.current = marker;
     return () => { marker.remove(); };
   }, [lat, lon, color, map]);

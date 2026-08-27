@@ -51,7 +51,7 @@ export function PreviewRouteLayer({ route }: { route: Itinerary }) {
       {segs.map((s, i) => (
         <ColoredLegSegments key={i} leg={s.leg} fromLat={s.fromLat} fromLon={s.fromLon} toLat={s.toLat} toLon={s.toLon} />
       ))}
-      {markers.map((p, i) => <Marker key={`m${i}`} position={p} icon={numberedIcon(i + 1)} interactive={false} />)}
+      {markers.map((p, i) => <Marker key={`m${i}`} position={p} icon={numberedIcon(i + 1)} interactive={false} keyboard={false} />)}
     </>
   );
 }

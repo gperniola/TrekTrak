@@ -1,4 +1,6 @@
-const divIcon = jest.fn(() => ({ options: {}, createIcon: jest.fn() }));
+// Conserva le opzioni: l'html di un divIcon è ciò da cui si calcola il nome
+// accessibile del marker, quindi i test devono poterlo ispezionare.
+const divIcon = jest.fn((options: Record<string, unknown> = {}) => ({ options, createIcon: jest.fn() }));
 const icon = jest.fn(() => ({ options: {} }));
 const latLngBounds = jest.fn((pts: unknown) => ({ pts, isValid: () => true }));
 
