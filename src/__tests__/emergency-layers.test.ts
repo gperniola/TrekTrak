@@ -62,9 +62,13 @@ describe('legende allineate alla fonte EFFIS', () => {
       ['#9cffc0', '#cde24e', '#e6ac00', '#d97010', '#ad060e', '#3a0015']
     );
     // Senza gli intervalli, "Alto" e "Molto alto" non sono interpretabili.
-    legend.slice(0, 5).forEach((e) => expect(e.label).toMatch(/\d/));
-    // La classe piu' pericolosa non deve mancare: prima si fermava a cinque.
-    expect(legend[5].label).toMatch(/70/);
+    legend.forEach((e) => expect(e.label).toMatch(/\d/));
+    // Le soglie ricalcano la fonte, decimali compresi: arrotondarle sposterebbe il
+    // confine fra due classi rispetto al colore che il servizio disegna.
+    expect(legend.map((e) => e.label)).toEqual([
+      'Basso (< 11,2)', 'Moderato (11,2-21,3)', 'Alto (21,3-38)',
+      'Molto alto (38-50)', 'Estremo (50-70)', 'Molto estremo (> 70)',
+    ]);
   });
 
   test('nessuna legenda vuota su un layer attivabile', () => {

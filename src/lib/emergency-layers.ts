@@ -80,16 +80,21 @@ export const EMERGENCY_LAYERS: EmergencyLayerDef[] = [
     attribution: '<a href="https://forest-fire.emergency.copernicus.eu/">Copernicus EFFIS</a>',
     refreshMinutes: null,
     legend: [
-      // Sei classi, coi loro intervalli numerici, e i colori campionati dalla legenda
-      // ufficiale del servizio. Prima erano cinque con colori inventati: mancava la
-      // classe più pericolosa (oltre 70), che sulla mappa veniva quindi disegnata di
-      // un colore che l'utente non poteva interpretare.
-      { color: '#9cffc0', label: 'Basso (< 11)' },
-      { color: '#cde24e', label: 'Moderato (11-21)' },
-      { color: '#e6ac00', label: 'Alto (21-38)' },
+      // Sei classi, coi loro intervalli, e i colori campionati dalla legenda ufficiale
+      // del servizio. Prima erano cinque con colori inventati: mancava la classe piu'
+      // pericolosa, che sulla mappa veniva quindi disegnata di un colore che l'utente
+      // non poteva interpretare.
+      //
+      // Nomi e soglie ricalcano la legenda pubblicata (Low / Moderate / High / Very
+      // High / Extreme / Very Extreme): le soglie hanno un decimale perche' ce l'hanno
+      // alla fonte, e arrotondarle sposterebbe il confine fra due classi rispetto al
+      // colore che il servizio disegna davvero.
+      { color: '#9cffc0', label: 'Basso (< 11,2)' },
+      { color: '#cde24e', label: 'Moderato (11,2-21,3)' },
+      { color: '#e6ac00', label: 'Alto (21,3-38)' },
       { color: '#d97010', label: 'Molto alto (38-50)' },
       { color: '#ad060e', label: 'Estremo (50-70)' },
-      { color: '#3a0015', label: 'Estremo oltre 70' },
+      { color: '#3a0015', label: 'Molto estremo (> 70)' },
     ],
     wms: { url: EFFIS_WMS_URL, layers: 'mf010.fwi', timeMode: 'today', opacity: 0.55 },
   },
