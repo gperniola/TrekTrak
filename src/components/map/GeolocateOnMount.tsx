@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useMap } from 'react-leaflet';
+import { usePositionStore } from '@/stores/positionStore';
 
 // Chieti, Italy - default center
 export const DEFAULT_CENTER: [number, number] = [42.351, 14.168];
@@ -47,6 +48,13 @@ export function GeolocateOnMount() {
     if (!restored && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
+          // Pubblica la posizione: chi ne ha bisogno la legge da qui invece di
+          // richiederla, evitando un secondo fix GPS e qualunque nuovo prompt.
+          usePositionStore.getState().setLastKnown({
+            lat: pos.coords.latitude,
+            lon: pos.coords.longitude,
+            accuracy: pos.coords.accuracy,
+          });
           if (!unmounted && !userInteracted.current) {
             map.flyTo([pos.coords.latitude, pos.coords.longitude], DEFAULT_ZOOM, { duration: 1.5 });
           }

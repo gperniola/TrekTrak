@@ -80,9 +80,16 @@ const RELEASES: Release[] = [
     // sono la novità che conta, non le correzioni e i dettagli usciti dopo. La
     // pressione lunga sulle aree bruciate sta nel terzo passo perché riguarda gli
     // stessi layer, non perché sia una novità a sé.
-    version: '0.11.4',
+    version: '0.11.5',
     date: '2026-08-27',
     steps: [
+      {
+        // Un banner che compare solo in condizioni rare va spiegato prima, altrimenti
+        // quando compare non si capisce da dove esca né perché a volte non esca.
+        title: 'Allerta nella tua zona',
+        text: 'Se all’avvio ti trovi in una zona con un’allerta della Protezione Civile in corso, TrekTrak te lo dice con un avviso in alto. La tua posizione non viene chiesta: viene usata solo se l’hai già condivisa con la mappa, non lascia il telefono, e senza allerte non compare nulla.',
+        icon: '🌊',
+      },
       {
         title: 'Layer di emergenza',
         text: 'Nuovo pulsante ⚠️ sulla mappa: attiva i layer con i focolai rilevati da satellite (NASA FIRMS), le aree bruciate e il pericolo incendio previsto (Copernicus EFFIS). Con legenda, orario di aggiornamento e fonti sempre visibili.',
