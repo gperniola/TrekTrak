@@ -4,6 +4,12 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.11.4] — 2026-08-27 — Il bollettino DPC torna raggiungibile
+
+### Fixed
+- **Le allerte della Protezione Civile risultavano sempre "non raggiungibili".** Regressione della campagna di review: avevo fatto escludere i path `files/preview/` per non costruire il layer su un bollettino i cui topojson non esistono ancora, e ho corretto troppo. Il repo DPC committa spesso i soli preview — il 26/08 l'ultimo commit su master toccava unicamente `files/preview/20260826_1422_{oggi,domani}.png`, con le geometrie dello stesso bollettino già pubblicate — quindi la discovery non trovava più nessun id. Ora gli id dei preview tornano candidati validi e il rischio si gestisce **verificando che le geometrie esistano** (una richiesta `HEAD`, che non pesa sul rate limit di GitHub) invece di ignorare la cartella: funzionano sia il preview con geometrie pronte, sia quello della prossima emissione che non le ha ancora.
+- **Il popup "Novità" tornava a parlare dei dettagli invece della cosa importante.** Mostra solo la voce più recente, e le voci erano diventate tre (cestino waypoint, pressione lunga sulle aree bruciate, layer di emergenza): chi apriva l'app si sentiva raccontare il cestino. Ora è una voce sola in quattro passi sui **layer di emergenza** — le tre fonti, le allerte DPC, cosa è tappabile, e il fatto che questi dati non sostituiscono i canali ufficiali di allerta.
+
 ## [0.11.3] — 2026-08-26 — Cancellare i waypoint dalla mappa
 
 ### Added

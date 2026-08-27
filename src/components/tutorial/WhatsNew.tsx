@@ -80,8 +80,8 @@ const RELEASES: Release[] = [
     // sono la novità che conta, non le correzioni e i dettagli usciti dopo. La
     // pressione lunga sulle aree bruciate sta nel terzo passo perché riguarda gli
     // stessi layer, non perché sia una novità a sé.
-    version: '0.11.3',
-    date: '2026-08-26',
+    version: '0.11.4',
+    date: '2026-08-27',
     steps: [
       {
         title: 'Layer di emergenza',
