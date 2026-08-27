@@ -75,12 +75,12 @@ function ColoredPathMockup() {
  */
 const RELEASES: Release[] = [
   {
-    version: '0.12.0',
+    version: '0.13.0',
     date: '2026-08-27',
     steps: [
       {
         title: 'Meteo del tuo percorso',
-        text: 'Il pulsante Meteo ora incrocia la previsione con gli orari stimati: per ogni waypoint vedi a che ora ci arrivi e cosa trovi. In cima ti dice se la finestra critica ti prende mentre cammini, cosi\u2019 puoi decidere di partire prima.',
+        text: 'Il pulsante Meteo ora incrocia la previsione con gli orari stimati: per ogni waypoint vedi a che ora ci arrivi e cosa trovi. In cima ti dice se la finestra critica ti prende mentre cammini, cos\u00ec puoi decidere di partire prima.',
         icon: '\u26c8\ufe0f',
       },
       {
@@ -92,6 +92,11 @@ const RELEASES: Release[] = [
         title: 'Radar della pioggia',
         text: 'Nuovo layer con le ultime due ore di radar, che si possono animare per vedere da dove arriva la cella. \u00c8 pioggia gi\u00e0 caduta, non una previsione.',
         icon: '\ud83c\udf27\ufe0f',
+      },
+      {
+        title: 'Instabilit\u00e0 vista dal satellite',
+        text: 'Un layer in pi\u00f9 per i temporali: l\u2019instabilit\u00e0 misurata adesso dal satellite, non prevista da un modello. Utile la mattina, per confermare o smentire la previsione della sera prima. Attenzione: qui i valori negativi sono i pi\u00f9 instabili.',
+        icon: '\ud83d\udef0\ufe0f',
       },
       {
         title: 'Dove ripararsi',

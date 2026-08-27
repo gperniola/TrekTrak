@@ -1,10 +1,13 @@
 import { EMERGENCY_LAYERS, getEmergencyLayer, isEmergencyLayerId } from '@/lib/emergency-layers';
 
 describe('EMERGENCY_LAYERS registry', () => {
-  test('contiene 6 layer con id univoci', () => {
+  test('contiene 7 layer con id univoci', () => {
     const ids = EMERGENCY_LAYERS.map((l) => l.id);
-    expect(ids).toEqual(['fires-hotspots', 'fires-burned', 'fires-fwi', 'dpc-alerts', 'rain-radar', 'shelters']);
-    expect(new Set(ids).size).toBe(6);
+    expect(ids).toEqual([
+      'fires-hotspots', 'fires-burned', 'fires-fwi', 'dpc-alerts',
+      'rain-radar', 'shelters', 'storm-instability',
+    ]);
+    expect(new Set(ids).size).toBe(7);
   });
 
   test('i layer wms hanno config wms, gli altri no', () => {

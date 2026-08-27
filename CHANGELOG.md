@@ -4,6 +4,16 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.13.0] — 2026-08-27 — Instabilità osservata, non prevista
+
+### Added
+- **Nuovo layer: instabilità osservata da satellite.** È il Lifted Index di Meteosat, aggiornato ogni quarto d'ora: dice quanto l'atmosfera è instabile **adesso**, misurata dal satellite, mentre il CAPE del pannello meteo è una previsione di modello. Serve la mattina della partenza, per confermare o smentire quello che il meteo diceva la sera prima.
+
+  La legenda dice le classi a parole e con i valori — *molto instabile fino a -8 K*, *instabile*, *poco instabile*, *stabile oltre 0 K* — perché la scala di questo prodotto è a **polarità inversa** rispetto al CAPE (più negativo, più instabile) e i suoi colori non si indovinano: nella barra ufficiale il viola sta fra il giallo e il marrone. Il layer non si può interrogare tenendo premuto, e l'app non lo propone: il servizio, a chi chiede il valore sotto il dito, risponderebbe con i colori del pixel invece del numero.
+
+### DX
+- **Un controllo automatico per gli accenti italiani.** Nei giorni scorsi ho scritto quattro volte un apostrofo dove serviva un accento — "instabilita’" invece di "instabilità" — e ogni volta l'ho scoperto guardando lo schermo. Ora un test scandisce i sorgenti e li trova prima: appena scritto ne ha trovati quattro, uno dei quali nel popup delle novità.
+
 ## [0.12.0] — 2026-08-27 — Temporali: cosa incontri, e a che ora
 
 Le app meteo dicono che tempo farà in un posto. Nessuna sa a che ora tu ci arriverai. TrekTrak sì, perché conosce i tuoi waypoint, le loro quote e la tua andatura: da qui nasce questa versione.

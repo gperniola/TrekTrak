@@ -60,9 +60,11 @@ tollerando il 502/504 dell'istanza pubblica.
 Nessuna fonte esterna: si calcola in locale. Incrociato con la stima Munter dice
 "arrivi al buio". Costo quasi zero, valore alto.
 
-### Fase C — instabilità satellitare (da decidere)
-EUMETSAT WMS, gemello tecnico del FWI: costo di sviluppo quasi nullo perché la
-meccanica WMS è già in casa. **Decisione rinviata** a dopo il rilascio di A e B.
+### Fase C — instabilità satellitare → [[task-60]] (fatta)
+EUMETSAT WMS. Fatta dopo il rilascio di A e B: il layer è `msg_fes:gii_liftedindex`
+(`msg_gii_li` era lo **stile**, non il layer), si chiede senza TIME per avere l'istante
+più recente, e **non** è utilmente interrogabile malgrado il capabilities dichiari
+`queryable="1"` — GetFeatureInfo restituisce i canali RGB del PNG, non il valore in K.
 
 ### Escluse
 Fulmini in tempo reale (nessuna licenza), radar DPC (403), livelli idrometrici
