@@ -1,0 +1,15 @@
+{
+  // I file di test restano fuori dal tsconfig dell'app, che serve al build di Next:
+  // aggiungere i tipi di jest là dentro renderebbe `describe` e `expect` visibili al
+  // codice di produzione. Qui invece si includono, coi loro tipi.
+  //
+  // Senza questo, `tsc --noEmit` e `next build` non guardavano `src/__tests__`: i cast
+  // nei fixture non erano verificati da nulla fuori da ts-jest.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["jest", "node", "@testing-library/jest-dom"],
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "next-env.d.ts"],
+  "exclude": ["node_modules"]
+}

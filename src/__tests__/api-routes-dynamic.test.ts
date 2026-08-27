@@ -12,9 +12,7 @@ jest.mock('@/lib/dpc-discovery', () => ({ discoverLatestBulletin: jest.fn() }));
 import { fetchFiresUpstream } from '@/lib/fires-proxy';
 import { discoverLatestBulletin } from '@/lib/dpc-discovery';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const firesRoute = require('@/app/api/fires/route');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const dpcRoute = require('@/app/api/dpc-alerts/route');
 
 type JsonResponse = { body: unknown; status: number };

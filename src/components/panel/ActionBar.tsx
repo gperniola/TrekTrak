@@ -31,7 +31,18 @@ export function ActionBar() {
   const verifyingRef = useRef(false);
   const mountedRef = useRef(true);
   const verifyGenerationRef = useRef(0);
-  useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; verifyGenerationRef.current++; if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current); }; }, []);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      // Il contatore va incrementato sul riferimento VIVO: copiarlo in una variabile
+      // dentro l'effetto, come suggerisce la regola, annullerebbe l'invalidazione
+      // dei risultati async ancora in volo — che è tutto il senso del contatore.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      verifyGenerationRef.current++;
+      if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
+    };
+  }, []);
   const [verifyBanner, setVerifyBanner] = useState<{ valid: number; warning: number; error: number; improvement?: number } | null>(null);
   const [bannerFading, setBannerFading] = useState(false);
   const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);

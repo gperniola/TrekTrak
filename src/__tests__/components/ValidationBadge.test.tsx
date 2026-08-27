@@ -13,6 +13,7 @@ describe('ValidationBadge', () => {
   test('renders nothing when status is unverified', () => {
     const result: ValidationResult = {
       status: 'unverified',
+      userValue: 110,
       realValue: 100,
       delta: 10,
       tolerance: { strict: 50, loose: 100 },
@@ -24,6 +25,7 @@ describe('ValidationBadge', () => {
   test('renders badge with checkmark for valid result', () => {
     const result: ValidationResult = {
       status: 'valid',
+      userValue: 105,
       realValue: 100,
       delta: 5,
       tolerance: { strict: 50, loose: 100 },
@@ -35,6 +37,7 @@ describe('ValidationBadge', () => {
   test('renders badge with tilde for warning result', () => {
     const result: ValidationResult = {
       status: 'warning',
+      userValue: 160,
       realValue: 100,
       delta: 60,
       tolerance: { strict: 50, loose: 100 },
@@ -46,6 +49,7 @@ describe('ValidationBadge', () => {
   test('click opens popover showing "Calcolato"', () => {
     const result: ValidationResult = {
       status: 'valid',
+      userValue: 1244,
       realValue: 1234,
       delta: 10,
       tolerance: { strict: 50, loose: 100 },
@@ -61,6 +65,7 @@ describe('ValidationBadge', () => {
     // altitude.small tip contains "curva di livello"
     const result: ValidationResult = {
       status: 'warning',
+      userValue: 580,
       realValue: 500,
       delta: 80,
       tolerance: { strict: 50, loose: 100 },

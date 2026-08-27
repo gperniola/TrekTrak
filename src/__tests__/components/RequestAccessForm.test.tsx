@@ -9,7 +9,7 @@ beforeEach(() => {
 
 describe('RequestAccessForm', () => {
   test('email vuota → non chiama requestAccess', () => {
-    const spy = jest.fn(async () => ({ ok: true }));
+    const spy = jest.fn(async (_email: string) => ({ ok: true }));
     useAuthStore.setState({ requestAccess: spy as never });
     render(<RequestAccessForm />);
     fireEvent.click(screen.getByRole('button', { name: /invia/i }));
@@ -17,7 +17,7 @@ describe('RequestAccessForm', () => {
   });
 
   test('email valida → chiama requestAccess e mostra conferma', async () => {
-    const spy = jest.fn(async () => ({ ok: true }));
+    const spy = jest.fn(async (_email: string) => ({ ok: true }));
     useAuthStore.setState({ requestAccess: spy as never });
     render(<RequestAccessForm />);
     fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'a@b.it' } });

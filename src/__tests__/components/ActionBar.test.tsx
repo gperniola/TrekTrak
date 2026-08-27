@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, test, beforeEach, jest } from '@jest/globals';
 import { useItineraryStore } from '@/stores/itineraryStore';
+import type { ItineraryState } from '@/stores/itineraryStore';
 import { useUIStore } from '@/stores/uiStore';
 import type { AppMode } from '@/lib/types';
 
@@ -20,7 +21,12 @@ jest.mock('@/lib/storage', () => ({
 
 import { ActionBar } from '@/components/panel/ActionBar';
 
-const BASE_ITINERARY_STATE = {
+/**
+ * Annotato: senza il tipo, `sampleInterval: 50` si allarga a `number` e la fixture
+ * non viene confrontata con lo stato reale dello store — è così che campi aggiunti
+ * dopo (es. `emergencyLayers`) restavano assenti senza che nulla lo segnalasse.
+ */
+const BASE_ITINERARY_STATE: Partial<ItineraryState> = {
   itineraryId: 'test-id',
   itineraryName: 'Test',
   waypoints: [],

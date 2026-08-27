@@ -110,6 +110,10 @@ export function LocationSearch({ mobileSearchOpen }: { mobileSearchOpen?: boolea
   useEffect(() => {
     return () => {
       abortRef.current?.abort();
+      // Il contatore va incrementato sul riferimento VIVO: copiarlo in una variabile
+      // dentro l'effetto, come suggerisce la regola, annullerebbe l'invalidazione
+      // dei risultati async ancora in volo — che è tutto il senso del contatore.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       generationRef.current++;
     };
   }, []);
