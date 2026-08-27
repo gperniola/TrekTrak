@@ -4,6 +4,11 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.11.7] — 2026-08-27 — Popup Novità più corto
+
+### Changed
+- **Il popup "Novità" alla prima apertura è passato da cinque passi a quattro**, con i testi accorciati. Il passo che spariva è quello sull'avviso di allerta alla tua posizione: è un banner che compare da sé nelle giornate in cui serve e non ha bisogno di essere annunciato in anticipo. Restano i layer di emergenza — cosa sono, le allerte della Protezione Civile, cosa si tocca per avere i dettagli, e il limite di questi dati.
+
 ## [0.11.6] — 2026-08-27 — Legende vere, marker che non intralciano, controllo allerte leggero
 
 ### Fixed
