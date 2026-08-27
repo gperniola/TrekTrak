@@ -18,7 +18,10 @@ const ProgressOverlay = dynamic(() => import('@/components/panel/ProgressOverlay
 // Trascinerebbe `lib/dpc` (e con esso topojson-client) più emergencyStore nel First
 // Load di `/`: è un controllo d'avvio, non serve al primo paint.
 const DpcPositionWarning = dynamic(() => import('@/components/shared/DpcPositionWarning').then((m) => ({ default: m.DpcPositionWarning })), { ssr: false });
-import { loadSettings } from '@/lib/storage';
+import { loadSettings, KEYS } from '@/lib/storage';
+import { loadCurrent } from '@/lib/current-itinerary';
+import { useItineraryAutosave } from '@/lib/useItineraryAutosave';
+import { startupAction } from '@/lib/startup-itinerary';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { useUIStore } from '@/stores/uiStore';
 import { useRouteLibraryStore } from '@/stores/routeLibraryStore';
@@ -52,6 +55,8 @@ export default function Home() {
   const setMoreMenuOpen = useUIStore((s) => s.setMoreMenuOpen);
   const emergencyPanelOpen = useUIStore((s) => s.emergencyPanelOpen);
   const setEmergencyPanelOpen = useUIStore((s) => s.setEmergencyPanelOpen);
+  const toolsFabOpen = useUIStore((s) => s.toolsFabOpen);
+  const setToolsFabOpen = useUIStore((s) => s.setToolsFabOpen);
 
   const previewRoute = useRouteLibraryStore((s) => s.routes.find((r) => r.id === s.selectedRouteId));
   const clearRouteSelection = useRouteLibraryStore((s) => s.select);
@@ -75,19 +80,46 @@ export default function Home() {
     useItineraryStore.getState().updateSettings(persisted);
   }, []);
 
+  // Rimette in piedi l'itinerario su cui si stava lavorando. Deve stare PRIMA
+  // dell'import da hash: se arriva un link condiviso, quello ha l'ultima parola.
+  useEffect(() => {
+    let livello: string | null = null;
+    try { livello = localStorage.getItem(KEYS.userLevel); } catch { /* storage bloccato */ }
+    const azione = startupAction(loadCurrent(), livello);
+    if (azione.kind === 'restore') useItineraryStore.getState().hydrateCurrent(azione.saved);
+    else if (azione.kind === 'appMode') useItineraryStore.getState().setAppMode(azione.mode);
+  }, []);
+
+  // Tiene su disco l'itinerario in lavorazione, a ogni modifica.
+  useItineraryAutosave();
+
   // Load itinerary from URL hash if present
   useEffect(() => {
     const hash = window.location.hash;
     if (!hash.startsWith('#data=')) return;
     const decoded = decodeItinerary(hash);
-    if (decoded) {
-      const store = useItineraryStore.getState();
-      const id = Math.random().toString(36).substring(2, 11);
-      store.loadItinerary(id, decoded.name, decoded.waypoints, decoded.legs);
-    }
     // Preserviamo lo stato del router di Next (history.state) mentre ripuliamo l'hash:
     // passare null lo azzererebbe e farebbe ricaricare la pagina al primo popstate.
-    history.replaceState(window.history.state, '', window.location.pathname);
+    const pulisciHash = () => history.replaceState(window.history.state, '', window.location.pathname);
+    if (!decoded) { pulisciHash(); return; }
+
+    void (async () => {
+      const store = useItineraryStore.getState();
+      // Da quando il lavoro in corso sopravvive alla chiusura, aprire un link
+      // condiviso può cancellare giorni di lavoro: si chiede, come già fa l'import
+      // da file JSON.
+      if (store.waypoints.length > 0) {
+        const ok = await appConfirm({
+          title: 'Aprire l’itinerario condiviso?',
+          message: 'L’itinerario su cui stai lavorando verrà sostituito.',
+          confirmText: 'Apri condiviso',
+        });
+        if (!ok) { pulisciHash(); return; }
+      }
+      const id = Math.random().toString(36).substring(2, 11);
+      store.loadItinerary(id, decoded.name, decoded.waypoints, decoded.legs);
+      pulisciHash();
+    })();
   }, []);
 
   // Primo accesso da mobile: appena l'utente è autenticato ma non ha ancora uno username
@@ -122,9 +154,11 @@ export default function Home() {
       searchOpen,
       mobileTab,
       emergencyPanelOpen,
+      toolsFabOpen,
     });
     switch (action) {
       case 'closeMore': setMoreMenuOpen(false); return true;
+      case 'closeToolsFab': setToolsFabOpen(false); return true;
       case 'closeEmergencyPanel': setEmergencyPanelOpen(false); return true;
       case 'closeMapSettings': setShowMapSettings(false); return true;
       case 'closeSettings': setShowSettings(false); return true;
@@ -140,6 +174,7 @@ export default function Home() {
   // base: ogni overlay/menu = +1, e trovarsi su una scheda diversa dalla Mappa = +1.
   const backDepth =
     (moreMenuOpen ? 1 : 0) +
+    (toolsFabOpen ? 1 : 0) +
     (emergencyPanelOpen ? 1 : 0) +
     (showMapSettings ? 1 : 0) +
     (showSettings ? 1 : 0) +

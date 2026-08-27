@@ -8,11 +8,13 @@ export interface BackNavState {
   searchOpen: boolean;
   mobileTab: 'map' | 'editor' | 'library';
   emergencyPanelOpen: boolean;
+  toolsFabOpen: boolean;
 }
 
 export type BackNavAction =
   | 'closeMore' | 'closeMapSettings' | 'closeSettings' | 'closeProgress'
-  | 'closeQuiz' | 'closeSearch' | 'toMap' | 'exit' | 'closeEmergencyPanel';
+  | 'closeQuiz' | 'closeSearch' | 'toMap' | 'exit' | 'closeEmergencyPanel'
+  | 'closeToolsFab';
 
 /**
  * Priorità del tasto Indietro (mobile): prima chiude eventuali overlay/menu aperti,
@@ -20,6 +22,7 @@ export type BackNavAction =
  */
 export function nextBackAction(s: BackNavState): BackNavAction {
   if (s.moreMenuOpen) return 'closeMore';
+  if (s.toolsFabOpen) return 'closeToolsFab';
   if (s.emergencyPanelOpen) return 'closeEmergencyPanel';
   if (s.mapSettingsOpen) return 'closeMapSettings';
   if (s.settingsOpen) return 'closeSettings';

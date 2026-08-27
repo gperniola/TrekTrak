@@ -5,7 +5,7 @@ import { MapToolsFab } from '@/components/map/MapToolsFab';
 import { useUIStore } from '@/stores/uiStore';
 
 beforeEach(() => {
-  useUIStore.setState({ compassActive: false, rulerActive: false, quizActive: false });
+  useUIStore.setState({ compassActive: false, rulerActive: false, quizActive: false, toolsFabOpen: false });
 });
 
 describe('MapToolsFab', () => {
