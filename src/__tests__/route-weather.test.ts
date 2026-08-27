@@ -47,22 +47,36 @@ describe('orari di arrivo dai tempi Munter', () => {
 
   test('il primo waypoint è l\'ora di partenza', () => {
     const t = arrivalTimes([wp(0), wp(1)], [leg(0, 90)], partenza);
-    expect(t[0].toISOString()).toBe(partenza.toISOString());
+    expect(t[0]?.toISOString()).toBe(partenza.toISOString());
   });
 
   test('ogni tratta somma il suo tempo', () => {
     const t = arrivalTimes([wp(0), wp(1), wp(2)], [leg(0, 90), leg(1, 45)], partenza);
-    expect((t[1].getTime() - partenza.getTime()) / 60000).toBe(90);
-    expect((t[2].getTime() - partenza.getTime()) / 60000).toBe(135);
+    expect(((t[1] as Date).getTime() - partenza.getTime()) / 60000).toBe(90);
+    expect(((t[2] as Date).getTime() - partenza.getTime()) / 60000).toBe(135);
   });
 
-  // Una tratta senza stima non deve far collassare tutti gli orari successivi
-  // sull'ora di partenza: si tratta come tempo ignoto, quindi zero, ma il resto
-  // della catena continua a scorrere.
-  test('una tratta senza tempo stimato non rompe la catena', () => {
+  /**
+   * SPECIFICA CAMBIATA nel secondo giro di review, perche' quella di prima codificava
+   * un difetto: il tempo ignoto valeva zero e "la catena continuava a scorrere", cioe'
+   * i punti successivi ricevevano orari **inventati**. In modalita' Learn le tratte
+   * nascono senza distanza ne' dislivelli, quindi era la condizione normale: un
+   * principiante leggeva di arrivare in vetta all'ora di partenza.
+   *
+   * Adesso da quel punto in poi l'orario e' `null`: un'ora che non si conosce si
+   * dichiara, non si stima a zero.
+   */
+  test('una tratta senza tempo stimato interrompe gli orari, invece di inventarli', () => {
     const senza = { ...leg(0, 0), estimatedTime: undefined };
     const t = arrivalTimes([wp(0), wp(1), wp(2)], [senza, leg(1, 60)], partenza);
-    expect((t[2].getTime() - partenza.getTime()) / 60000).toBe(60);
+    expect(t[0]).not.toBeNull();
+    expect(t[1]).toBeNull();
+    expect(t[2]).toBeNull();
+  });
+
+  test('con tutti i tempi noti gli orari ci sono tutti', () => {
+    const t = arrivalTimes([wp(0), wp(1), wp(2)], [leg(0, 30), leg(1, 45)], partenza);
+    expect(t.every((x) => x != null)).toBe(true);
   });
 });
 
@@ -273,5 +287,69 @@ describe('rapporto completo', () => {
     });
     expect(r.verdict.level).toBeNull();
     expect(r.rows).toEqual([]);
+  });
+});
+
+/**
+ * In modalita' Learn le tratte nascono senza distanza ne' dislivelli: senza quelli non
+ * esiste un orario di arrivo da incrociare con la previsione. Il pannello non deve
+ * inventare orari, ma non deve nemmeno tacere: le ore instabili della giornata sono
+ * informazione vera, e quello che manca e' solo l'incrocio.
+ */
+describe('quando i tempi di percorrenza non ci sono', () => {
+  const partenza = new Date('2026-08-28T05:00:00Z');
+  const serieCritica = () => {
+    const time: string[] = []; const cape: number[] = []; const wc: number[] = [];
+    const g: number[] = []; const pp: number[] = [];
+    for (let h = 0; h < 24; h++) {
+      time.push(`2026-08-28T${String(h).padStart(2, '0')}:00`);
+      cape.push(h >= 12 && h <= 15 ? 1400 : 20);
+      wc.push(0); g.push(10); pp.push(0);
+    }
+    return { time, cape, weather_code: wc, wind_gusts_10m: g, precipitation_probability: pp };
+  };
+  const senzaTempo = { ...leg(0, 0), estimatedTime: undefined };
+
+  test('gli orari sono dichiarati non stimabili, non messi a zero', () => {
+    const r = buildRouteWeather({
+      waypoints: [wp(0), wp(1)], legs: [senzaTempo], departure: partenza,
+      punti: [
+        { waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'Parcheggio' },
+        { waypointIndex: 1, lat: 46.5, lon: 11.8, name: 'Vetta' },
+      ],
+      serie: [serieCritica(), serieCritica()],
+    });
+    expect(r.rows[0].arrival).not.toBeNull();      // la partenza si conosce
+    expect(r.rows[1].arrival).toBeNull();          // il resto no
+    expect(r.rows[1].classification.reasons.join(' ')).toMatch(/non stimabile/i);
+  });
+
+  test('il verdetto non afferma nulla sull\'incrocio, ma dice le ore instabili', () => {
+    const r = buildRouteWeather({
+      waypoints: [wp(0), wp(1)], legs: [senzaTempo], departure: partenza,
+      punti: [{ waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'Parcheggio' }],
+      serie: [serieCritica()],
+    });
+    expect(r.verdict.level).toBeNull();
+    expect(r.hitWindow).toBeNull();
+    expect(r.verdict.message).toMatch(/14:00-18:00/);          // ora italiana
+    expect(r.verdict.message).toMatch(/dislivelli|Track/);      // dice cosa manca
+  });
+
+  test('senza criticità lo dice, e spiega comunque cosa manca', () => {
+    const time: string[] = []; const cape: number[] = []; const wc: number[] = [];
+    const g: number[] = []; const pp: number[] = [];
+    for (let h = 0; h < 24; h++) {
+      time.push(`2026-08-28T${String(h).padStart(2, '0')}:00`);
+      cape.push(20); wc.push(0); g.push(10); pp.push(0);
+    }
+    const r = buildRouteWeather({
+      waypoints: [wp(0), wp(1)], legs: [senzaTempo], departure: partenza,
+      punti: [{ waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'Parcheggio' }],
+      serie: [{ time, cape, weather_code: wc, wind_gusts_10m: g, precipitation_probability: pp }],
+    });
+    expect(r.verdict.level).toBeNull();
+    expect(r.verdict.message).toMatch(/Nessuna criticità/i);
+    expect(r.verdict.message).toMatch(/dislivelli/);
   });
 });

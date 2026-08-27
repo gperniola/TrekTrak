@@ -87,15 +87,27 @@ export function samplePoints(waypoints: Waypoint[], max = MAX_PUNTI): PuntoInter
     .map(({ wp, i }) => ({ waypointIndex: i, lat: wp.lat as number, lon: wp.lon as number, name: wp.name }));
 }
 
-export function arrivalTimes(waypoints: Waypoint[], legs: Leg[], departure: Date): Date[] {
-  const out: Date[] = [];
+/**
+ * Orari di arrivo, o `null` da dove la catena si interrompe.
+ *
+ * Una tratta senza distanza o dislivelli non ha `estimatedTime`: e' la condizione
+ * NORMALE in modalita' Learn, dove i valori li scrive l'utente. Prima quel tempo
+ * ignoto valeva zero, quindi tutti i punti risultavano raggiunti **all'ora di
+ * partenza**: un principiante leggeva di arrivare in vetta alle 7 del mattino.
+ *
+ * Un orario che non si conosce va detto, non stimato a zero.
+ */
+export function arrivalTimes(waypoints: Waypoint[], legs: Leg[], departure: Date): (Date | null)[] {
+  const out: (Date | null)[] = [];
   let minuti = 0;
+  let catenaRotta = false;
   for (let i = 0; i < waypoints.length; i++) {
     if (i > 0) {
       const t = legs[i - 1]?.estimatedTime;
-      minuti += Number.isFinite(t) ? (t as number) : 0;
+      if (!Number.isFinite(t)) catenaRotta = true;
+      else minuti += t as number;
     }
-    out.push(new Date(departure.getTime() + minuti * 60000));
+    out.push(catenaRotta ? null : new Date(departure.getTime() + minuti * 60000));
   }
   return out;
 }
@@ -164,8 +176,8 @@ export function defaultDeparture(now: Date, oraTipica = 7): Date {
 export interface RigaPercorso {
   waypointIndex: number;
   name: string;
-  /** Orario stimato di arrivo, ISO UTC. */
-  arrival: string;
+  /** Orario stimato di arrivo (ISO UTC), o `null` se i tempi non sono stimabili. */
+  arrival: string | null;
   /** Lettura dell'ora più vicina all'arrivo, se disponibile. */
   hour: PuntoOrario | null;
   classification: Classificazione;
@@ -316,20 +328,37 @@ export function buildRouteWeather(input: {
 
   const arrivi = arrivalTimes(waypoints, legs, departure);
   const rows: RigaPercorso[] = punti.map((p, k) => {
-    const arrivo = arrivi[p.waypointIndex] ?? departure;
-    const hour = letturaVicina(serie[k] ?? serie[0], arrivo);
+    const arrivo = arrivi[p.waypointIndex] ?? null;
+    /*
+     * Una serie per punto, nello stesso ordine. Se per quel punto la serie non c'e' —
+     * risposta piu' corta di quanto chiesto — la riga dichiara "non disponibile".
+     *
+     * Prima c'era un ripiego silenzioso sulla prima serie: il dato di un posto veniva
+     * presentato come se fosse di un altro, che e' la classe di difetto piu' pericolosa
+     * di questo progetto. Su tre punti e una serie sola tutte le righe mostravano lo
+     * stesso CAPE come se fosse stato calcolato per ognuno.
+     */
+    const mia = serie[k];
+    // Senza orario di arrivo non si puo' dire "il meteo quando ci arrivi": si dichiara
+    // il motivo, invece di leggere un'ora a caso.
+    const hour = arrivo != null && mia != null ? letturaVicina(mia, arrivo) : null;
+    const motivo = arrivo == null ? 'orario di arrivo non stimabile' : 'dati non disponibili';
     return {
       waypointIndex: p.waypointIndex,
       name: p.name,
-      arrival: arrivo.toISOString(),
+      arrival: arrivo?.toISOString() ?? null,
       hour,
-      classification: hour ? classifyHour(hour) : { level: null, reasons: ['dati non disponibili'] },
+      classification: hour ? classifyHour(hour) : { level: null, reasons: [motivo] },
     };
   });
 
   // Estremi dell'intervallo da esaminare: dall'inizio del giorno della partenza alla
   // fine del giorno in cui si arriva (ora italiana in entrambi i casi).
-  const arrivoUltimo = arrivi[waypoints.length - 1] ?? departure;
+  // Se la catena dei tempi si interrompe, l'ultimo arrivo noto e' l'ultimo non nullo:
+  // le fasce si guardano comunque sulla giornata, perche' sono informazione vera.
+  const arriviNoti = arrivi.filter((a): a is Date => a != null);
+  const arrivoUltimo = arriviNoti[arriviNoti.length - 1] ?? departure;
+  const tempiCompleti = arrivi.length > 0 && arrivi.every((a) => a != null);
   const windows = fasceCritiche(serie, inizioGiornoItaliano(departure), fineGiornoItaliano(arrivoUltimo));
 
   /*
@@ -348,9 +377,13 @@ export function buildRouteWeather(input: {
   const arrivoFinale = arrivoUltimo;
   // Intersezione fra intervalli di ISTANTI: niente aritmetica sulle ore, quindi niente
   // casi limite a mezzanotte e nessun fuso da indovinare.
-  const hitWindow = windows.find((f) =>
-    new Date(f.toISO).getTime() > departure.getTime()
-    && new Date(f.fromISO).getTime() < arrivoFinale.getTime()) ?? null;
+  // L'incrocio ha senso solo se si sa quando si cammina: senza i tempi non si puo'
+  // affermare che una fascia "ti prende".
+  const hitWindow = tempiCompleti
+    ? windows.find((f) =>
+      new Date(f.toISO).getTime() > departure.getTime()
+      && new Date(f.fromISO).getTime() < arrivoFinale.getTime()) ?? null
+    : null;
   const finestraIncrociata = hitWindow != null;
 
   const livelli = rows.map((r) => r.classification.level).filter((l): l is Exclude<Livello, null> => l != null);
@@ -363,20 +396,41 @@ export function buildRouteWeather(input: {
   const orario = (iso: string) =>
     new Date(iso).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' });
 
+  const fascia = (f: FinestraCritica) => `${orario(f.fromISO)}-${orario(f.toISO)}`;
+  const elencoFasce = windows.map(fascia).join(', ');
+
   /** Il punto in cui ti trovi quando la finestra si apre: e' quello che serve sapere. */
   /** Dove ti trovi quando la fascia si apre: e' quello che serve sapere. */
   const doveAllInizioFinestra = () => {
     if (hitWindow == null) return null;
     const inizio = new Date(hitWindow.fromISO).getTime();
-    const passati = rows.filter((r) => new Date(r.arrival).getTime() <= inizio);
+    // Le righe senza orario non hanno posto in questa graduatoria.
+    const passati = rows.filter((r) => r.arrival != null && new Date(r.arrival).getTime() <= inizio);
     return passati.length > 0 ? passati[passati.length - 1] : rows[0] ?? null;
   };
 
 
-  const fascia = (f: FinestraCritica) => `${orario(f.fromISO)}-${orario(f.toISO)}`;
-  const elencoFasce = windows.map(fascia).join(', ');
 
   let message: string;
+  if (!tempiCompleti) {
+    /*
+     * Caso normale in modalita' Learn: le tratte non hanno ancora distanze e dislivelli,
+     * quindi non esiste un orario di arrivo da incrociare. Prima il codice dava un
+     * verdetto come se tutti i punti si raggiungessero all'ora di partenza.
+     *
+     * Le fasce critiche restano informazione vera e si dicono: quello che manca e'
+     * l'incrocio, non la previsione.
+     */
+    message = windows.length > 0
+      ? `Ore instabili nella giornata: ${windows.map(fascia).join(', ')}. Per sapere se ti prendono `
+        + 'servono i tempi di percorrenza: inserisci distanza e dislivelli, oppure passa a Track.'
+      : 'Nessuna criticità nella giornata. Gli orari di arrivo non sono stimabili finché mancano '
+        + 'distanza e dislivelli delle tratte.';
+    return {
+      rows, windows, hitWindow: null, sampled: punti.length,
+      verdict: { level: null, message },
+    };
+  }
   if (peggio == null) message = 'Previsione non disponibile per questo percorso.';
   else if (peggio === 0) message = windows.length > 0
     ? `Sul percorso non incontri criticità: le ore instabili (${elencoFasce}) cadono quando sei già rientrato.`
@@ -392,7 +446,10 @@ export function buildRouteWeather(input: {
       // C'e' un punto del percorso in cui la previsione, all'ora in cui ci arrivi, e'
       // critica: e' la frase piu' precisa che si possa dire.
       const dove = critici[0];
-      message = `Attenzione: verso le ${orario(dove.arrival)} sei a «${dove.name}» e la previsione è critica.${coda}`;
+      // Qui `arrival` non e' nullo: una riga critica ha una lettura, e una lettura
+      // esiste solo se l'orario di arrivo si conosce.
+      const quando = dove.arrival != null ? `verso le ${orario(dove.arrival)} ` : '';
+      message = `Attenzione: ${quando}sei a «${dove.name}» e la previsione è critica.${coda}`;
     } else if (hitWindow != null) {
       /*
        * Nessun punto interrogato e' critico all'ora del suo arrivo, ma una fascia

@@ -311,3 +311,41 @@ describe('EmergencyLayersPanel', () => {
     expect(screen.queryByText(/Nessuna zona in allerta/)).not.toBeInTheDocument();
   });
 });
+
+/**
+ * Su fonti pubbliche che rispondono 504 di tanto in tanto, il tentativo successivo è la
+ * cosa più utile da offrire. Prima l'unico modo era spegnere e riaccendere lo switch —
+ * un rimedio che l'utente doveva indovinare.
+ */
+describe('riprovare un layer in errore', () => {
+  test('il pulsante compare solo in errore', () => {
+    useEmergencyStore.setState({
+      layers: {
+        ...useEmergencyStore.getState().layers,
+        'fires-hotspots': { status: 'ready', error: null, lastFetch: Date.now() },
+      },
+    });
+    render(<EmergencyLayersPanel />);
+    expect(screen.queryByRole('button', { name: /riprova/i })).toBeNull();
+  });
+
+  test('in errore riavvia il layer', () => {
+    // Il dettaglio (e quindi l'errore) si mostra solo per i layer ACCESI: il pulsante
+    // vive li'.
+    const settings = useItineraryStore.getState().settings;
+    useItineraryStore.setState({
+      settings: { ...settings, mapDisplay: { ...settings.mapDisplay, emergencyLayers: ['fires-hotspots'] } },
+    });
+    useEmergencyStore.setState({
+      layers: {
+        ...useEmergencyStore.getState().layers,
+        'fires-hotspots': { status: 'error', error: 'Rete non disponibile', lastFetch: null },
+      },
+    });
+    render(<EmergencyLayersPanel />);
+    const riprova = screen.getByRole('button', { name: /riprova/i });
+    fireEvent.click(riprova);
+    // stopLayer riporta a idle e startLayer riparte: in mezzo lo stato non è più 'error'
+    expect(useEmergencyStore.getState().layers['fires-hotspots'].status).not.toBe('error');
+  });
+});

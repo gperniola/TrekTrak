@@ -129,3 +129,49 @@ describe('review: il ripristino parziale si dichiara', () => {
     expect(loadCurrent()?.slim).toBe(false);
   });
 });
+
+/**
+ * Secondo giro di review. Con meno serie che punti — risposta più corta di quanto
+ * chiesto — il codice ripiegava sulla **prima** serie: il dato di un posto veniva
+ * mostrato come se fosse di un altro, che è la classe di difetto più pericolosa di
+ * questo progetto (e la ragione della campagna della v0.11.0).
+ */
+describe('review 2: una serie per punto, o niente', () => {
+  const serie = (cape: number) => {
+    const time: string[] = []; const c: number[] = []; const wc: number[] = [];
+    const g: number[] = []; const pp: number[] = [];
+    for (let h = 0; h < 24; h++) {
+      time.push(`2026-08-28T${String(h).padStart(2, '0')}:00`);
+      c.push(cape); wc.push(0); g.push(10); pp.push(0);
+    }
+    return { time, cape: c, weather_code: wc, wind_gusts_10m: g, precipitation_probability: pp };
+  };
+  const punto = (i: number, nome: string) => ({ waypointIndex: i, lat: 46.4 + i / 100, lon: 11.8, name: nome });
+
+  test('i punti senza serie propria dichiarano "non disponibile"', () => {
+    const r = buildRouteWeather({
+      waypoints: [wp(0), wp(1), wp(2)],
+      legs: [leg(60), { ...leg(60), id: 'l1' }],
+      departure: new Date('2026-08-28T05:00:00Z'),
+      punti: [punto(0, 'Primo'), punto(1, 'Secondo'), punto(2, 'Terzo')],
+      serie: [serie(1600)],
+    });
+    expect(r.rows[0].hour?.cape).toBe(1600);
+    expect(r.rows[1].hour).toBeNull();
+    expect(r.rows[2].hour).toBeNull();
+    expect(r.rows[1].classification.level).toBeNull();
+    expect(r.rows[1].classification.reasons.join(' ')).toMatch(/non disponibili/i);
+  });
+
+  test('con una serie per punto ognuno mostra il suo', () => {
+    const r = buildRouteWeather({
+      waypoints: [wp(0), wp(1)],
+      legs: [leg(60)],
+      departure: new Date('2026-08-28T05:00:00Z'),
+      punti: [punto(0, 'Primo'), punto(1, 'Secondo')],
+      serie: [serie(100), serie(1600)],
+    });
+    expect(r.rows[0].hour?.cape).toBe(100);
+    expect(r.rows[1].hour?.cape).toBe(1600);
+  });
+});

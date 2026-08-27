@@ -4,6 +4,24 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.13.2] — 2026-08-27 — Orari che non si sanno, numeri scritti all'italiana
+
+Due giri di review sul lavoro delle versioni precedenti. Il filo comune: l'app
+presentava come certo qualcosa che non sapeva, e leggeva i numeri in un modo che
+in Italia nessuno usa.
+
+### Fixed
+- **In modalità Learn il meteo del percorso mostrava tutti i punti all'ora di partenza.** Le tratte appena create non hanno ancora distanza e dislivelli, quindi non hanno un tempo di percorrenza: quel vuoto veniva trattato come zero minuti, e il pannello dichiarava di arrivare in vetta all'ora in cui parti. Chi usa la modalità Learn è esattamente chi non può accorgersene. Ora le ore che non si conoscono si leggono `n/d`, un avviso dice che mancano distanza e dislivelli, e il verdetto nomina comunque le ore instabili della giornata invece di tacere.
+- **Il dato meteo di un punto poteva essere mostrato sotto un altro.** Quando il servizio risponde con meno serie dei punti richiesti, l'app ripiegava in silenzio sulla prima: tutte le righe mostravano lo stesso CAPE come se fosse stato calcolato per ognuna. Ora i punti senza previsione propria lo dichiarano.
+- **Nel quiz, rispondere "1.500" a una domanda in metri valeva un metro e mezzo, e il punteggio era zero su una risposta giusta.** In italiano il punto separa le migliaia. La correzione della versione precedente copriva i campi dell'itinerario; il quiz ha un campo suo. Essere bocciati da un separatore, in un'app che serve a imparare, è il peggio che possa capitare.
+- **La tolleranza delle coordinate non era impostabile.** Vale 0,001 gradi, e il campo rifiutava la virgola: all'italiana quel numero non si poteva scrivere. Ora tutti i campi delle tolleranze accettano la virgola e chiedono la tastiera decimale.
+
+### Added
+- **Un pulsante "Riprova" sui layer che non hanno risposto.** I servizi pubblici di emergenza restituiscono un errore temporaneo di tanto in tanto; prima l'unico rimedio era spegnere e riaccendere l'interruttore del layer — per i ripari, muovere la mappa — cioè un trucco che bisognava indovinare.
+
+### DX
+- **Un controllo automatico sui campi numerici.** Lo stesso difetto del separatore decimale è ricomparso tre volte in due giorni, ogni volta in un punto nuovo dell'app. Ora un test rifiuta i campi numerici del browser dove serve leggere numeri italiani, e chi ha una ragione per usarli la scrive accanto.
+
 ## [0.13.1] — 2026-08-27 — Otto correzioni dalla review
 
 Review del lavoro della giornata, cercando per prime le classi di difetto che in questo progetto si sono già ripetute. I primi quattro difetti sono stati riprodotti prima di essere corretti.

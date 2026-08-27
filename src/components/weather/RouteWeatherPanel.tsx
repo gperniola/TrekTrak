@@ -131,9 +131,9 @@ export function RouteWeatherPanel() {
 
   const primo = waypoints.find((w) => w.lat != null && w.lon != null);
   const sole = primo ? sunTimes(primo.lat as number, primo.lon as number, departure) : null;
-  const ultimoArrivo = report?.rows.length
-    ? report.rows[report.rows.length - 1].arrival
-    : null;
+  // Solo gli arrivi NOTI: senza i tempi non si puo' dire "arrivi dopo il tramonto".
+  const arriviNoti = (report?.rows ?? []).map((r) => r.arrival).filter((a): a is string => a != null);
+  const ultimoArrivo = arriviNoti.length > 0 ? arriviNoti[arriviNoti.length - 1] : null;
   const arrivoDopoIlTramonto = ultimoArrivo != null && sole?.sunset != null
     && new Date(ultimoArrivo).getTime() > new Date(sole.sunset).getTime();
 
@@ -271,7 +271,9 @@ export function RouteWeatherPanel() {
                         }`} aria-hidden />
                         {r.waypointIndex + 1}. {r.name || 'senza nome'}
                       </td>
-                      <td className="py-1.5 pr-2 text-gray-300 font-mono">{ora(r.arrival)}</td>
+                      <td className="py-1.5 pr-2 text-gray-300 font-mono">
+                        {r.arrival != null ? ora(r.arrival) : <span className="text-gray-500 font-sans">n/d</span>}
+                      </td>
                       <td className="py-1.5 pr-2 text-gray-300">{numero(r.hour?.cape)}</td>
                       <td className="py-1.5 pr-2 text-gray-300">{numero(r.hour?.gusts, ' km/h')}</td>
                       <td className="py-1.5 text-gray-300">{numero(r.hour?.precipProb, '%')}</td>
@@ -281,6 +283,13 @@ export function RouteWeatherPanel() {
               </table>
             </div>
 
+            {report.rows.some((r) => r.arrival == null) && (
+              <p className="text-[11px] text-amber-300/90 bg-amber-950/40 border border-amber-800/60 rounded px-2 py-1.5 leading-snug">
+                Gli orari di arrivo non sono stimabili: alle tratte mancano distanza o
+                dislivelli. Inseriscili nell&rsquo;Editor, oppure passa a{' '}
+                <strong className="font-medium">Track</strong> e li calcola l&rsquo;app.
+              </p>
+            )}
             <p className="text-[11px] text-gray-500">
               Previsione campionata su {report.sampled} {report.sampled === 1 ? 'punto' : 'punti'} del
               percorso: i modelli hanno maglie di chilometri, quindi punti vicini danno lo stesso dato.

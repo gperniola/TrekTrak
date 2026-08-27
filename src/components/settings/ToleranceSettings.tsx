@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { saveSettings, KEYS } from '@/lib/storage';
 import { toast } from '@/stores/notificationStore';
+import { parseDecimale } from '@/components/shared/NumberInput';
 import { DEFAULT_PACE } from '@/lib/types';
 import type { ToleranceSettings as TolSettings } from '@/lib/types';
 
@@ -11,6 +12,11 @@ export function ToleranceSettings({ onClose }: { onClose: () => void }) {
   const settings = useItineraryStore((s) => s.settings);
   const updateSettings = useItineraryStore((s) => s.updateSettings);
   const [tol, setTol] = useState<TolSettings>({ ...settings.tolerances });
+  /**
+   * Il testo battuto, separato dal numero: mentre si scrive "0,00" non c'e' ancora un
+   * valore valido, ma quello che si sta digitando deve restare a schermo.
+   */
+  const [testi, setTesti] = useState<Partial<Record<keyof TolSettings, string>>>({});
   const [paceFactor, setPaceFactor] = useState<number>(settings.pace?.factor ?? DEFAULT_PACE.factor);
 
   useEffect(() => {
@@ -48,15 +54,25 @@ export function ToleranceSettings({ onClose }: { onClose: () => void }) {
             <div key={key} className="flex items-center justify-between">
               <label className="text-sm text-gray-300">{label}</label>
               <div className="flex items-center gap-1">
+                {/*
+                  Di testo con tastiera decimale, non `type="number"`: la tolleranza
+                  delle coordinate vale 0,001 gradi, e col campo numerico la virgola
+                  veniva scartata dal browser — quindi all'italiana non era
+                  impostabile. Stesso difetto corretto nei campi dell'itinerario.
+                */}
                 <input
-                  type="number"
-                  value={tol[key]}
+                  type="text"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  value={testi[key] ?? String(tol[key])}
                   onChange={(e) => {
-                    const num = Number(e.target.value);
-                    if (Number.isFinite(num) && num > 0) setTol({ ...tol, [key]: num });
+                    const grezzo = e.target.value;
+                    setTesti({ ...testi, [key]: grezzo });
+                    const num = parseDecimale(grezzo);
+                    if (num != null && num > 0) setTol({ ...tol, [key]: num });
                   }}
-                  min={0.01}
-                  className="w-20 bg-gray-900 border border-gray-600 rounded px-2 py-1 text-sm text-white text-right"
+                  aria-label={`Tolleranza ${label} in ${unit}`}
+                  className="w-20 bg-gray-900 border border-gray-600 rounded px-2 py-1 text-sm text-white text-right max-lg:min-h-[44px]"
                 />
                 <span className="text-xs text-gray-500 w-10">{unit}</span>
               </div>

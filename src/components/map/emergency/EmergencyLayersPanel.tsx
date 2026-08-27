@@ -29,6 +29,7 @@ function LayerRow({ def }: { def: EmergencyLayerDef }) {
   const runtime = useEmergencyStore((s) => s.layers[def.id]);
   const startLayer = useEmergencyStore((s) => s.startLayer);
   const stopLayer = useEmergencyStore((s) => s.stopLayer);
+  const retryLayer = useEmergencyStore((s) => s.retryLayer);
   const isStale = useEmergencyStore((s) => s.isStale);
   // `isStale` legge `Date.now()` in fase di render: senza qualcosa che provochi un
   // nuovo render, il badge "dati non aggiornati" non compariva mai — e cioè proprio
@@ -134,7 +135,21 @@ function LayerRow({ def }: { def: EmergencyLayerDef }) {
           )}
           {online && runtime.status === 'loading' && <div className="text-[10px] text-gray-400">Caricamento...</div>}
           {online && runtime.status === 'error' && (
-            <div className="text-[10px] text-red-400">⚠ {runtime.error}</div>
+            <div className="flex items-center gap-2">
+              <div className="text-[10px] text-red-400 flex-1">⚠ {runtime.error}</div>
+              {/*
+                Spegnere e riaccendere e' quello che si sarebbe dovuto fare a mano:
+                farlo con un pulsante evita di far scoprire all'utente un rimedio che
+                sembra un trucco. `stopLayer` butta il payload, che in errore non c'e'
+                comunque.
+              */}
+              <button
+                onClick={() => retryLayer(def.id)}
+                className="shrink-0 px-2 py-0.5 text-[10px] rounded bg-gray-700 hover:bg-gray-600 text-gray-100 max-lg:min-h-[32px]"
+              >
+                Riprova
+              </button>
+            </div>
           )}
           {/* Spec §6: "nessun dato disponibile" non è un guasto — la fonte ha risposto,
               per il giorno corrente non c'è nulla. Va detto, non lasciato indovinare
