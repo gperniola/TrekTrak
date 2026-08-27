@@ -38,7 +38,7 @@ import { MoreMenu } from '@/components/panel/MoreMenu';
 // Il pannello trascina il client Open-Meteo e i calcoli: si carica quando lo si apre.
 const RouteWeatherPanel = dynamic(() => import('@/components/weather/RouteWeatherPanel').then((m) => ({ default: m.RouteWeatherPanel })), { ssr: false });
 import { nextBackAction } from '@/lib/back-nav';
-import { confirm as appConfirm } from '@/stores/notificationStore';
+import { confirm as appConfirm, toast } from '@/stores/notificationStore';
 
 export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
@@ -90,8 +90,22 @@ export default function Home() {
     let livello: string | null = null;
     try { livello = localStorage.getItem(KEYS.userLevel); } catch { /* storage bloccato */ }
     const azione = startupAction(loadCurrent(), livello);
-    if (azione.kind === 'restore') useItineraryStore.getState().hydrateCurrent(azione.saved);
-    else if (azione.kind === 'appMode') useItineraryStore.getState().setAppMode(azione.mode);
+    if (azione.kind === 'restore') {
+      useItineraryStore.getState().hydrateCurrent(azione.saved);
+      // Il salvataggio di ripiego (spazio esaurito) butta geometrie e profili: senza
+      // dirlo, l'itinerario ricompare con linee rette al posto dei sentieri e sembra
+      // che i dati si siano corrotti. `slim` esisteva ed era letto da nessuno — lo
+      // stesso difetto del livello utente, corretto poche ore prima.
+      if (azione.saved.slim) {
+        toast.info(
+          'Itinerario ripristinato. Il tracciato dettagliato sui sentieri non era stato '
+          + 'salvato per mancanza di spazio: i tuoi valori ci sono tutti.',
+          8000
+        );
+      }
+    } else if (azione.kind === 'appMode') {
+      useItineraryStore.getState().setAppMode(azione.mode);
+    }
   }, []);
 
   // Tiene su disco l'itinerario in lavorazione, a ogni modifica.

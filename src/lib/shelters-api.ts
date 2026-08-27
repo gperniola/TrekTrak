@@ -20,7 +20,7 @@ export const ATTRIBUZIONE_RIPARI = 'Rifugi e ricoveri: <a href="https://www.open
 export const ZOOM_MINIMO_RIPARI = 11;
 
 /** Tetto ai risultati: oltre, la mappa diventa illeggibile e la risposta pesante. */
-const MAX_RISULTATI = 200;
+export const MAX_RISULTATI = 200;
 
 export type TipoRiparo = 'rifugio' | 'bivacco' | 'ricovero';
 
@@ -89,7 +89,17 @@ export function parseShelters(raw: unknown): Riparo[] {
   return out;
 }
 
-export async function fetchShelters(b: BBox, signal?: AbortSignal): Promise<Riparo[]> {
+export interface RisultatoRipari {
+  shelters: Riparo[];
+  /**
+   * `true` quando la risposta ha toccato il tetto: quello che si vede e' una parte, e
+   * va detto. Un elenco troncato mostrato come completo e' la stessa classe di difetto
+   * dei layer di emergenza che dichiaravano dati freschi essendo vecchi.
+   */
+  troncato: boolean;
+}
+
+export async function fetchShelters(b: BBox, signal?: AbortSignal): Promise<RisultatoRipari> {
   const res = await fetch(`${ENDPOINT}?data=${encodeURIComponent(buildSheltersQuery(b))}`, { signal });
   // 429 e 504 sono la norma su un'istanza pubblica condivisa: il messaggio deve
   // suggerire di riprovare, non far pensare che non ci siano ripari.
@@ -97,5 +107,12 @@ export async function fetchShelters(b: BBox, signal?: AbortSignal): Promise<Ripa
     throw new Error('Il servizio dei ripari è occupato: riprova fra poco');
   }
   if (!res.ok) throw new Error('Ripari non disponibili in questo momento');
-  return parseShelters(await res.json());
+  const raw = await res.json();
+  const shelters = parseShelters(raw);
+  // Il conteggio da confrontare col tetto e' quello degli ELEMENTI restituiti, non dei
+  // ripari riconosciuti: Overpass taglia prima che noi filtriamo.
+  const elementi = Array.isArray((raw as { elements?: unknown[] })?.elements)
+    ? ((raw as { elements: unknown[] }).elements).length
+    : 0;
+  return { shelters, troncato: elementi >= MAX_RISULTATI };
 }

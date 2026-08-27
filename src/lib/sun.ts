@@ -29,11 +29,19 @@ export interface SunTimes {
 
 const NULLO: SunTimes = { sunrise: null, sunset: null, civilDusk: null, civilDawn: null };
 
-/** Giorno giuliano a mezzogiorno UTC del giorno civile di `data`. */
+/**
+ * Giorno giuliano del giorno civile **italiano** di `data`.
+ *
+ * Prima usava i campi UTC, e per una partenza notturna sbagliava di un giorno: chi
+ * partiva alle 01:00 del 28 (= 23:00 UTC del 27) leggeva l'orario del tramonto del 27.
+ * La partenza notturna non e' un caso di scuola, e' la partenza classica per una vetta.
+ */
 function giornoGiuliano(data: Date): number {
-  const y = data.getUTCFullYear();
-  const m = data.getUTCMonth() + 1;
-  const d = data.getUTCDate();
+  // en-CA da' "YYYY-MM-DD", che e' l'unico formato che si puo' spezzare senza ambiguita'
+  const [y, m, d] = data
+    .toLocaleDateString('en-CA', { timeZone: 'Europe/Rome' })
+    .split('-')
+    .map(Number);
   const a = Math.floor((14 - m) / 12);
   const yy = y + 4800 - a;
   const mm = m + 12 * a - 3;

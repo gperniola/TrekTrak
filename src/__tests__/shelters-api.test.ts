@@ -1,4 +1,4 @@
-import { buildSheltersQuery, parseShelters, fetchShelters, ZOOM_MINIMO_RIPARI } from '@/lib/shelters-api';
+import { buildSheltersQuery, parseShelters, fetchShelters, ZOOM_MINIMO_RIPARI, MAX_RISULTATI } from '@/lib/shelters-api';
 
 const bbox = { south: 46.0, west: 11.0, north: 46.5, east: 11.6 };
 
@@ -111,6 +111,54 @@ describe('quando Overpass non risponde', () => {
 
   test('200 con elenco vuoto → nessun riparo, senza errori', async () => {
     stato(200);
-    await expect(fetchShelters(bbox)).resolves.toEqual([]);
+    await expect(fetchShelters(bbox)).resolves.toEqual({ shelters: [], troncato: false });
+  });
+});
+
+/**
+ * In una zona densa Overpass taglia la risposta al tetto che gli abbiamo dato: mostrare
+ * quell'elenco come completo farebbe credere che i ripari siano quelli, e in montagna
+ * "non ci sono ripari" e "non li ho scaricati tutti" portano a decisioni diverse.
+ */
+describe('elenco troncato', () => {
+  const vero = global.fetch;
+  afterEach(() => { global.fetch = vero; });
+
+  const conElementi = (n: number) => {
+    const elements = Array.from({ length: n }, (_, i) => ({
+      type: 'node', id: i, lat: 46 + i / 1e4, lon: 11, tags: { tourism: 'alpine_hut' },
+    }));
+    global.fetch = jest.fn(() => Promise.resolve({
+      ok: true, status: 200, json: async () => ({ elements }),
+    })) as unknown as typeof global.fetch;
+  };
+
+  test('al tetto viene dichiarato troncato', async () => {
+    conElementi(MAX_RISULTATI);
+    const r = await fetchShelters(bbox);
+    expect(r.troncato).toBe(true);
+    expect(r.shelters).toHaveLength(MAX_RISULTATI);
+  });
+
+  test('sotto il tetto non lo e\u2019', async () => {
+    conElementi(12);
+    const r = await fetchShelters(bbox);
+    expect(r.troncato).toBe(false);
+  });
+
+  // Il confronto va fatto sugli ELEMENTI restituiti, non sui ripari riconosciuti:
+  // Overpass taglia prima che noi filtriamo, quindi 200 elementi di cui pochi validi
+  // sono comunque una risposta tagliata.
+  test('conta gli elementi, non i ripari riconosciuti', async () => {
+    const elements = Array.from({ length: MAX_RISULTATI }, (_, i) => ({
+      type: 'node', id: i, lat: 46, lon: 11,
+      tags: i < 5 ? { tourism: 'alpine_hut' } : { amenity: 'bench' },
+    }));
+    global.fetch = jest.fn(() => Promise.resolve({
+      ok: true, status: 200, json: async () => ({ elements }),
+    })) as unknown as typeof global.fetch;
+    const r = await fetchShelters(bbox);
+    expect(r.shelters).toHaveLength(5);
+    expect(r.troncato).toBe(true);
   });
 });

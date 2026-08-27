@@ -102,7 +102,29 @@ export function RouteWeatherPanel() {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
     window.addEventListener('keydown', onKey);
     dialogRef.current?.focus();
-    return () => window.removeEventListener('keydown', onKey);
+
+    // Trappola del fuoco, come negli altri modali dell'app: senza, con Tab si finisce
+    // sui comandi dietro al pannello, che nel frattempo sono coperti e inutilizzabili.
+    const dialogo = dialogRef.current;
+    const tab = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab' || dialogo == null) return;
+      const fuocabili = dialogo.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      const primo = fuocabili[0];
+      const ultimo = fuocabili[fuocabili.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === primo) { e.preventDefault(); ultimo?.focus(); }
+      } else if (document.activeElement === ultimo) {
+        e.preventDefault(); primo?.focus();
+      }
+    };
+    dialogo?.addEventListener('keydown', tab);
+
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      dialogo?.removeEventListener('keydown', tab);
+    };
   }, [open, setOpen]);
 
   if (!open) return null;

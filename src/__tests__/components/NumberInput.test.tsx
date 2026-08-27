@@ -101,3 +101,50 @@ describe('NumberInput accetta la virgola decimale', () => {
     expect(campo().className).toMatch(/max-lg:min-h-\[44px\]/);
   });
 });
+
+/**
+ * In italiano il punto separa le migliaia: "1.500" sono millecinquecento. Nei campi in
+ * metri — quota, dislivelli — è la scrittura naturale, e nessuno inserisce un
+ * dislivello di un metro e mezzo. Prima chi scriveva 1.500 m di quota otteneva **1,5**,
+ * in silenzio: un errore di tre ordini di grandezza su un dato di sicurezza.
+ */
+describe('separatore delle migliaia nei campi in metri', () => {
+  const campoMetri = () => screen.getByLabelText('Quota (m)') as HTMLInputElement;
+
+  function CampoMetri() {
+    const [v, setV] = useState<number | null>(null);
+    return (
+      <>
+        <NumberInput label="Quota" unit="m" value={v} onChange={setV} />
+        <output data-testid="v">{v === null ? 'null' : String(v)}</output>
+      </>
+    );
+  }
+  const valoreMetri = () => screen.getByTestId('v').textContent;
+
+  test.each([
+    ['1.500', '1500'],
+    ['1,500', '1500'],
+    ['12.345', '12345'],
+    ['2.087', '2087'],
+  ])('«%s» in metri vale %s', (scritto, atteso) => {
+    render(<CampoMetri />);
+    fireEvent.change(campoMetri(), { target: { value: scritto } });
+    expect(valoreMetri()).toBe(atteso);
+  });
+
+  // La regola è quella tipografica: separatore + esattamente tre cifre. Altrimenti
+  // resta un decimale, che in metri è improbabile ma innocuo — trasformare "1.5" in
+  // quindici sarebbe una sorpresa peggiore del problema.
+  test('«1.5» in metri resta uno e mezzo, non diventa quindici', () => {
+    render(<CampoMetri />);
+    fireEvent.change(campoMetri(), { target: { value: '1.5' } });
+    expect(valoreMetri()).toBe('1.5');
+  });
+
+  test('nei campi in km il punto resta decimale', () => {
+    render(<Campo />);
+    fireEvent.change(campo(), { target: { value: '1.500' } });
+    expect(valore()).toBe('1.5');
+  });
+});

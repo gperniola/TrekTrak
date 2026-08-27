@@ -15,7 +15,7 @@ const riparo = (id: string, over: Partial<Riparo> = {}): Riparo => ({
 });
 
 beforeEach(() => {
-  fetchShelters.mockReset().mockResolvedValue([riparo('a')]);
+  fetchShelters.mockReset().mockResolvedValue({ shelters: [riparo('a')], troncato: false });
   useEmergencyStore.setState({
     shelters: null,
     layers: { ...useEmergencyStore.getState().layers, shelters: { status: 'loading', error: null, lastFetch: null } },
@@ -81,11 +81,11 @@ describe('layer dei ripari', () => {
   });
 
   test('smontando non resta una richiesta che scrive nello store', async () => {
-    let risolvi: (v: Riparo[]) => void = () => {};
-    fetchShelters.mockReturnValue(new Promise<Riparo[]>((r) => { risolvi = r; }));
+    let risolvi: (v: { shelters: Riparo[]; troncato: boolean }) => void = () => {};
+    fetchShelters.mockReturnValue(new Promise<{ shelters: Riparo[]; troncato: boolean }>((r) => { risolvi = r; }));
     const { unmount } = render(<EmergencyShelterLayer shelters={null} />);
     unmount();
-    await act(async () => { risolvi([riparo('tardivo')]); await Promise.resolve(); });
+    await act(async () => { risolvi({ shelters: [riparo('tardivo')], troncato: false }); await Promise.resolve(); });
     expect(useEmergencyStore.getState().shelters).toBeNull();
   });
 });

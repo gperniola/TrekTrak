@@ -5,7 +5,7 @@ import { Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { useEmergencyStore } from '@/stores/emergencyStore';
 import { EMERGENCY_PANE } from '@/lib/emergency-layers';
-import { fetchShelters, ZOOM_MINIMO_RIPARI, type Riparo, type TipoRiparo } from '@/lib/shelters-api';
+import { fetchShelters, ZOOM_MINIMO_RIPARI, type BBox, type Riparo, type TipoRiparo } from '@/lib/shelters-api';
 
 /** Attesa dopo l'ultimo movimento: Overpass è un servizio pubblico condiviso. */
 const ATTESA_MS = 900;
@@ -55,23 +55,47 @@ export function EmergencyShelterLayer({ shelters }: { shelters: Riparo[] | null 
   const report = useEmergencyStore((s) => s.reportShelters);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const controller = useRef<AbortController | null>(null);
+  /** Ultima area effettivamente scaricata: serve a non richiedere due volte la stessa. */
+  const areaScaricata = useRef<BBox | null>(null);
 
   const interroga = useCallback(() => {
     controller.current?.abort();
     if (map.getZoom() < ZOOM_MINIMO_RIPARI) {
       // Non è un errore: la fonte non è stata nemmeno interrogata, e dirlo evita di
       // far credere che in zona non ci sia nulla.
+      areaScaricata.current = null;
       report({ nodata: `avvicinati per vedere i ripari (zoom ${ZOOM_MINIMO_RIPARI})` });
       return;
     }
     const b = map.getBounds();
+    const vista: BBox = { south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() };
+
+    // Se la vista sta dentro l'area gia' scaricata non si richiede niente: pannare
+    // sulla mappa generava una richiesta per ogni spostamento, su un servizio pubblico
+    // che risponde 504 — cioe' piu' traffico E piu' errori mostrati, per gli stessi
+    // ripari.
+    const gia = areaScaricata.current;
+    if (gia != null
+      && vista.south >= gia.south && vista.north <= gia.north
+      && vista.west >= gia.west && vista.east <= gia.east) return;
+
+    // Si scarica un po' piu' larga della vista, cosi' uno spostamento breve non
+    // costringe a chiedere di nuovo.
+    const margineLat = (vista.north - vista.south) * 0.25;
+    const margineLon = (vista.east - vista.west) * 0.25;
+    const richiesta: BBox = {
+      south: vista.south - margineLat, north: vista.north + margineLat,
+      west: vista.west - margineLon, east: vista.east + margineLon,
+    };
+
     const ac = new AbortController();
     controller.current = ac;
-    fetchShelters(
-      { south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() },
-      ac.signal
-    )
-      .then((lista) => { if (!ac.signal.aborted) report({ shelters: lista }); })
+    fetchShelters(richiesta, ac.signal)
+      .then(({ shelters: lista, troncato }) => {
+        if (ac.signal.aborted) return;
+        areaScaricata.current = richiesta;
+        report({ shelters: lista, troncato });
+      })
       .catch((e: unknown) => {
         if (ac.signal.aborted) return;
         report({ error: e instanceof Error ? e.message : 'Ripari non disponibili' });

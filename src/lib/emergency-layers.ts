@@ -177,7 +177,13 @@ export const EMERGENCY_LAYERS: EmergencyLayerDef[] = [
     description: 'Lifted Index MSG: instabilit\u00e0 misurata adesso, non prevista (EUMETSAT)',
     kind: 'wms',
     attribution: 'Instabilit\u00e0: <a href="https://view.eumetsat.int/">EUMETSAT</a>',
-    refreshMinutes: null,
+    /*
+     * 15 minuti: e' il passo del prodotto MSG. Per un layer WMS `refreshMinutes` non
+     * avvia timer (li' i tile si ricaricano da soli col bollo di rinfresco), ma serve a
+     * `isStale`: senza, un layer che smette di aggiornarsi non poteva essere dichiarato
+     * vecchio, e restava "Aggiornato alle 20:06" per tutta la serata.
+     */
+    refreshMinutes: 15,
     /*
      * Legenda LETTA dalla barra ufficiale (GetLegendGraphic), non dedotta: la scala va
      * da -16 a +20 K e i colori vanno rossi -> oliva -> viola -> marroni. I quattro
