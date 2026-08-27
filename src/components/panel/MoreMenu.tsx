@@ -11,6 +11,7 @@ import { toast } from '@/stores/notificationStore';
 export function MoreMenu() {
   const open = useUIStore((s) => s.moreMenuOpen);
   const setOpen = useUIStore((s) => s.setMoreMenuOpen);
+  const setWeatherOpen = useUIStore((s) => s.setWeatherOpen);
   const itineraryName = useItineraryStore((s) => s.itineraryName);
   const waypoints = useItineraryStore((s) => s.waypoints);
   const legs = useItineraryStore((s) => s.legs);
@@ -39,7 +40,9 @@ export function MoreMenu() {
     downloadGPX(itineraryName, waypoints, legs);
     close();
   };
-  const handleMeteo = () => { if (meteoUrl) { window.open(meteoUrl, '_blank'); close(); } };
+  // Apre il pannello del percorso invece di Meteoblue: il collegamento esterno sta
+  // dentro il pannello.
+  const handleMeteo = () => { setWeatherOpen(true); close(); };
 
   const itemCls = 'w-full text-left px-3 min-h-[44px] flex items-center gap-2 text-sm text-gray-200 rounded hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed';
 
@@ -51,7 +54,7 @@ export function MoreMenu() {
         onClick={(e) => e.stopPropagation()}
         className="absolute left-2 right-2 bottom-[60px] bg-gray-800 border border-gray-600 rounded-lg shadow-xl p-1 space-y-0.5"
       >
-        <button role="menuitem" disabled={!meteoUrl} onClick={handleMeteo} className={itemCls}>☀️ Meteo</button>
+        <button role="menuitem" disabled={!meteoUrl} onClick={handleMeteo} className={itemCls}>☀️ Meteo del percorso</button>
         <button role="menuitem" disabled={!canPdf} onClick={() => handlePdf('summary')} className={itemCls}>📄 PDF sintetico</button>
         <button role="menuitem" disabled={!canPdf} onClick={() => handlePdf('roadbook')} className={itemCls}>📋 PDF roadbook</button>
         <button role="menuitem" disabled={!canGpx} onClick={handleGpx} className={itemCls}>🛰️ GPX</button>

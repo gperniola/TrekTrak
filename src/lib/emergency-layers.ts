@@ -1,6 +1,13 @@
-export type EmergencyLayerId = 'fires-hotspots' | 'fires-burned' | 'fires-fwi' | 'dpc-alerts';
-export type EmergencyLayerKind = 'wms' | 'points' | 'zones';
-export type EmergencyCategory = 'incendi' | 'alluvioni';
+import { ATTRIBUZIONE_RADAR } from './radar-api';
+import { ATTRIBUZIONE_RIPARI } from './shelters-api';
+
+export type EmergencyLayerId = 'fires-hotspots' | 'fires-burned' | 'fires-fwi' | 'dpc-alerts' | 'rain-radar' | 'shelters';
+/**
+ * `viewport` = layer che si interroga sull'area inquadrata, non una volta per tutte:
+ * comanda il componente, quindi `startLayer` non fa partire nessun refresh periodico.
+ */
+export type EmergencyLayerKind = 'wms' | 'points' | 'zones' | 'tiles' | 'viewport';
+export type EmergencyCategory = 'incendi' | 'alluvioni' | 'temporali' | 'ripari';
 
 export interface LegendEntry { color: string; label: string; }
 
@@ -110,6 +117,50 @@ export const EMERGENCY_LAYERS: EmergencyLayerDef[] = [
       { color: '#eab308', label: 'Allerta gialla' },
       { color: '#f97316', label: 'Allerta arancione' },
       { color: '#dc2626', label: 'Allerta rossa' },
+    ],
+  },
+  {
+    id: 'rain-radar',
+    category: 'temporali',
+    label: 'Radar pioggia (ultime 2 h)',
+    description: 'Precipitazioni gi\u00e0 cadute, non previsione. Dettaglio ~1 km (RainViewer)',
+    kind: 'tiles',
+    attribution: ATTRIBUZIONE_RADAR,
+    // I fotogrammi escono ogni 10 minuti: chiedere l'indice piu' spesso non aggiunge nulla.
+    refreshMinutes: 10,
+    /*
+     * Colori CAMPIONATI dai tile veri, non presi da una documentazione: scansione di 40
+     * tile globali il 2026-08-27, coi conteggi per famiglia di colore. Il verde non
+     * compare affatto in questo schema, e il grigio e' la neve (i tile si chiedono con
+     * `snow=1`). La direzione della scala e' confermata dai numeri: 21.809 pixel blu
+     * contro 21 viola, cioe' l'evento raro sta all'estremo intenso.
+     *
+     * Le legende EFFIS corrette nella v0.11.6 insegnano che dichiarare colori che sulla
+     * mappa non esistono e' peggio che non avere legenda.
+     */
+    legend: [
+      { color: '#88ddee', label: 'Pioggia leggera' },
+      { color: '#ffee00', label: 'Moderata' },
+      { color: '#ff9500', label: 'Forte' },
+      { color: '#f23600', label: 'Molto forte' },
+      { color: '#ff4eff', label: 'Nucleo intenso' },
+      { color: '#706a5d', label: 'Neve' },
+    ],
+  },
+  {
+    id: 'shelters',
+    category: 'ripari',
+    label: 'Rifugi e ricoveri',
+    description: 'Rifugi, bivacchi e ricoveri mappati su OpenStreetMap',
+    kind: 'viewport',
+    attribution: ATTRIBUZIONE_RIPARI,
+    // Si interroga sulla vista: nessun refresh a tempo, altrimenti si tempesterebbe
+    // un'istanza pubblica condivisa.
+    refreshMinutes: null,
+    legend: [
+      { color: '#c084fc', label: 'Rifugio (custodito)' },
+      { color: '#93c5fd', label: 'Bivacco' },
+      { color: '#a3a3a3', label: 'Ricovero / tettoia' },
     ],
   },
 ];

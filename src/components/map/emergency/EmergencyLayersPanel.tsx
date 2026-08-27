@@ -14,7 +14,9 @@ import type { AppSettings } from '@/lib/types';
 
 const CATEGORY_LABELS: Record<EmergencyCategory, string> = {
   incendi: '🔥 Incendi',
+  temporali: '⛈️ Pioggia e temporali',
   alluvioni: '🌊 Alluvioni e frane',
+  ripari: '🏠 Dove ripararsi',
 };
 
 const DISCLAIMER =
@@ -35,6 +37,11 @@ function LayerRow({ def }: { def: EmergencyLayerDef }) {
   const nowTick = useEmergencyStore((s) => s.nowTick);
   const online = useOnline();
   const dpc = useEmergencyStore((s) => s.dpc);
+  const radar = useEmergencyStore((s) => s.radar);
+  const radarFrame = useEmergencyStore((s) => s.radarFrame);
+  const radarPlaying = useEmergencyStore((s) => s.radarPlaying);
+  const setRadarFrame = useEmergencyStore((s) => s.setRadarFrame);
+  const toggleRadarPlay = useEmergencyStore((s) => s.toggleRadarPlay);
   const dpcSelectedDate = useEmergencyStore((s) => s.dpcSelectedDate);
   const setDpcSelectedDate = useEmergencyStore((s) => s.setDpcSelectedDate);
 
@@ -153,6 +160,50 @@ function LayerRow({ def }: { def: EmergencyLayerDef }) {
               {isStale(def.id) && <span className="text-amber-400 ml-1">⚠ dati non aggiornati</span>}
             </div>
           )}
+          {def.id === 'rain-radar' && radar && radar.frames.length > 0 && (() => {
+            const indice = radarFrame < 0 ? radar.frames.length - 1 : Math.min(radarFrame, radar.frames.length - 1);
+            const frame = radar.frames[indice];
+            const orario = new Date(frame.timeISO).toLocaleTimeString('it-IT', {
+              hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome',
+            });
+            const ultimo = indice === radar.frames.length - 1;
+            return (
+              <div className="space-y-1">
+                {/*
+                  L'orario del fotogramma va mostrato SEMPRE e in grande: e' l'unico
+                  modo di non far credere che il radar sia "adesso". Il piano gratuito
+                  espone solo il passato (nowcast vuoto, misurato), quindi anche il
+                  fotogramma piu' recente ha fino a dieci minuti.
+                */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={toggleRadarPlay}
+                    aria-label={radarPlaying ? 'Ferma animazione radar' : 'Anima le ultime due ore di radar'}
+                    className="px-2 min-h-[32px] max-lg:min-h-[44px] rounded bg-gray-700 hover:bg-gray-600 text-xs text-gray-100"
+                  >
+                    {radarPlaying ? '⏸' : '▶'}
+                  </button>
+                  <input
+                    type="range"
+                    min={0}
+                    max={radar.frames.length - 1}
+                    value={indice}
+                    onChange={(e) => setRadarFrame(Number(e.target.value))}
+                    aria-label="Fotogramma radar"
+                    className="flex-1 accent-sky-400"
+                  />
+                  <span className="text-[11px] font-mono text-gray-200 tabular-nums">
+                    {orario}
+                  </span>
+                </div>
+                <p className="text-[10px] text-gray-400">
+                  {ultimo
+                    ? 'Fotogramma pi\u00f9 recente disponibile. \u00c8 pioggia GI\u00c0 CADUTA, non una previsione: serve a vedere da dove arriva la cella.'
+                    : `Fotogramma di ${orario}. Scorri fino a destra per il pi\u00f9 recente.`}
+                </p>
+              </div>
+            );
+          })()}
           {def.id === 'dpc-alerts' && dpc && (
             <div className="space-y-1">
               <div className="flex gap-1">

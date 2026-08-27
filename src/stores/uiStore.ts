@@ -16,6 +16,8 @@ interface UIState {
    * sovrappongono e le voci finiscono una sotto l'altra.
    */
   toolsFabOpen: boolean;
+  /** Pannello "Meteo del percorso" (fase A dei layer meteo). */
+  weatherOpen: boolean;
 
   toggleCompass: () => void;
   toggleRuler: () => void;
@@ -31,6 +33,7 @@ interface UIState {
   setMoreMenuOpen: (open: boolean) => void;
   setEmergencyPanelOpen: (open: boolean) => void;
   setToolsFabOpen: (open: boolean) => void;
+  setWeatherOpen: (open: boolean) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -44,6 +47,7 @@ export const useUIStore = create<UIState>((set) => ({
   moreMenuOpen: false,
   emergencyPanelOpen: false,
   toolsFabOpen: false,
+  weatherOpen: false,
 
   toggleCompass: () => set((s) => ({
     compassActive: !s.compassActive,
@@ -83,4 +87,9 @@ export const useUIStore = create<UIState>((set) => ({
   setToolsFabOpen: (open) => set(open
     ? { toolsFabOpen: true, moreMenuOpen: false, emergencyPanelOpen: false }
     : { toolsFabOpen: false }),
+  // Il pannello meteo copre lo schermo: aprirlo chiude i pannelli dal basso, che
+  // resterebbero sotto senza che si possano toccare.
+  setWeatherOpen: (open) => set(open
+    ? { weatherOpen: true, moreMenuOpen: false, toolsFabOpen: false, emergencyPanelOpen: false }
+    : { weatherOpen: false }),
 }));

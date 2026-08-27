@@ -4,6 +4,27 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.12.0] — 2026-08-27 — Temporali: cosa incontri, e a che ora
+
+Le app meteo dicono che tempo farà in un posto. Nessuna sa a che ora tu ci arriverai. TrekTrak sì, perché conosce i tuoi waypoint, le loro quote e la tua andatura: da qui nasce questa versione.
+
+### Added
+- **Meteo del percorso.** Il pulsante "Meteo" ora apre un pannello che incrocia la previsione con gli orari stimati dalla formula di Munter: per ogni punto, l'ora in cui ci arrivi, l'energia disponibile ai temporali (CAPE), le raffiche e la probabilità di pioggia. In cima, la frase che serve prima di partire: *"dalle 12:00 alle 13:00 la previsione diventa critica, e a quell'ora hai passato «Passo Sella», mentre sei ancora in cammino"*. Si scelgono giorno e ora di partenza, e il verdetto cambia con loro — perché la decisione vera è **partire prima**, non guardare un'icona di nuvola.
+
+  Il collegamento a Meteoblue resta, dentro il pannello, come "previsione completa".
+- **Raffiche di vento** insieme al resto: sopra 50 km/h su terreno esposto si cammina male, sopra 70 non si cammina, e in cresta contano quanto la pioggia.
+- **Alba, tramonto e crepuscolo**, calcolati sul dispositivo senza rete, con un avviso quando l'orario di arrivo stimato cade **dopo il tramonto**. Essere colti dal buio è uno dei modi più comuni in cui una gita facile diventa un problema.
+- **Come si legge**, richiudibile: cos'è il CAPE e perché dice quanta benzina c'è e non che il temporale ci sarà; il ciclo diurno della convezione, che è la ragione della regola più vecchia dell'alpinismo (in vetta presto, giù prima delle 14); e la regola 30/30 per quando il temporale è già lì.
+- **Radar della pioggia** fra i layer di emergenza, con l'animazione delle ultime due ore, lo scorrimento a mano e l'orario del fotogramma sempre visibile. La legenda dice a chiare lettere che è **pioggia già caduta, non una previsione**: serve a vedere da dove arriva la cella e dove sta andando.
+- **Rifugi, bivacchi e ricoveri** sulla mappa, dall'area che stai guardando. È il layer che rende utile un avviso di temporale: non "sta arrivando", ma *dove mi metto*. Il popup dice il tipo, i posti letto e il telefono quando ci sono — e avverte che apertura e stato non sono verificati, perché un ricovero mappato può essere chiuso o diroccato.
+
+### Changed
+- Il pulsante **Meteo** non apre più Meteoblue in una scheda esterna: apre il pannello del percorso, dove il collegamento a Meteoblue è una riga in fondo.
+- Il tasto Indietro (mobile) chiude anche il pannello meteo, come fa con gli altri.
+
+### Nota sull'onestà dei dati
+Ogni numero di questa versione arriva da una previsione o da una mappa collaborativa, non da una misura sul posto. Il pannello lo dice: la previsione può sbagliare, il campionamento su un massimo di 12 punti del percorso è dichiarato (i modelli meteo hanno maglie di chilometri), gli orari vengono dalla formula di Munter e **non contano le pause**, il radar mostra il passato, i ripari vengono da OpenStreetMap. Nessuno di questi dati sostituisce i canali ufficiali di allerta.
+
 ## [0.11.8] — 2026-08-27 — Il lavoro non si perde più
 
 Rilascio nato da una review dedicata all'usabilità: percorrere l'app come la percorre chi la usa, a dito su un telefono e col mouse su un desktop, cercando gli attriti invece dei difetti di codice. Sono emersi dodici punti, due dei quali gravi.

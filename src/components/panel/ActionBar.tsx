@@ -20,6 +20,7 @@ import { toast } from '@/stores/notificationStore';
 
 export function ActionBar() {
   const openProgress = useUIStore((s) => s.openProgress);
+  const setWeatherOpen = useUIStore((s) => s.setWeatherOpen);
   const itineraryName = useItineraryStore((s) => s.itineraryName);
   const waypoints = useItineraryStore((s) => s.waypoints);
   const legs = useItineraryStore((s) => s.legs);
@@ -425,7 +426,12 @@ export function ActionBar() {
           const meteoUrl = buildMeteoUrl(waypoints);
           return meteoUrl ? (
             <button
-              onClick={() => window.open(meteoUrl, '_blank')}
+              // Apre il pannello del PERCORSO, non piu' Meteoblue in una scheda: la
+              // previsione incrociata con gli orari e' l'unica cosa che questa app puo'
+              // dire e un sito meteo no. Il collegamento a Meteoblue vive dentro il
+              // pannello, come "previsione completa": due voci meteo separate
+              // confondevano.
+              onClick={() => setWeatherOpen(true)}
               className="flex-1 py-2 bg-cyan-600 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-cyan-500 max-lg:min-h-[44px]"
             >
               Meteo

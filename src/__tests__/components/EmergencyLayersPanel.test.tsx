@@ -45,11 +45,13 @@ describe('EmergencyLayersPanel', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  test('mostra i 4 layer con switch spenti', () => {
+  test('mostra i 6 layer con switch spenti', () => {
     render(<EmergencyLayersPanel />);
     expect(screen.getByText('Focolai attivi (24h)')).toBeInTheDocument();
     expect(screen.getByText('Allerte meteo-idro (DPC)')).toBeInTheDocument();
-    expect(screen.getAllByRole('switch')).toHaveLength(4);
+    expect(screen.getByText(/Radar pioggia/)).toBeInTheDocument();
+    expect(screen.getByText(/Rifugi e ricoveri/)).toBeInTheDocument();
+    expect(screen.getAllByRole('switch')).toHaveLength(6);
     screen.getAllByRole('switch').forEach((s) => expect(s).toHaveAttribute('aria-checked', 'false'));
   });
 

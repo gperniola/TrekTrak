@@ -75,6 +75,32 @@ function ColoredPathMockup() {
  */
 const RELEASES: Release[] = [
   {
+    version: '0.12.0',
+    date: '2026-08-27',
+    steps: [
+      {
+        title: 'Meteo del tuo percorso',
+        text: 'Il pulsante Meteo ora incrocia la previsione con gli orari stimati: per ogni waypoint vedi a che ora ci arrivi e cosa trovi. In cima ti dice se la finestra critica ti prende mentre cammini, cosi\u2019 puoi decidere di partire prima.',
+        icon: '\u26c8\ufe0f',
+      },
+      {
+        title: 'Raffiche e tramonto',
+        text: 'Insieme ai temporali arrivano le raffiche di vento e gli orari del sole: se l\u2019arrivo stimato cade dopo il tramonto, l\u2019app te lo dice.',
+        icon: '\ud83c\udf05',
+      },
+      {
+        title: 'Radar della pioggia',
+        text: 'Nuovo layer con le ultime due ore di radar, che si possono animare per vedere da dove arriva la cella. \u00c8 pioggia gi\u00e0 caduta, non una previsione.',
+        icon: '\ud83c\udf27\ufe0f',
+      },
+      {
+        title: 'Dove ripararsi',
+        text: 'Rifugi, bivacchi e ricoveri dell\u2019area che stai guardando, da OpenStreetMap. Apertura e stato non sono verificati: servono a sapere dove andare, non a garantire che sia aperto.',
+        icon: '\ud83c\udfe0',
+      },
+    ],
+  },
+  {
     // Una sola voce per tutta la linea 0.11.x: chi apre l'app dopo un po' deve
     // sentirsi raccontare i LAYER DI EMERGENZA, che sono la novità che conta, non le
     // correzioni e i dettagli usciti dopo. Quattro passi brevi: cosa sono, le allerte

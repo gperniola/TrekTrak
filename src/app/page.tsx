@@ -35,6 +35,8 @@ import { InviteModal } from '@/components/auth/InviteModal';
 import { BrandMark } from '@/components/shared/BrandMark';
 import { MapToolsFab } from '@/components/map/MapToolsFab';
 import { MoreMenu } from '@/components/panel/MoreMenu';
+// Il pannello trascina il client Open-Meteo e i calcoli: si carica quando lo si apre.
+const RouteWeatherPanel = dynamic(() => import('@/components/weather/RouteWeatherPanel').then((m) => ({ default: m.RouteWeatherPanel })), { ssr: false });
 import { nextBackAction } from '@/lib/back-nav';
 import { confirm as appConfirm } from '@/stores/notificationStore';
 
@@ -57,6 +59,8 @@ export default function Home() {
   const setEmergencyPanelOpen = useUIStore((s) => s.setEmergencyPanelOpen);
   const toolsFabOpen = useUIStore((s) => s.toolsFabOpen);
   const setToolsFabOpen = useUIStore((s) => s.setToolsFabOpen);
+  const weatherOpen = useUIStore((s) => s.weatherOpen);
+  const setWeatherOpen = useUIStore((s) => s.setWeatherOpen);
 
   const previewRoute = useRouteLibraryStore((s) => s.routes.find((r) => r.id === s.selectedRouteId));
   const clearRouteSelection = useRouteLibraryStore((s) => s.select);
@@ -155,10 +159,12 @@ export default function Home() {
       mobileTab,
       emergencyPanelOpen,
       toolsFabOpen,
+      weatherOpen,
     });
     switch (action) {
       case 'closeMore': setMoreMenuOpen(false); return true;
       case 'closeToolsFab': setToolsFabOpen(false); return true;
+      case 'closeWeather': setWeatherOpen(false); return true;
       case 'closeEmergencyPanel': setEmergencyPanelOpen(false); return true;
       case 'closeMapSettings': setShowMapSettings(false); return true;
       case 'closeSettings': setShowSettings(false); return true;
@@ -175,6 +181,7 @@ export default function Home() {
   const backDepth =
     (moreMenuOpen ? 1 : 0) +
     (toolsFabOpen ? 1 : 0) +
+    (weatherOpen ? 1 : 0) +
     (emergencyPanelOpen ? 1 : 0) +
     (showMapSettings ? 1 : 0) +
     (showSettings ? 1 : 0) +
@@ -380,6 +387,7 @@ export default function Home() {
       {!authLoading && justInvited && !authSession && <InviteModal />}
 
       {/* Global notification UI */}
+      <RouteWeatherPanel />
       <ToastContainer />
       <ConfirmModalContainer />
     </main>

@@ -1,10 +1,10 @@
 import { EMERGENCY_LAYERS, getEmergencyLayer, isEmergencyLayerId } from '@/lib/emergency-layers';
 
 describe('EMERGENCY_LAYERS registry', () => {
-  test('contiene 4 layer con id univoci', () => {
+  test('contiene 6 layer con id univoci', () => {
     const ids = EMERGENCY_LAYERS.map((l) => l.id);
-    expect(ids).toEqual(['fires-hotspots', 'fires-burned', 'fires-fwi', 'dpc-alerts']);
-    expect(new Set(ids).size).toBe(4);
+    expect(ids).toEqual(['fires-hotspots', 'fires-burned', 'fires-fwi', 'dpc-alerts', 'rain-radar', 'shelters']);
+    expect(new Set(ids).size).toBe(6);
   });
 
   test('i layer wms hanno config wms, gli altri no', () => {
@@ -12,6 +12,11 @@ describe('EMERGENCY_LAYERS registry', () => {
       if (l.kind === 'wms') {
         expect(l.wms).toBeDefined();
         expect(l.wms!.url).toMatch(/^https:\/\//);
+        expect(l.refreshMinutes).toBeNull();
+      } else if (l.kind === 'viewport') {
+        // Si interroga sull'area inquadrata: un refresh a tempo tempesterebbe un
+        // servizio pubblico condiviso, quindi `refreshMinutes` deve restare nullo.
+        expect(l.wms).toBeUndefined();
         expect(l.refreshMinutes).toBeNull();
       } else {
         expect(l.wms).toBeUndefined();
