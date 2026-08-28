@@ -2,6 +2,40 @@ import { parseFirmsCsv, type FirePoint } from './firms';
 
 const SENSORS = ['VIIRS_SNPP_NRT', 'VIIRS_NOAA20_NRT', 'VIIRS_NOAA21_NRT'];
 const ITALY_BBOX = '6.6,35.4,18.6,47.1'; // west,south,east,north
+
+/**
+ * A FIRMS si chiedono DUE giorni, non uno.
+ *
+ * `dayRange=1` non vuol dire "ultime 24 ore": vuol dire "dal mezzanotte UTC di oggi".
+ * Il passaggio notturno del satellite sull'Italia sta **a cavallo della mezzanotte
+ * UTC**, quindi con un giorno solo se ne perde la prima meta'.
+ *
+ * Misurato il 28/08/2026 alle 13:40 UTC su VIIRS_NOAA20: `dayRange=1` dava 584
+ * rilevazioni, tutte del 28; `dayRange=2` ne dava 1854, e fra quelle di ieri c'erano
+ * le acquisizioni delle **23:52 e 23:54 UTC**, cioe' l'01:52 di quella notte in ora
+ * italiana. Un incendio acceso la sera prima e visto dal satellite nella notte non
+ * compariva, mentre il pannello dichiarava "Focolai attivi (24h)".
+ */
+const GIORNI_RICHIESTI = 2;
+
+/** La finestra che l'app dichiara all'utente, e che adesso rispetta davvero. */
+export const FINESTRA_ORE = 24;
+
+/**
+ * Tiene solo le rilevazioni delle ultime `FINESTRA_ORE` ore.
+ *
+ * Serve perche' chiedendo due giorni arrivano anche rilevazioni di 47 ore fa: mostrarle
+ * sotto l'etichetta "24h" sarebbe lo stesso difetto al contrario.
+ */
+export function soloUltime24h(punti: FirePoint[], adesso: number): FirePoint[] {
+  const taglio = adesso - FINESTRA_ORE * 3600000;
+  return punti.filter((p) => {
+    const t = Date.parse(p.acquiredAt);
+    // Una data illeggibile non si butta: e' un dato che esiste, e scartarlo in
+    // silenzio nasconderebbe un focolaio.
+    return !Number.isFinite(t) || t >= taglio;
+  });
+}
 const CACHE_TTL_MS = 15 * 60 * 1000;
 /**
  * TTL ridotto quando solo una parte dei sensori ha risposto: tenere per 15 minuti un
@@ -59,7 +93,7 @@ export async function fetchFiresUpstream(): Promise<FiresProxyResult> {
   const results = await Promise.allSettled(
     SENSORS.map(async (sensor) => {
       const { ok, text } = await fetchTextWithTimeout(
-        `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${key}/${sensor}/${ITALY_BBOX}/1`
+        `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${key}/${sensor}/${ITALY_BBOX}/${GIORNI_RICHIESTI}`
       );
       if (!ok) throw new Error(`FIRMS ${sensor}: risposta non valida`);
       const parsed = parseFirmsCsv(text);
@@ -80,7 +114,7 @@ export async function fetchFiresUpstream(): Promise<FiresProxyResult> {
 
   const partial = ok.length < SENSORS.length;
   const data: FiresPayload = {
-    points: ok.flatMap((r) => r.value),
+    points: soloUltime24h(ok.flatMap((r) => r.value), Date.now()),
     fetchedAt: new Date().toISOString(),
     ...(partial ? { partial: true } : {}),
   };
