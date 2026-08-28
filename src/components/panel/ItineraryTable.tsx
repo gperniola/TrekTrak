@@ -3,6 +3,7 @@
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { azimuthToCardinal } from '@/lib/calculations';
 import { formatTime } from '@/lib/format';
+import { numero, percento } from '@/lib/formato';
 
 export function ItineraryTable() {
   const waypoints = useItineraryStore((s) => s.waypoints);
@@ -46,18 +47,18 @@ export function ItineraryTable() {
                 <td className="px-2 py-1">{i + 1}</td>
                 <td className="px-2 py-1">{from?.name || `Waypoint ${(from?.order ?? i) + 1}`}</td>
                 <td className="px-2 py-1">{to?.name || `Waypoint ${(to?.order ?? i + 1) + 1}`}</td>
-                <td className="px-2 py-1">{leg.distance?.toFixed(1) ?? '-'}</td>
+                <td className="px-2 py-1">{leg.distance != null ? numero(leg.distance, 1) : '-'}</td>
                 <td className="px-2 py-1">{leg.azimuth != null ? `${leg.azimuth}° ${azimuthToCardinal(leg.azimuth)}` : '-'}</td>
                 <td className="px-2 py-1 text-red-400">{leg.elevationGain ?? '-'}</td>
                 <td className="px-2 py-1 text-blue-400">{leg.elevationLoss ?? '-'}</td>
                 <td className="px-2 py-1">{leg.estimatedTime != null ? formatTime(leg.estimatedTime) : '-'}</td>
-                <td className="px-2 py-1">{leg.slope != null ? `${leg.slope.toFixed(1)}%` : '-'}</td>
+                <td className="px-2 py-1">{leg.slope != null ? percento(leg.slope) : '-'}</td>
               </tr>
             );
           })}
           <tr className="font-bold bg-gray-900">
             <td className="px-2 py-1" colSpan={3}>Totale</td>
-            <td className="px-2 py-1">{totalDist.toFixed(1)}</td>
+            <td className="px-2 py-1">{numero(totalDist, 1)}</td>
             <td className="px-2 py-1">-</td>
             <td className="px-2 py-1 text-red-400">{totalGain}</td>
             <td className="px-2 py-1 text-blue-400">{totalLoss}</td>

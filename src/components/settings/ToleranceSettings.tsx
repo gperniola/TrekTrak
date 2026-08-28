@@ -7,6 +7,7 @@ import { toast } from '@/stores/notificationStore';
 import { parseDecimale } from '@/components/shared/NumberInput';
 import { DEFAULT_PACE } from '@/lib/types';
 import type { ToleranceSettings as TolSettings } from '@/lib/types';
+import { numero } from '@/lib/formato';
 
 export function ToleranceSettings({ onClose }: { onClose: () => void }) {
   const settings = useItineraryStore((s) => s.settings);
@@ -94,7 +95,7 @@ export function ToleranceSettings({ onClose }: { onClose: () => void }) {
           />
           <div className="flex justify-between text-[10px] text-gray-400 mt-1">
             <span>0.7× corridore</span>
-            <span className="text-green-400 font-bold">{paceFactor.toFixed(2)}×</span>
+            <span className="text-green-400 font-bold">{numero(paceFactor, 2)}×</span>
             <span>1.5× pesante</span>
           </div>
         </div>

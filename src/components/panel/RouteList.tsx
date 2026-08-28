@@ -6,6 +6,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { useRouteLibraryStore, type SortMode } from '@/stores/routeLibraryStore';
 import { toast } from '@/stores/notificationStore';
 import type { Itinerary } from '@/lib/types';
+import { numero } from '@/lib/formato';
 
 const SORT_LABELS: Record<SortMode, string> = {
   manual: 'Posizione', name: 'Nome', distance: 'Distanza',
@@ -38,7 +39,7 @@ function Row({ route, index }: { route: Itinerary; index: number }) {
         <div className="text-sm font-medium truncate">{route.name || 'Senza nome'}</div>
         <div className="text-[11px] text-gray-500">
           {route.createdByUsername && <span className="text-green-500">@{route.createdByUsername} · </span>}
-          {km.toFixed(1)} km · +{gain}m · 🥾{completions}
+          {numero(km, 1)} km · +{numero(gain)} m · 🥾{completions}
         </div>
       </div>
     </div>

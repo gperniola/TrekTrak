@@ -6,6 +6,7 @@ import L from 'leaflet';
 import { haversineDistance, forwardAzimuth, azimuthToCardinal } from '@/lib/calculations';
 import { fetchElevation } from '@/lib/elevation-api';
 import { useMapOverlayGuard } from './useMapOverlayGuard';
+import { distanza, gradi } from '@/lib/formato';
 
 interface RulerPoint {
   lat: number;
@@ -104,7 +105,7 @@ export function RulerTool({ active, onDeactivate }: { active: boolean; onDeactiv
   const altDiff = pointA?.alt != null && pointB?.alt != null ? pointB.alt - pointA.alt : null;
 
   const distDisplay = distance != null
-    ? (distance < 1 ? `${Math.round(distance * 1000)} m` : `${distance.toFixed(2)} km`)
+    ? distanza(distance, 2)
     : null;
 
   return (
@@ -132,7 +133,7 @@ export function RulerTool({ active, onDeactivate }: { active: boolean; onDeactiv
           <div className="w-px h-8 bg-gray-700" />
           <div className="text-center">
             <div className="text-blue-400 font-bold text-base">
-              {azimuth != null ? `${azimuth.toFixed(1)}° ${azimuthToCardinal(azimuth)}` : '--'}
+              {azimuth != null ? `${gradi(azimuth)} ${azimuthToCardinal(azimuth)}` : '--'}
             </div>
             <div className="text-gray-500 text-[10px]">Azimuth</div>
           </div>

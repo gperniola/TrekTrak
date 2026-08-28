@@ -6,6 +6,7 @@ import L from 'leaflet';
 import { haversineDistance, forwardAzimuth } from '@/lib/calculations';
 import { fetchElevation } from '@/lib/elevation-api';
 import { useMapOverlayGuard } from './useMapOverlayGuard';
+import { distanza, gradi } from '@/lib/formato';
 
 interface CompassData {
   userLat: number;
@@ -180,9 +181,7 @@ export function CompassOverlay({ active, onDeactivate }: { active: boolean; onDe
     ? data.targetAlt - data.userAlt
     : null;
 
-  const distDisplay = distance < 1
-    ? `${Math.round(distance * 1000)} m`
-    : `${distance.toFixed(2)} km`;
+  const distDisplay = distanza(distance, 2);
 
   return (
     <>
@@ -197,7 +196,7 @@ export function CompassOverlay({ active, onDeactivate }: { active: boolean; onDe
       {/* Overlay with compass data */}
       <div ref={guardiaPannello} className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000] bg-gray-900/90 rounded-lg px-4 py-2 flex gap-4 items-center text-sm max-w-[calc(100%-1rem)]">
         <div className="text-center">
-          <div className="text-amber-400 font-bold text-base">{azimuth != null ? `${azimuth.toFixed(1)}°` : '--'}</div>
+          <div className="text-amber-400 font-bold text-base">{azimuth != null ? gradi(azimuth) : '--'}</div>
           <div className="text-gray-500 text-[10px]">Azimuth</div>
         </div>
         <div className="w-px h-8 bg-gray-700" />

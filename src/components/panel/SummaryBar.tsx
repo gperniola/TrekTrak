@@ -5,6 +5,7 @@ import { useItineraryStore } from '@/stores/itineraryStore';
 import { calculateDifficulty } from '@/lib/calculations';
 import { formatTime } from '@/lib/format';
 import type { DifficultyGrade } from '@/lib/types';
+import { km } from '@/lib/formato';
 
 const SAC_DESCRIPTIONS: Record<DifficultyGrade, string> = {
   T1: 'Camminata — sentiero ben segnato',
@@ -74,7 +75,7 @@ export function SummaryBar() {
     <div className="border-t border-gray-700 p-3 bg-gray-900">
       <div className="rounded-lg bg-gray-800/60 px-3 py-2">
         <div className="flex justify-between text-xs mb-1 tabular-nums font-semibold">
-          <span className="text-gray-200">{totalDistance.toFixed(1)} km</span>
+          <span className="text-gray-200">{km(totalDistance)}</span>
           <span className="text-red-400">+{totalGain} m</span>
           <span className="text-blue-400">-{totalLoss} m</span>
           <span className="text-gray-200">{formatTime(totalTime)}</span>

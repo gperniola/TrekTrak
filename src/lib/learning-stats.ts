@@ -147,7 +147,13 @@ export function computeCategoryStats(
     stats[cat].count = count;
     if (count === 0) continue;
 
-    stats[cat].avgDelta = Math.round(results.reduce((s, r) => s + r.delta, 0) / count);
+    /*
+     * Media NON arrotondata: l'unita' cambia da categoria a categoria, e arrotondando
+     * qui la distanza (che e' in km) ogni errore sotto i 500 m diventava "Δ 0", cioe'
+     * "perfetto". Un errore reale di 761 m si leggeva "Δ 1". L'arrotondamento giusto
+     * lo decide chi stampa, che sa in che unita' sta scrivendo.
+     */
+    stats[cat].avgDelta = results.reduce((s, r) => s + r.delta, 0) / count;
     stats[cat].validPercent = Math.round((results.filter((r) => r.status === 'valid').length / count) * 100);
     stats[cat].warningPercent = Math.round((results.filter((r) => r.status === 'warning').length / count) * 100);
     stats[cat].errorPercent = Math.round((results.filter((r) => r.status === 'error').length / count) * 100);

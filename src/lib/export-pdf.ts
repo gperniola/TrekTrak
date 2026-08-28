@@ -2,6 +2,7 @@ import jsPDF from 'jspdf';
 import type { Waypoint, Leg, DifficultyGrade } from './types';
 import { azimuthToCardinal } from './calculations';
 import { formatTime, sanitizeFilename } from './format';
+import { km, metri, numero, percento } from './formato';
 
 function truncate(str: string, maxLen: number): string {
   return str.length > maxLen ? str.substring(0, maxLen - 1) + '.' : str;
@@ -29,7 +30,7 @@ export function generateSummaryPDF(data: PdfData): jsPDF {
   // Summary line
   doc.setFontSize(10);
   doc.text(
-    `Distanza: ${totalDistance.toFixed(1)} km | Dislivello: +${totalElevGain}m / -${totalElevLoss}m | Tempo: ${formatTime(totalTime)} | Difficolta': ${difficulty}`,
+    `Distanza: ${km(totalDistance)} | Dislivello: +${metri(totalElevGain)} / -${metri(totalElevLoss)} | Tempo: ${formatTime(totalTime)} | Difficolta': ${difficulty}`,
     14, 30
   );
 
@@ -55,12 +56,12 @@ export function generateSummaryPDF(data: PdfData): jsPDF {
       String(i + 1),
       truncate(from?.name || `WP${i + 1}`, 16),
       truncate(to?.name || `WP${i + 2}`, 16),
-      leg.distance != null ? leg.distance.toFixed(1) : '-',
-      leg.elevationGain != null ? String(leg.elevationGain) : '-',
-      leg.elevationLoss != null ? String(leg.elevationLoss) : '-',
+      leg.distance != null ? numero(leg.distance, 1) : '-',
+      leg.elevationGain != null ? numero(leg.elevationGain) : '-',
+      leg.elevationLoss != null ? numero(leg.elevationLoss) : '-',
       leg.azimuth != null ? `${leg.azimuth}° ${azimuthToCardinal(leg.azimuth)}` : '-',
       leg.estimatedTime != null ? formatTime(leg.estimatedTime) : '-',
-      leg.slope != null ? leg.slope.toFixed(1) : '-',
+      leg.slope != null ? numero(leg.slope, 1) : '-',
     ];
     row.forEach((cell, j) => doc.text(cell, colX[j], y));
     y += 6;
@@ -104,10 +105,10 @@ export function generateRoadbookPDF(data: PdfData): jsPDF {
     let y = 35;
     doc.setFontSize(11);
     const details = [
-      `Distanza: ${leg.distance != null ? `${leg.distance.toFixed(1)} km` : '-'}`,
-      `Dislivello: +${leg.elevationGain ?? '-'}m / -${leg.elevationLoss ?? '-'}m`,
+      `Distanza: ${leg.distance != null ? km(leg.distance) : '-'}`,
+      `Dislivello: +${leg.elevationGain != null ? metri(leg.elevationGain) : '-'} / -${leg.elevationLoss != null ? metri(leg.elevationLoss) : '-'}`,
       `Azimuth: ${leg.azimuth != null ? `${leg.azimuth}° ${azimuthToCardinal(leg.azimuth)}` : '-'}`,
-      `Pendenza: ${leg.slope != null ? `${leg.slope.toFixed(1)}%` : '-'}`,
+      `Pendenza: ${leg.slope != null ? percento(leg.slope) : '-'}`,
       `Tempo stimato: ${leg.estimatedTime != null ? formatTime(leg.estimatedTime) : '-'}`,
     ];
 
@@ -117,7 +118,7 @@ export function generateRoadbookPDF(data: PdfData): jsPDF {
       if (delta > 180) delta -= 360;
       if (delta < -180) delta += 360;
       const direction = delta > 0 ? 'destra' : 'sinistra';
-      details.push(`Variazione azimuth: ${Math.abs(delta).toFixed(0)}° a ${direction}`);
+      details.push(`Variazione azimuth: ${numero(Math.abs(delta))}° a ${direction}`);
     }
 
     details.forEach((d) => {

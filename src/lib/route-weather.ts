@@ -311,6 +311,34 @@ function fineGiornoItaliano(d: Date): Date {
   return new Date(inizioGiornoItaliano(d).getTime() + 24 * 3600000 - 1);
 }
 
+/** Orari sempre in ora italiana: e' il fuso della montagna e di chi legge. */
+export function oraItaliana(iso: string): string {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? '—'
+    : d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' });
+}
+
+/**
+ * La fine di una finestra e' ESCLUSIVA: una fascia che comprende l'ultima ora della
+ * giornata finisce a mezzanotte, e scritta "00:00" si legge come un intervallo al
+ * contrario ("15:00-00:00"). A fine giornata si scrive 24:00, come gli orari di
+ * chiusura.
+ */
+export function oraFineItaliana(iso: string): string {
+  const scritto = oraItaliana(iso);
+  return scritto === '00:00' ? '24:00' : scritto;
+}
+
+/**
+ * Una fascia critica scritta per intero. Esportata perche' la stessa riga la stampa
+ * ANCHE il pannello: quando la correzione del "24:00" era solo qui dentro, a schermo
+ * si continuava a leggere "15:00-00:00" — il difetto era corretto in un posto solo.
+ */
+export function formattaFascia(f: FinestraCritica): string {
+  return `${oraItaliana(f.fromISO)}-${oraFineItaliana(f.toISO)}`;
+}
+
 export function buildRouteWeather(input: {
   waypoints: Waypoint[];
   legs: Leg[];
@@ -392,11 +420,9 @@ export function buildRouteWeather(input: {
     ? (finestraIncrociata ? 2 : null)
     : (finestraIncrociata ? Math.max(peggioPunti, 2) as Exclude<Livello, null> : peggioPunti);
 
-  /** Orari sempre in ora italiana: e' il fuso della montagna e di chi legge. */
-  const orario = (iso: string) =>
-    new Date(iso).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' });
-
-  const fascia = (f: FinestraCritica) => `${orario(f.fromISO)}-${orario(f.toISO)}`;
+  const orario = oraItaliana;
+  const orarioFine = oraFineItaliana;
+  const fascia = formattaFascia;
   const elencoFasce = windows.map(fascia).join(', ');
 
   /** Il punto in cui ti trovi quando la finestra si apre: e' quello che serve sapere. */
@@ -465,7 +491,7 @@ export function buildRouteWeather(input: {
       const dove = doveAllInizioFinestra();
       const dettaglio = dove != null ? `, e a quell’ora hai passato «${dove.name}»` : '';
       // Inizio E fine: senza la fine non si puo' decidere se aspettare o rinunciare.
-      message = `Attenzione: dalle ${orario(hitWindow.fromISO)} alle ${orario(hitWindow.toISO)}`
+      message = `Attenzione: dalle ${orario(hitWindow.fromISO)} alle ${orarioFine(hitWindow.toISO)}`
         + ` la previsione diventa critica${dettaglio}, mentre sei ancora in cammino.${coda}`;
     } else {
       message = `Attenzione: la previsione è critica nelle ore in cui sei in cammino.${coda}`;

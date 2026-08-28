@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import type { ValidationResult, ValidationFieldType } from '@/lib/types';
 import { getTip } from '@/lib/didactic-tips';
+import { gradi, km, metri } from '@/lib/formato';
 
 const STATUS_STYLES = {
   unverified: 'bg-gray-600 text-gray-300',
@@ -18,19 +19,38 @@ const STATUS_LABELS = {
   error: '✗',
 } as const;
 
+/**
+ * Il valore calcolato e' il numero piu' importante della modalita' Learn: e' quello con
+ * cui il principiante confronta la propria stima. Va scritto come lo scriverebbe lui,
+ * perche' prima diceva `Calcolato: 3.161 km` — che in italiano si legge 3161 km, e in
+ * un campo in metri l'app lo interpreta proprio cosi'.
+ */
 function formatValue(value: number, fieldType?: ValidationFieldType): string {
   if (!Number.isFinite(value)) return '—';
-  if (fieldType === 'azimuth') return `${value.toFixed(1)}°`;
-  if (fieldType === 'distance') return `${value.toFixed(3)} km`;
-  return `${Math.round(value)} m`;
+  if (fieldType === 'azimuth') return gradi(value);
+  if (fieldType === 'distance') return km(value, 3);
+  return metri(Math.round(value));
 }
 
 function formatDelta(delta: number, fieldType?: ValidationFieldType): string {
   if (!Number.isFinite(delta)) return '—';
-  if (fieldType === 'azimuth') return `${delta.toFixed(1)}°`;
-  if (fieldType === 'distance') return `${(delta * 1000).toFixed(0)} m`;
-  return `${delta.toFixed(0)} m`;
+  if (fieldType === 'azimuth') return gradi(delta);
+  // Lo scarto di una distanza si legge in metri: "761 m" invece di "0,761 km".
+  if (fieldType === 'distance') return metri(Math.round(delta * 1000));
+  return metri(Math.round(delta));
 }
+
+/**
+ * Il nome accessibile diceva la parola interna dello stato: "Dettaglio validazione:
+ * error". Chi usa un lettore di schermo si sentiva leggere meta' italiano e meta'
+ * enum, sul riscontro didattico che e' il cuore dell'app.
+ */
+const DESCRIZIONE_STATO = {
+  unverified: 'non ancora verificato',
+  valid: 'valore corretto',
+  warning: 'valore quasi corretto',
+  error: 'valore sbagliato',
+} as const;
 
 export function ValidationBadge({ result, fieldType }: { result?: ValidationResult; fieldType?: ValidationFieldType }) {
   const [open, setOpen] = useState(false);
@@ -98,7 +118,7 @@ export function ValidationBadge({ result, fieldType }: { result?: ValidationResu
         type="button"
         onClick={handleToggle}
         className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold cursor-pointer active:scale-110 transition-transform ${STATUS_STYLES[result.status]} ${animating ? 'animate-badge-pop' : ''} relative before:absolute before:inset-[-10px] before:content-['']`}
-        aria-label={`Dettaglio validazione: ${result.status}`}
+        aria-label={`${DESCRIZIONE_STATO[result.status]}, apri il dettaglio`}
         aria-expanded={open}
       >
         {STATUS_LABELS[result.status]}
