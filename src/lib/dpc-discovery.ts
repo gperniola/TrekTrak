@@ -71,6 +71,10 @@ async function getJson(url: string, signal: AbortSignal): Promise<unknown> {
     const res = await fetch(url, {
       signal: controller.signal,
       headers: { Accept: 'application/vnd.github+json' },
+      // Senza questo la lista commit finisce nella Data Cache su disco e la
+      // discovery ragiona su uno stato di GitHub vecchio di giorni: vedi il commento
+      // in `hasPublishedGeometry`.
+      cache: 'no-store',
     });
     if (!res.ok) throw new Error(`GitHub API: HTTP ${res.status}`);
     // Il body va letto qui dentro: se il timer scadesse dopo il `finally`,
@@ -118,6 +122,16 @@ async function hasPublishedGeometry(bulletinId: string, signal: AbortSignal): Pr
     const res = await fetch(`${RAW_BASE}/${bulletinId}_today.json`, {
       method: 'HEAD',
       signal: controller.signal,
+      /*
+       * `dynamic = 'force-dynamic'` sulla route NON basta: le fetch in uscita vengono
+       * comunque memorizzate in `.next/cache/fetch-cache`, che vive sul disco e
+       * sopravvive ai riavvii del server. Trovato provando l'app: il 28/08 la
+       * discovery sceglieva il bollettino `20260826_1422` (due giorni prima) perche'
+       * leggeva una risposta di GitHub salvata il 26/08, e il layer dichiarava
+       * "Nessun bollettino per oggi" mentre il `20260827_1510` era pubblicato e
+       * copriva oggi nel campo `tomorrow`.
+       */
+      cache: 'no-store',
     });
     return res.ok;
   } catch {
