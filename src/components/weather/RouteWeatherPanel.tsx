@@ -33,6 +33,25 @@ const ETICHETTA: Record<string, string> = {
   null: 'Non disponibile',
 };
 
+/**
+ * Colore del testo che dice PERCHE' un punto e' problematico.
+ *
+ * Il pallino accanto al nome diceva "qui c'e' qualcosa" ma non cosa: chi legge doveva
+ * incrociare da solo le tre colonne di numeri (CAPE, raffiche, pioggia) e sapere quali
+ * soglie contano. Il motivo lo sapeva gia' `classifyHour`, che lo scrive in italiano
+ * ("raffiche 85 km/h: pericolose in cresta"): non arrivava mai a schermo.
+ *
+ * Vale anche come accessibilita': il pallino e' `aria-hidden`, quindi la gravita' non
+ * era leggibile a un lettore di schermo. Ora e' scritta.
+ */
+const COLORE_MOTIVO: Record<string, string> = {
+  '0': 'text-green-300',
+  '1': 'text-amber-300',
+  '2': 'text-orange-300',
+  '3': 'text-red-400',
+  null: 'text-gray-400',
+};
+
 function chiave(l: Livello): string { return l == null ? 'null' : String(l); }
 
 const ORA_FMT: Intl.DateTimeFormatOptions = {
@@ -282,6 +301,11 @@ export function RouteWeatherPanel() {
                                 : r.classification.level === 0 ? 'bg-green-500' : 'bg-gray-500'
                         }`} aria-hidden />
                         {r.waypointIndex + 1}. {r.name || 'senza nome'}
+                        {r.classification.reasons.length > 0 && (
+                          <div className={`text-[10px] leading-tight mt-0.5 ${COLORE_MOTIVO[chiave(r.classification.level)]}`}>
+                            {r.classification.reasons.join(' · ')}
+                          </div>
+                        )}
                       </td>
                       <td className="py-1.5 pr-2 text-gray-300 font-mono">
                         {r.arrival != null ? ora(r.arrival) : <span className="text-gray-500 font-sans">n/d</span>}
