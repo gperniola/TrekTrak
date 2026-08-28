@@ -4,6 +4,16 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.13.4] — 2026-08-28 — L'ora di partenza e' l'ora italiana
+
+### Fixed
+- **Nel pannello meteo si sceglieva un orario e ne compariva un altro**, su qualunque dispositivo non impostato sull'ora italiana. Il pannello scrive tutto in ora italiana — arrivi, fasce critiche, alba e tramonto — ma costruiva la partenza con il fuso del dispositivo: si sceglieva "le 5" e la tabella partiva dalle 07:00. In Italia, con il telefono sull'ora italiana, non si vedeva; si vede a chi viaggia, a chi pianifica una gita italiana da fuori, e su un dispositivo rimasto su UTC. Adesso giorno e ora si scelgono in ora italiana, cambio dell'ora legale compreso.
+
+  Chiude l'unico rilievo lasciato aperto dalla 0.13.3.
+
+### DX
+- La suite passa identica sotto qualunque fuso del sistema (provata su UTC, Sydney e Roma). Prima, con `TZ=UTC`, il test che sceglie le 5 e si aspetta le 05:00 in tabella ne trovava 07:00: il difetto e' stato riprodotto prima di essere corretto.
+
 ## [0.13.3] — 2026-08-28 — Numeri all'italiana, e frasi che non promettono piu' del vero
 
 Versione nata da una **prova a mano dell'app dall'inizio alla fine**: creare un
