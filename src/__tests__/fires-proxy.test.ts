@@ -1,6 +1,19 @@
 import { fetchFiresUpstream, _resetFiresCacheForTests } from '@/lib/fires-proxy';
 
-const CSV = 'latitude,longitude,frp,confidence,acq_date,acq_time,satellite\n42.0,13.0,5.0,n,2026-08-25,1200,N20';
+/*
+ * La rilevazione finta deve stare DENTRO la finestra di 24 ore, altrimenti il proxy la
+ * scarta giustamente: da quando il layer dichiara "24h" e le rispetta davvero, una
+ * data fissa nel passato renderebbe il test verde o rosso a seconda di quando lo si
+ * lancia. Stessa trappola dell'orologio gia' vista nei test del pannello meteo.
+ */
+function csvRecente(): string {
+  const d = new Date(Date.now() - 2 * 3600000); // due ore fa
+  const data = d.toISOString().slice(0, 10);
+  const ora = String(d.getUTCHours()).padStart(2, '0') + String(d.getUTCMinutes()).padStart(2, '0');
+  return 'latitude,longitude,frp,confidence,acq_date,acq_time,satellite' + String.fromCharCode(10)
+    + '42.0,13.0,5.0,n,' + data + ',' + ora + ',N20';
+}
+const CSV = csvRecente();
 
 describe('fetchFiresUpstream', () => {
   const realFetch = global.fetch;
@@ -29,7 +42,14 @@ describe('fetchFiresUpstream', () => {
     expect(global.fetch).toHaveBeenCalledTimes(3);
     const urls = (global.fetch as jest.Mock).mock.calls.map((c) => String(c[0]));
     expect(urls[0]).toContain('/api/area/csv/testkey/');
-    expect(urls[0]).toContain('6.6,35.4,18.6,47.1/1');
+    /*
+     * DUE giorni, non uno. `dayRange=1` non vuol dire "ultime 24 ore" ma "dalla
+     * mezzanotte UTC di oggi", e il passaggio notturno del satellite sull'Italia sta a
+     * cavallo di quella mezzanotte: con un giorno solo sparivano le rilevazioni delle
+     * 23:5x UTC, cioe' l'01:5x italiano della notte appena passata. Le 24 ore vere le
+     * ritaglia `soloUltime24h`.
+     */
+    expect(urls[0]).toContain('6.6,35.4,18.6,47.1/2');
   });
 
   test('successo parziale: un sensore giù non fa fallire', async () => {

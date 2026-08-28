@@ -197,3 +197,62 @@ describe('anche il pannello scrive la fascia per intero', () => {
     expect(riga).not.toMatch(/-\s*00:00/);
   });
 });
+
+/**
+ * Il pallino colorato accanto al punto diceva "qui c'e' qualcosa" ma non cosa: per
+ * capirlo bisognava incrociare da soli tre colonne di numeri e conoscere le soglie.
+ * Il motivo `classifyHour` lo scrive gia' in italiano, non arrivava a schermo.
+ */
+describe('la tabella dice perche un punto e problematico', () => {
+  const serieCon = (giorno: string, valori: { cape: number; gusts: number; code: number; pioggia: number }) => {
+    const t: string[] = [], c: number[] = [], w: number[] = [], g: number[] = [], pr: number[] = [];
+    for (let h = 0; h < 24; h++) {
+      t.push(`${giorno}T${String(h).padStart(2, '0')}:00`);
+      c.push(valori.cape); w.push(valori.code); g.push(valori.gusts); pr.push(valori.pioggia);
+    }
+    return { time: t, cape: c, weather_code: w, wind_gusts_10m: g, precipitation_probability: pr };
+  };
+
+  test('scrive le raffiche e l instabilita, non solo un pallino', async () => {
+    const { render: renderPanel, screen: schermo, waitFor: attendi } = await import('@testing-library/react');
+    const { useUIStore } = await import('@/stores/uiStore');
+    const { useItineraryStore } = await import('@/stores/itineraryStore');
+    const { RouteWeatherPanel } = await import('@/components/weather/RouteWeatherPanel');
+
+    const giornoUTC = (s: number) => {
+      const d = new Date();
+      d.setDate(d.getDate() + s);
+      return d.toISOString().slice(0, 10);
+    };
+    const dati = { cape: 2600, gusts: 85, code: 95, pioggia: 90 };
+    const a = serieCon(giornoUTC(0), dati);
+    const b = serieCon(giornoUTC(1), dati);
+    const serie = {
+      time: [...a.time, ...b.time],
+      cape: [...a.cape, ...b.cape],
+      weather_code: [...a.weather_code, ...b.weather_code],
+      wind_gusts_10m: [...a.wind_gusts_10m, ...b.wind_gusts_10m],
+      precipitation_probability: [...a.precipitation_probability, ...b.precipitation_probability],
+    };
+    mockFetchRouteForecast.mockResolvedValue({ serie: [serie, serie], elevations: [] });
+
+    useUIStore.setState({ weatherOpen: true });
+    useItineraryStore.setState({
+      waypoints: [
+        { id: 'a', name: 'Rifugio', lat: 46.4, lon: 11.8, altitude: 2000, order: 0 },
+        { id: 'b', name: 'Cima', lat: 46.5, lon: 11.9, altitude: 2400, order: 1 },
+      ],
+      legs: [{
+        id: 'l', fromWaypointId: 'a', toWaypointId: 'b',
+        distance: 4, azimuth: 90, elevationGain: 400, elevationLoss: 0, estimatedTime: 120,
+      }],
+    });
+
+    renderPanel(<RouteWeatherPanel />);
+    await attendi(() => expect(schermo.getAllByText(/raffiche 85 km\/h/).length).toBeGreaterThan(0));
+    expect(schermo.getAllByText(/instabilit/i).length).toBeGreaterThan(0);
+    // e il motivo e' scritto in rosso, come il pallino
+    const motivo = schermo.getAllByText(/raffiche 85 km\/h/)[0];
+    expect(motivo.className).toMatch(/text-red-400/);
+  });
+});
