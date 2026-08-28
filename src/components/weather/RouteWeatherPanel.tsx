@@ -11,6 +11,9 @@ import {
   buildRouteWeather, defaultDeparture, samplePoints,
   type Livello, type RouteWeatherReport,
   formattaFascia,
+  giornoItaliano,
+  istanteItaliano,
+  oraItalianaDi,
 } from '@/lib/route-weather';
 
 /** Colori per livello: gli stessi che l'app usa per i badge di validazione. */
@@ -138,23 +141,31 @@ export function RouteWeatherPanel() {
   const arrivoDopoIlTramonto = ultimoArrivo != null && sole?.sunset != null
     && new Date(ultimoArrivo).getTime() > new Date(sole.sunset).getTime();
 
+  /*
+   * Giorno e ora si scelgono in ORA ITALIANA, perche' in ora italiana e' scritto tutto
+   * il resto del pannello: arrivi, fasce critiche, alba e tramonto. Quando il menu
+   * usava l'ora del dispositivo, su una macchina fuori dall'Italia si sceglieva "le 5"
+   * e la tabella partiva dalle 07:00 — le due meta' del pannello parlavano di due fusi.
+   */
   const giorni = [0, 1, 2].map((d) => {
-    const data = new Date();
-    data.setDate(data.getDate() + d);
-    return { d, label: d === 0 ? 'oggi' : d === 1 ? 'domani' : 'dopodomani', data };
+    const giorno = giornoItaliano(new Date(Date.now() + d * 24 * 3600000));
+    return {
+      d,
+      label: d === 0 ? 'oggi' : d === 1 ? 'domani' : 'dopodomani',
+      giorno,
+      data: istanteItaliano(giorno, 12),
+    };
   });
-  const giornoScelto = giorni.find((g) => g.data.toDateString() === departure.toDateString())?.d ?? 0;
+  const giornoPartenza = giornoItaliano(departure);
+  const giornoScelto = giorni.find((g) => g.giorno === giornoPartenza)?.d ?? 0;
+  const oraPartenza = oraItalianaDi(departure);
 
   const cambiaGiorno = (d: number) => {
-    const nuovo = new Date();
-    nuovo.setDate(nuovo.getDate() + d);
-    nuovo.setHours(departure.getHours(), 0, 0, 0);
-    setDeparture(nuovo);
+    const scelto = giorni.find((g) => g.d === d) ?? giorni[0];
+    setDeparture(istanteItaliano(scelto.giorno, oraPartenza));
   };
   const cambiaOra = (h: number) => {
-    const nuovo = new Date(departure);
-    nuovo.setHours(h, 0, 0, 0);
-    setDeparture(nuovo);
+    setDeparture(istanteItaliano(giornoPartenza, h));
   };
 
   const meteoUrl = buildMeteoUrl(waypoints);
@@ -197,13 +208,13 @@ export function RouteWeatherPanel() {
           >
             {giorni.map((g) => (
               <option key={g.d} value={g.d}>
-                {g.label} ({g.data.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' })})
+                {g.label} ({g.data.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', timeZone: 'Europe/Rome' })})
               </option>
             ))}
           </select>
           <span className="text-gray-400">alle</span>
           <select
-            value={departure.getHours()}
+            value={oraPartenza}
             onChange={(e) => cambiaOra(Number(e.target.value))}
             aria-label="Ora di partenza"
             className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white max-lg:min-h-[44px]"

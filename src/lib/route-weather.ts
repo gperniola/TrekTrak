@@ -159,18 +159,15 @@ export function classifyHour(o: PuntoOrario): Classificazione {
  * passata, che sarebbe un orario di arrivo nel passato.
  */
 export function defaultDeparture(now: Date, oraTipica = 7): Date {
-  const locale = new Date(now.getTime());
-  const ora = locale.getHours();
+  // Tutto in ora italiana: e' quella che il pannello mostra e quella in cui si cammina.
+  const ora = oraItalianaDi(now);
+  const oggi = giornoItaliano(now);
   if (ora < 10) {
-    const prossima = new Date(locale);
-    prossima.setMinutes(0, 0, 0);
-    prossima.setHours(Math.max(ora + 1, 6));
+    const prossima = istanteItaliano(oggi, Math.max(ora + 1, 6));
     return prossima.getTime() >= now.getTime() ? prossima : new Date(now.getTime() + 3600000);
   }
-  const domani = new Date(locale);
-  domani.setDate(domani.getDate() + 1);
-  domani.setHours(oraTipica, 0, 0, 0);
-  return domani;
+  const domani = giornoItaliano(new Date(now.getTime() + 24 * 3600000));
+  return istanteItaliano(domani, oraTipica);
 }
 
 export interface RigaPercorso {
@@ -288,8 +285,37 @@ function fasceCritiche(serie: SerieOraria[], da: Date, a: Date): FinestraCritica
 }
 
 /** Giorno civile in Italia: e' il fuso in cui l'utente sceglie la partenza. */
-function giornoItaliano(d: Date): string {
+export function giornoItaliano(d: Date): string {
   return d.toLocaleDateString('en-CA', { timeZone: 'Europe/Rome' });
+}
+
+/**
+ * L'ora italiana di un istante, come numero da 0 a 23.
+ *
+ * Serve perche' il pannello mostra OGNI orario in ora italiana: se il menu della
+ * partenza leggesse `getHours()` userebbe il fuso del dispositivo, e su una macchina
+ * fuori dall'Italia si sceglierebbe "le 5" per poi vedere la tabella partire dalle
+ * 07:00. Le due meta' del pannello devono parlare dello stesso fuso.
+ */
+export function oraItalianaDi(d: Date): number {
+  const h = Number(d.toLocaleString('en-GB', { timeZone: 'Europe/Rome', hour: '2-digit', hour12: false }));
+  return Number.isFinite(h) ? h % 24 : 0;
+}
+
+/**
+ * L'istante che in Italia e' `giorno` alle `ora` in punto.
+ *
+ * Stessa tecnica di `inizioGiornoItaliano`: si parte da mezzogiorno UTC, che non e'
+ * mai ambiguo nemmeno nei giorni del cambio d'ora, si misura quanto vale a Roma e si
+ * scende all'inizio del giorno locale.
+ */
+export function istanteItaliano(giorno: string, ora: number): Date {
+  const [y, m, g] = giorno.split('-').map(Number);
+  const mezzogiorno = Date.UTC(y, m - 1, g, 12, 0, 0);
+  const oreLocali = Number(
+    new Date(mezzogiorno).toLocaleString('en-GB', { timeZone: 'Europe/Rome', hour: '2-digit', hour12: false })
+  );
+  return new Date(mezzogiorno - oreLocali * 3600000 + ora * 3600000);
 }
 
 /**
