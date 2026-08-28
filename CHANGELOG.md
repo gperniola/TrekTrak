@@ -4,6 +4,24 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.13.5] — 2026-08-28 — Focolai della notte, ripari che rispondono, mappa offline che c'e'
+
+Tre cose segnalate usando l'app, e una scoperta strada facendo che nessuno aveva
+segnalato perche' non si vede: la mappa offline non veniva salvata.
+
+### Fixed
+- **I focolai visti dal satellite durante la notte non comparivano**, e il pannello dichiarava comunque "Focolai attivi (24 h)". Il parametro che si passava a NASA FIRMS non chiede "le ultime 24 ore" ma "da mezzanotte UTC di oggi", e il passaggio notturno del satellite sull'Italia sta **a cavallo di quella mezzanotte**: le rilevazioni dell'una-due di notte risultano del giorno prima e venivano scartate. Un incendio acceso la sera prima era invisibile fino al pomeriggio successivo. Ora la finestra e' davvero di 24 ore, e sono state ritrovate le rilevazioni delle 01:52-01:54 della notte appena passata.
+
+  Resta un limite che nessun software puo' togliere: il satellite passa **due volte al giorno**, quindi un fuoco acceso dopo l'ultimo passaggio utile non puo' comparire prima del successivo.
+- **L'elenco dei rifugi e bivacchi dava errore** dicendo che il servizio era occupato, mentre il servizio rispondeva regolarmente. Era l'app a interrompere la richiesta troppo presto: il servizio pubblico mette in coda le domande e la nostra ne aspetta venti secondi, ma il meccanismo di cache dell'app la troncava a dieci e restituiva un errore inventato.
+- **La mappa non veniva piu' salvata per l'uso senza campo.** Le regole di conservazione delle mattonelle erano scritte dopo una regola generale che le intercettava tutte, quindi non venivano mai applicate: la mappa finiva in un magazzino da 32 mattonelle valide un'ora, invece che 1000 valide un mese. In montagna, senza segnale, voleva dire nessuna mappa. Nessuno l'aveva segnalato perche' non c'e' niente da vedere: funziona finche' hai campo.
+
+### Added
+- **Nel meteo del percorso, sotto ogni punto problematico c'e' scritto perche'**: *raffiche 49 km/h*, *CAPE 2600 J/kg: instabilita' molto alta*, *temporale*. Prima c'era solo un pallino colorato, e per capirne il motivo bisognava incrociare tre colonne di numeri e sapere quali soglie contano. Il colore del testo segue la gravita', e la stessa informazione ora e' leggibile da un lettore di schermo, che del pallino non sapeva nulla.
+
+### DX
+- Un controllo automatico sull'ordine delle regole di conservazione: qualunque regola scritta dopo quella generale verrebbe ignorata, e questo difetto non si vede leggendo il file.
+
 ## [0.13.4] — 2026-08-28 — L'ora di partenza e' l'ora italiana
 
 ### Fixed
