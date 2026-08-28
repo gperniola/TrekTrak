@@ -5,6 +5,7 @@ import { NumberInput } from '@/components/shared/NumberInput';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { azimuthToCardinal } from '@/lib/calculations';
 import { formatTime } from '@/lib/format';
+import { percento } from '@/lib/formato';
 
 export function LegCard({ leg }: { leg: Leg }) {
   const updateLeg = useItineraryStore((s) => s.updateLeg);
@@ -74,7 +75,7 @@ export function LegCard({ leg }: { leg: Leg }) {
           <span>Tempo: {formatTime(leg.estimatedTime)}</span>
         )}
         {leg.slope != null && (
-          <span>Pendenza: {leg.slope.toFixed(1)}%</span>
+          <span>Pendenza: {percento(leg.slope)}</span>
         )}
         {leg.azimuth != null && (
           <span>Dir: {azimuthToCardinal(leg.azimuth)}</span>

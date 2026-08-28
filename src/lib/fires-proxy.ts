@@ -31,7 +31,16 @@ async function fetchTextWithTimeout(url: string): Promise<{ ok: boolean; text: s
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
-    const res = await fetch(url, { signal: controller.signal });
+    /*
+     * `cache: 'no-store'` NON e' ridondante con `dynamic = 'force-dynamic'` sulla
+     * route: quello rende dinamica la RESPOSTA, ma le fetch in uscita finiscono
+     * comunque nella Data Cache su disco (`.next/cache/fetch-cache`), che sopravvive
+     * ai riavvii. Verificato a mano: il 28/08 l'endpoint restituiva focolai con
+     * `acquiredAt` del 26/08 mentre il pannello scriveva "Focolai attivi (24h) -
+     * Aggiornato alle 09:29". Su un layer di sicurezza e' il modo peggiore di
+     * sbagliare: dato vecchio presentato come fresco.
+     */
+    const res = await fetch(url, { signal: controller.signal, cache: 'no-store' });
     if (!res.ok) return { ok: false, text: '' };
     return { ok: true, text: await res.text() };
   } finally {

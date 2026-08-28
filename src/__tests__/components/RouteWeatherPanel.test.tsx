@@ -49,14 +49,40 @@ beforeEach(() => {
  * non limitarsi a mostrare il meteo del posto.
  */
 describe('Meteo del percorso', () => {
-  const domani = () => {
+  /**
+   * La previsione finta copre **oggi e domani**, non solo domani.
+   *
+   * `defaultDeparture` sceglie oggi prima delle 10 e domani dalle 10 in poi: con la
+   * sola giornata di domani questi test erano verdi il pomeriggio e **rossi ogni
+   * mattina**, con il pannello che diceva "Previsione non disponibile" invece del
+   * verdetto. Trovato eseguendo `npm run check` alle 09:55.
+   *
+   * Coprendo entrambi i giorni l'orario di partenza cade sempre dentro la serie,
+   * qualunque sia l'ora dell'esecuzione, e il temporale pomeridiano resta davanti
+   * alla partenza in tutti e due i casi.
+   */
+  const giornoUTC = (scarto: number) => {
     const d = new Date();
-    d.setDate(d.getDate() + 1);
+    d.setDate(d.getDate() + scarto);
     return d.toISOString().slice(0, 10);
+  };
+  const serieOggiEDomani = () => {
+    const oggi = serieConTemporalePomeridiano(giornoUTC(0));
+    const domani = serieConTemporalePomeridiano(giornoUTC(1));
+    return {
+      time: [...oggi.time, ...domani.time],
+      cape: [...oggi.cape, ...domani.cape],
+      weather_code: [...oggi.weather_code, ...domani.weather_code],
+      wind_gusts_10m: [...oggi.wind_gusts_10m, ...domani.wind_gusts_10m],
+      precipitation_probability: [
+        ...oggi.precipitation_probability,
+        ...domani.precipitation_probability,
+      ],
+    };
   };
 
   test('chiede la previsione per i punti del percorso e mostra una riga per punto', async () => {
-    const serie = serieConTemporalePomeridiano(domani());
+    const serie = serieOggiEDomani();
     fetchRouteForecast.mockResolvedValue({ serie: [serie, serie, serie], elevations: [2000, 2200, 2400] });
     render(<RouteWeatherPanel />);
     await waitFor(() => expect(fetchRouteForecast).toHaveBeenCalled());
@@ -67,7 +93,7 @@ describe('Meteo del percorso', () => {
   });
 
   test('il verdetto dice dove sei quando la previsione peggiora', async () => {
-    const serie = serieConTemporalePomeridiano(domani());
+    const serie = serieOggiEDomani();
     fetchRouteForecast.mockResolvedValue({ serie: [serie, serie, serie], elevations: [] });
     render(<RouteWeatherPanel />);
     await waitFor(() => expect(screen.getByRole('status')).toBeInTheDocument());
@@ -79,7 +105,7 @@ describe('Meteo del percorso', () => {
   // Il numero dei punti interrogati va dichiarato: altrimenti si crede che il dato sia
   // stato calcolato per ogni waypoint, e non e' vero.
   test('dichiara su quanti punti è campionata e che le pause non sono contate', async () => {
-    const serie = serieConTemporalePomeridiano(domani());
+    const serie = serieOggiEDomani();
     fetchRouteForecast.mockResolvedValue({ serie: [serie, serie, serie], elevations: [] });
     render(<RouteWeatherPanel />);
     await waitFor(() => expect(screen.getByText(/campionata su 3 punti/i)).toBeInTheDocument());
@@ -87,7 +113,7 @@ describe('Meteo del percorso', () => {
   });
 
   test('cambiare ora di partenza ricalcola', async () => {
-    const serie = serieConTemporalePomeridiano(domani());
+    const serie = serieOggiEDomani();
     fetchRouteForecast.mockResolvedValue({ serie: [serie, serie, serie], elevations: [] });
     render(<RouteWeatherPanel />);
     await waitFor(() => expect(fetchRouteForecast).toHaveBeenCalledTimes(1));

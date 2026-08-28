@@ -10,6 +10,7 @@ import { ATTRIBUZIONE_METEO, fetchRouteForecast } from '@/lib/weather-api';
 import {
   buildRouteWeather, defaultDeparture, samplePoints,
   type Livello, type RouteWeatherReport,
+  formattaFascia,
 } from '@/lib/route-weather';
 
 /** Colori per livello: gli stessi che l'app usa per i badge di validazione. */
@@ -240,7 +241,7 @@ export function RouteWeatherPanel() {
               <p className="text-[11px] text-gray-400">
                 Ore instabili nella giornata:{' '}
                 <span className="font-mono text-gray-300">
-                  {report.windows.map((f) => `${ora(f.fromISO)}-${ora(f.toISO)}`).join(', ')}
+                  {report.windows.map(formattaFascia).join(', ')}
                 </span>
                 . Sono le ore in cui la previsione è critica <em>da qualche parte</em> sul
                 percorso, anche se tu sei altrove.

@@ -15,6 +15,7 @@ import {
   type CategoryField,
   type TrendDirection,
 } from '@/lib/learning-stats';
+import { gradi, metri } from '@/lib/formato';
 
 const CATEGORY_LABELS: Record<CategoryField, string> = {
   altitude: 'Altitudine',
@@ -23,6 +24,28 @@ const CATEGORY_LABELS: Record<CategoryField, string> = {
   elevationLoss: 'D-',
   azimuth: 'Azimut',
 };
+
+/**
+ * Ogni categoria ha la sua unita': senza, "Δ 1417" non dice se sono metri, gradi o
+ * chilometri — e sono tre cose diverse. La distanza si scrive in metri perche' e' un
+ * ERRORE: "Δ 761 m" si capisce, "Δ 0,8 km" no.
+ */
+function scartoMedio(cat: CategoryField, valore: number): string {
+  if (cat === 'azimuth') return gradi(valore);
+  if (cat === 'distance') return metri(Math.round(valore * 1000));
+  return metri(Math.round(valore));
+}
+
+/**
+ * Un punteggio basso non si dipinge di verde con la spunta. Prima "Ultima: 6% ✓" era
+ * verde comunque: in un'app che insegna, dire "bravo" a chi ha sbagliato il 94% dei
+ * valori e' il contrario del suo mestiere.
+ */
+function coloreEsito(percentuale: number): string {
+  if (percentuale >= 80) return 'text-green-400';
+  if (percentuale >= 50) return 'text-amber-400';
+  return 'text-red-400';
+}
 
 const TREND_ICONS: Record<TrendDirection, string> = { up: '↑', down: '↓', stable: '→' };
 const TREND_COLORS: Record<TrendDirection, string> = {
@@ -109,14 +132,18 @@ export function ProgressOverlay({ onClose }: { onClose: () => void }) {
                 <div className="text-gray-500 text-[10px] uppercase">Verifiche</div>
                 <div className="text-white font-bold text-lg">{summary.totalVerifications}</div>
                 {summary.lastVerifyValidPercent != null && (
-                  <div className="text-green-400 text-[10px]">Ultima: {summary.lastVerifyValidPercent}% ✓</div>
+                  <div className={`${coloreEsito(summary.lastVerifyValidPercent)} text-[10px]`}>
+                    Ultima: {summary.lastVerifyValidPercent}% corretti
+                  </div>
                 )}
               </div>
               <div className="bg-gray-800 rounded-lg p-3 text-center">
                 <div className="text-gray-500 text-[10px] uppercase">Quiz</div>
                 <div className="text-white font-bold text-lg">{summary.totalQuizzes}</div>
                 {summary.lastQuizAverage != null && (
-                  <div className="text-green-400 text-[10px]">Ultimo: {summary.lastQuizAverage}/100</div>
+                  <div className={`${coloreEsito(summary.lastQuizAverage)} text-[10px]`}>
+                    Ultimo: {summary.lastQuizAverage}/100
+                  </div>
                 )}
               </div>
               <div className="bg-gray-800 rounded-lg p-3 text-center">
@@ -126,14 +153,14 @@ export function ProgressOverlay({ onClose }: { onClose: () => void }) {
                 ) : (
                   <div className="text-gray-600 text-lg">—</div>
                 )}
-                {!trend && <div className="text-gray-600 text-[10px]">Min. 10 sessioni</div>}
+                {!trend && <div className="text-gray-600 text-[10px]">Tendenza da 10 sessioni</div>}
               </div>
             </div>
 
             {/* Section 2: Trend Chart */}
             {trendData.length > 0 && trendData.length < 3 && (
               <div className="text-gray-500 text-xs text-center py-3">
-                Completa almeno 3 sessioni per visualizzare il grafico di andamento.
+                Il grafico dell&apos;andamento compare da 3 sessioni; la freccia della tendenza da 10.
               </div>
             )}
             {trendData.length >= 3 && (
@@ -185,7 +212,9 @@ export function ProgressOverlay({ onClose }: { onClose: () => void }) {
                         <div className="text-gray-600 text-sm mt-1">—</div>
                       ) : (
                         <>
-                          <div className="text-white text-xs font-bold mt-1">Δ {s.avgDelta}</div>
+                          <div className="text-white text-xs font-bold mt-1">
+                            Δ {scartoMedio(cat, s.avgDelta)}
+                          </div>
                           <div className="flex h-1.5 rounded-full overflow-hidden mt-1.5">
                             {s.validPercent > 0 && <div className="bg-green-500" style={{ width: `${s.validPercent}%` }} />}
                             {s.warningPercent > 0 && <div className="bg-yellow-500" style={{ width: `${s.warningPercent}%` }} />}

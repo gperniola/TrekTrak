@@ -25,9 +25,12 @@ describe('RouteDetailCard', () => {
   test('renders metrics', () => {
     render(<RouteDetailCard />);
     expect(screen.getByText('Monte Test')).toBeInTheDocument();
-    expect(screen.getByText(/8.4 km/)).toBeInTheDocument();
-    expect(screen.getByText(/620/)).toBeInTheDocument();
-    expect(screen.getByText(/1420/)).toBeInTheDocument();
+    // Numeri all'italiana: virgola sui decimali, punto sulle migliaia. Le quote in
+    // montagna passano il migliaio, quindi 1420 si scrive 1.420 m.
+    expect(screen.getByText(/8,4 km/)).toBeInTheDocument();
+    expect(screen.getByText(/620 m/)).toBeInTheDocument();
+    expect(screen.getByText(/1\.420 m/)).toBeInTheDocument();
+    expect(screen.getByText(/7,4%/)).toBeInTheDocument();
   });
 
   test("Carica nell'editor switches to editor view", () => {

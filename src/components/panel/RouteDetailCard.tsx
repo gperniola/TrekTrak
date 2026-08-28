@@ -10,6 +10,7 @@ import { formatTime } from '@/lib/format';
 import { confirm as appConfirm, toast } from '@/stores/notificationStore';
 import { CompletionList } from './CompletionList';
 import { buildMeteoUrl } from '@/lib/meteo';
+import { km, metri, percento } from '@/lib/formato';
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
@@ -95,14 +96,14 @@ export function RouteDetailCard() {
       )}
       {m && (
         <div className="grid grid-cols-2 gap-1.5">
-          <Stat label="Distanza" value={`${m.distanceKm.toFixed(1)} km`} />
+          <Stat label="Distanza" value={km(m.distanceKm)} />
           <Stat label="Stima" value={formatTime(m.estimatedTimeMin)} />
-          <Stat label="Dislivello +" value={`+${m.elevationGain} m`} />
-          <Stat label="Dislivello -" value={`-${m.elevationLoss} m`} />
-          <Stat label="Alt. min" value={m.minAltitude != null ? `${m.minAltitude} m` : '—'} />
-          <Stat label="Alt. max" value={m.maxAltitude != null ? `${m.maxAltitude} m` : '—'} />
-          <Stat label="Pend. media" value={`${m.avgSlope.toFixed(1)}%`} />
-          <Stat label="Pend. max" value={`${m.maxSlope.toFixed(1)}%`} />
+          <Stat label="Dislivello +" value={`+${metri(m.elevationGain)}`} />
+          <Stat label="Dislivello -" value={`-${metri(m.elevationLoss)}`} />
+          <Stat label="Alt. min" value={m.minAltitude != null ? metri(m.minAltitude) : '—'} />
+          <Stat label="Alt. max" value={m.maxAltitude != null ? metri(m.maxAltitude) : '—'} />
+          <Stat label="Pend. media" value={percento(m.avgSlope)} />
+          <Stat label="Pend. max" value={percento(m.maxSlope)} />
         </div>
       )}
       <div>

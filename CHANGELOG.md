@@ -4,6 +4,30 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.13.3] — 2026-08-28 — Numeri all'italiana, e frasi che non promettono piu' del vero
+
+Versione nata da una **prova a mano dell'app dall'inizio alla fine**: creare un
+itinerario vero, verificarlo, fare il quiz, guardare il meteo, accendere i layer,
+esportare, ricaricare. Quasi tutto quello che c'e' qui dentro l'ha trovato lo schermo,
+non la lettura del codice — e nemmeno 1.000 test.
+
+### Fixed
+- **I focolai di due giorni prima erano presentati come "ultime 24 ore".** Il proxy dei dati di emergenza serviva risposte vecchie prese da una cache su disco: il pannello scriveva "Aggiornato alle 09:29" sopra rilevazioni del 26 agosto, e il layer delle allerte diceva "Nessun bollettino per oggi" mentre il bollettino valido era pubblicato. Su un layer di sicurezza il dato vecchio spacciato per fresco e' il modo peggiore di sbagliare: e' quello che si guarda prima di partire.
+- **I numeri erano scritti all'inglese in tutta l'app.** Il caso peggiore stava nel cuore della modalita' Learn: il valore calcolato con cui confronti la tua stima compariva come `Calcolato: 3.161 km`, che in italiano si legge **3161 km**. La stessa scrittura, battuta in un campo in metri, l'app la interpretava proprio come 3161: due meta' della stessa applicazione davano due significati opposti allo stesso testo. Ora ovunque — riepilogo, tratte, tabella, profilo, quiz, tolleranze, PDF — la virgola separa i decimali e il punto le migliaia: `3,161 km`, `1.920 m`, `11,1%`.
+- **Un punteggio del 6% era dipinto di verde con la spunta.** Nel riquadro dei progressi l'esito dell'ultima verifica era sempre verde, qualunque fosse: in un'app che insegna, dire "bravo" a chi ha sbagliato il 94% dei valori e' il contrario del suo mestiere. Adesso il colore segue il risultato, e la spunta non c'e' piu'.
+- **Gli scarti medi per categoria non dicevano l'unita', e per la distanza erano inutili.** Comparivano come `Δ 1417` senza specificare se metri, gradi o chilometri; e siccome la distanza veniva arrotondata al chilometro, **ogni errore sotto i 500 metri si leggeva `Δ 0`**, cioe' "perfetto". Un errore reale di 761 metri diceva `Δ 1`. Ora si legge `Δ 761 m`.
+- **Una fascia critica che arrivava a fine giornata era scritta "15:00-00:00"**, che sembra un intervallo al contrario. Ora finisce alle `24:00`, come gli orari di chiusura. La stessa riga la stampava anche il pannello con un suo formattatore: adesso ce n'e' uno solo.
+- **Il riscontro di validazione si annunciava in inglese.** Chi usa un lettore di schermo sentiva "Dettaglio validazione: error" sui riquadri che sono il cuore didattico dell'app. Ora dice "valore sbagliato, apri il dettaglio".
+- **Le due soglie del grafico dei progressi si contraddicevano a vista**: "Min. 10 sessioni" e "Completa almeno 3 sessioni" una sotto l'altra, senza dire cosa sbloccasse cosa. Sono due cose diverse e adesso lo dicono.
+- **Il pulsante che spiega il profilo stimato era alto 20 pixel**: ora si prende un bersaglio da 44 senza occupare piu' spazio, perche' su telefono la striscia del profilo e' alta poco piu' di quello.
+
+### DX
+- **La suite era rossa ogni mattina prima delle 10.** I test del pannello meteo preparavano la previsione finta per il solo giorno dopo, ma la partenza predefinita e' *oggi* prima delle 10 e *domani* dalle 10 in poi: passavano il pomeriggio e fallivano la mattina. Nessuno se n'era accorto perche' `npm run check` era sempre stato lanciato dopo pranzo.
+- Due controlli automatici nuovi: uno impedisce che i dati di emergenza tornino a passare dalla cache, l'altro verifica che quello che l'app **scrive** sia ribattibile nei suoi stessi campi e valga lo stesso numero.
+
+### Noto, non ancora corretto
+- L'ora di partenza del pannello meteo viene costruita con l'ora **locale del dispositivo**, mentre tutti gli orari sono stampati in ora italiana: su una macchina impostata su un altro fuso si sceglie le 5 e la tabella scrive le 07:00. In Italia, su un telefono con l'ora italiana, non si vede.
+
 ## [0.13.2] — 2026-08-27 — Orari che non si sanno, numeri scritti all'italiana
 
 Due giri di review sul lavoro delle versioni precedenti. Il filo comune: l'app

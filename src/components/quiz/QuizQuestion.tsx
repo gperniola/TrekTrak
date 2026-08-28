@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { QuizQuestion as QuizQuestionType, QuizAnswer, QuestionType } from '@/lib/quiz';
 import { calculateQuizScore, azimuthDelta } from '@/lib/quiz';
 import { parseDecimale } from '@/components/shared/NumberInput';
+import { numero } from '@/lib/formato';
 
 const TYPE_LABELS: Record<QuestionType, string> = {
   altitude: 'Altitudine',
@@ -132,21 +133,21 @@ export function QuizQuestionView({ question, questionNumber, totalQuestions, onA
             <div>
               <div className="text-gray-500 text-[10px]">Tua risposta</div>
               <div className="text-white font-bold text-sm">
-                {result.userValue.toFixed(question.type === 'distance' ? 2 : 0)} {question.unit}
+                {numero(result.userValue, question.type === 'distance' ? 2 : 0)} {question.unit}
               </div>
             </div>
             <div>
               <div className="text-gray-500 text-[10px]">Valore reale</div>
               <div className="text-green-400 font-bold text-sm">
-                {result.realValue.toFixed(question.type === 'distance' ? 2 : 0)} {question.unit}
+                {numero(result.realValue, question.type === 'distance' ? 2 : 0)} {question.unit}
               </div>
             </div>
             <div>
               <div className="text-gray-500 text-[10px]">Errore</div>
               <div className="text-amber-400 font-bold text-sm">
                 {question.type === 'distance'
-                  ? `${result.realValue !== 0 ? ((delta! / result.realValue) * 100).toFixed(0) : '∞'}%`
-                  : `${delta!.toFixed(0)} ${question.unit}`}
+                  ? `${result.realValue !== 0 ? numero((delta! / result.realValue) * 100) : '∞'}%`
+                  : `${numero(delta!)} ${question.unit}`}
               </div>
             </div>
           </div>

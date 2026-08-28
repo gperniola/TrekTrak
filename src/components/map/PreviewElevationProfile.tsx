@@ -4,6 +4,7 @@ import { useId } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { buildGradientStops } from '@/lib/calculations';
 import type { Itinerary, Leg, Waypoint } from '@/lib/types';
+import { km } from '@/lib/formato';
 
 /** Concatena i profili altimetrici dei leg in un'unica serie distanza→quota. */
 function buildProfile(waypoints: Waypoint[], legs: Leg[]): { distance: number; altitude: number }[] {
@@ -76,9 +77,9 @@ export function PreviewElevationProfile({ route }: { route: Itinerary }) {
               </linearGradient>
             )}
           </defs>
-          <XAxis dataKey="distance" type="number" tick={{ fontSize: 10, fill: '#999' }} tickFormatter={(v: number) => `${v.toFixed(1)} km`} />
+          <XAxis dataKey="distance" type="number" tick={{ fontSize: 10, fill: '#999' }} tickFormatter={(v: number) => km(v, 1)} />
           <YAxis tick={{ fontSize: 10, fill: '#999' }} unit="m" domain={[yMin, yMax]} />
-          <Tooltip contentStyle={{ background: '#1a1a2e', border: '1px solid #444', fontSize: 12 }} labelStyle={{ color: '#4ade80' }} labelFormatter={(v) => `${Number(v).toFixed(2)} km`} />
+          <Tooltip contentStyle={{ background: '#1a1a2e', border: '1px solid #444', fontSize: 12 }} labelStyle={{ color: '#4ade80' }} labelFormatter={(v) => km(Number(v), 2)} />
           <Area type="monotone" dataKey="altitude" stroke={hasGradient ? `url(#${strokeId})` : '#4ade80'} fill={`url(#${fillId})`} strokeWidth={2} isAnimationActive={false} />
         </AreaChart>
       </ResponsiveContainer>

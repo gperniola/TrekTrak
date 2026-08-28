@@ -5,6 +5,7 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceD
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { buildGradientStops } from '@/lib/calculations';
 import type { Leg } from '@/lib/types';
+import { km, metri } from '@/lib/formato';
 
 const ESTIMATED_TOOLTIP = 'Profilo basato solo sulle quote ai waypoint: non riflette salite e discese intermedie.';
 
@@ -241,7 +242,7 @@ export function ElevationProfile() {
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setTipOpen((p) => !p); }}
-              className="text-amber-400 font-bold cursor-pointer underline decoration-dotted underline-offset-2 px-1 py-0.5 -mx-1 -my-0.5"
+              className="text-amber-400 font-bold cursor-pointer underline decoration-dotted underline-offset-2 px-1 py-0.5 -mx-1 -my-0.5 relative after:absolute after:-inset-3 after:content-['']"
               aria-label="Info profilo stimato"
               aria-expanded={tipOpen}
             >
@@ -278,12 +279,17 @@ export function ElevationProfile() {
               </linearGradient>
             )}
           </defs>
-          <XAxis dataKey="distance" type="number" tick={{ fontSize: 10, fill: '#999' }} tickFormatter={(v: number) => `${v.toFixed(2)} km`} />
-          <YAxis tick={{ fontSize: 10, fill: '#999' }} unit="m" domain={[yMin, yMax]} />
+          <XAxis dataKey="distance" type="number" tick={{ fontSize: 10, fill: '#999' }} tickFormatter={(v: number) => km(v, 2)} />
+          <YAxis
+            tick={{ fontSize: 10, fill: '#999' }}
+            domain={[yMin, yMax]}
+            // Le quote in montagna passano il migliaio: "1.920 m", non "1920m".
+            tickFormatter={(v: number) => metri(v)}
+          />
           <Tooltip
             contentStyle={{ background: '#1a1a2e', border: '1px solid #444', fontSize: 12 }}
             labelStyle={{ color: '#4ade80' }}
-            labelFormatter={(v) => `${Number(v).toFixed(2)} km`}
+            labelFormatter={(v) => km(Number(v), 2)}
           />
           {/* Real profile drawn FIRST (behind user profile) when in Learn mode and trackValues are present */}
           {hasReal && (
