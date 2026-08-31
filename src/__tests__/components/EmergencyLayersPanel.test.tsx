@@ -114,12 +114,16 @@ describe('EmergencyLayersPanel', () => {
     fireEvent.click(screen.getAllByRole('switch')[0]);
     await waitFor(() =>
       expect(useItineraryStore.getState().settings.mapDisplay.emergencyLayers).toContain('fires-hotspots'));
+    // Le fonti sono passate dietro la riga "fonti e avvertenze": erano due paragrafi
+    // sempre in fondo che nessuno rilegge a ogni apertura del pannello.
+    fireEvent.click(screen.getByRole('button', { name: /fonti e avvertenze/i }));
     expect(screen.getByText(/Fonti:/)).toBeInTheDocument();
     expect(screen.getByText(/NASA FIRMS/)).toBeInTheDocument();
   });
 
   test('nessun layer attivo → nessuna riga fonti nel footer', () => {
     render(<EmergencyLayersPanel />);
+    fireEvent.click(screen.getByRole('button', { name: /fonti e avvertenze/i }));
     expect(screen.queryByText(/Fonti:/)).not.toBeInTheDocument();
   });
 
@@ -132,6 +136,9 @@ describe('EmergencyLayersPanel', () => {
       },
     });
     render(<EmergencyLayersPanel />);
+    // Le fonti sono passate dietro la riga "fonti e avvertenze": erano due paragrafi
+    // sempre in fondo che nessuno rilegge a ogni apertura del pannello.
+    fireEvent.click(screen.getByRole('button', { name: /fonti e avvertenze/i }));
     const footer = screen.getByText(/Fonti:/).textContent ?? '';
     expect(footer.match(/Copernicus EFFIS/g)).toHaveLength(1);
   });
@@ -206,7 +213,9 @@ describe('EmergencyLayersPanel', () => {
         },
       });
       render(<EmergencyLayersPanel />);
-      expect(screen.getByText(/non disponibile offline/)).toBeInTheDocument();
+      // Due riscontri di proposito: la riga di avviso e la parola di stato nel nome
+      // accessibile della riga. Qui si controlla la riga visibile.
+      expect(screen.getByText(/⚠ non disponibile offline/)).toBeInTheDocument();
       expect(screen.queryByText(/Rete non disponibile/)).not.toBeInTheDocument();
     });
 
@@ -241,7 +250,7 @@ describe('EmergencyLayersPanel', () => {
       },
     });
     render(<EmergencyLayersPanel />);
-    expect(screen.getByText(/dati parziali/)).toBeInTheDocument();
+    expect(screen.getByText(/dati parziali: alcune fonti non hanno risposto/)).toBeInTheDocument();
   });
 
   // Prima l'orario era dietro `def.refreshMinutes != null`, quindi i due layer EFFIS
@@ -255,6 +264,10 @@ describe('EmergencyLayersPanel', () => {
       },
     });
     render(<EmergencyLayersPanel />);
+    // L'orario di un layer che funziona e' materiale di consultazione: sta nel
+    // dettaglio, che si apre toccando la riga. Quello che resta sempre visibile e'
+    // solo cio' che mette in dubbio il dato (errore, offline, parziale, stantio).
+    fireEvent.click(screen.getByRole('button', { name: /Pericolo incendio oggi/ }));
     expect(screen.getByText(/Aggiornato alle/)).toBeInTheDocument();
   });
 
