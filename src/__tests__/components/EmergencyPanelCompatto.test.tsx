@@ -228,3 +228,90 @@ describe('pannello layer compatto', () => {
     expect(screen.getByText(/NASA FIRMS/)).toBeInTheDocument();
   });
 });
+
+/**
+ * "Aggiornato alle 09:29" era l'ora in cui avevamo chiesto NOI, non quella in cui e'
+ * passato il satellite: due orari che possono distare ore, perche' il satellite passa
+ * due volte al giorno. Segnalato da chi usa l'app.
+ */
+describe('l eta vera dei dati satellitari', () => {
+  const TUTTI_2 = EMERGENCY_LAYERS.map((l) => l.id);
+
+  const attiva = (...ids: string[]) => {
+    const settings = useItineraryStore.getState().settings;
+    useItineraryStore.setState({
+      settings: { ...settings, mapDisplay: { ...settings.mapDisplay, emergencyLayers: ids as never } },
+    });
+  };
+
+  beforeEach(() => {
+    localStorage.setItem('trektrak_emergency_disclaimer_seen', '1');
+    useUIStore.setState({ emergencyPanelOpen: true });
+    attiva();
+    TUTTI_2.forEach((id) => useEmergencyStore.getState().stopLayer(id));
+    useEmergencyStore.setState({ fires: null, dpc: null, dpcSelectedDate: null });
+  });
+
+  afterEach(() => {
+    TUTTI_2.forEach((id) => useEmergencyStore.getState().stopLayer(id));
+  });
+
+  const conFocolai = (acquisizioni: string[]) => {
+    useEmergencyStore.setState({
+      fires: {
+        points: acquisizioni.map((acquiredAt) => ({
+          lat: 41.9, lon: 12.5, frp: 3, confidence: 'nominal' as const, acquiredAt, satellite: 'N',
+        })),
+        fetchedAt: new Date().toISOString(),
+      },
+      layers: {
+        ...useEmergencyStore.getState().layers,
+        'fires-hotspots': { status: 'ready', error: null, lastFetch: Date.now() },
+      },
+      nowTick: Date.now(),
+    });
+  };
+  const oreFa = (h: number) => new Date(Date.now() - h * 3600000).toISOString();
+
+  test('il dettaglio dice la finestra dei passaggi e l eta del piu recente', () => {
+    attiva('fires-hotspots');
+    conFocolai([oreFa(11), oreFa(2)]);
+    render(<EmergencyLayersPanel />);
+    fireEvent.click(screen.getByRole('button', { name: /Focolai attivi \(24h\)/ }));
+    expect(screen.getByText(/Passaggi satellite/)).toBeInTheDocument();
+    expect(screen.getByText(/2 h fa/)).toBeInTheDocument();
+  });
+
+  /** La distinzione e' il punto: uno e' quando abbiamo chiesto, l altro quando ha guardato. */
+  test('l ora del download si chiama "Scaricato", non "Aggiornato"', () => {
+    attiva('fires-hotspots');
+    conFocolai([oreFa(2)]);
+    render(<EmergencyLayersPanel />);
+    fireEvent.click(screen.getByRole('button', { name: /Focolai attivi \(24h\)/ }));
+    expect(screen.getByText(/Scaricato alle/)).toBeInTheDocument();
+    expect(screen.queryByText(/Aggiornato alle/)).not.toBeInTheDocument();
+  });
+
+  test('dati freschi: nessun avviso a riga chiusa', () => {
+    attiva('fires-hotspots');
+    conFocolai([oreFa(2)]);
+    render(<EmergencyLayersPanel />);
+    expect(screen.queryByText(/ultimo passaggio del satellite/)).not.toBeInTheDocument();
+  });
+
+  /** Oltre le sei ore l'eta' qualifica il dato, quindi si dice senza aprire nulla. */
+  test('oltre le sei ore lo dice a riga chiusa', () => {
+    attiva('fires-hotspots');
+    conFocolai([oreFa(9)]);
+    render(<EmergencyLayersPanel />);
+    expect(screen.getByText(/ultimo passaggio del satellite.*9 h fa/)).toBeInTheDocument();
+  });
+
+  test('gli altri layer non parlano di passaggi satellite', () => {
+    attiva('dpc-alerts');
+    conFocolai([oreFa(9)]);
+    render(<EmergencyLayersPanel />);
+    fireEvent.click(screen.getByRole('button', { name: /Allerte meteo-idro \(DPC\)/ }));
+    expect(screen.queryByText(/Passaggi satellite/)).not.toBeInTheDocument();
+  });
+});

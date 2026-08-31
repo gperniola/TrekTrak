@@ -13,6 +13,8 @@ import {
 } from '@/lib/emergency-layers';
 import { dayOptions } from '@/lib/dpc';
 import { useOnline } from '@/lib/useOnline';
+import { oraItaliana } from '@/lib/formato';
+import { finestraRilevazioni, descriviFinestra, descriviEta, datoVecchio } from '@/lib/eta-focolai';
 import type { AppSettings } from '@/lib/types';
 
 export const DISCLAIMER =
@@ -66,6 +68,7 @@ export function EmergencyLayerRow({ def, aperta, onApri }: Props) {
   const nowTick = useEmergencyStore((s) => s.nowTick);
   const online = useOnline();
   const dpc = useEmergencyStore((s) => s.dpc);
+  const fires = useEmergencyStore((s) => s.fires);
   const radar = useEmergencyStore((s) => s.radar);
   const radarFrame = useEmergencyStore((s) => s.radarFrame);
   const radarPlaying = useEmergencyStore((s) => s.radarPlaying);
@@ -79,6 +82,16 @@ export function EmergencyLayerRow({ def, aperta, onApri }: Props) {
   const stato = indicatoreStato(active, runtime, online, stantio);
   // Giornata calma: bollettino valido, nessuna zona sopra il livello 0. È il caso più
   // frequente, e senza dirlo espressamente resta una mappa vuota da interpretare.
+  /*
+   * L'eta' VERA dei dati satellitari, che non e' l'ora in cui li abbiamo chiesti.
+   * `nowTick` (5 min) fa da orologio: senza qualcosa che provochi un nuovo render
+   * l'eta' resterebbe quella del momento in cui si e' aperto il pannello.
+   */
+  const finestraFocolai = def.id === 'fires-hotspots' && fires
+    ? finestraRilevazioni(fires.points, nowTick)
+    : null;
+  const focolaiVecchi = finestraFocolai != null && datoVecchio(finestraFocolai);
+
   const selectedDay = dpc?.days.find((d) => d.date === dpcSelectedDate);
   const calmDay = selectedDay != null && selectedDay.zones.every((z) => z.maxLevel === 0);
   // Guardia anti-rientranza: un secondo tap mentre il disclaimer è in attesa di risposta
@@ -169,6 +182,16 @@ export function EmergencyLayerRow({ def, aperta, onApri }: Props) {
       {stantio && runtime.status === 'ready' && (
         <div className="text-[10px] text-amber-400">⚠ dati non aggiornati</div>
       )}
+      {/*
+        Focolai vecchi: oltre le sei ore l'eta' del dato non e' piu' materiale di
+        consultazione ma una cosa da sapere prima di fidarsi della mappa — il satellite
+        passa due volte al giorno, e fra un passaggio e l'altro non si vede niente.
+      */}
+      {focolaiVecchi && finestraFocolai && (
+        <div className="text-[10px] text-amber-400">
+          ⚠ ultimo passaggio del satellite {descriviEta(finestraFocolai.etaMinuti)}
+        </div>
+      )}
       {/* Giornata calma: senza questa riga un layer acceso su una mappa vuota è
           indistinguibile da un layer rotto, e sono la maggioranza dei giorni. */}
       {def.id === 'dpc-alerts' && calmDay && (
@@ -235,9 +258,19 @@ export function EmergencyLayerRow({ def, aperta, onApri }: Props) {
               Tieni premuto sulla mappa per i dettagli dell&apos;area
             </div>
           )}
+          {/*
+            Due orari distinti, e la distinzione e' il punto: "scaricato" e' quando
+            abbiamo chiesto noi, "passaggi satellite" e' quando il satellite ha
+            guardato. Prima c'era solo il primo, con l'etichetta "Aggiornato alle" che
+            lasciava credere fosse il secondo.
+          */}
+          {active && finestraFocolai && (
+            <div className="text-[10px] text-gray-300">{descriviFinestra(finestraFocolai)}</div>
+          )}
           {active && runtime.lastFetch != null && (
             <div className="text-[10px] text-gray-400">
-              Aggiornato alle {new Date(runtime.lastFetch).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+              {finestraFocolai ? 'Scaricato alle ' : 'Aggiornato alle '}
+              {oraItaliana(runtime.lastFetch)}
             </div>
           )}
           {active && def.id === 'rain-radar' && radar && radar.frames.length > 0 && (() => {

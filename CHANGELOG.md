@@ -4,6 +4,18 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.14.2] — 2026-08-31 — Quando ha guardato il satellite
+
+### Added
+- **I focolai dicono l'ora in cui il satellite è passato**, non solo quella in cui l'app ha scaricato i dati. Erano due cose diverse presentate come una: il satellite passa **due volte al giorno**, quindi fra il suo ultimo sguardo su una valle e il nostro download possono passare ore, e prima si leggeva solo "Aggiornato alle", che sembrava riferirsi al primo.
+
+  Adesso, aprendo la riga: *Passaggi satellite 01:39 – 14:46 · il più recente 2 h fa*, e sotto *Scaricato alle 16:19*. La finestra spiega anche perché sulla mappa alcuni focolai sono rossi e altri arancioni.
+
+  Se il passaggio più recente ha **più di sei ore** — la stessa soglia con cui la legenda distingue i colori — l'avviso compare anche a riga chiusa: a quel punto non è un dettaglio da consultare ma una cosa da sapere prima di fidarsi di quello che si vede.
+
+### Fixed
+- **Un orario dell'app era scritto nel fuso del telefono invece che in quello italiano**: la riga di aggiornamento dei layer di emergenza era l'unica dei quattro punti che scrivono orari a non dichiararlo. Su un dispositivo impostato su un altro fuso mostrava un'ora, mentre tutto il resto dell'app ne mostrava un'altra.
+
 ## [0.14.1] — 2026-08-31 — I fogli si mandano via col dito
 
 ### Added
