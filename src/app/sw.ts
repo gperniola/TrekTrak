@@ -1,6 +1,7 @@
 import { defaultCache } from '@serwist/next/worker';
 import { CacheFirst, ExpirationPlugin, NetworkOnly, Serwist } from 'serwist';
 import type { PrecacheEntry, SerwistGlobalConfig } from 'serwist';
+import { ENDPOINT_OVERPASS } from '@/lib/overpass';
 
 declare global {
   interface WorkerGlobalScope extends SerwistGlobalConfig {
@@ -11,6 +12,9 @@ declare global {
 declare const self: ServiceWorkerGlobalScope & typeof globalThis;
 
 const TILE_EXPIRATION = { maxEntries: 1000, maxAgeSeconds: 30 * 24 * 60 * 60 };
+
+/** Host di tutte le porte Overpass, per la regola piu' sotto. */
+const hostOverpass = new Set(ENDPOINT_OVERPASS.map((e) => new URL(e).hostname));
 
 const tileHandler = (cacheName: string) =>
   new CacheFirst({
@@ -62,7 +66,16 @@ const serwist = new Serwist({
      * in coda le richieste, la nostra query gli concede 20 secondi, e la risposta non
      * va riusata un'ora dopo da un'altra parte della montagna.
      */
-    { matcher: /^https:\/\/overpass-api\.de\//i, handler: new NetworkOnly() },
+    /*
+     * La regola si RICAVA dall'elenco delle porte in `lib/overpass.ts`: aggiungerne una
+     * senza ricordarsi di questa riga la farebbe cadere nel `defaultCache` in fondo, che
+     * e' `NetworkFirst` con un'ora di cache — esattamente il difetto della v0.13.5.
+     *
+     * Oggi quelle chiamate sono POST, e il router non intercetta i metodi diversi da GET:
+     * la regola e' quindi una rete di sicurezza per il giorno in cui una query tornasse a
+     * viaggiare in GET, non l'unica cosa che le tiene fuori dalla cache.
+     */
+    { matcher: ({ url }) => hostOverpass.has(url.hostname), handler: new NetworkOnly() },
 
     // Mattonelle della mappa: qui la cache lunga serve, ed e' quella che rende
     // l'itinerario consultabile senza campo.

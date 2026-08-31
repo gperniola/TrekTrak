@@ -1,3 +1,5 @@
+import { interrogaOverpass, ErroreOverpass } from './overpass';
+
 /**
  * Rifugi, bivacchi e ricoveri da **OpenStreetMap**, via Overpass.
  *
@@ -10,9 +12,12 @@
  *   è normale, non eccezionale, quindi il layer deve dirlo invece di sembrare vuoto;
  * - la risposta è per **area inquadrata**, non per l'Italia: si interroga la vista, e
  *   sotto un certo zoom si chiede di avvicinarsi invece di scaricare mezza Europa.
+ *
+ * Il *come* si arriva a Overpass sta in `lib/overpass.ts`: non un indirizzo ma un elenco
+ * di porte, perché su una normale rete domestica italiana il nome `overpass-api.de`
+ * viene risolto a 127.0.0.1 (vedi il commento in quel file). È il motivo per cui questo
+ * layer «andava in errore» pur avendo query e parser giusti.
  */
-
-const ENDPOINT = 'https://overpass-api.de/api/interpreter';
 
 export const ATTRIBUZIONE_RIPARI = 'Rifugi e ricoveri: <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 
@@ -100,14 +105,19 @@ export interface RisultatoRipari {
 }
 
 export async function fetchShelters(b: BBox, signal?: AbortSignal): Promise<RisultatoRipari> {
-  const res = await fetch(`${ENDPOINT}?data=${encodeURIComponent(buildSheltersQuery(b))}`, { signal });
-  // 429 e 504 sono la norma su un'istanza pubblica condivisa: il messaggio deve
-  // suggerire di riprovare, non far pensare che non ci siano ripari.
-  if (res.status === 429 || res.status === 504) {
-    throw new Error('Il servizio dei ripari è occupato: riprova fra poco');
+  let raw: unknown;
+  try {
+    raw = (await interrogaOverpass(buildSheltersQuery(b), { signal })).dati;
+  } catch (e) {
+    // 429 e 504 sono la norma su un'istanza pubblica condivisa: il messaggio deve
+    // suggerire di riprovare, non far pensare che non ci siano ripari.
+    if (e instanceof ErroreOverpass) {
+      throw new Error(e.motivo === 'occupato'
+        ? 'Il servizio dei ripari è occupato: riprova fra poco'
+        : 'Ripari non disponibili in questo momento');
+    }
+    throw e;   // annullamento nostro: lo gestisce chi ha chiamato
   }
-  if (!res.ok) throw new Error('Ripari non disponibili in questo momento');
-  const raw = await res.json();
   const shelters = parseShelters(raw);
   // Il conteggio da confrontare col tetto e' quello degli ELEMENTI restituiti, non dei
   // ripari riconosciuti: Overpass taglia prima che noi filtriamo.
