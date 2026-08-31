@@ -460,7 +460,7 @@ export function ActionBar() {
       </div>
       {/* Attività didattiche (verifica + progresso). TASK-42: separate dagli export. */}
       <div role="group" aria-label="Attività" className="flex flex-wrap gap-2">
-        {appMode === 'learn' && (
+        {appMode === 'learn' && mostra('validazione', profilo) && (
           <button
             onClick={handleVerify}
             disabled={verifying}
@@ -469,7 +469,7 @@ export function ActionBar() {
             {verifying ? 'Verificando...' : 'Verifica'}
           </button>
         )}
-        {(() => {
+        {mostra('progresso', profilo) && (() => {
           // TASK-20: disable Progresso until there is at least one verify or quiz session
           const hasHistory = loadValidationHistory().length > 0 || loadQuizHistory().length > 0;
           return (
@@ -484,7 +484,7 @@ export function ActionBar() {
           );
         })()}
       </div>
-      {loadValidationHistory().length === 0 && loadQuizHistory().length === 0 && (
+      {mostra('progresso', profilo) && loadValidationHistory().length === 0 && loadQuizHistory().length === 0 && (
         <p id="motivo-progresso" className="text-[11px] text-gray-400">
           Il Progresso si sblocca dopo la prima verifica o il primo quiz.
         </p>

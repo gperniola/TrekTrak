@@ -11,6 +11,15 @@ beforeEach(() => {
   useUIStore.setState({ compassActive: false, rulerActive: false, quizActive: false });
 });
 
+/*
+ * Profilo Imparo: dalla v0.15 quiz, Verifica, Progresso e l'interruttore Learn/Track
+ * sono aree del profilo didattico, e col profilo Montagna non si montano. Questi test
+ * parlano di quelle funzioni, quindi vivono nel profilo in cui esistono.
+ */
+beforeEach(() => {
+  useUIStore.setState({ profilo: 'imparo' });
+});
+
 describe('ModeSwitch (TASK-40)', () => {
   test('i tool mostrano etichette testuali visibili (Bussola/Righello/Quiz)', () => {
     render(<ModeSwitch />);

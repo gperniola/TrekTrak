@@ -79,6 +79,15 @@ beforeEach(() => {
   });
 });
 
+/*
+ * Profilo Imparo: dalla v0.15 quiz, Verifica, Progresso e l'interruttore Learn/Track
+ * sono aree del profilo didattico, e col profilo Montagna non si montano. Questi test
+ * parlano di quelle funzioni, quindi vivono nel profilo in cui esistono.
+ */
+beforeEach(() => {
+  useUIStore.setState({ profilo: 'imparo' });
+});
+
 describe('LeftPanel + ModeSwitch', () => {
   test('renders Edit and Tabella tab buttons', () => {
     render(<LeftPanel />);
@@ -122,6 +131,8 @@ describe('LeftPanel + ModeSwitch', () => {
   });
 
   test('viewOverride="library" mostra la libreria indipendentemente da mainView', () => {
+    // Export e libreria vivono nel profilo Montagna: qui si parla di quelli.
+    useUIStore.setState({ profilo: 'montagna' });
     useUIStore.setState({ mainView: 'editor' });
     useAuthStore.setState({ loading: true, session: null, member: null });
     render(<LeftPanel showSwitch={false} viewOverride="library" />);

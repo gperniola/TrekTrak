@@ -3,6 +3,7 @@
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { useUIStore } from '@/stores/uiStore';
 import type { AppMode } from '@/lib/types';
+import { mostra } from '@/lib/profilo';
 
 export function ModeSwitch() {
   const appMode = useItineraryStore((s) => s.appMode);
@@ -14,6 +15,7 @@ export function ModeSwitch() {
   const toggleCompass = useUIStore((s) => s.toggleCompass);
   const toggleRuler = useUIStore((s) => s.toggleRuler);
   const toggleQuiz = useUIStore((s) => s.toggleQuiz);
+  const profilo = useUIStore((s) => s.profilo);
   const deactivateCompass = useUIStore((s) => s.deactivateCompass);
   const deactivateRuler = useUIStore((s) => s.deactivateRuler);
   const deactivateQuiz = useUIStore((s) => s.deactivateQuiz);
@@ -63,7 +65,12 @@ export function ModeSwitch() {
           <span aria-hidden="true" className="text-sm font-bold leading-none">↕</span>
           <span className="text-[9px] font-semibold leading-none">Righello</span>
         </button>
-        <button
+        {/*
+          Anche il quiz della toolbar desktop segue il profilo: nasconderlo solo nel FAB
+          l'avrebbe lasciato su schermo grande. E' esattamente il difetto che la tabella
+          delle aree esiste per evitare — un ingresso nascosto e un altro no.
+        */}
+        {mostra('quiz', profilo) && <button
           onClick={toggleQuiz}
           className={`px-2 py-1 rounded-lg transition-all active:scale-95 min-w-[44px] min-h-[40px] flex flex-col items-center justify-center gap-0.5 ${
             quizActive
@@ -76,7 +83,7 @@ export function ModeSwitch() {
         >
           <span aria-hidden="true" className="text-sm font-bold leading-none">?</span>
           <span className="text-[9px] font-semibold leading-none">Quiz</span>
-        </button>
+        </button>}
       </div>
       <div role="tablist" aria-label="Modalità app" className="flex items-center gap-1 flex-1 p-0.5 rounded-lg bg-gray-800/60">
         <button

@@ -1,6 +1,7 @@
 'use client';
 
 import { useUIStore } from '@/stores/uiStore';
+import { mostra } from '@/lib/profilo';
 
 const TOOLS = [
   { key: 'compass', label: 'Bussola', icon: '🧭', activeBg: 'bg-amber-500' },
@@ -28,6 +29,13 @@ export function MapToolsFab() {
   const active: Record<string, boolean> = { compass: compassActive, ruler: rulerActive, quiz: quizActive };
   const toggle: Record<string, () => void> = { compass: toggleCompass, ruler: toggleRuler, quiz: toggleQuiz };
   const anyActive = compassActive || rulerActive || quizActive;
+  const profilo = useUIStore((s) => s.profilo);
+  /*
+   * Il quiz e' didattico, bussola e righello no: misurare un azimut sulla mappa e' un
+   * esercizio, ma anche un gesto da campo. Si filtra l'elenco degli strumenti invece di
+   * mettere un `if` nel JSX, cosi' resta una tabella.
+   */
+  const strumenti = TOOLS.filter((t) => t.key !== 'quiz' || mostra('quiz', profilo));
 
   const pick = (key: 'compass' | 'ruler' | 'quiz') => {
     toggle[key]();
@@ -36,7 +44,7 @@ export function MapToolsFab() {
 
   return (
     <div className="lg:hidden absolute left-3 bottom-3 z-[1000] flex flex-col items-start gap-2">
-      {open && TOOLS.map((t) => (
+      {open && strumenti.map((t) => (
         <button
           key={t.key}
           onClick={() => pick(t.key)}
