@@ -102,6 +102,14 @@ Decisa con l'utente il 2026-08-31.
 | Avviso di allerta DPC alla posizione | | ● |
 | Libreria condivisa | | ● |
 | Export dati (GPX, JSON, copia link) | | ● |
+| Importazione di un itinerario da file JSON | ● | ● |
+
+L'**importazione** sta in entrambi, e va detto perché: è l'unico modo di far *entrare*
+un itinerario ricevuto come file, e in Imparo la libreria condivisa, il GPX e il link
+non ci sono. Un modo che semplifica non deve rendere l'app incapace di ricevere — la
+stessa ragione per cui un link di invito alla libreria condivisa impone Montagna.
+(Rilievo del terzo giro di review: il pulsante era stato portato via insieme agli export
+per vicinanza, non per scelta.)
 
 Bussola e righello stanno in entrambi perché sono **strumenti didattici prima che da
 campo**: misurare un azimut sulla mappa è un esercizio. Il PDF resta in Imparo perché

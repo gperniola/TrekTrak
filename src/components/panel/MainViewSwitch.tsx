@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useUIStore } from '@/stores/uiStore';
+import { mostra } from '@/lib/profilo';
 import { useRouteLibraryStore } from '@/stores/routeLibraryStore';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -16,8 +17,16 @@ export function MainViewSwitch() {
   // Mostra la tab anche con sola sessione attiva: al ritorno dal magic-link
   // l'utente è autenticato ma non ancora membro e deve poter scegliere lo username,
   // anche su un browser dove il flag d'invito non è presente.
-  const showLibrary = invited || isMember || hasSession;
-  const authed = isMember || hasSession;
+  /*
+   * Il profilo ha l'ultima parola. Prima questa riga guardava solo l'accesso, mentre
+   * `LeftPanel` ha una guardia che in Imparo mostra l'editor al posto della libreria:
+   * la scheda si accendeva — `aria-selected` vero, sottolineatura verde — e a schermo
+   * non cambiava niente. Un comando che dice di aver funzionato senza aver funzionato
+   * e' peggio sia di averlo che di non averlo.
+   */
+  const profilo = useUIStore((s) => s.profilo);
+  const showLibrary = (invited || isMember || hasSession) && mostra('libreria', profilo);
+  const authed = (isMember || hasSession) && mostra('libreria', profilo);
 
   // Defensive fallback: if the library becomes inaccessible while it's the
   // active view, switch back to the editor. Done in an effect (not during

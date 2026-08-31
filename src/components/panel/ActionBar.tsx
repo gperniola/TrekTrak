@@ -465,7 +465,13 @@ export function ActionBar() {
         )}
       </div>
       {/* Attività didattiche (verifica + progresso). TASK-42: separate dagli export. */}
-      <div role="group" aria-label="Attività" className="flex flex-wrap gap-2">
+      {/*
+        Verifica e Progresso sono entrambe aree di Imparo: in Montagna il gruppo era
+        SEMPRE vuoto. Un `div` vuoto dentro `space-y-2` si porta comunque il suo margine,
+        e per chi usa uno screen reader era un gruppo annunciato col suo nome e senza
+        niente dentro. Se non c'e' contenuto non c'e' contenitore.
+      */}
+      {mostra('progresso', profilo) && <div role="group" aria-label="Attività" className="flex flex-wrap gap-2">
         {appMode === 'learn' && mostra('validazione', profilo) && (
           <button
             onClick={handleVerify}
@@ -489,7 +495,7 @@ export function ActionBar() {
             </button>
           );
         })()}
-      </div>
+      </div>}
       {mostra('progresso', profilo) && loadValidationHistory().length === 0 && loadQuizHistory().length === 0 && (
         <p id="motivo-progresso" className="text-[11px] text-gray-400">
           Il Progresso si sblocca dopo la prima verifica o il primo quiz.

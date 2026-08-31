@@ -1,6 +1,7 @@
 'use client';
 
 import { useUIStore } from '@/stores/uiStore';
+import { mostra, type Area, type Profilo } from '@/lib/profilo';
 import { useState, useEffect, useRef } from 'react';
 import { KEYS } from '@/lib/storage';
 import { markWhatsNewSeen } from './WhatsNew';
@@ -12,6 +13,16 @@ interface TutorialStep {
   text: string;
   icon: string;
   mockup?: React.ReactNode;
+  /**
+   * Area del profilo d'uso a cui il passo appartiene. Senza campo, il passo vale per
+   * tutti. La guida non deve raccontare funzioni che il profilo appena scelto ha
+   * nascosto: la scelta del livello sta al passo 0 di questa stessa guida, quindi chi
+   * rispondeva «sono esperto» si vedeva subito spiegare l'interruttore Learn/Track e il
+   * pulsante «Verifica», che l'app gli aveva appena tolto.
+   */
+  area?: Area;
+  /** Fa parte del primo contatto (vedi `quantiEssenziali`). */
+  essenziale?: boolean;
 }
 
 function MenuMockup({ highlight }: { highlight?: 'fields' | 'verify' | 'badges' }) {
@@ -77,14 +88,27 @@ function SettingsMockup() {
   );
 }
 
+/**
+ * Il disegnino deve somigliare alla barra VERA di chi lo guarda: il quiz e
+ * l'interruttore Learn/Track esistono solo in Imparo. Legge il profilo da se' invece di
+ * farselo passare, perche' l'array dei passi si costruisce una volta al caricamento del
+ * modulo mentre questo e' un componente e si ridisegna a ogni cambio.
+ */
 function ToolbarMockup() {
+  const profilo = useUIStore((s) => s.profilo);
   return (
     <div className="mt-3 bg-gray-800 rounded-lg border border-gray-600 p-2 flex items-center gap-1 text-xs">
       <span className="px-2 py-1 bg-amber-600 text-white rounded font-bold">◎</span>
       <span className="px-2 py-1 bg-blue-600 text-white rounded font-bold">↕</span>
-      <span className="px-2 py-1 bg-purple-500 text-white rounded font-bold">?</span>
-      <span className="flex-1 py-1 text-center bg-purple-600 text-white rounded font-bold">Learn</span>
-      <span className="flex-1 py-1 text-center bg-gray-700 text-gray-400 rounded">Track</span>
+      {mostra('quiz', profilo) && (
+        <span className="px-2 py-1 bg-purple-500 text-white rounded font-bold">?</span>
+      )}
+      {mostra('switchLearnTrack', profilo) && (
+        <>
+          <span className="flex-1 py-1 text-center bg-purple-600 text-white rounded font-bold">Learn</span>
+          <span className="flex-1 py-1 text-center bg-gray-700 text-gray-400 rounded">Track</span>
+        </>
+      )}
     </div>
   );
 }
@@ -92,31 +116,61 @@ function ToolbarMockup() {
 const STEPS: TutorialStep[] = [
   {
     title: 'Benvenuto in TrekTrak!',
-    text: 'Impara la cartografia manuale creando itinerari escursionistici. Questa guida ti mostra come usare le funzionalità principali.',
+    /*
+     * Il benvenuto nomina entrambi gli usi, perche' la scelta sta subito sotto: dire solo
+     * «impara la cartografia manuale» era la prima frase letta anche da chi sta per
+     * rispondere «sono esperto», e gli descriveva l'app che non avrebbe visto.
+     */
+    text: 'Costruisci itinerari escursionistici: puoi inserire tu distanze, dislivelli e azimuth e farli verificare dall\'app per imparare la cartografia manuale, oppure lasciare che li calcoli lei e usarla per preparare la gita. Questa guida ti mostra le funzioni principali.',
     icon: '🗺️',
+    essenziale: true,
   },
   {
     title: 'Aggiungi waypoint',
     text: 'Clicca o tocca la mappa per posizionare i waypoint del tuo itinerario. Ogni waypoint rappresenta un punto di passaggio. Puoi trascinare i marker per riposizionarli.',
     icon: '📍',
+    essenziale: true,
   },
   {
     title: 'Learn e Track',
     text: 'In modalità Learn inserisci manualmente distanza, dislivello e azimuth, poi usa "Verifica" per confrontare con i dati reali. In modalità Track i valori vengono calcolati automaticamente. Puoi passare da una all\'altra liberamente: i tuoi dati di entrambe le modalità restano salvati separatamente.',
     icon: '✏️',
     mockup: <MenuMockup highlight="fields" />,
+    area: 'switchLearnTrack',
+    essenziale: true,
   },
   {
     title: 'Verifica e feedback',
     text: 'Premi "Verifica" per confrontare i tuoi valori. Appaiono icone colorate: ✓ preciso (verde), ~ vicino (giallo), ✗ lontano (rosso). Toccale per vedere il valore esatto e lo scostamento.',
     icon: '✅',
     mockup: <MenuMockup highlight="badges" />,
+    area: 'validazione',
+    essenziale: true,
+  },
+  {
+    /*
+     * Il passo essenziale di chi va in montagna, al posto dei due su Learn/Track e
+     * Verifica: senza questo il primo contatto in quel profilo sarebbe stato due schermi
+     * — cosa fa l'app e come si mettono i waypoint — e nessuna parola sulle funzioni per
+     * cui l'app serve davvero in quota.
+     */
+    title: 'Pronto per la gita',
+    text: 'Con almeno due waypoint l\'app calcola distanza, dislivelli e tempi di percorrenza. Il pulsante Meteo incrocia la previsione con gli orari stimati e ti dice a che ora arrivi e cosa trovi; il pulsante ⚠️ sulla mappa accende radar della pioggia, incendi, allerte e rifugi.',
+    icon: '🥾',
+    area: 'layerEmergenza',
+    essenziale: true,
   },
   {
     title: 'Strumenti mappa',
-    text: 'Nella barra in alto trovi tre strumenti: la Bussola (◎) per azimuth in tempo reale col GPS, il Righello (↕) per misurare distanza e quota tra due punti, e il Quiz (?) per testare le tue competenze.',
+    text: 'Sulla mappa trovi la Bussola (◎) per l\'azimuth in tempo reale col GPS e il Righello (↕) per misurare distanza e quota tra due punti.',
     icon: '🧭',
     mockup: <ToolbarMockup />,
+  },
+  {
+    title: 'Quiz',
+    text: 'Il Quiz (?) mette alla prova quello che hai imparato: legge i dati del tuo itinerario e ti chiede distanze, dislivelli e azimuth. Le risposte finiscono nel Progresso insieme alle verifiche.',
+    icon: '❓',
+    area: 'quiz',
   },
   {
     title: 'Impostazioni mappa',
@@ -130,19 +184,41 @@ const STEPS: TutorialStep[] = [
     icon: '📊',
   },
   {
-    title: 'Condividi e usa offline',
-    text: 'Usa "Copia link" per condividere un itinerario via URL. L\'app funziona anche offline: naviga la mappa con rete e i tile saranno disponibili senza connessione. Installa l\'app dal browser per l\'uso sul campo.',
+    title: 'Usa l\'app offline',
+    text: 'L\'app funziona anche senza rete: naviga la mappa con connessione e i tile resteranno disponibili senza. Installa l\'app dal browser per averla pronta sul campo.',
     icon: '📱',
+  },
+  {
+    /* «Copia link» e' un export: in Imparo non c'e' e non va promesso. */
+    title: 'Condividi l\'itinerario',
+    text: 'Con "Copia link" ottieni un indirizzo che contiene tutto l\'itinerario: chi lo apre lo vede senza bisogno di un account. Per portarlo su un GPS o in un\'altra app c\'è l\'export in GPX.',
+    icon: '🔗',
+    area: 'exportDati',
   },
 ];
 
 /**
- * TASK-43: al primo avvio si mostrano solo i primi ESSENTIAL_COUNT passi (cosa fa l'app,
- * aggiungi waypoint, Learn/Track, verifica). Le funzionalità avanzate (tool, impostazioni,
- * profilo, condivisione) sono una continuazione opzionale, quindi restano accessibili anche
- * alla riapertura della guida senza appesantire il primo contatto.
+ * TASK-43: al primo avvio si mostrano solo i passi essenziali. Le funzionalità avanzate
+ * (tool, impostazioni, profilo, condivisione) sono una continuazione opzionale, quindi
+ * restano accessibili anche alla riapertura della guida senza appesantire il primo
+ * contatto.
  */
-const ESSENTIAL_COUNT = 4;
+function passiVisibili(profilo: Profilo): TutorialStep[] {
+  return STEPS.filter((s) => s.area == null || mostra(s.area, profilo));
+}
+
+/**
+ * I passi del primo contatto sono la sequenza INIZIALE di quelli marcati essenziali, non
+ * un numero fisso: filtrando per profilo l'insieme cambia (in Imparo sono benvenuto,
+ * waypoint, Learn/Track e Verifica; in Montagna benvenuto, waypoint e «Pronto per la
+ * gita»). Si conta la sequenza iniziale e non tutti gli essenziali dell'array, cosi' un
+ * passo essenziale dichiarato in fondo non farebbe saltare la guida oltre gli altri.
+ */
+function quantiEssenziali(passi: TutorialStep[]): number {
+  let n = 0;
+  while (n < passi.length && passi[n].essenziale) n += 1;
+  return n;
+}
 
 /** Pseudo-step shown before step 0: user picks their level so the app sets sensible defaults. */
 /**
@@ -210,6 +286,12 @@ export function LearnTutorial() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const setAppMode = useItineraryStore((s) => s.setAppMode);
   const setProfilo = useUIStore((s) => s.setProfilo);
+  /*
+   * La guida si ridisegna quando il profilo cambia, e il profilo si sceglie al passo 0 di
+   * questa stessa guida: appena si tocca «Sto imparando» o «Sono esperto», i passi
+   * successivi diventano quelli di quel profilo.
+   */
+  const profilo = useUIStore((s) => s.profilo);
   const dialogRef = useRef<HTMLDivElement>(null);
   useBodyScrollLock(step !== null);
 
@@ -291,8 +373,11 @@ export function LearnTutorial() {
     markWhatsNewSeen();
   }
 
+  const passi = passiVisibili(profilo);
+  const essenziali = quantiEssenziali(passi);
+
   function changeStep(newStep: number | null) {
-    const visibleCount = showAdvanced ? STEPS.length : ESSENTIAL_COUNT;
+    const visibleCount = showAdvanced ? passi.length : essenziali;
     if (newStep === null || newStep < 0 || newStep >= visibleCount) {
       markSeen();
       setStep(null);
@@ -303,7 +388,7 @@ export function LearnTutorial() {
 
   const handleNext = () => {
     if (step === null) return;
-    const visibleCount = showAdvanced ? STEPS.length : ESSENTIAL_COUNT;
+    const visibleCount = showAdvanced ? passi.length : essenziali;
     changeStep(step < visibleCount - 1 ? step + 1 : null);
   };
 
@@ -311,10 +396,15 @@ export function LearnTutorial() {
 
   if (step === null) return null;
 
-  const current = STEPS[step];
-  const visibleCount = showAdvanced ? STEPS.length : ESSENTIAL_COUNT;
+  /*
+   * `step` e' un indice nella lista FILTRATA, che si accorcia se il profilo cambia
+   * mentre la guida e' aperta (si puo' tornare al passo 0 e cambiare idea sul livello):
+   * senza questo taglio si finirebbe fuori dall'array.
+   */
+  const current = passi[Math.min(step, passi.length - 1)];
+  const visibleCount = showAdvanced ? passi.length : essenziali;
   const isLast = step === visibleCount - 1;
-  const atEssentialEnd = !showAdvanced && step === ESSENTIAL_COUNT - 1;
+  const atEssentialEnd = !showAdvanced && step === essenziali - 1;
 
   return (
     <div
@@ -339,7 +429,7 @@ export function LearnTutorial() {
 
         {/* Step indicator */}
         <div className="flex justify-center gap-1.5 mt-4 mb-4" aria-hidden="true">
-          {STEPS.slice(0, visibleCount).map((_, i) => (
+          {passi.slice(0, visibleCount).map((_, i) => (
             <div
               key={i}
               className={`w-2 h-2 rounded-full ${i === step ? 'bg-green-400' : 'bg-gray-600'}`}
@@ -367,7 +457,7 @@ export function LearnTutorial() {
             )}
             {atEssentialEnd && (
               <button
-                onClick={() => { setShowAdvanced(true); setStep(ESSENTIAL_COUNT); }}
+                onClick={() => { setShowAdvanced(true); setStep(essenziali); }}
                 className="px-3 min-h-[44px] bg-gray-700 rounded text-xs text-gray-200 hover:bg-gray-600"
               >
                 Altre funzionalità →
