@@ -15,6 +15,9 @@ import {
   istanteItaliano,
   oraItalianaDi,
 } from '@/lib/route-weather';
+import { SheetHandle } from '@/components/shared/SheetHandle';
+import { useSheetDrag } from '@/lib/useSheetDrag';
+import { useSchermoPiccolo } from '@/lib/useSchermoPiccolo';
 
 /** Colori per livello: gli stessi che l'app usa per i badge di validazione. */
 const COLORE: Record<string, string> = {
@@ -87,7 +90,27 @@ export function RouteWeatherPanel() {
   const [errore, setErrore] = useState<string | null>(null);
   const [caricamento, setCaricamento] = useState(false);
   const [didatticaAperta, setDidatticaAperta] = useState(false);
-  const dialogRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  /*
+   * Trascinamento verso il basso per chiudere, solo su schermo piccolo: su desktop
+   * questo e' un modale centrato, non un foglio.
+   *
+   * Il backdrop qui NON si sbiadisce, a differenza del pannello layer: e' un ANTENATO
+   * del foglio (`fixed inset-0` che lo contiene), e l'opacita' su un antenato la
+   * eredita anche il figlio — il foglio sbiadirebbe insieme allo sfondo.
+   *
+   * Questo pannello scorre quasi sempre, quindi dal corpo il gesto parte solo quando
+   * si e' in cima; dalla maniglia sempre.
+   */
+  const piccolo = useSchermoPiccolo();
+  const { refFoglio, propsFoglio, propsManiglia } = useSheetDrag({
+    onDismiss: () => setOpen(false),
+    attivo: piccolo,
+  });
+  const refSheet = useCallback((n: HTMLDivElement | null) => {
+    dialogRef.current = n;
+    refFoglio(n);
+  }, [refFoglio]);
 
   useBodyScrollLock(open);
 
@@ -192,7 +215,8 @@ export function RouteWeatherPanel() {
   return (
     <div className="fixed inset-0 z-[1250] bg-black/70 flex items-end lg:items-center justify-center" onClick={() => setOpen(false)}>
       <div
-        ref={dialogRef}
+        ref={refSheet}
+        {...propsFoglio}
         tabIndex={-1}
         role="dialog"
         aria-modal="true"
@@ -200,6 +224,7 @@ export function RouteWeatherPanel() {
         onClick={(e) => e.stopPropagation()}
         className="w-full lg:max-w-2xl max-h-[90vh] overflow-y-auto bg-gray-900 border border-gray-700 rounded-t-2xl lg:rounded-2xl p-4 space-y-3"
       >
+        <SheetHandle gesto={propsManiglia} />
         <div className="flex items-start justify-between gap-2">
           <div>
             <h2 className="text-base font-bold text-green-400">Meteo del percorso</h2>

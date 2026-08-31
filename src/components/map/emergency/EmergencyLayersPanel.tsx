@@ -1,11 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useUIStore } from '@/stores/uiStore';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { EMERGENCY_LAYERS, stripAttributionMarkup, type EmergencyLayerId } from '@/lib/emergency-layers';
 import { useMapOverlayGuard } from '../useMapOverlayGuard';
 import { EmergencyLayerRow, DISCLAIMER } from './EmergencyLayerRow';
+import { SheetHandle } from '@/components/shared/SheetHandle';
+import { useSheetDrag } from '@/lib/useSheetDrag';
+import { useSchermoPiccolo } from '@/lib/useSchermoPiccolo';
 
 /**
  * Quadro di comando dei layer di emergenza.
@@ -29,6 +32,22 @@ export function EmergencyLayersPanel() {
   /** Una riga aperta per volta: due dettagli aperti riportano il pannello al problema. */
   const [apertaId, setApertaId] = useState<EmergencyLayerId | null>(null);
   const [noteAperte, setNoteAperte] = useState(false);
+  /*
+   * Trascinamento verso il basso per chiudere. Solo su schermo piccolo, dove questo
+   * pannello e' un foglio che sale dal basso: su desktop e' un riquadro flottante e un
+   * trascinamento col mouse lo chiuderebbe per sbaglio.
+   */
+  const piccolo = useSchermoPiccolo();
+  const { refFoglio, refBackdrop, propsFoglio, propsManiglia } = useSheetDrag<HTMLDivElement>({
+    onDismiss: () => setOpen(false),
+    refEsterna: panelGuard,
+    attivo: piccolo,
+  });
+  const refSheet = useCallback((n: HTMLDivElement | null) => { refFoglio(n); }, [refFoglio]);
+  const refDietro = useCallback((n: HTMLDivElement | null) => {
+    backdropGuard(n);
+    refBackdrop(n);
+  }, [backdropGuard, refBackdrop]);
 
   useEffect(() => {
     if (!open) return;
@@ -57,18 +76,20 @@ export function EmergencyLayersPanel() {
           sheet ma sopra la mappa; è guardato perché anche un tocco sul backdrop non
           deve diventare un waypoint. */}
       <div
-        ref={backdropGuard}
+        ref={refDietro}
         onClick={() => setOpen(false)}
         aria-hidden="true"
         className="lg:hidden absolute inset-0 z-[1180]"
       />
       <div
-        ref={panelGuard}
+        ref={refSheet}
+        {...propsFoglio}
         role="dialog"
         aria-label="Layer di emergenza"
         className="absolute bottom-16 right-14 z-[1000] w-80 max-h-[70vh] overflow-y-auto bg-gray-900/95 border border-gray-600 rounded-lg shadow-xl p-3
                    max-lg:fixed max-lg:inset-x-0 max-lg:bottom-14 max-lg:right-auto max-lg:w-full max-lg:rounded-b-none max-lg:z-[1190] max-lg:max-h-[60vh]"
       >
+        <SheetHandle gesto={propsManiglia} />
         <div className="flex items-center justify-between mb-1">
           <span className="text-xs font-bold text-gray-200">Layer di emergenza</span>
           <button

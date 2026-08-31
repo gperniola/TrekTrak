@@ -6,6 +6,9 @@ import { downloadGPX } from '@/lib/export-gpx';
 import { buildMeteoUrl } from '@/lib/meteo';
 import { calculateDifficulty } from '@/lib/calculations';
 import { toast } from '@/stores/notificationStore';
+import { SheetHandle } from '@/components/shared/SheetHandle';
+import { useSheetDrag } from '@/lib/useSheetDrag';
+import { useSchermoPiccolo } from '@/lib/useSchermoPiccolo';
 
 /** Menu "Altro" della bottom nav (mobile): meteo + export del percorso corrente. */
 export function MoreMenu() {
@@ -16,13 +19,27 @@ export function MoreMenu() {
   const waypoints = useItineraryStore((s) => s.waypoints);
   const legs = useItineraryStore((s) => s.legs);
 
+  const close = () => setOpen(false);
+  /*
+   * Trascinamento verso il basso per chiudere. Questo menu non scorre mai (quattro
+   * voci), quindi il gesto puo' partire da tutta la sua superficie senza rubare niente
+   * a nessuno.
+   *
+   * Sta QUI, sopra il ritorno anticipato: un hook chiamato dopo un `return` gira in
+   * ordine diverso fra un render e l'altro. L'ha trovato ESLint, non io.
+   */
+  const piccolo = useSchermoPiccolo();
+  const { refFoglio, propsFoglio, propsManiglia } = useSheetDrag({
+    onDismiss: close,
+    attivo: piccolo,
+  });
+
   if (!open) return null;
 
   const validCoord = waypoints.filter((wp) => wp.lat != null && wp.lon != null);
   const canPdf = waypoints.length >= 2;
   const canGpx = validCoord.length >= 2;
   const meteoUrl = buildMeteoUrl(waypoints);
-  const close = () => setOpen(false);
 
   const handlePdf = async (format: 'summary' | 'roadbook') => {
     if (!canPdf) { toast.warning('Servono almeno 2 waypoint'); return; }
@@ -49,11 +66,14 @@ export function MoreMenu() {
   return (
     <div className="lg:hidden fixed inset-0 z-[1150]" onClick={close}>
       <div
+        ref={refFoglio}
+        {...propsFoglio}
         role="menu"
         aria-label="Altro"
         onClick={(e) => e.stopPropagation()}
         className="absolute left-2 right-2 bottom-[60px] bg-gray-800 border border-gray-600 rounded-lg shadow-xl p-1 space-y-0.5"
       >
+        <SheetHandle gesto={propsManiglia} />
         <button role="menuitem" disabled={!meteoUrl} onClick={handleMeteo} className={itemCls}>☀️ Meteo del percorso</button>
         <button role="menuitem" disabled={!canPdf} onClick={() => handlePdf('summary')} className={itemCls}>📄 PDF sintetico</button>
         <button role="menuitem" disabled={!canPdf} onClick={() => handlePdf('roadbook')} className={itemCls}>📋 PDF roadbook</button>
