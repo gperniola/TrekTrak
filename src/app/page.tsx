@@ -19,6 +19,7 @@ const ProgressOverlay = dynamic(() => import('@/components/panel/ProgressOverlay
 // Load di `/`: è un controllo d'avvio, non serve al primo paint.
 const DpcPositionWarning = dynamic(() => import('@/components/shared/DpcPositionWarning').then((m) => ({ default: m.DpcPositionWarning })), { ssr: false });
 import { loadSettings, KEYS } from '@/lib/storage';
+import { profiloIniziale } from '@/lib/startup-profilo';
 import { loadCurrent } from '@/lib/current-itinerary';
 import { useItineraryAutosave } from '@/lib/useItineraryAutosave';
 import { startupAction } from '@/lib/startup-itinerary';
@@ -82,6 +83,20 @@ export default function Home() {
   useEffect(() => {
     const persisted = loadSettings();
     useItineraryStore.getState().updateSettings(persisted);
+  }, []);
+
+  /*
+   * Profilo d'uso all'avvio. Qui c'e' solo la lettura dello storage: la decisione sta
+   * in `profiloIniziale`, funzione pura, cosi' si verifica senza DOM.
+   */
+  useEffect(() => {
+    let salvato: string | null = null;
+    let livello: string | null = null;
+    try {
+      salvato = localStorage.getItem(KEYS.profilo);
+      livello = localStorage.getItem(KEYS.userLevel);
+    } catch { /* storage bloccato */ }
+    useUIStore.getState().setProfilo(profiloIniziale({ salvato, livello }));
   }, []);
 
   // Rimette in piedi l'itinerario su cui si stava lavorando. Deve stare PRIMA
