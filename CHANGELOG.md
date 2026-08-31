@@ -4,6 +4,24 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.14.0] — 2026-08-31 — Il menu dei layer torna un quadro di comando
+
+### Changed
+- **Il pannello dei layer di emergenza era diventato illeggibile man mano che lo si usava.** Ogni layer acceso si portava dietro per sempre la propria documentazione — descrizione, fino a sei voci di legenda, riga di stato, comandi specifici — quindi più layer accendevi, più diventava faticoso raggiungere gli interruttori: il pannello puniva chi lo usava. Con cinque layer accesi, su un telefono, bisognava scorrere **due schermate** per arrivare all'ultimo interruttore, e nella prima se ne vedevano quattro su sette.
+
+  Ora ogni layer è **una riga sola**: icona della categoria, nome, pallino di stato, interruttore. Tutti e sette stanno in una schermata, senza scorrere. Il resto — legenda, descrizione, orario di aggiornamento, comandi del radar, scelta del giorno per le allerte — si apre toccando il nome, una riga per volta. **Nessuna funzione è stata rimossa: sono cambiate di posto.**
+
+  Quello che riguarda l'**attendibilità** del dato resta invece sempre in vista, anche a riga chiusa: un errore col suo pulsante "Riprova", l'assenza di rete, i dati parziali, i dati non aggiornati e la riga "nessuna zona in allerta per questo giorno". Il pannello si comprime quando tutto va bene, non quando c'è qualcosa da sapere.
+
+- Le quattro intestazioni di categoria (*Incendi*, *Alluvioni e frane*…) non occupano più una riga ciascuna: sono diventate l'icona sulla riga del layer, e i layer affini restano vicini come prima.
+
+### Accessibility
+- **Il pallino di stato non è più solo un colore**: la riga si annuncia come *"Dove ripararsi: Rifugi e ricoveri, nessun dato"*. Chi usa un lettore di schermo prima non sapeva nulla dello stato dei layer.
+- Nome e interruttore sono due comandi distinti e non annidati: toccare il nome apre il dettaglio, toccare l'interruttore accende il layer, e nessuno dei due fa il lavoro dell'altro.
+
+### Fixed
+- Su schermo grande cinque etichette su sette andavano a capo: il pannello passa da 288 a 320 px di larghezza.
+
 ## [0.13.5] — 2026-08-28 — Focolai della notte, ripari che rispondono, mappa offline che c'e'
 
 Tre cose segnalate usando l'app, e una scoperta strada facendo che nessuno aveva
