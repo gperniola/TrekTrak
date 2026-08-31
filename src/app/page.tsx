@@ -47,6 +47,8 @@ export default function Home() {
 
   const mainView = useUIStore((s) => s.mainView);
   const mobileTab = useUIStore((s) => s.mobileTab);
+  const profiloCorrente = useUIStore((s) => s.profilo);
+  const appModeCorrente = useItineraryStore((s) => s.appMode);
   const searchOpen = useUIStore((s) => s.searchOpen);
   const quizActive = useUIStore((s) => s.quizActive);
   const progressOpen = useUIStore((s) => s.progressOpen);
@@ -98,6 +100,19 @@ export default function Home() {
     } catch { /* storage bloccato */ }
     useUIStore.getState().setProfilo(profiloIniziale({ salvato, livello }));
   }, []);
+
+  /*
+   * In Montagna i valori li calcola l'app: il modo si allinea al profilo.
+   *
+   * I valori inseriti a mano non si perdono — `learnValues` e `trackValues` vivono in
+   * parallelo dalla v0.7.0 — quindi tornando in Imparo si rivedono. Il profilo cambia la
+   * vista, non i dati.
+   */
+  useEffect(() => {
+    if (profiloCorrente === 'montagna' && appModeCorrente !== 'track') {
+      useItineraryStore.getState().setAppMode('track');
+    }
+  }, [profiloCorrente, appModeCorrente]);
 
   // Rimette in piedi l'itinerario su cui si stava lavorando. Deve stare PRIMA
   // dell'import da hash: se arriva un link condiviso, quello ha l'ultima parola.

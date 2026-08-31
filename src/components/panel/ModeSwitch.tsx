@@ -85,7 +85,12 @@ export function ModeSwitch() {
           <span className="text-[9px] font-semibold leading-none">Quiz</span>
         </button>}
       </div>
-      <div role="tablist" aria-label="Modalità app" className="flex items-center gap-1 flex-1 p-0.5 rounded-lg bg-gray-800/60">
+      {/*
+        In Montagna i valori li calcola l'app, quindi l'interruttore non serve. I valori
+        inseriti a mano NON si perdono: `learnValues` e `trackValues` stanno in parallelo
+        dalla v0.7.0, e tornando in Imparo si rivedono.
+      */}
+      {mostra('switchLearnTrack', profilo) && <div role="tablist" aria-label="Modalità app" className="flex items-center gap-1 flex-1 p-0.5 rounded-lg bg-gray-800/60">
         <button
           role="tab"
           aria-selected={!isTrack}
@@ -110,7 +115,7 @@ export function ModeSwitch() {
         >
           Track
         </button>
-      </div>
+      </div>}
     </div>
   );
 }
