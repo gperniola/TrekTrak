@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useUIStore } from '@/stores/uiStore';
+import { useItineraryStore } from '@/stores/itineraryStore';
 import { ETICHETTE_PROFILO, type Profilo } from '@/lib/profilo';
 
 /**
@@ -35,6 +36,22 @@ export function ProfiloSwitch() {
   const cambia = () => {
     const nuovo: Profilo = profilo === 'imparo' ? 'montagna' : 'imparo';
     setProfilo(nuovo);
+    /*
+     * Passando a Imparo si torna anche in Learn, se l'itinerario era in Track.
+     *
+     * Misurato a schermo: senza questo, chi sceglie Imparo per esercitarsi non trova
+     * "Verifica" — che compare solo in Learn — e l'itinerario era rimasto in Track
+     * perche' Montagna lo forza. Chi sceglie di imparare vuole l'esercizio, non la
+     * lettura dei valori calcolati.
+     *
+     * Si fa QUI, al momento del gesto, e non in un effetto continuo: in Imparo
+     * l'interruttore Learn/Track resta visibile di proposito — il confronto "stimato vs
+     * reale" e' la funzione migliore dell'app — e un effetto lo rimetterebbe su Learn
+     * ogni volta che l'utente prova a guardare i valori reali.
+     */
+    if (nuovo === 'imparo' && useItineraryStore.getState().appMode !== 'learn') {
+      useItineraryStore.getState().setAppMode('learn');
+    }
     setSpiegazione(SPIEGAZIONE[nuovo]);
   };
 

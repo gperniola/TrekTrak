@@ -120,10 +120,15 @@ export function ItineraryHeader() {
       {/*
         "Salva" mette l'itinerario nella libreria condivisa, che e' ad invito: senza
         accesso resta grigio. Il perche' era solo in un `title`, invisibile al tocco,
-        quindi su mobile il pulsante sembrava rotto. Va anche detto che il lavoro non
-        si perde: viene tenuto sul dispositivo da solo.
+        quindi su mobile il pulsante sembrava rotto. Va anche detto che il lavoro non si
+        perde: viene tenuto sul dispositivo da solo.
+
+        La nota segue il profilo: parla di "Salva", della libreria condivisa e
+        dell'export in JSON o GPX, e in Imparo non esiste nessuna delle tre cose, quindi
+        prometterebbe funzioni che non ci sono. Trovato provando il giro a mano — i
+        pulsanti erano spariti correttamente, il testo che li spiegava no.
       */}
-      {!member && (
+      {!member && libreriaVisibile && (
         <p id="motivo-salva" className="px-3 pt-3 text-[11px] text-gray-400 leading-snug">
           &ldquo;Salva&rdquo; mette il percorso nella <strong className="font-medium text-gray-300">libreria condivisa</strong>, che
           &egrave; ad accesso su invito. Senza accesso l&rsquo;itinerario resta comunque su questo

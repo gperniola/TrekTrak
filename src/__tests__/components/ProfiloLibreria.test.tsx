@@ -39,3 +39,28 @@ describe('la libreria per profilo', () => {
     expect(useUIStore.getState().mainView).toBe('editor');
   });
 });
+
+/**
+ * I pulsanti spariscono, ma il testo che li spiega deve sparire con loro: la nota parla
+ * di "Salva", della libreria condivisa e dell'export in JSON o GPX, e in Imparo non
+ * esiste nessuna delle tre cose. Trovato provando il giro a mano.
+ */
+describe('la nota sulla libreria segue i pulsanti', () => {
+  test('in Montagna senza accesso la nota c e', async () => {
+    const { ItineraryHeader } = await import('@/components/panel/ItineraryHeader');
+    const { useAuthStore } = await import('@/stores/authStore');
+    useAuthStore.setState({ member: null });
+    useUIStore.setState({ profilo: 'montagna' });
+    render(<ItineraryHeader />);
+    expect(screen.getByText(/esportarlo in JSON o GPX/)).toBeInTheDocument();
+  });
+
+  test('in Imparo non c e, perche non ci sono ne libreria ne JSON ne GPX', async () => {
+    const { ItineraryHeader } = await import('@/components/panel/ItineraryHeader');
+    const { useAuthStore } = await import('@/stores/authStore');
+    useAuthStore.setState({ member: null });
+    useUIStore.setState({ profilo: 'imparo' });
+    render(<ItineraryHeader />);
+    expect(screen.queryByText(/esportarlo in JSON o GPX/)).not.toBeInTheDocument();
+  });
+});

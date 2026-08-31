@@ -1,6 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ProfiloSwitch } from '@/components/shared/ProfiloSwitch';
 import { useUIStore } from '@/stores/uiStore';
+import { useItineraryStore } from '@/stores/itineraryStore';
 
 /**
  * Funzioni nascoste sono funzioni non scoperte: l'interruttore sta in vista e dice il
@@ -39,5 +40,32 @@ describe('l interruttore del profilo', () => {
   test('prima di toccarlo non spiega niente', () => {
     render(<ProfiloSwitch />);
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * Trovato misurando a schermo: passando a Imparo, "Verifica" non compariva perche'
+ * l'itinerario era rimasto in Track — Montagna lo forza — e il profilo da solo non lo
+ * riportava indietro. Chi sceglie di imparare vuole l'esercizio.
+ */
+describe('passando a Imparo si torna in Learn', () => {
+  test('un itinerario in Track torna in Learn', () => {
+    useUIStore.setState({ profilo: 'montagna' });
+    useItineraryStore.setState({ appMode: 'track' });
+    render(<ProfiloSwitch />);
+    fireEvent.click(screen.getByRole('button', { name: /Vado in montagna/ }));
+    expect(useItineraryStore.getState().appMode).toBe('learn');
+  });
+
+  /**
+   * Ma NON in modo continuo: in Imparo l'interruttore Learn/Track resta visibile di
+   * proposito, e chi passa a Track per vedere i valori reali deve poterci restare.
+   */
+  test('chi e gia in Imparo puo restare in Track', () => {
+    useUIStore.setState({ profilo: 'imparo' });
+    useItineraryStore.setState({ appMode: 'track' });
+    render(<ProfiloSwitch />);
+    // nessun cambio di profilo: l'app non deve toccare il modo
+    expect(useItineraryStore.getState().appMode).toBe('track');
   });
 });
