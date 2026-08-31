@@ -4,6 +4,17 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.14.1] — 2026-08-31 — I fogli si mandano via col dito
+
+### Added
+- **I pannelli che salgono dal basso si chiudono trascinandoli in giù**, oltre che con la ✕: il pannello dei layer, il menu *Altro* e il meteo del percorso. In cima a ognuno c'è ora una **barretta da afferrare** — perché un gesto che non si vede non esiste, e senza quella l'avrei aggiunto per chi legge il codice invece che per chi usa l'app.
+
+  Dal corpo del foglio il trascinamento parte solo se il contenuto è **già in cima**: è la regola dei fogli di sistema, e serve a non rubare lo scorrimento a chi stava leggendo. Dalla barretta parte sempre. Il foglio si chiude se lo trascini oltre un terzo della sua altezza, oppure se lo lasci andare con un colpo secco.
+
+  La ✕ resta al suo posto su tutti e tre, come il tocco fuori dal foglio e il tasto Indietro: un trascinamento non si può fare con la tastiera né con un lettore di schermo, quindi non può essere la sola via d'uscita.
+
+- Il gesto **non** è stato messo su Editor e Libreria. Su telefono quelli non sono fogli sovrapposti alla mappa ma le due destinazioni della barra in basso: riempiono lo schermo, "chiuderli" vuol dire tornare alla Mappa — cosa che fanno già il pulsante Mappa e il tasto Indietro — e si scorrono dall'inizio alla fine, quindi il trascinamento verso il basso avrebbe litigato col gesto che ci si usa tutto il tempo.
+
 ## [0.14.0] — 2026-08-31 — Il menu dei layer torna un quadro di comando
 
 ### Changed
