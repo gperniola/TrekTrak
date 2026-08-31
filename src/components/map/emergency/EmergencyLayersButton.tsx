@@ -3,6 +3,7 @@
 import { useUIStore } from '@/stores/uiStore';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { useMapOverlayGuard } from '../useMapOverlayGuard';
+import { mostra } from '@/lib/profilo';
 
 export function EmergencyLayersButton() {
   const open = useUIStore((s) => s.emergencyPanelOpen);
@@ -17,6 +18,16 @@ export function EmergencyLayersButton() {
     if (!open) setMoreMenuOpen(false);
     setOpen(!open);
   };
+
+  const profilo = useUIStore((s) => s.profilo);
+  /*
+   * In Imparo si sta a casa su una carta: i layer di emergenza non si offrono affatto.
+   *
+   * La guardia sta QUI, dopo tutti gli hook e appena prima del JSX: messa in cima al
+   * corpo renderebbe condizionali gli hook che seguono. L'ha ripreso ESLint
+   * (`react-hooks/rules-of-hooks`), come il giorno prima in MoreMenu.
+   */
+  if (!mostra('layerEmergenza', profilo)) return null;
 
   return (
     <button
