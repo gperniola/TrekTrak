@@ -9,6 +9,7 @@ import { EmergencyLayerRow, DISCLAIMER } from './EmergencyLayerRow';
 import { SheetHandle } from '@/components/shared/SheetHandle';
 import { useSheetDrag } from '@/lib/useSheetDrag';
 import { useSchermoPiccolo } from '@/lib/useSchermoPiccolo';
+import { mostra } from '@/lib/profilo';
 
 /**
  * Quadro di comando dei layer di emergenza.
@@ -55,6 +56,13 @@ export function EmergencyLayersPanel() {
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, [open, setOpen]);
+
+  const profilo = useUIStore((s) => s.profilo);
+  /*
+   * In Imparo si sta a casa su una carta: i layer di emergenza non si montano affatto,
+   * cosi' non partono nemmeno le loro chiamate di rete.
+   */
+  if (!mostra('layerEmergenza', profilo)) return null;
 
   if (!open) return null;
 

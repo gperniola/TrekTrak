@@ -57,8 +57,19 @@ beforeEach(() => {
   });
 });
 
+/*
+ * Profilo Imparo: dalla v0.15 quiz, Verifica, Progresso e l'interruttore Learn/Track
+ * sono aree del profilo didattico, e col profilo Montagna non si montano. Questi test
+ * parlano di quelle funzioni, quindi vivono nel profilo in cui esistono.
+ */
+beforeEach(() => {
+  useUIStore.setState({ profilo: 'imparo' });
+});
+
 describe('ActionBar', () => {
   test('renders export buttons (PDF Sintetico, PDF Roadbook, GPX)', () => {
+    // Export e libreria vivono nel profilo Montagna: qui si parla di quelli.
+    useUIStore.setState({ profilo: 'montagna' });
     render(<ActionBar />);
     expect(screen.getByText('PDF Sintetico')).toBeInTheDocument();
     expect(screen.getByText('PDF Roadbook')).toBeInTheDocument();
@@ -84,6 +95,8 @@ describe('ActionBar', () => {
 
   // TASK-41: export non invitano ad azioni inutili quando l'itinerario è vuoto
   test('TASK-41: PDF e GPX disabilitati con meno di 2 waypoint', () => {
+    // Export e libreria vivono nel profilo Montagna: qui si parla di quelli.
+    useUIStore.setState({ profilo: 'montagna' });
     useItineraryStore.setState({ ...BASE_ITINERARY_STATE, waypoints: [] });
     render(<ActionBar />);
     expect(screen.getByText('PDF Sintetico').closest('button')).toBeDisabled();
@@ -92,6 +105,8 @@ describe('ActionBar', () => {
   });
 
   test('TASK-41: export abilitati con 2+ waypoint con coordinate', () => {
+    // Export e libreria vivono nel profilo Montagna: qui si parla di quelli.
+    useUIStore.setState({ profilo: 'montagna' });
     useItineraryStore.setState({
       ...BASE_ITINERARY_STATE,
       waypoints: [

@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from 'react';
 import type { ValidationResult, ValidationFieldType } from '@/lib/types';
 import { getTip } from '@/lib/didactic-tips';
 import { gradi, km, metri } from '@/lib/formato';
+import { mostra } from '@/lib/profilo';
+import { useUIStore } from '@/stores/uiStore';
 
 const STATUS_STYLES = {
   unverified: 'bg-gray-600 text-gray-300',
@@ -59,6 +61,7 @@ export function ValidationBadge({ result, fieldType }: { result?: ValidationResu
   const buttonRef = useRef<HTMLButtonElement>(null);
   const prevStatusRef = useRef<string | undefined>(undefined);
   const [animating, setAnimating] = useState(false);
+  const profilo = useUIStore((s) => s.profilo);
 
   // Trigger pop animation when badge appears for the first time
   useEffect(() => {
@@ -98,6 +101,15 @@ export function ValidationBadge({ result, fieldType }: { result?: ValidationResu
     };
   }, [open]);
 
+  /*
+   * In Montagna i valori li calcola l'app: non c'e' nulla da verificare, e i badge
+   * sarebbero venti pulsanti che non dicono niente di utile.
+   *
+   * Una guardia sola QUI invece di una in ogni scheda: il badge e' l'unico punto da cui
+   * la validazione arriva a schermo — compreso il suggerimento didattico, che vive nel
+   * suo popover — quindi non se ne dimentica una. E sta dopo gli hook, non prima.
+   */
+  if (!mostra('validazione', profilo)) return null;
   if (!result || result.status === 'unverified') return null;
 
   const handleToggle = (e: React.MouseEvent) => {

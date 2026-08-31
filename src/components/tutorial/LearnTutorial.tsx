@@ -1,5 +1,6 @@
 'use client';
 
+import { useUIStore } from '@/stores/uiStore';
 import { useState, useEffect, useRef } from 'react';
 import { KEYS } from '@/lib/storage';
 import { markWhatsNewSeen } from './WhatsNew';
@@ -208,6 +209,7 @@ export function LearnTutorial() {
   const [livelloScelto, setLivelloScelto] = useState<'beginner' | 'expert' | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const setAppMode = useItineraryStore((s) => s.setAppMode);
+  const setProfilo = useUIStore((s) => s.setProfilo);
   const dialogRef = useRef<HTMLDivElement>(null);
   useBodyScrollLock(step !== null);
 
@@ -224,6 +226,13 @@ export function LearnTutorial() {
 
   const handleChooseLevel = (level: 'beginner' | 'expert') => {
     setAppMode(level === 'beginner' ? 'learn' : 'track');
+    /*
+     * La stessa risposta decide anche QUALI AREE esistono a schermo. Prima impostava
+     * solo il modo di compilare i valori, e restava a meta' del suo mestiere: chi
+     * dichiarava di stare imparando si trovava comunque davanti radar della pioggia,
+     * instabilita' satellitare e libreria condivisa.
+     */
+    setProfilo(level === 'beginner' ? 'imparo' : 'montagna');
     try {
       localStorage.setItem(KEYS.userLevel, level);
     } catch {

@@ -16,6 +16,11 @@ export const KEYS = {
   emergencyDisclaimer: 'trektrak_emergency_disclaimer_seen',
   /** Livello dichiarato nell'onboarding: decide la modalità di partenza. */
   userLevel: 'trektrak_user_level',
+  /**
+   * Profilo d'uso: decide quali AREE dell'app esistono a schermo. Diverso da
+   * `userLevel`, che riguarda solo il modo di compilare i valori.
+   */
+  profilo: 'trektrak_profilo',
 } as const;
 
 const STORAGE_WARNING_BYTES = 4 * 1024 * 1024; // 4MB

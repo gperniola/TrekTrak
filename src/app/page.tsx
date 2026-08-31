@@ -19,6 +19,7 @@ const ProgressOverlay = dynamic(() => import('@/components/panel/ProgressOverlay
 // Load di `/`: è un controllo d'avvio, non serve al primo paint.
 const DpcPositionWarning = dynamic(() => import('@/components/shared/DpcPositionWarning').then((m) => ({ default: m.DpcPositionWarning })), { ssr: false });
 import { loadSettings, KEYS } from '@/lib/storage';
+import { profiloIniziale } from '@/lib/startup-profilo';
 import { loadCurrent } from '@/lib/current-itinerary';
 import { useItineraryAutosave } from '@/lib/useItineraryAutosave';
 import { startupAction } from '@/lib/startup-itinerary';
@@ -46,6 +47,8 @@ export default function Home() {
 
   const mainView = useUIStore((s) => s.mainView);
   const mobileTab = useUIStore((s) => s.mobileTab);
+  const profiloCorrente = useUIStore((s) => s.profilo);
+  const appModeCorrente = useItineraryStore((s) => s.appMode);
   const searchOpen = useUIStore((s) => s.searchOpen);
   const quizActive = useUIStore((s) => s.quizActive);
   const progressOpen = useUIStore((s) => s.progressOpen);
@@ -83,6 +86,33 @@ export default function Home() {
     const persisted = loadSettings();
     useItineraryStore.getState().updateSettings(persisted);
   }, []);
+
+  /*
+   * Profilo d'uso all'avvio. Qui c'e' solo la lettura dello storage: la decisione sta
+   * in `profiloIniziale`, funzione pura, cosi' si verifica senza DOM.
+   */
+  useEffect(() => {
+    let salvato: string | null = null;
+    let livello: string | null = null;
+    try {
+      salvato = localStorage.getItem(KEYS.profilo);
+      livello = localStorage.getItem(KEYS.userLevel);
+    } catch { /* storage bloccato */ }
+    useUIStore.getState().setProfilo(profiloIniziale({ salvato, livello }));
+  }, []);
+
+  /*
+   * In Montagna i valori li calcola l'app: il modo si allinea al profilo.
+   *
+   * I valori inseriti a mano non si perdono — `learnValues` e `trackValues` vivono in
+   * parallelo dalla v0.7.0 — quindi tornando in Imparo si rivedono. Il profilo cambia la
+   * vista, non i dati.
+   */
+  useEffect(() => {
+    if (profiloCorrente === 'montagna' && appModeCorrente !== 'track') {
+      useItineraryStore.getState().setAppMode('track');
+    }
+  }, [profiloCorrente, appModeCorrente]);
 
   // Rimette in piedi l'itinerario su cui si stava lavorando. Deve stare PRIMA
   // dell'import da hash: se arriva un link condiviso, quello ha l'ultima parola.

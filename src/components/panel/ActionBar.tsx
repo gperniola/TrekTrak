@@ -16,10 +16,13 @@ import { loadQuizHistory } from '@/lib/quiz';
 import type { ValidationSessionResult } from '@/lib/types';
 import { useUIStore } from '@/stores/uiStore';
 import { toast } from '@/stores/notificationStore';
+import { mostra } from '@/lib/profilo';
 
 
 export function ActionBar() {
   const openProgress = useUIStore((s) => s.openProgress);
+  const profilo = useUIStore((s) => s.profilo);
+  const datiVisibili = mostra('exportDati', profilo);
   const setWeatherOpen = useUIStore((s) => s.setWeatherOpen);
   const itineraryName = useItineraryStore((s) => s.itineraryName);
   const waypoints = useItineraryStore((s) => s.waypoints);
@@ -414,17 +417,23 @@ export function ActionBar() {
         >
           PDF Roadbook
         </button>
-        <button
-          onClick={handleGPX}
-          disabled={!canExportGpx}
-          aria-describedby={!canExportGpx ? 'motivo-export' : undefined}
-          className="flex-1 py-2 bg-blue-500 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-blue-400 disabled:opacity-50 disabled:cursor-not-allowed max-lg:min-h-[44px]"
-        >
-          GPX
-        </button>
+        {/*
+          GPX, link condiviso e meteo sono roba da gita vera: in Imparo non compaiono.
+          I due PDF sopra restano, perche' servono a portarsi l'esercizio su carta.
+        */}
+        {datiVisibili && (
+          <button
+            onClick={handleGPX}
+            disabled={!canExportGpx}
+            aria-describedby={!canExportGpx ? 'motivo-export' : undefined}
+            className="flex-1 py-2 bg-blue-500 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-blue-400 disabled:opacity-50 disabled:cursor-not-allowed max-lg:min-h-[44px]"
+          >
+            GPX
+          </button>
+        )}
         {(() => {
           const meteoUrl = buildMeteoUrl(waypoints);
-          return meteoUrl ? (
+          return meteoUrl && mostra('meteo', profilo) ? (
             <button
               // Apre il pannello del PERCORSO, non piu' Meteoblue in una scheda: la
               // previsione incrociata con gli orari e' l'unica cosa che questa app puo'
@@ -438,18 +447,20 @@ export function ActionBar() {
             </button>
           ) : null;
         })()}
-        <button
-          onClick={handleShareLink}
-          disabled={waypoints.length < 2}
-          aria-describedby={waypoints.length < 2 ? 'motivo-export' : undefined}
-          className="flex-1 py-2 bg-amber-500 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed max-lg:min-h-[44px]"
-        >
-          {linkCopied ? 'Copiato!' : 'Copia link'}
-        </button>
+        {datiVisibili && (
+          <button
+            onClick={handleShareLink}
+            disabled={waypoints.length < 2}
+            aria-describedby={waypoints.length < 2 ? 'motivo-export' : undefined}
+            className="flex-1 py-2 bg-amber-500 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed max-lg:min-h-[44px]"
+          >
+            {linkCopied ? 'Copiato!' : 'Copia link'}
+          </button>
+        )}
       </div>
       {/* Attività didattiche (verifica + progresso). TASK-42: separate dagli export. */}
       <div role="group" aria-label="Attività" className="flex flex-wrap gap-2">
-        {appMode === 'learn' && (
+        {appMode === 'learn' && mostra('validazione', profilo) && (
           <button
             onClick={handleVerify}
             disabled={verifying}
@@ -458,7 +469,7 @@ export function ActionBar() {
             {verifying ? 'Verificando...' : 'Verifica'}
           </button>
         )}
-        {(() => {
+        {mostra('progresso', profilo) && (() => {
           // TASK-20: disable Progresso until there is at least one verify or quiz session
           const hasHistory = loadValidationHistory().length > 0 || loadQuizHistory().length > 0;
           return (
@@ -473,7 +484,7 @@ export function ActionBar() {
           );
         })()}
       </div>
-      {loadValidationHistory().length === 0 && loadQuizHistory().length === 0 && (
+      {mostra('progresso', profilo) && loadValidationHistory().length === 0 && loadQuizHistory().length === 0 && (
         <p id="motivo-progresso" className="text-[11px] text-gray-400">
           Il Progresso si sblocca dopo la prima verifica o il primo quiz.
         </p>

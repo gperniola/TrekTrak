@@ -8,6 +8,15 @@ beforeEach(() => {
   useUIStore.setState({ compassActive: false, rulerActive: false, quizActive: false, toolsFabOpen: false });
 });
 
+/*
+ * Profilo Imparo: dalla v0.15 quiz, Verifica, Progresso e l'interruttore Learn/Track
+ * sono aree del profilo didattico, e col profilo Montagna non si montano. Questi test
+ * parlano di quelle funzioni, quindi vivono nel profilo in cui esistono.
+ */
+beforeEach(() => {
+  useUIStore.setState({ profilo: 'imparo' });
+});
+
 describe('MapToolsFab', () => {
   test('di default mostra solo il FAB, i tool sono nascosti', () => {
     render(<MapToolsFab />);

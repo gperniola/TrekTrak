@@ -75,6 +75,27 @@ function ColoredPathMockup() {
  */
 const RELEASES: Release[] = [
   {
+    version: '0.15.0',
+    date: '2026-08-31',
+    steps: [
+      {
+        title: 'Due modi di usare l’app',
+        text: 'L’app ora ha una modalità: «Imparo» mostra verifica, quiz e progressi; «Vado in montagna» mostra layer di emergenza, meteo e libreria. Non serve più avere tutto davanti insieme.',
+        icon: '🎛️',
+      },
+      {
+        title: 'Si cambia quando vuoi',
+        text: 'La trovi come prima voce del menu «Altro», e su schermo grande in cima al pannello. Dice sempre in quale modalità sei, e quando la cambi ti spiega cosa è comparso e cosa è sparito.',
+        icon: '↔️',
+      },
+      {
+        title: 'Niente è stato rimosso',
+        text: 'Tutte le funzioni ci sono ancora: cambiano solo di posto. I percorsi salvati, l’itinerario in lavorazione, i layer accesi e lo storico restano dove sono, e tornando alla modalità di prima ritrovi tutto.',
+        icon: '🔒',
+      },
+    ],
+  },
+  {
     version: '0.13.0',
     date: '2026-08-27',
     steps: [

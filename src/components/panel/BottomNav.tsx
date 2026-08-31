@@ -2,6 +2,7 @@
 
 import { useUIStore } from '@/stores/uiStore';
 import { useRouteLibraryStore } from '@/stores/routeLibraryStore';
+import { mostra } from '@/lib/profilo';
 
 const TABS = [
   { key: 'map', label: 'Mappa', icon: '🗺️' },
@@ -16,6 +17,13 @@ export function BottomNav() {
   const moreMenuOpen = useUIStore((s) => s.moreMenuOpen);
   const setMoreMenuOpen = useUIStore((s) => s.setMoreMenuOpen);
   const refresh = useRouteLibraryStore((s) => s.refresh);
+  const profilo = useUIStore((s) => s.profilo);
+  /*
+   * La Libreria e' la libreria CONDIVISA dei percorsi: roba da gita vera, non da
+   * esercizio su carta. Si filtra l'elenco invece di scrivere un `if` nel JSX, cosi'
+   * la barra resta una tabella dichiarativa.
+   */
+  const destinazioni = TABS.filter((t) => t.key !== 'library' || mostra('libreria', profilo));
 
   const go = (key: 'map' | 'editor' | 'library') => {
     if (key === 'library') refresh();
@@ -34,7 +42,7 @@ export function BottomNav() {
 
   return (
     <nav className="lg:hidden flex border-t border-gray-700 bg-gray-900 shrink-0" aria-label="Navigazione principale">
-      {TABS.map((t) => (
+      {destinazioni.map((t) => (
         <button
           key={t.key}
           onClick={() => go(t.key)}

@@ -1,3 +1,5 @@
+import { type Profilo } from '@/lib/profilo';
+import { KEYS } from '@/lib/storage';
 import { create } from 'zustand';
 
 interface UIState {
@@ -18,6 +20,14 @@ interface UIState {
   toolsFabOpen: boolean;
   /** Pannello "Meteo del percorso" (fase A dei layer meteo). */
   weatherOpen: boolean;
+  /**
+   * Profilo d'uso: decide quali aree dell'app esistono a schermo.
+   *
+   * Da non confondere con `appMode` dell'itinerario: quello decide come si compilano i
+   * valori (a mano o calcolati), questo cosa si vede. Uno e' dell'itinerario, l'altro
+   * dell'utente.
+   */
+  profilo: Profilo;
 
   toggleCompass: () => void;
   toggleRuler: () => void;
@@ -31,12 +41,13 @@ interface UIState {
   setMainView: (view: 'editor' | 'library') => void;
   setMobileTab: (tab: 'map' | 'editor' | 'library') => void;
   setMoreMenuOpen: (open: boolean) => void;
+  setProfilo: (p: Profilo) => void;
   setEmergencyPanelOpen: (open: boolean) => void;
   setToolsFabOpen: (open: boolean) => void;
   setWeatherOpen: (open: boolean) => void;
 }
 
-export const useUIStore = create<UIState>((set) => ({
+export const useUIStore = create<UIState>((set, get) => ({
   compassActive: false,
   rulerActive: false,
   quizActive: false,
@@ -48,6 +59,25 @@ export const useUIStore = create<UIState>((set) => ({
   emergencyPanelOpen: false,
   toolsFabOpen: false,
   weatherOpen: false,
+  /*
+   * Il default e' Montagna: non nasconde gli avvisi di sicurezza. Viene sovrascritto
+   * all'avvio da `profiloIniziale`, e dalla scelta dell'onboarding.
+   */
+  profilo: 'montagna',
+  setProfilo: (p) => {
+    /*
+     * Chi era in Libreria e passa a Imparo resterebbe su una vista che non esiste piu':
+     * lo si riporta alla mappa e all'editor. Non e' una cancellazione — i percorsi
+     * salvati restano dove sono, cambia solo dove ci si trova.
+     */
+    const inLibreria = get().mobileTab === 'library' || get().mainView === 'library';
+    if (p === 'imparo' && inLibreria) {
+      set({ mobileTab: 'map', mainView: 'editor' });
+    }
+    set({ profilo: p });
+    // Nessun dato viene cancellato: si scrive solo la preferenza.
+    try { localStorage.setItem(KEYS.profilo, p); } catch { /* storage non disponibile */ }
+  },
 
   toggleCompass: () => set((s) => ({
     compassActive: !s.compassActive,

@@ -6,6 +6,8 @@ import { useEmergencyStore } from '@/stores/emergencyStore';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { toYmd, type DpcZone } from '@/lib/dpc';
 import { useOnline } from '@/lib/useOnline';
+import { mostra } from '@/lib/profilo';
+import { useUIStore } from '@/stores/uiStore';
 import {
   checkPosition, positionAlertMessage, positionAlertSeverity, type PositionAlert,
 } from '@/lib/dpc-position-alert';
@@ -50,6 +52,7 @@ function zonesFromStore(oggi: string): { zones: DpcZone[]; bulletinId: string } 
  * avviene qui.
  */
 export function DpcPositionWarning() {
+  const profilo = useUIStore((s) => s.profilo);
   const posizione = usePositionStore((s) => s.lastKnown);
   const online = useOnline();
   const dpcInStore = useEmergencyStore((s) => s.dpc);
@@ -111,6 +114,17 @@ export function DpcPositionWarning() {
   if (alert == null || chiuso) return null;
 
   const grave = positionAlertSeverity(alert) === 'severe';
+  /*
+   * L'avviso di allerta sta solo in Montagna. E' l'unica funzione di questo elenco che
+   * protegge una persona, quindi la scelta va motivata: in Imparo si sta a casa a
+   * esercitarsi su una carta, e un banner di allerta idrogeologica li' e' rumore che
+   * insegna a ignorare gli avvisi. Chi esce passa a Montagna, e l'interruttore e'
+   * visibile e nominato proprio perche' quel passaggio sia ovvio.
+   *
+   * Come sopra: dopo gli hook, non prima.
+   */
+  if (!mostra('allertaPosizione', profilo)) return null;
+
   return (
     <div
       role="alert"
