@@ -13,25 +13,25 @@ describe('l interruttore del profilo', () => {
 
   test('dice il profilo corrente per nome', () => {
     render(<ProfiloSwitch />);
-    expect(screen.getByRole('button', { name: /Vado in montagna/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Cambia modalità.*Vado in montagna/ })).toBeInTheDocument();
   });
 
   test('cambiarlo passa all altro profilo', () => {
     render(<ProfiloSwitch />);
-    fireEvent.click(screen.getByRole('button', { name: /Vado in montagna/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Cambia modalità.*Vado in montagna/ }));
     expect(useUIStore.getState().profilo).toBe('imparo');
   });
 
   test('e poi torna indietro', () => {
     render(<ProfiloSwitch />);
-    fireEvent.click(screen.getByRole('button', { name: /Vado in montagna/ }));
-    fireEvent.click(screen.getByRole('button', { name: /Imparo/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Cambia modalità.*Vado in montagna/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Cambia modalità.*Imparo/ }));
     expect(useUIStore.getState().profilo).toBe('montagna');
   });
 
   test('al cambio spiega cosa e comparso e cosa e sparito', () => {
     render(<ProfiloSwitch />);
-    fireEvent.click(screen.getByRole('button', { name: /Vado in montagna/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Cambia modalità.*Vado in montagna/ }));
     const spiegazione = screen.getByRole('status').textContent ?? '';
     expect(spiegazione).toMatch(/verifica|quiz|progress/i);
     expect(spiegazione).toMatch(/emergenza|meteo|libreria/i);
@@ -53,7 +53,7 @@ describe('passando a Imparo si torna in Learn', () => {
     useUIStore.setState({ profilo: 'montagna' });
     useItineraryStore.setState({ appMode: 'track' });
     render(<ProfiloSwitch />);
-    fireEvent.click(screen.getByRole('button', { name: /Vado in montagna/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Cambia modalità.*Vado in montagna/ }));
     expect(useItineraryStore.getState().appMode).toBe('learn');
   });
 
@@ -67,5 +67,21 @@ describe('passando a Imparo si torna in Learn', () => {
     render(<ProfiloSwitch />);
     // nessun cambio di profilo: l'app non deve toccare il modo
     expect(useItineraryStore.getState().appMode).toBe('track');
+  });
+});
+
+/**
+ * Il testo a schermo dice lo stato, il nome accessibile dice l'azione: letto ad alta
+ * voce, "Modalita': Imparo" sembra un'informazione e non un comando che cambia qualcosa.
+ */
+describe('il nome accessibile dell interruttore dice cosa fa', () => {
+  test('nomina l azione prima dello stato', () => {
+    useUIStore.setState({ profilo: 'imparo' });
+    render(<ProfiloSwitch />);
+    const b = screen.getByRole('button');
+    expect(b.getAttribute('aria-label')).toMatch(/^Cambia modalità/);
+    expect(b.getAttribute('aria-label')).toMatch(/Imparo$/);
+    // e a schermo resta l'etichetta di stato, che per chi vede va benissimo
+    expect(b.textContent).toMatch(/Modalità/);
   });
 });

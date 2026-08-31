@@ -21,3 +21,17 @@ export function profiloIniziale(input: { salvato: string | null; livello: string
    */
   return 'montagna';
 }
+
+/**
+ * Il profilo da usare quando c'e' un invito alla libreria condivisa in corso.
+ *
+ * La libreria e' un'area del profilo Montagna, quindi in Imparo e' nascosta. Ma un link
+ * di invito e' un invito esplicito a usare **proprio quella**: chi arriva da li' non
+ * deve trovare l'app che gli nasconde la cosa per cui e' stato invitato.
+ *
+ * Regola generale: un modo che nasconde funzioni non deve nascondere quelle a cui
+ * l'utente e' stato portato da un collegamento esterno.
+ */
+export function profiloPerInvito(attuale: Profilo, invitoInCorso: boolean): Profilo {
+  return invitoInCorso ? 'montagna' : attuale;
+}
