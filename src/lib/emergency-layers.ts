@@ -10,6 +10,30 @@ export type EmergencyLayerId = 'fires-hotspots' | 'fires-burned' | 'fires-fwi' |
 export type EmergencyLayerKind = 'wms' | 'points' | 'zones' | 'tiles' | 'viewport';
 export type EmergencyCategory = 'incendi' | 'alluvioni' | 'temporali' | 'ripari';
 
+/**
+ * Un'icona per categoria, da mettere sulla riga del layer.
+ *
+ * Prima le categorie erano quattro INTESTAZIONI, cioè quattro righe di elenco che non
+ * si potevano toccare né spegnere: su sette layer erano quattro righe di sola
+ * impaginazione su undici. Con l'icona sulla riga il raggruppamento si vede ancora
+ * (l'ordine resta per categoria) e l'elenco torna a contenere solo cose che fanno
+ * qualcosa.
+ */
+export const CATEGORY_ICONS: Record<EmergencyCategory, string> = {
+  incendi: '\u{1F525}',
+  alluvioni: '\u{1F30A}',
+  temporali: '\u26C8\uFE0F',
+  ripari: '\u{1F3E0}',
+};
+
+/** Nome della categoria, per chi non vede l'icona. */
+export const CATEGORY_NAMES: Record<EmergencyCategory, string> = {
+  incendi: 'Incendi',
+  alluvioni: 'Alluvioni e frane',
+  temporali: 'Pioggia e temporali',
+  ripari: 'Dove ripararsi',
+};
+
 export interface LegendEntry { color: string; label: string; }
 
 export interface WmsConfig {
