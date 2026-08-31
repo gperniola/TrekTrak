@@ -4,6 +4,22 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.15.0] — 2026-08-31 — Due modi di usare l'app
+
+### Added
+- **L'app ora ha una modalità, e mostra soltanto quello che serve a quella.** «Imparo» dà verifica, quiz, progressi e l'interruttore Learn/Track. «Vado in montagna» dà layer di emergenza, meteo, radar, rifugi, libreria condivisa ed export. Mappa, waypoint, editor, profilo altimetrico, bussola, righello e PDF stanno in entrambe.
+
+  Il motivo è che quindici aree funzionali tutte visibili insieme sono troppe: chi apriva l'app per imparare a leggere una carta incontrava l'instabilità satellitare di Meteosat prima di aver capito cos'è un azimut, e chi la apriva per andare in montagna si portava dietro quiz e badge di validazione.
+
+  La modalità la sceglie la domanda che il tutorial **già faceva** al primo avvio — *«Sto imparando» / «Sono esperto»* — che finora decideva soltanto se le tratte si compilano a mano o da sole.
+
+- **Si cambia quando si vuole**, dalla prima voce del menu «Altro» su telefono o dall'alto del pannello su schermo grande. La voce dice sempre in quale modalità sei, e al cambio spiega cosa è comparso, cosa è sparito e come tornare indietro.
+
+- **Niente è stato rimosso: tutto cambia solo di posto.** I percorsi salvati, l'itinerario in lavorazione, i layer accesi, le impostazioni e lo storico di verifiche e quiz restano dove sono, e tornando alla modalità di prima si ritrova tutto. Verificato a mano: acceso il radar in «Vado in montagna», passato a «Imparo» (il pulsante spariva, il layer restava salvato), tornato indietro e il radar era ancora acceso.
+
+### Changed
+- Passando a «Imparo» l'itinerario torna in Learn, se era in Track: chi sceglie di imparare vuole l'esercizio, non la lettura dei valori calcolati. Ma resta libero di passare a Track quando vuole confrontare la sua stima con la realtà — l'interruttore in «Imparo» c'è proprio per quello.
+
 ## [0.14.2] — 2026-08-31 — Quando ha guardato il satellite
 
 ### Added
