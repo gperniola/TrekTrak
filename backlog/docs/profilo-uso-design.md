@@ -93,7 +93,7 @@ Decisa con l'utente il 2026-08-31.
 | Bussola, righello | ● | ● |
 | Export PDF (sintetico e roadbook) | ● | ● |
 | Impostazioni mappa e tolleranze | ● | ● |
-| Validazione (Verifica + badge + tips) | ● | |
+| Validazione (Verifica + badge + suggerimenti) | ● | |
 | Quiz | ● | |
 | Progresso (report apprendimento) | ● | |
 | Interruttore Learn/Track | ● | |
@@ -129,7 +129,6 @@ export const AREE = {
   validazione:      ['imparo'],
   quiz:             ['imparo'],
   progresso:        ['imparo'],
-  tipsDidattici:    ['imparo'],
   switchLearnTrack: ['imparo'],
   layerEmergenza:   ['montagna'],
   meteo:            ['montagna'],
@@ -209,3 +208,19 @@ doppio perché il cambio di profilo è un gesto che si farà per curiosità.
   sviluppa, un problema diverso, e mescolarla renderebbe il diff illeggibile.
 - **Non** si tocca il deploy né si aggiungono origini.
 - **Non** si rimuove nessuna funzione: tutte restano, dietro il profilo.
+
+## Cosa ha trovato la guardia, appena scritta
+
+Due cose, entrambe in attuazione (Task 12):
+
+1. **`tipsDidattici` non era un'area a sé.** I suggerimenti didattici vivono *dentro* il
+   popover del badge di validazione, quindi sparire con lui è automatico: dichiararli
+   avrebbe promesso un interruttore che non esiste. Riga rimossa dalla tabella.
+2. **Le aree presenti in tutti i profili non hanno nulla da applicare.** Bussola,
+   righello e PDF non hanno un `mostra()` da nessuna parte perché non c'è niente da
+   nascondere. La guardia ora pretende l'applicazione solo dalle aree **limitate** a un
+   sottoinsieme di profili, e verifica le altre in modo diverso.
+
+E un difetto vero, nel Task 9: il quiz ha **due** ingressi — il FAB su telefono e la
+toolbar su schermo grande — e ne era stato guardato uno solo. È esattamente il difetto
+per cui la tabella esiste.

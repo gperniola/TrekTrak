@@ -23,10 +23,14 @@ export const ETICHETTE_PROFILO: Record<Profilo, string> = {
 };
 
 export const AREE = {
+  /*
+   * La validazione comprende i suggerimenti didattici: vivono DENTRO il popover del
+   * badge, quindi sparire con lui e' automatico. Dichiararli come area a se' avrebbe
+   * promesso un interruttore che non esiste — l'ha scoperto la guardia del Task 12.
+   */
   validazione: ['imparo'],
   quiz: ['imparo'],
   progresso: ['imparo'],
-  tipsDidattici: ['imparo'],
   switchLearnTrack: ['imparo'],
   layerEmergenza: ['montagna'],
   meteo: ['montagna'],

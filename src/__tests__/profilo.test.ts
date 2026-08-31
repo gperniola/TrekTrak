@@ -7,7 +7,7 @@ import { AREE, mostra, PROFILI, ETICHETTE_PROFILO, type Area } from '@/lib/profi
  */
 describe('la tabella delle aree', () => {
   test('le aree didattiche stanno solo in Imparo', () => {
-    for (const a of ['validazione', 'quiz', 'progresso', 'tipsDidattici', 'switchLearnTrack'] as Area[]) {
+    for (const a of ['validazione', 'quiz', 'progresso', 'switchLearnTrack'] as Area[]) {
       expect(mostra(a, 'imparo')).toBe(true);
       expect(mostra(a, 'montagna')).toBe(false);
     }
