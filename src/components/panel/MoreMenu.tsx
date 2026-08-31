@@ -9,6 +9,7 @@ import { toast } from '@/stores/notificationStore';
 import { SheetHandle } from '@/components/shared/SheetHandle';
 import { useSheetDrag } from '@/lib/useSheetDrag';
 import { useSchermoPiccolo } from '@/lib/useSchermoPiccolo';
+import { mostra } from '@/lib/profilo';
 
 /** Menu "Altro" della bottom nav (mobile): meteo + export del percorso corrente. */
 export function MoreMenu() {
@@ -28,6 +29,7 @@ export function MoreMenu() {
    * Sta QUI, sopra il ritorno anticipato: un hook chiamato dopo un `return` gira in
    * ordine diverso fra un render e l'altro. L'ha trovato ESLint, non io.
    */
+  const profilo = useUIStore((s) => s.profilo);
   const piccolo = useSchermoPiccolo();
   const { refFoglio, propsFoglio, propsManiglia } = useSheetDrag({
     onDismiss: close,
@@ -74,10 +76,15 @@ export function MoreMenu() {
         className="absolute left-2 right-2 bottom-[60px] bg-gray-800 border border-gray-600 rounded-lg shadow-xl p-1 space-y-0.5"
       >
         <SheetHandle gesto={propsManiglia} />
-        <button role="menuitem" disabled={!meteoUrl} onClick={handleMeteo} className={itemCls}>☀️ Meteo del percorso</button>
+        {/* Meteo e GPX seguono il profilo; i due PDF restano in entrambi. */}
+        {mostra('meteo', profilo) && (
+          <button role="menuitem" disabled={!meteoUrl} onClick={handleMeteo} className={itemCls}>☀️ Meteo del percorso</button>
+        )}
         <button role="menuitem" disabled={!canPdf} onClick={() => handlePdf('summary')} className={itemCls}>📄 PDF sintetico</button>
         <button role="menuitem" disabled={!canPdf} onClick={() => handlePdf('roadbook')} className={itemCls}>📋 PDF roadbook</button>
-        <button role="menuitem" disabled={!canGpx} onClick={handleGpx} className={itemCls}>🛰️ GPX</button>
+        {mostra('exportDati', profilo) && (
+          <button role="menuitem" disabled={!canGpx} onClick={handleGpx} className={itemCls}>🛰️ GPX</button>
+        )}
         {/*
           Con l'itinerario vuoto tutte le voci sono grigie: senza questa riga il menu
           era quattro voci spente e nessuna spiegazione, e su un telefono non c'e'
