@@ -3,6 +3,7 @@ import { ValidationBadge } from '@/components/validation/ValidationBadge';
 import { buildRouteWeather, type PuntoInterrogato, type SerieOraria } from '@/lib/route-weather';
 import type { Waypoint, Leg } from '@/lib/types';
 import type { ValidationResult } from '@/lib/types';
+import { useUIStore } from '@/stores/uiStore';
 
 const mockFetchRouteForecast = jest.fn();
 jest.mock('@/lib/weather-api', () => ({
@@ -15,6 +16,15 @@ jest.mock('@/lib/weather-api', () => ({
  * difetti di calcolo: i numeri erano giusti, era la **frase** a essere sbagliata.
  * Trovati provando l'app a mano dopo la 0.13.2.
  */
+/*
+ * Profilo Imparo: dalla v0.15 la validazione e' un'area del profilo didattico, e col
+ * profilo Montagna i badge non si montano affatto (i valori li calcola l'app, non c'e'
+ * nulla da verificare). Questi test parlano dei badge, quindi vivono in Imparo.
+ */
+beforeEach(() => {
+  useUIStore.setState({ profilo: 'imparo' });
+});
+
 describe('il dettaglio di validazione parla italiano', () => {
   const risultato = (over: Partial<ValidationResult> = {}): ValidationResult => ({
     status: 'error',

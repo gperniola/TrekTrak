@@ -3,6 +3,16 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, expect, test, beforeEach } from '@jest/globals';
 import { ValidationBadge } from '@/components/validation/ValidationBadge';
 import type { ValidationResult } from '@/lib/types';
+import { useUIStore } from '@/stores/uiStore';
+
+/*
+ * Profilo Imparo: dalla v0.15 la validazione e' un'area del profilo didattico, e col
+ * profilo Montagna i badge non si montano affatto (i valori li calcola l'app, non c'e'
+ * nulla da verificare). Questi test parlano dei badge, quindi vivono in Imparo.
+ */
+beforeEach(() => {
+  useUIStore.setState({ profilo: 'imparo' });
+});
 
 describe('ValidationBadge', () => {
   test('renders nothing when result is undefined', () => {
