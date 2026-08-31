@@ -63,3 +63,20 @@ export function distanza(valoreKm: number, decimaliKm = 1): string {
   if (!Number.isFinite(valoreKm)) return '—';
   return Math.abs(valoreKm) < 1 ? metri(Math.round(valoreKm * 1000)) : km(valoreKm, decimaliKm);
 }
+
+/**
+ * Un orario in **ora italiana**, sempre.
+ *
+ * Sta qui perche' "come si scrive una cosa per chi legge in italiano" e' lo stesso
+ * mestiere dei numeri, e perche' il fuso e' la famiglia di difetti piu' ripetuta di
+ * questo progetto: quattro punti dell'app formattavano orari, e uno — la riga
+ * "Aggiornato alle" dei layer di emergenza — si era dimenticato `timeZone`, quindi su
+ * un dispositivo non italiano scriveva l'ora del telefono mentre tutto il resto
+ * scriveva quella delle montagne.
+ */
+export function oraItaliana(quando: string | number | Date): string {
+  const d = quando instanceof Date ? quando : new Date(quando);
+  return Number.isNaN(d.getTime())
+    ? '—'
+    : d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' });
+}

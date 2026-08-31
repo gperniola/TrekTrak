@@ -1,3 +1,4 @@
+import { oraItaliana } from './formato';
 import type { Waypoint, Leg } from './types';
 
 /**
@@ -337,13 +338,13 @@ function fineGiornoItaliano(d: Date): Date {
   return new Date(inizioGiornoItaliano(d).getTime() + 24 * 3600000 - 1);
 }
 
-/** Orari sempre in ora italiana: e' il fuso della montagna e di chi legge. */
-export function oraItaliana(iso: string): string {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime())
-    ? '—'
-    : d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' });
-}
+/**
+ * Orari sempre in ora italiana: e' il fuso della montagna e di chi legge.
+ *
+ * L'implementazione vive in `formato.ts`, con gli altri modi di scrivere le cose;
+ * resta esportata da qui perche' e' da qui che la importano il pannello e i test.
+ */
+export { oraItaliana };
 
 /**
  * La fine di una finestra e' ESCLUSIVA: una fascia che comprende l'ultima ora della
