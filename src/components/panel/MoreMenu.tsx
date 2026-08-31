@@ -10,6 +10,7 @@ import { SheetHandle } from '@/components/shared/SheetHandle';
 import { useSheetDrag } from '@/lib/useSheetDrag';
 import { useSchermoPiccolo } from '@/lib/useSchermoPiccolo';
 import { mostra } from '@/lib/profilo';
+import { ProfiloSwitch } from '@/components/shared/ProfiloSwitch';
 
 /** Menu "Altro" della bottom nav (mobile): meteo + export del percorso corrente. */
 export function MoreMenu() {
@@ -76,6 +77,12 @@ export function MoreMenu() {
         className="absolute left-2 right-2 bottom-[60px] bg-gray-800 border border-gray-600 rounded-lg shadow-xl p-1 space-y-0.5"
       >
         <SheetHandle gesto={propsManiglia} />
+        {/*
+          L'interruttore del profilo come PRIMA voce: e' la scelta che decide tutte le
+          altre, e nascosta nelle impostazioni non si troverebbe.
+        */}
+        <ProfiloSwitch />
+        <div className="border-b border-gray-700 my-0.5" />
         {/* Meteo e GPX seguono il profilo; i due PDF restano in entrambi. */}
         {mostra('meteo', profilo) && (
           <button role="menuitem" disabled={!meteoUrl} onClick={handleMeteo} className={itemCls}>☀️ Meteo del percorso</button>

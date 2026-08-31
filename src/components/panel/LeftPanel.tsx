@@ -12,6 +12,7 @@ import { RouteLibrary } from './RouteLibrary';
 import { BrandMark } from '@/components/shared/BrandMark';
 import { useUIStore } from '@/stores/uiStore';
 import { mostra } from '@/lib/profilo';
+import { ProfiloSwitch } from '@/components/shared/ProfiloSwitch';
 
 export function LeftPanel({ className, showSwitch = true, viewOverride }: {
   className?: string;
@@ -38,6 +39,10 @@ export function LeftPanel({ className, showSwitch = true, viewOverride }: {
         <RouteLibrary />
       ) : (
         <>
+          {/* Su schermo grande l'interruttore del profilo sta sopra quello Learn/Track. */}
+          <div className="hidden lg:block border-b border-gray-700 pb-1 mb-1">
+            <ProfiloSwitch />
+          </div>
           <ModeSwitch />
           <ItineraryHeader />
           <div className="flex border-b border-gray-700" role="tablist" aria-label="Vista waypoint">
