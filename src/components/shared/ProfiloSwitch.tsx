@@ -59,6 +59,13 @@ export function ProfiloSwitch() {
     <div>
       <button
         onClick={cambia}
+        /*
+         * Il nome accessibile dice l'AZIONE e poi lo stato. Il testo a schermo
+         * ("Modalita': Imparo") va benissimo per chi vede — e' un'etichetta di stato
+         * accanto a un comando — ma da solo, letto ad alta voce, sembra un'informazione e
+         * non un pulsante che cambia qualcosa.
+         */
+        aria-label={`Cambia modalità d'uso, adesso: ${ETICHETTE_PROFILO[profilo]}`}
         className="w-full text-left px-3 min-h-[44px] flex items-center gap-2 text-sm text-gray-200 rounded hover:bg-white/5"
       >
         🎛️ Modalità: <strong className="font-semibold">{ETICHETTE_PROFILO[profilo]}</strong>

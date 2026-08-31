@@ -19,7 +19,7 @@ const ProgressOverlay = dynamic(() => import('@/components/panel/ProgressOverlay
 // Load di `/`: è un controllo d'avvio, non serve al primo paint.
 const DpcPositionWarning = dynamic(() => import('@/components/shared/DpcPositionWarning').then((m) => ({ default: m.DpcPositionWarning })), { ssr: false });
 import { loadSettings, KEYS } from '@/lib/storage';
-import { profiloIniziale } from '@/lib/startup-profilo';
+import { profiloIniziale, profiloPerInvito } from '@/lib/startup-profilo';
 import { loadCurrent } from '@/lib/current-itinerary';
 import { useItineraryAutosave } from '@/lib/useItineraryAutosave';
 import { startupAction } from '@/lib/startup-itinerary';
@@ -77,6 +77,17 @@ export default function Home() {
   // registrazione/accesso ha la precedenza: sopprimiamo l'onboarding di prima
   // visita (tutorial + What's New) per non sovrapporlo.
   const inInviteFlow = invited && !isMember;
+
+  /*
+   * Un invito alla libreria condivisa ha la precedenza sul profilo: la libreria e' area
+   * di Montagna, e chi apre un link di invito non deve trovare l'app che gli nasconde
+   * proprio la cosa per cui e' stato invitato.
+   */
+  useEffect(() => {
+    if (!inInviteFlow) return;
+    const voluto = profiloPerInvito(useUIStore.getState().profilo, true);
+    if (voluto !== useUIStore.getState().profilo) useUIStore.getState().setProfilo(voluto);
+  }, [inInviteFlow]);
 
   // Initialize auth store once on mount (session, invite, member).
   useEffect(() => { void useAuthStore.getState().init(); }, []);

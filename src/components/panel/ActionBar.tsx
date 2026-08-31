@@ -393,7 +393,13 @@ export function ActionBar() {
         tooltip non esiste, quindi l'utente vedeva quattro pulsanti spenti e nessuna
         spiegazione. `aria-describedby` lo lega ai pulsanti per chi usa uno screen reader.
       */}
-      {(!canExportPdf || !canExportGpx) && (
+      {/*
+        La nota guarda solo i pulsanti VISIBILI in questo profilo. In Imparo il GPX non
+        c'e', quindi con due waypoint senza coordinate diceva «servono waypoint con
+        coordinate» mentre le uniche voci a schermo — i due PDF — funzionavano: un
+        messaggio che parla di funzioni che il profilo ha tolto di mezzo.
+      */}
+      {(!canExportPdf || (datiVisibili && !canExportGpx)) && (
         <p id="motivo-export" className="text-[11px] text-amber-300/90 bg-amber-950/40 border border-amber-800/60 rounded px-2 py-1.5">
           {waypoints.length < 2
             ? 'Aggiungi almeno 2 waypoint per esportare o condividere.'
@@ -459,7 +465,13 @@ export function ActionBar() {
         )}
       </div>
       {/* Attività didattiche (verifica + progresso). TASK-42: separate dagli export. */}
-      <div role="group" aria-label="Attività" className="flex flex-wrap gap-2">
+      {/*
+        Verifica e Progresso sono entrambe aree di Imparo: in Montagna il gruppo era
+        SEMPRE vuoto. Un `div` vuoto dentro `space-y-2` si porta comunque il suo margine,
+        e per chi usa uno screen reader era un gruppo annunciato col suo nome e senza
+        niente dentro. Se non c'e' contenuto non c'e' contenitore.
+      */}
+      {mostra('progresso', profilo) && <div role="group" aria-label="Attività" className="flex flex-wrap gap-2">
         {appMode === 'learn' && mostra('validazione', profilo) && (
           <button
             onClick={handleVerify}
@@ -483,7 +495,7 @@ export function ActionBar() {
             </button>
           );
         })()}
-      </div>
+      </div>}
       {mostra('progresso', profilo) && loadValidationHistory().length === 0 && loadQuizHistory().length === 0 && (
         <p id="motivo-progresso" className="text-[11px] text-gray-400">
           Il Progresso si sblocca dopo la prima verifica o il primo quiz.

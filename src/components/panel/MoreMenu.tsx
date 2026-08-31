@@ -97,7 +97,10 @@ export function MoreMenu() {
           era quattro voci spente e nessuna spiegazione, e su un telefono non c'e'
           tooltip che possa dirlo.
         */}
-        {(!canPdf || !canGpx || !meteoUrl) && (
+        {/* Come in ActionBar: si guardano solo le voci visibili in questo profilo. */}
+        {(!canPdf
+          || (mostra('exportDati', profilo) && !canGpx)
+          || (mostra('meteo', profilo) && !meteoUrl)) && (
           <p className="px-3 py-2 text-[11px] text-amber-300/90 leading-snug">
             {waypoints.length < 2
               ? 'Aggiungi almeno 2 waypoint sulla mappa per usare queste voci.'

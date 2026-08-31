@@ -178,11 +178,18 @@ export function ItineraryHeader() {
             <button onClick={handleExportJSON} className="px-2 py-1 bg-gray-700 rounded-lg text-xs transition-all active:scale-[0.97] hover:bg-gray-600 max-lg:min-h-[44px] max-lg:min-w-[44px]" title="Esporta JSON" aria-label="Esporta JSON">
               ↓
             </button>
-            <button onClick={handleImportJSON} className="px-2 py-1 bg-gray-700 rounded-lg text-xs transition-all active:scale-[0.97] hover:bg-gray-600 max-lg:min-h-[44px] max-lg:min-w-[44px]" title="Importa JSON" aria-label="Importa JSON">
-              ↑
-            </button>
           </>
         )}
+        {/*
+          L'IMPORTAZIONE non e' un export: e' il modo in cui il lavoro entra. In Imparo la
+          libreria condivisa non c'e', il GPX non c'e', il link non c'e' — e senza questo
+          pulsante non restava nessun modo di aprire un itinerario ricevuto come file.
+          Stessa regola del link di invito: un modo che semplifica non deve rendere l'app
+          incapace di RICEVERE.
+        */}
+        <button onClick={handleImportJSON} className="px-2 py-1 bg-gray-700 rounded-lg text-xs transition-all active:scale-[0.97] hover:bg-gray-600 max-lg:min-h-[44px] max-lg:min-w-[44px]" title="Importa JSON" aria-label="Importa JSON">
+          ↑
+        </button>
       </div>
       <div className="px-3 pb-3">
         <input

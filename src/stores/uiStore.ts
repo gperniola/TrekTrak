@@ -1,4 +1,4 @@
-import { type Profilo } from '@/lib/profilo';
+import { mostra, type Profilo } from '@/lib/profilo';
 import { KEYS } from '@/lib/storage';
 import { create } from 'zustand';
 
@@ -74,6 +74,17 @@ export const useUIStore = create<UIState>((set, get) => ({
     if (p === 'imparo' && inLibreria) {
       set({ mobileTab: 'map', mainView: 'editor' });
     }
+    /*
+     * Gli overlay che il nuovo profilo non prevede si CHIUDONO, non solo smettono di
+     * disegnarsi. Non e' rifinitura: `backDepth` in page.tsx conta `quizActive`,
+     * `progressOpen`, `weatherOpen` e `emergencyPanelOpen` per sapere quanti passi di
+     * cronologia servono al tasto Indietro. Uno stato acceso e invisibile darebbe un
+     * passo fantasma, ed e' la classe di difetto che e' costata sei versioni.
+     */
+    if (!mostra('quiz', p)) set({ quizActive: false });
+    if (!mostra('progresso', p)) set({ progressOpen: false });
+    if (!mostra('meteo', p)) set({ weatherOpen: false });
+    if (!mostra('layerEmergenza', p)) set({ emergencyPanelOpen: false });
     set({ profilo: p });
     // Nessun dato viene cancellato: si scrive solo la preferenza.
     try { localStorage.setItem(KEYS.profilo, p); } catch { /* storage non disponibile */ }

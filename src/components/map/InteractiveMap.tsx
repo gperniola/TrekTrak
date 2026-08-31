@@ -28,6 +28,7 @@ import { ProfileHoverMarker } from './ProfileHoverMarker';
 import { QuizBoundsSync } from './QuizBoundsSync';
 import { useRouteLibraryStore } from '@/stores/routeLibraryStore';
 import { PreviewRouteLayer } from './PreviewRouteLayer';
+import { mostra } from '@/lib/profilo';
 
 const EmergencyLayers = dynamic(() => import('./emergency/EmergencyLayers'), { ssr: false });
 
@@ -112,6 +113,7 @@ function WaypointQuickActions({ wpId }: { wpId: string }) {
 
 export function InteractiveMap() {
   const compassActive = useUIStore((s) => s.compassActive);
+  const profiloAttivo = useUIStore((s) => s.profilo);
   const rulerActive = useUIStore((s) => s.rulerActive);
   const deactivateCompass = useUIStore((s) => s.deactivateCompass);
   const deactivateRuler = useUIStore((s) => s.deactivateRuler);
@@ -190,7 +192,15 @@ export function InteractiveMap() {
         />
       )}
       {showCoordinateGrid && <CoordinateGrid />}
-      <EmergencyLayers />
+      {/*
+        Terzo ingresso dei layer di emergenza, dopo il pulsante e il pannello: qui si
+        montano i layer VERI. Senza questa guardia, in Imparo restavano disegnati sulla
+        mappa e continuavano a scaricare, mentre il pulsante per spegnerli era nascosto.
+        Si guarda il punto di montaggio e non l'interno del componente: dentro, la
+        guardia dovrebbe stare dopo gli hook, e l'effetto che riattiva i layer girerebbe
+        comunque.
+      */}
+      {mostra('layerEmergenza', profiloAttivo) && <EmergencyLayers />}
       <GeolocateOnMount />
       <LocationSearch mobileSearchOpen={searchOpen} />
 

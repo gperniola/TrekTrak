@@ -4,6 +4,67 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.15.1] — 2026-08-31 — Undici correzioni dalla modalità
+
+Tre giri di review approfondita sulla modalità d'uso appena rilasciata. I primi due
+cercavano **aree chiuse in un ingresso e aperte in un altro**; il terzo la classe
+opposta: **cosa resta a schermo quando un'area sparisce**.
+
+### Fixed
+- **La guida di primo avvio raccontava funzioni che la modalità appena scelta aveva
+  nascosto**, ed era il posto peggiore possibile: la scelta *«Sto imparando» / «Sono
+  esperto»* sta al primo schermo della guida stessa. Chi rispondeva «sono esperto» si
+  vedeva spiegare, nei due schermi immediatamente dopo, l'interruttore Learn/Track e il
+  pulsante «Verifica» — le due cose che l'app gli aveva appena tolto — e più avanti il
+  Quiz. A chi imparava, la guida prometteva «Copia link», che in «Imparo» non c'è.
+
+  Ora ogni passo sa a quale modalità appartiene. Il primo contatto è di 4 schermi in
+  «Imparo» e 3 in «Vado in montagna», dove al posto di Learn/Track e Verifica c'è
+  «Pronto per la gita», che indica il meteo del percorso e il pulsante dei layer sulla
+  mappa. Il Quiz ha un passo suo, «Condividi» si è staccato da «Usa l'app offline»
+  perché il link è un export, e il disegnino della barra strumenti non disegna più il
+  quiz e l'interruttore quando non ci sono.
+
+- **La scheda «Libreria» su schermo grande si accendeva senza fare niente.** Guardava
+  solo l'accesso e non la modalità, mentre il pannello ha una guardia che in «Imparo»
+  mostra l'editor: la scheda si sottolineava di verde e a schermo non cambiava nulla. Un
+  comando che dichiara di aver funzionato senza aver funzionato è peggio sia di averlo
+  che di non averlo.
+
+- **Un link di invito alla libreria condivisa ora impone «Vado in montagna».** La
+  libreria è un'area di quella modalità, quindi chi apriva un invito trovandosi in
+  «Imparo» vedeva l'app nascondergli proprio la cosa per cui era stato invitato.
+
+- **Si può importare un itinerario da file anche in «Imparo».** L'importazione non è un
+  export — è il modo in cui il lavoro *entra* — ed era stata portata via insieme agli
+  export per vicinanza: senza libreria condivisa, GPX né link, non restava alcun modo di
+  aprire un itinerario ricevuto come file.
+
+- **I layer di emergenza non restavano più accesi sulla mappa in «Imparo».** Il pulsante
+  e il pannello erano nascosti, ma i layer veri si montavano comunque: il radar della
+  pioggia continuava a disegnarsi e a scaricare, l'attribuzione citava RainViewer, e il
+  comando per spegnerlo non c'era. Nella stessa famiglia: l'avviso di allerta alla
+  posizione non scarica più il bollettino in «Imparo».
+
+- **Le note che spiegano i pulsanti spenti parlavano di pulsanti inesistenti.** Con due
+  waypoint senza coordinate, in «Imparo» la nota diceva «per il GPX servono waypoint con
+  coordinate» mentre le uniche voci a schermo — i due PDF — funzionavano benissimo.
+
+- **Cambiando modalità si chiudono i pannelli che l'altra non prevede.** Restavano
+  aperti e invisibili, e il tasto Indietro contava un passo che non c'era.
+
+- **Via due contenitori vuoti**: in «Vado in montagna» su telefono la barra dei modi era
+  un rettangolo vuoto con una riga di separazione in mezzo al nulla, e il gruppo
+  «Attività» era sempre vuoto perché Verifica e Progresso sono entrambe di «Imparo».
+
+### Changed
+- Il nome accessibile dell'interruttore di modalità dice l'azione e poi lo stato
+  («Cambia modalità d'uso, adesso: Imparo»): letto ad alta voce, «Modalità: Imparo»
+  sembrava un'informazione e non un comando.
+- Il benvenuto della guida nomina entrambi gli usi dell'app, perché la scelta sta subito
+  sotto: dire solo «impara la cartografia manuale» era la prima frase letta anche da chi
+  stava per rispondere «sono esperto».
+
 ## [0.15.0] — 2026-08-31 — Due modi di usare l'app
 
 ### Added

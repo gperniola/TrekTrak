@@ -21,6 +21,14 @@ export function ModeSwitch() {
   const deactivateQuiz = useUIStore((s) => s.deactivateQuiz);
 
   const isTrack = appMode === 'track';
+  /*
+   * Sotto `lg` questa barra ha due contenuti possibili, e in Montagna nessuno dei due:
+   * la toolbar degli strumenti e' `hidden lg:flex` e l'interruttore Learn/Track e' di
+   * Imparo. Restava un rettangolo vuoto con padding e `border-b`, cioe' una riga di
+   * separazione in mezzo al nulla in cima al pannello Editor. Si nasconde in CSS e non
+   * misurando lo schermo in JS: nessun rischio di sfasatura all'idratazione.
+   */
+  const vuotaSuTelefono = !mostra('switchLearnTrack', profilo);
 
   const handleToggle = (mode: AppMode) => {
     // Clicking Learn or Track deactivates compass, ruler, and quiz
@@ -34,7 +42,7 @@ export function ModeSwitch() {
   };
 
   return (
-    <div className="flex items-center px-3 py-2 border-b border-gray-700 gap-1">
+    <div className={`flex items-center px-3 py-2 border-b border-gray-700 gap-1${vuotaSuTelefono ? ' max-lg:hidden' : ''}`}>
       {/* TASK-40: ogni tool ha icona + etichetta testuale (i soli glifi ◎ ↕ ? erano ambigui). */}
       <div role="toolbar" aria-label="Strumenti mappa" className="hidden lg:flex items-center gap-1">
         <button
