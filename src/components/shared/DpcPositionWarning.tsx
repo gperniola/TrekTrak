@@ -64,6 +64,12 @@ export function DpcPositionWarning() {
   const [chiuso, setChiuso] = useState(false);
 
   useEffect(() => {
+    /*
+     * Fuori dal profilo Montagna non si scarica nemmeno: la guardia sul render sta dopo
+     * gli hook — un hook non si puo' saltare — quindi senza questa riga in Imparo il
+     * manifest DPC veniva scaricato per un avviso che nessuno avrebbe visto.
+     */
+    if (!mostra('allertaPosizione', profilo)) return;
     if (posizione == null) return;   // nessuna posizione: nessun avviso, e nessun prompt
     // Offline i dati di emergenza sono esclusi dalla cache per scelta, quindi non c'è
     // nulla da consultare: inutile avviare una catena condannata.
@@ -109,7 +115,7 @@ export function DpcPositionWarning() {
     })();
 
     return () => controller.abort();
-  }, [posizione, online, dpcInStore, layerAttivo]);
+  }, [posizione, online, dpcInStore, layerAttivo, profilo]);
 
   if (alert == null || chiuso) return null;
 
