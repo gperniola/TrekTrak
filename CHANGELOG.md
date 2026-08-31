@@ -4,6 +4,51 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.15.2] — 2026-08-31 — Ripari che rispondono, editor che si legge
+
+### Fixed
+- **Il layer dei rifugi non va più in errore, e la causa non era nel codice.** La query
+  e il parser erano giusti: sbagliata era la *porta*. Su una normale rete domestica
+  italiana il router distribuisce il dominio di ricerca `homenet.telecomitalia.it`, e
+  `overpass-api.de` — che ha **un solo punto** — viene provato prima col suffisso:
+  `overpass-api.de.homenet.telecomitalia.it`, che il DNS dell'operatore risolve con un
+  jolly a **127.0.0.1**. La richiesta finiva su sé stessa e restava appesa.
+
+  Era l'unico indirizzo dell'app con un punto solo — tutti gli altri ne hanno almeno due
+  e vengono risolti per quello che sono. Per questo cadeva soltanto questo layer, e per
+  questo la correzione dell'ordine delle regole del service worker (v0.13.5) non poteva
+  bastare: riguardava la cache, non il nome.
+
+  Ora l'app non ha un indirizzo ma **un elenco di porte provate in ordine**, e ricorda
+  sul dispositivo quella che ha funzionato: l'attesa si paga una volta, non a ogni
+  avvio. Misurato sulla rete vera: primo avvio 8 secondi, poi risposta in 465 ms con 39
+  rifugi; al secondo avvio la richiesta parte diretta sulla porta buona.
+
+- **Il quiz è tornato ad avere vette e rifugi veri.** Usa la stessa fonte, e con l'unico
+  indirizzo di prima non riceveva nulla: ripiegava **in silenzio** su punti casuali, e
+  la cosa non si vedeva perché il quiz partiva lo stesso.
+
+### Changed
+- **In modalità Track l'editor mostra valori, non caselle.** Erano **25 caselle a
+  schermo, 24 delle quali non scrivibili**, ciascuna col suo bordo e il suo pulsante ⓘ —
+  24 pulsanti ⓘ in tutto — e due schermate di scorrimento per vedere quattro waypoint.
+  Il difetto in una riga: *una casella in cui non si può scrivere non è una casella*.
+
+  Adesso ogni waypoint è una riga — numero, nome, quota — con sotto i quattro numeri
+  della tratta scritti per esteso (`1,42 km · 34° NE · +205 m · 0 m`). Coordinate,
+  pendenza, tempo stimato e la rinomina si aprono toccando la riga, una per volta, com'è
+  già il pannello dei layer. Risultato: **una casella sola** (il nome dell'itinerario) e
+  l'itinerario intero in una schermata, con riepilogo ed export ancora visibili.
+
+  Vale per la modalità, non per il profilo: migliora anche chi sta in «Imparo» e passa a
+  Track per confrontare i propri valori con quelli reali. In Learn le schede coi campi
+  restano esattamente com'erano.
+
+- **I numeri dell'editor sono scritti all'italiana** anche qui (`1,42 km`, `2.130 m`):
+  dentro le caselle di sola lettura era rimasta la scrittura inglese. E «non lo so» e
+  «zero» ora si scrivono diversi: `n/d` contro `0 m` — una tratta in piano dichiarava
+  `−0 m`, che si legge «meno zero».
+
 ## [0.15.1] — 2026-08-31 — Undici correzioni dalla modalità
 
 Tre giri di review approfondita sulla modalità d'uso appena rilasciata. I primi due

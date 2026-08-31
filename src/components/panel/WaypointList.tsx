@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -21,16 +21,42 @@ import { useItineraryStore } from '@/stores/itineraryStore';
 import { toast } from '@/stores/notificationStore';
 import { WaypointCard } from './WaypointCard';
 import { LegCard } from './LegCard';
-import type { Waypoint } from '@/lib/types';
+import { TrackWaypointRow } from './TrackWaypointRow';
+import type { Leg, Waypoint } from '@/lib/types';
 
-function SortableWaypoint({ waypoint, legAfter }: { waypoint: Waypoint; legAfter?: React.ReactNode }) {
+/**
+ * In Track waypoint e tratta stanno in UNA riga compatta (`TrackWaypointRow`), perche'
+ * i valori li calcola l'app e non c'e' niente da scriverci; in Learn restano le due
+ * schede coi campi, che e' il mestiere di quella modalita'.
+ */
+function SortableWaypoint({ waypoint, leg, legAfter, compatta, aperta, onApri }: {
+  waypoint: Waypoint;
+  leg?: Leg;
+  legAfter?: React.ReactNode;
+  compatta: boolean;
+  aperta: boolean;
+  onApri: (id: string | null) => void;
+}) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: waypoint.id });
   const style = { transform: CSS.Transform.toString(transform), transition };
+  const maniglia = { ...attributes, ...listeners };
 
   return (
     <div ref={setNodeRef} style={style}>
-      <WaypointCard waypoint={waypoint} dragHandleProps={{ ...attributes, ...listeners }} />
-      {legAfter}
+      {compatta ? (
+        <TrackWaypointRow
+          waypoint={waypoint}
+          leg={leg}
+          aperta={aperta}
+          onApri={onApri}
+          dragHandleProps={maniglia}
+        />
+      ) : (
+        <>
+          <WaypointCard waypoint={waypoint} dragHandleProps={maniglia} />
+          {legAfter}
+        </>
+      )}
     </div>
   );
 }
@@ -41,6 +67,8 @@ export function WaypointList() {
   const addWaypoint = useItineraryStore((s) => s.addWaypoint);
   const reorderWaypoints = useItineraryStore((s) => s.reorderWaypoints);
   const isTrack = useItineraryStore((s) => s.appMode) === 'track';
+  /** Una riga aperta per volta: lo stesso schema del pannello dei layer (v0.14.0). */
+  const [apertaId, setApertaId] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -75,7 +103,11 @@ export function WaypointList() {
               <SortableWaypoint
                 key={wp.id}
                 waypoint={wp}
+                leg={leg}
                 legAfter={leg ? <LegCard leg={leg} /> : undefined}
+                compatta={isTrack}
+                aperta={apertaId === wp.id}
+                onApri={setApertaId}
               />
             );
           })}

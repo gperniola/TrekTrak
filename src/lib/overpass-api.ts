@@ -1,4 +1,11 @@
-const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
+import { interrogaOverpass } from './overpass';
+
+/*
+ * L'indirizzo non sta piu' qui: le porte di Overpass e l'ordine in cui provarle stanno
+ * in `lib/overpass.ts`. Con l'unico indirizzo di prima, su una rete che risolve
+ * `overpass-api.de` a 127.0.0.1 questa funzione restituiva sempre `[]` e il quiz
+ * ripiegava **in silenzio** su punti casuali al posto di vette e rifugi veri.
+ */
 const TIMEOUT_MS = 8000;
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -156,33 +163,15 @@ export async function fetchHikingPOIs(bounds: OverpassBounds): Promise<HikingPOI
     return cached.pois;
   }
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-
   try {
-    const query = buildOverpassQuery(bounds);
-    const body = `data=${encodeURIComponent(query)}`;
-
-    const response = await fetch(OVERPASS_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': 'TrekTrak/1.0 (didactic cartography app)',
-      },
-      body,
-      signal: controller.signal,
-    });
-
-    if (!response.ok) return [];
-
-    const data = await response.json();
-    const pois = parseOverpassResponse(data);
-
+    const { dati } = await interrogaOverpass(buildOverpassQuery(bounds), { timeoutMs: TIMEOUT_MS });
+    const pois = parseOverpassResponse(dati);
     cache.set(key, { pois, expiresAt: now + CACHE_TTL_MS });
     return pois;
   } catch {
+    // Il quiz sa cavarsela senza: `pickQuizPoint` ripiega su punti casuali. Resta un
+    // ripiego silenzioso, ma qui e' una scelta — il quiz non deve rifiutarsi di partire
+    // perche' OpenStreetMap non risponde.
     return [];
-  } finally {
-    clearTimeout(timer);
   }
 }

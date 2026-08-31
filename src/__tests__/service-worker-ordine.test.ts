@@ -1,5 +1,6 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { ENDPOINT_OVERPASS } from '@/lib/overpass';
 
 /**
  * Nelle regole del service worker **vince la prima che corrisponde**, e
@@ -53,8 +54,9 @@ describe('ordine delle regole del service worker', () => {
     const righe = righeRegole();
     const iDefault = righe.findIndex((r) => r.includes('...defaultCache'));
     const prima = righe.slice(0, iDefault).join('\n');
-    // Overpass mette in coda e la nostra query gli concede 20 secondi
-    expect(prima).toMatch(/overpass-api\\?\.de/);
+    // Overpass mette in coda e la nostra query gli concede 20 secondi. La regola non
+    // nomina piu' un host: si ricava dall'elenco delle porte (vedi il test sotto).
+    expect(prima).toMatch(/hostOverpass/);
     // i dati di emergenza non vanno mai serviti da cache
     expect(prima).toMatch(/fires\|dpc-alerts/);
     expect(prima).toMatch(/rainviewer/);
@@ -64,12 +66,27 @@ describe('ordine delle regole del service worker', () => {
     expect(prima).toMatch(/pcm-dpc/);
   });
 
+  /**
+   * Le porte di Overpass sono un elenco (`lib/overpass.ts`) perche' su una normale rete
+   * domestica italiana `overpass-api.de` viene risolto a 127.0.0.1. La regola del worker
+   * si RICAVA da quell'elenco: se nominasse gli host a mano, una porta aggiunta domani
+   * cadrebbe nel `defaultCache` con un'ora di cache.
+   */
+  test('la regola del worker copre tutte le porte Overpass, non un host scritto a mano', () => {
+    const sw = readFileSync(join(process.cwd(), 'src', 'app', 'sw.ts'), 'utf8');
+    expect(sw).toContain('const hostOverpass = new Set(ENDPOINT_OVERPASS.map');
+    expect(sw).toContain('matcher: ({ url }) => hostOverpass.has(url.hostname)');
+    for (const e of ENDPOINT_OVERPASS) {
+      expect(sw).not.toContain(new URL(e).hostname);
+    }
+  });
+
   test('la query dei ripari e il worker sono d accordo sul tempo concesso', () => {
     const ripari = readFileSync(join(process.cwd(), 'src', 'lib', 'shelters-api.ts'), 'utf8');
     // la query dichiara un timeout a Overpass: il worker non deve tagliarlo prima
     expect(ripari).toMatch(/\[timeout:20\]/);
     const righe = righeRegole();
-    const rigaOverpass = righe.find((r) => /overpass/i.test(r)) ?? '';
+    const rigaOverpass = righe.find((r) => /hostOverpass/.test(r)) ?? '';
     expect(rigaOverpass).toContain('NetworkOnly');
   });
 });
