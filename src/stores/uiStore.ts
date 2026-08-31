@@ -47,7 +47,7 @@ interface UIState {
   setWeatherOpen: (open: boolean) => void;
 }
 
-export const useUIStore = create<UIState>((set) => ({
+export const useUIStore = create<UIState>((set, get) => ({
   compassActive: false,
   rulerActive: false,
   quizActive: false,
@@ -65,6 +65,15 @@ export const useUIStore = create<UIState>((set) => ({
    */
   profilo: 'montagna',
   setProfilo: (p) => {
+    /*
+     * Chi era in Libreria e passa a Imparo resterebbe su una vista che non esiste piu':
+     * lo si riporta alla mappa e all'editor. Non e' una cancellazione — i percorsi
+     * salvati restano dove sono, cambia solo dove ci si trova.
+     */
+    const inLibreria = get().mobileTab === 'library' || get().mainView === 'library';
+    if (p === 'imparo' && inLibreria) {
+      set({ mobileTab: 'map', mainView: 'editor' });
+    }
     set({ profilo: p });
     // Nessun dato viene cancellato: si scrive solo la preferenza.
     try { localStorage.setItem(KEYS.profilo, p); } catch { /* storage non disponibile */ }

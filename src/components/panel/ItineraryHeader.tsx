@@ -11,6 +11,7 @@ import { useUIStore } from '@/stores/uiStore';
 import { useRouteLibraryStore } from '@/stores/routeLibraryStore';
 import { useAuthStore } from '@/stores/authStore';
 import type { Leg } from '@/lib/types';
+import { mostra } from '@/lib/profilo';
 
 export function ItineraryHeader() {
   const itineraryId = useItineraryStore((s) => s.itineraryId);
@@ -24,6 +25,9 @@ export function ItineraryHeader() {
   const resetItinerary = useItineraryStore((s) => s.resetItinerary);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const setMainView = useUIStore((s) => s.setMainView);
+  const profilo = useUIStore((s) => s.profilo);
+  const libreriaVisibile = mostra('libreria', profilo);
+  const datiVisibili = mostra('exportDati', profilo);
   const member = useAuthStore((s) => s.member);
 
   // Strip large/derived fields before persisting (storage and JSON export).
@@ -127,20 +131,25 @@ export function ItineraryHeader() {
         </p>
       )}
       <div className="p-3 flex items-center justify-end gap-1">
-        <button
-          onClick={handleSave}
-          disabled={!member}
-          aria-describedby={!member ? 'motivo-salva' : undefined}
-          className={member
-            ? 'px-2.5 py-1 bg-gradient-to-r from-green-500 to-emerald-600 text-gray-950 font-semibold rounded-lg text-xs shadow-sm transition-all active:scale-[0.97] hover:from-green-400 hover:to-emerald-500 max-lg:min-h-[44px]'
-            : 'px-2.5 py-1 bg-gray-700/60 text-gray-500 rounded-lg text-xs cursor-not-allowed max-lg:min-h-[44px]'}
-          aria-label="Salva itinerario"
-        >
-          Salva
-        </button>
-        <button onClick={() => setMainView('library')} className="px-2 py-1 bg-gray-700 rounded-lg text-xs transition-all active:scale-[0.97] hover:bg-gray-600 max-lg:min-h-[44px]" aria-label="Apri libreria percorsi">
-          Carica
-        </button>
+        {/* Salva e Carica sono la libreria CONDIVISA: seguono il profilo. */}
+        {libreriaVisibile && (
+          <>
+            <button
+              onClick={handleSave}
+              disabled={!member}
+              aria-describedby={!member ? 'motivo-salva' : undefined}
+              className={member
+                ? 'px-2.5 py-1 bg-gradient-to-r from-green-500 to-emerald-600 text-gray-950 font-semibold rounded-lg text-xs shadow-sm transition-all active:scale-[0.97] hover:from-green-400 hover:to-emerald-500 max-lg:min-h-[44px]'
+                : 'px-2.5 py-1 bg-gray-700/60 text-gray-500 rounded-lg text-xs cursor-not-allowed max-lg:min-h-[44px]'}
+              aria-label="Salva itinerario"
+            >
+              Salva
+            </button>
+            <button onClick={() => setMainView('library')} className="px-2 py-1 bg-gray-700 rounded-lg text-xs transition-all active:scale-[0.97] hover:bg-gray-600 max-lg:min-h-[44px]" aria-label="Apri libreria percorsi">
+              Carica
+            </button>
+          </>
+        )}
         <button
           onClick={async () => {
             if (waypoints.length > 0) {
@@ -159,12 +168,16 @@ export function ItineraryHeader() {
         >
           Nuovo
         </button>
-        <button onClick={handleExportJSON} className="px-2 py-1 bg-gray-700 rounded-lg text-xs transition-all active:scale-[0.97] hover:bg-gray-600 max-lg:min-h-[44px] max-lg:min-w-[44px]" title="Esporta JSON" aria-label="Esporta JSON">
-          ↓
-        </button>
-        <button onClick={handleImportJSON} className="px-2 py-1 bg-gray-700 rounded-lg text-xs transition-all active:scale-[0.97] hover:bg-gray-600 max-lg:min-h-[44px] max-lg:min-w-[44px]" title="Importa JSON" aria-label="Importa JSON">
-          ↑
-        </button>
+        {datiVisibili && (
+          <>
+            <button onClick={handleExportJSON} className="px-2 py-1 bg-gray-700 rounded-lg text-xs transition-all active:scale-[0.97] hover:bg-gray-600 max-lg:min-h-[44px] max-lg:min-w-[44px]" title="Esporta JSON" aria-label="Esporta JSON">
+              ↓
+            </button>
+            <button onClick={handleImportJSON} className="px-2 py-1 bg-gray-700 rounded-lg text-xs transition-all active:scale-[0.97] hover:bg-gray-600 max-lg:min-h-[44px] max-lg:min-w-[44px]" title="Importa JSON" aria-label="Importa JSON">
+              ↑
+            </button>
+          </>
+        )}
       </div>
       <div className="px-3 pb-3">
         <input

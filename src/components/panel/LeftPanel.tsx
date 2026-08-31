@@ -11,6 +11,7 @@ import { MainViewSwitch } from './MainViewSwitch';
 import { RouteLibrary } from './RouteLibrary';
 import { BrandMark } from '@/components/shared/BrandMark';
 import { useUIStore } from '@/stores/uiStore';
+import { mostra } from '@/lib/profilo';
 
 export function LeftPanel({ className, showSwitch = true, viewOverride }: {
   className?: string;
@@ -19,7 +20,13 @@ export function LeftPanel({ className, showSwitch = true, viewOverride }: {
 }) {
   const [view, setView] = useState<'edit' | 'table'>('edit');
   const mainView = useUIStore((s) => s.mainView);
-  const activeView = viewOverride ?? mainView;
+  const profilo = useUIStore((s) => s.profilo);
+  /*
+   * Guardia per chi arriva qui con la vista libreria mentre il profilo non la prevede:
+   * si mostra l'editor invece di una vista che in questo profilo non esiste.
+   */
+  const richiesta = viewOverride ?? mainView;
+  const activeView = richiesta === 'library' && !mostra('libreria', profilo) ? 'editor' : richiesta;
 
   return (
     <div className={`${className ?? 'w-full h-[50vh] lg:h-full lg:w-[380px]'} flex flex-col bg-gray-900 border-r border-gray-700`}>
