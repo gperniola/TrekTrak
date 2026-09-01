@@ -57,3 +57,22 @@ Memoria utente: "Personal use context". L'i18n potrebbe essere overkill se l'app
 - `backlog/docs/feature-suggestions.md` D3
 - next-intl docs: https://next-intl-docs.vercel.app/
 <!-- SECTION:DESCRIPTION:END -->
+
+## Analisi 2026-09-01 — misurato, e rimandato
+
+Il task e' stato **misurato prima di toccare codice**, e l'analisi sta in
+`backlog/decisions/2026-09-01-i18n-non-adesso.md`. In sintesi: 252 stringhe brevi di
+interfaccia (etichette, `aria-label`, messaggi) e **2.756 stringhe lunghe**, cioe' prosa,
+concentrate in sei moduli — guida, novita', glossario, legende dei layer, quiz,
+suggerimenti didattici. Cento file contengono testo italiano.
+
+La raccomandazione e' **non farlo adesso**, per quattro ragioni misurabili: il testo di
+quest'app e' la funzione e non l'etichetta; l'estrazione contraddice `lib/formato.ts`,
+scritto a mano proprio per non dipendere dai dati di lingua; il criterio «imperiale vs
+metrico» cambierebbe cosa l'app insegna; e non esiste un utente non italofono ne' un
+canale da cui possa arrivare.
+
+**La decisione resta aperta**: la pagina dice anche come si farebbe, se servisse, e in che
+ordine. Il task non e' chiuso perche' non e' stato deciso di rinunciarci — e' stato deciso
+di non farlo alla cieca.
+
