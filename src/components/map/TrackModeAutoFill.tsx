@@ -25,7 +25,8 @@ export function TrackModeAutoFill() {
       if (routingChanged) {
         const store = useItineraryStore.getState();
         store.legs.forEach((leg) => {
-          store.updateLeg(leg.id, { routeGeometry: undefined, elevationProfile: undefined });
+          // Pulizia prima di ricalcolare: e' lavoro del programma, non un gesto.
+          store.updateLeg(leg.id, { routeGeometry: undefined, elevationProfile: undefined }, { calcolata: true });
         });
         autoFillAllTrackData();
       } else {

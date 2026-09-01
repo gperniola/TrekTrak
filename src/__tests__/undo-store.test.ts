@@ -145,3 +145,32 @@ describe('quando la storia riparte da capo', () => {
     expect(puoRifare(store().storia)).toBe(false);
   });
 });
+
+/**
+ * Trovato **solo a schermo**, provando l'app: dopo aver messo un punto sulla mappa,
+ * «Annulla» diceva «modifica del waypoint» e il primo colpo toglieva il NOME invece del
+ * punto — perché il nome lo scrive il geocoder inverso un istante dopo, e per il mio
+ * criterio un cambio di nome è un gesto.
+ *
+ * Nessun test poteva vederlo: nella suite il geocoder non gira. Ecco perché la regola
+ * «cosa è un gesto» non si verifica solo leggendo il codice.
+ */
+describe('il nome messo dal geocoder', () => {
+  test('non aggiunge un passo alla storia', () => {
+    store().addWaypointAtPosition(45, 7);
+    const passiDopoAggiunta = store().storia.passi.length;
+    const id = store().waypoints[0].id;
+    // come fa `MapEvents` quando la geocodifica inversa risponde
+    store().updateWaypoint(id, { name: 'Colle San Paolo' }, { calcolata: true });
+    expect(store().storia.passi.length).toBe(passiDopoAggiunta);
+    expect(store().waypoints[0].name).toBe('Colle San Paolo');
+  });
+
+  test('un colpo solo di annulla toglie il punto, nome compreso', () => {
+    store().addWaypointAtPosition(45, 7);
+    const id = store().waypoints[0].id;
+    store().updateWaypoint(id, { name: 'Colle San Paolo' }, { calcolata: true });
+    store().annulla();
+    expect(store().waypoints).toHaveLength(0);
+  });
+});

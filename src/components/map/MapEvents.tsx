@@ -45,7 +45,13 @@ export function MapEvents() {
           while (taken.has(`${name} (${n})`)) n++;
           finalName = `${name} (${n})`;
         }
-        useItineraryStore.getState().updateWaypoint(wpId, { name: finalName });
+        /*
+         * Il nome arriva dal geocoder, non da chi tocca la mappa: `calcolata` lo tiene
+         * fuori dalla storia di annulla/rifai. Visto solo a schermo — dopo aver messo un
+         * punto, «Annulla» diceva «modifica del waypoint» e il primo colpo toglieva il
+         * nome invece del punto, costringendo a premere due volte per disfare un gesto.
+         */
+        useItineraryStore.getState().updateWaypoint(wpId, { name: finalName }, { calcolata: true });
       });
     },
     contextmenu() {
