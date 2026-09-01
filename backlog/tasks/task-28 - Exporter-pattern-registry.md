@@ -1,7 +1,7 @@
 ---
 id: TASK-28
 title: Pattern Exporter (registry per formati di esportazione)
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-05-15 19:00'
 labels:
@@ -60,3 +60,14 @@ ordinal: 28000
 - `src/lib/export-json.ts`, `src/lib/export-gpx.ts`
 - `backlog/docs/persona-usability-tests.md` A.5
 <!-- SECTION:DESCRIPTION:END -->
+
+## Chiusura 2026-09-01 (v0.16.0)
+
+Fatto, KML compreso. La scelta di forma che conta: un exporter non dichiara
+`disponibile: boolean` ma **`impedimento(itinerario): string | null`**, cioe' la ragione
+per cui adesso non si puo'. Con un booleano la spiegazione andrebbe riscritta a mano da
+ogni chiamante, e prima o poi in modo diverso dalla condizione vera.
+
+Nella barra i formati stanno dietro una tendina invece di un pulsante ciascuno: erano
+destinati a crescere, e una fila di pulsanti verdi e' cio' che quel pannello ha smesso di
+fare nella v0.14.0. Il PDF resta fuori dal registry (ha varianti e non produce testo).

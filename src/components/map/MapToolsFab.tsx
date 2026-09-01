@@ -59,6 +59,7 @@ export function MapToolsFab() {
         </button>
       ))}
       <button
+        data-guida="strumenti"
         onClick={() => setOpen(!open)}
         aria-label={open ? 'Chiudi strumenti' : 'Apri strumenti mappa'}
         aria-expanded={open}

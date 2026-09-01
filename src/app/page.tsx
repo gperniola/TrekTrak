@@ -40,8 +40,11 @@ import { MoreMenu } from '@/components/panel/MoreMenu';
 const RouteWeatherPanel = dynamic(() => import('@/components/weather/RouteWeatherPanel').then((m) => ({ default: m.RouteWeatherPanel })), { ssr: false });
 import { nextBackAction } from '@/lib/back-nav';
 import { confirm as appConfirm, toast } from '@/stores/notificationStore';
+import { useTema } from '@/lib/useTema';
 
 export default function Home() {
+  // L'aspetto va applicato sempre, non solo quando il pannello e' aperto (task-35).
+  useTema();
   const [showSettings, setShowSettings] = useState(false);
   const [showMapSettings, setShowMapSettings] = useState(false);
 
@@ -366,7 +369,8 @@ export default function Home() {
             (map + elevation strip) and be fully scrollable on its own. */}
         <div className="relative flex-1 flex flex-col min-h-0">
           {/* Map */}
-          <div className="flex-1 relative min-h-0 overflow-hidden">
+          {/* `data-guida`: la guida puo' indicare questo riquadro (task-38). */}
+          <div data-guida="mappa" className="flex-1 relative min-h-0 overflow-hidden">
             <MapWrapper />
             <MapToolsFab />
 
@@ -401,7 +405,7 @@ export default function Home() {
           </div>
 
           {/* Elevation Profile — in library mode mostra il profilo del percorso selezionato */}
-          <div className="h-[100px] lg:h-[120px] bg-gray-900 border-t border-gray-700 shrink-0">
+          <div data-guida="profilo" className="h-[100px] lg:h-[120px] bg-gray-900 border-t border-gray-700 shrink-0">
             {mainView === 'library'
               ? (previewRoute
                   ? <PreviewElevationProfile route={previewRoute} />

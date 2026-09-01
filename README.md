@@ -194,6 +194,28 @@ FIRMS_MAP_KEY=la_tua_api_key
 
 Senza API key, l'app funziona comunque con OpenTopoMap come mappa e calcoli in linea d'aria.
 
+### Test
+
+Due suite, con due mestieri diversi.
+
+```bash
+npm test              # unitari e di componente (jsdom), ~1400 casi in una trentina di secondi
+npm run test:e2e      # end-to-end in un browser vero (Playwright + Chromium)
+npm run test:e2e:ui   # gli stessi, in modalità interattiva
+npm run check         # tipi (app, test, e2e) + ESLint + unitari
+```
+
+**Perché servono entrambe.** Gli unitari verificano le invarianti che si sono pensate; gli
+end-to-end guardano cosa succede a schermo. La differenza non è teorica: questa app ha
+avuto millequattrocento test verdi mentre mostrava ventiquattro caselle in cui non si
+poteva scrivere, prometteva nella guida funzioni appena nascoste, e dichiarava guasto un
+layer il cui unico problema era un nome DNS. Nessuno di quei difetti era invisibile: erano
+invisibili *ai test*.
+
+Gli scenari end-to-end **fingono tutta la rete** (mattonelle, geocodifica, quote,
+Overpass, layer di emergenza): devono dire se l'app funziona, non se oggi Nominatim
+risponde. Il primo avvio richiede `npx playwright install chromium`.
+
 #### Perché due chiavi sono `NEXT_PUBLIC_` e una no
 
 `NEXT_PUBLIC_ORS_API_KEY` e `NEXT_PUBLIC_THUNDERFOREST_API_KEY` **finiscono nel bundle

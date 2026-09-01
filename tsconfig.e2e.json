@@ -1,0 +1,12 @@
+{
+  // I test end-to-end stanno fuori da `src`, quindi fuori sia dal tsconfig dell'app sia
+  // da quello dei test unitari: hanno i loro tipi (Playwright porta i suoi) e non devono
+  // rendere visibili `describe`/`expect` di jest al codice di produzione.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "noEmit": true
+  },
+  "include": ["e2e/**/*.ts", "playwright.config.ts"],
+  "exclude": ["node_modules"]
+}

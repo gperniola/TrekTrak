@@ -1,7 +1,7 @@
 ---
 id: TASK-38
 title: Tutorial in side panel invece di modal centrale
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-05-15 19:00'
 labels:
@@ -41,3 +41,18 @@ ordinal: 38000
 
 - Affine a [[task-16-tutorial-glossary-profile-choice]] (entrambe ridisegnano l'onboarding)
 <!-- SECTION:DESCRIPTION:END -->
+
+## Chiusura 2026-09-01 (v0.17.0)
+
+Fatto. La guida era una modale col velo nero: al secondo passo diceva «tocca la mappa»
+**coprendo la mappa**. Ora e' un pannello — a destra su schermo grande, foglio in basso su
+telefono, con il trascinamento degli altri fogli — e la mappa dietro resta visibile e
+utilizzabile. Via `aria-modal`, la trappola del fuoco e il blocco dello scorrimento: un
+pannello che lascia usare l'app non deve trattenere il Tab.
+
+In piu' di quanto chiedeva il piano: i passi **indicano** l'elemento di cui parlano
+(`data-guida` + contorno verde), con `outline` e non `border` per non spostare il layout,
+e fermo per chi ha chiesto meno movimento.
+
+Verificato a schermo: 436 px di mappa liberi sopra il pannello, e **un clic sulla mappa
+crea il waypoint mentre la guida e' aperta**.

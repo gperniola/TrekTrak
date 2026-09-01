@@ -8,6 +8,7 @@ import { parseDecimale } from '@/components/shared/NumberInput';
 import { DEFAULT_PACE } from '@/lib/types';
 import type { ToleranceSettings as TolSettings } from '@/lib/types';
 import { numero } from '@/lib/formato';
+import { SceltaTema } from '@/components/shared/SceltaTema';
 
 export function ToleranceSettings({ onClose }: { onClose: () => void }) {
   const settings = useItineraryStore((s) => s.settings);
@@ -98,6 +99,14 @@ export function ToleranceSettings({ onClose }: { onClose: () => void }) {
             <span className="text-green-400 font-bold">{numero(paceFactor, 2)}×</span>
             <span>1.5× pesante</span>
           </div>
+        </div>
+        {/*
+          L'aspetto si applica al tocco e si salva da se': non aspetta il «Salva» in
+          fondo, che riguarda le tolleranze. Un colore che cambia solo dopo aver
+          confermato costringe a scegliere alla cieca.
+        */}
+        <div className="border-t border-gray-700 mt-5 pt-4">
+          <SceltaTema />
         </div>
         <div className="border-t border-gray-700 mt-5 pt-4">
           <button

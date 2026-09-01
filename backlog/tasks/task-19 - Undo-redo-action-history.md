@@ -1,7 +1,7 @@
 ---
 id: TASK-19
 title: Undo / Redo con stack di history sull'itinerario
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-05-15 19:00'
 labels:
@@ -61,3 +61,15 @@ Oggi ogni azione (add/remove waypoint, edit name, reorder, edit field) è immedi
 - `backlog/docs/persona-usability-tests.md` B.4, D.7
 - `backlog/docs/feature-suggestions.md` B2
 <!-- SECTION:DESCRIPTION:END -->
+
+## Chiusura 2026-09-01 (v0.16.0)
+
+Fatto, con una decisione che il task non prevedeva e che si e' rivelata la parte
+difficile: **cosa conta come gesto**. Restano fuori dalla storia i valori che calcola
+l'app in Track (`{ calcolata: true }` sulle otto scritture di `auto-fill` e le due della
+verifica), i giudizi della verifica, lo scambio Learn/Track, il ripristino
+dell'autosalvataggio, e **il nome che trova la geocodifica inversa** — quest'ultimo
+scoperto solo provando l'app: il primo colpo di annulla toglieva il nome invece del punto.
+
+Le scorciatoie non scattano dentro un campo di testo: li' Ctrl+Z deve annullare le
+lettere battute. Logica pura in `stores/itinerary/storia.ts`, 9 + 15 + 9 test.

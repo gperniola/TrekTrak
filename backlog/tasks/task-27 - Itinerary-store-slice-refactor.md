@@ -1,7 +1,7 @@
 ---
 id: TASK-27
 title: Refactor itineraryStore in slice (waypoints / legs / settings / profileHover)
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-05-15 19:00'
 labels:
@@ -47,3 +47,15 @@ ordinal: 27000
 - Ideale prima di [[task-15-non-destructive-learn-track-switch]] (rende meno doloroso espandere il modello)
 - Ideale prima di [[task-19-undo-redo-action-history]]
 <!-- SECTION:DESCRIPTION:END -->
+
+## Chiusura 2026-09-01 (v0.16.0)
+
+Fatto, con una deviazione dichiarata: **waypoint e tratte non sono divisi**. Una tratta
+esiste *fra* due waypoint consecutivi, quindi ogni aggiunta o rimozione e' per forza un
+fatto di entrambi, e separarli avrebbe prodotto due pezzi che si chiamano a vicenda a
+ogni gesto.
+
+Quello che si poteva davvero estrarre — ed e' il guadagno vero — era la ricostruzione
+della catena delle tratte, scritta **tre volte** quasi identica, con una differenza
+silenziosa fra le copie. Ora e' `catenaTratte`, con la differenza resa esplicita da un
+parametro e nove test suoi. Nessun cambio di API: i 1335 test sono passati invariati.

@@ -22,3 +22,9 @@ token-hash
 
 # Local lighthouse reports & screenshots (regenerable)
 backlog/docs/screenshots/
+
+# Playwright: esiti, tracce e schermate dei fallimenti
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
