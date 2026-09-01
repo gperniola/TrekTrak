@@ -1,3 +1,4 @@
+import type { Tema } from './tema';
 import type { EmergencyLayerId } from './emergency-layers';
 
 export type ValidationStatus = 'unverified' | 'valid' | 'warning' | 'error';
@@ -221,6 +222,12 @@ export interface AppSettings {
   tolerances: ToleranceSettings;
   mapDisplay: MapDisplaySettings;
   pace?: PaceSettings;
+  /**
+   * Aspetto: chiaro, scuro o come il sistema (task-35). Facoltativo perche' le
+   * impostazioni salvate prima della v0.17 non lo hanno, e assente vale «come il
+   * sistema».
+   */
+  tema?: Tema;
 }
 
 export const DEFAULT_TOLERANCES: ToleranceSettings = {

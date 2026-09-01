@@ -40,8 +40,11 @@ import { MoreMenu } from '@/components/panel/MoreMenu';
 const RouteWeatherPanel = dynamic(() => import('@/components/weather/RouteWeatherPanel').then((m) => ({ default: m.RouteWeatherPanel })), { ssr: false });
 import { nextBackAction } from '@/lib/back-nav';
 import { confirm as appConfirm, toast } from '@/stores/notificationStore';
+import { useTema } from '@/lib/useTema';
 
 export default function Home() {
+  // L'aspetto va applicato sempre, non solo quando il pannello e' aperto (task-35).
+  useTema();
   const [showSettings, setShowSettings] = useState(false);
   const [showMapSettings, setShowMapSettings] = useState(false);
 

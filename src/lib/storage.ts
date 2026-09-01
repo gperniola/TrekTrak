@@ -2,6 +2,7 @@ import type { Itinerary, AppSettings, ValidationSession, Waypoint, Leg, RouteCom
 import { DEFAULT_TOLERANCES, DEFAULT_MAP_DISPLAY, BASE_MAPS, SAMPLE_INTERVAL_OPTIONS } from './types';
 import { computeRouteMetrics } from './calculations';
 import { isEmergencyLayerId } from './emergency-layers';
+import { TEMI, type Tema } from './tema';
 
 export const SCHEMA_VERSION = 3;
 
@@ -254,6 +255,23 @@ export function loadSettings(): AppSettings {
           })
         ),
       },
+      /*
+       * Passo personale e tema si conservano se sono **plausibili**, e si perdono in
+       * silenzio se non lo sono: un fattore di andatura assurdo falserebbe ogni stima, e
+       * un tema sconosciuto vale «come il sistema».
+       *
+       * `pace` era gia' sparito a ogni riavvio: questa funzione ricostruisce l'oggetto da
+       * zero con due soli campi, quindi chi si era tarato l'andatura la ritrovava a 1,0 al
+       * lancio dopo. E' la stessa classe di difetto del livello utente scritto e mai
+       * riletto (v0.11.8) e del campo `slim` (v0.13.1): scritto, ignorato, invisibile.
+       */
+      ...(typeof parsed?.pace?.factor === 'number'
+        && Number.isFinite(parsed.pace.factor)
+        && parsed.pace.factor >= 0.5
+        && parsed.pace.factor <= 2
+        ? { pace: { factor: parsed.pace.factor } }
+        : {}),
+      ...(TEMI.includes(parsed?.tema) ? { tema: parsed.tema as Tema } : {}),
     };
     // Drop any persisted emergency layer id no longer present in the registry
     // (e.g. removed/renamed layer between app versions).

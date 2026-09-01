@@ -1,0 +1,87 @@
+/*
+ * I token del tema (task-35).
+ *
+ * Ogni valore e' in **canali** (`74 222 128`) e non in esadecimale, perche' Tailwind
+ * possa comporli con l'opacita': `bg-white/5` diventa `rgb(var(--bianco) / 0.05)`.
+ *
+ * Il tema scuro sta su `:root` e porta i valori originali di Tailwind — cioe' l'app
+ * com'era. Il tema chiaro **rovescia la scala grigia**: quello che era il fondo diventa
+ * il testo e viceversa. Non c'e' niente da cambiare nei componenti.
+ */
+
+:root {
+  /* --- scuro: la scala di Tailwind, invariata --- */
+  --grigio-100: 243 244 246;
+  --grigio-200: 229 231 235;
+  --grigio-300: 209 213 219;
+  --grigio-400: 156 163 175;
+  --grigio-500: 107 114 128;
+  --grigio-600: 75 85 99;
+  --grigio-700: 55 65 81;
+  --grigio-800: 31 41 55;
+  --grigio-900: 17 24 39;
+  --grigio-950: 3 7 18;
+  --bianco: 255 255 255;
+
+  /* accenti usati come TESTO sul fondo della pagina */
+  --verde-300: 134 239 172;
+  --verde-400: 74 222 128;
+  --rosso-200: 254 202 202;
+  --rosso-300: 252 165 165;
+  --rosso-400: 248 113 113;
+  --ambra-100: 254 243 199;
+  --ambra-300: 252 211 77;
+  --ambra-400: 251 191 36;
+  --blu-300: 147 197 253;
+  --blu-400: 96 165 250;
+  --giallo-300: 253 224 71;
+  --viola-300: 216 180 254;
+  --viola-400: 192 132 252;
+  --arancio-300: 253 186 116;
+
+  /* il fondo della mappa, mentre le mattonelle arrivano */
+  --fondo-mappa: #1a1a2e;
+}
+
+:root[data-tema='chiaro'] {
+  /*
+   * La scala rovesciata. Non e' uno specchio esatto: gli estremi sono ammorbiditi —
+   * `grigio-950` diventa un bianco caldo invece del bianco puro, e `grigio-100` un nero
+   * ammorbidito — perche' il nero pieno su bianco pieno affatica, e questa e' un'app che
+   * si legge al sole con gli occhi stanchi.
+   */
+  --grigio-100: 17 24 39;
+  --grigio-200: 31 41 55;
+  --grigio-300: 55 65 81;
+  --grigio-400: 75 85 99;
+  --grigio-500: 90 99 114;
+  --grigio-600: 203 209 217;
+  --grigio-700: 226 232 240;
+  --grigio-800: 241 245 249;
+  --grigio-900: 248 250 252;
+  --grigio-950: 255 255 255;
+  /* Nel chiaro il «bianco» e' il colore del testo acceso: diventa quasi nero. */
+  --bianco: 15 23 42;
+
+  /*
+   * Accenti piu' cupi: `text-green-400` sul bianco sarebbe illeggibile. Le tonalita' sono
+   * quelle 700/800 di Tailwind, scelte perche' il test del contrasto le approva.
+   */
+  --verde-300: 21 128 61;
+  --verde-400: 21 128 61;
+  --rosso-200: 153 27 27;
+  --rosso-300: 185 28 28;
+  --rosso-400: 185 28 28;
+  --ambra-100: 146 64 14;
+  /* 161 98 7 dava 4,49:1 sulle schede — un centesimo sotto la soglia. Misurato, non visto. */
+  --ambra-300: 133 77 14;
+  --ambra-400: 180 83 9;
+  --blu-300: 29 78 216;
+  --blu-400: 29 78 216;
+  --giallo-300: 161 98 7;
+  --viola-300: 126 34 206;
+  --viola-400: 126 34 206;
+  --arancio-300: 194 65 12;
+
+  --fondo-mappa: #e8eaf0;
+}
