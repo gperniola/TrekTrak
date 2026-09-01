@@ -4,6 +4,20 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.17.2] — 2026-09-01 — La classe che non esisteva
+
+### Fixed
+- **Il testo sopra i pulsanti colorati non aveva colore.** La correzione della v0.17.1
+  introduceva una classe nuova, usata in venticinque punti, la cui definizione è però
+  rimasta fuori dal pacchetto: la classe non generava nessuna regola, e quegli elementi
+  ereditavano il colore di ciò che li conteneva — nel tema chiaro, testo scuro sopra un
+  pulsante viola, che è esattamente il difetto che quella versione doveva risolvere.
+
+  La variabile c'era, il test del contrasto era verde e il pacchetto si costruiva senza
+  lamentarsi: mancava solo il ponte fra la classe che i componenti scrivono e il colore che
+  il generatore di stili conosce. Ora un controllo verifica quel ponte, e ferma qualunque
+  colore inventato che non sia dichiarato.
+
 ## [0.17.1] — 2026-09-01 — Tre correzioni dal consolidamento
 
 Review del lavoro delle due versioni precedenti, cercando per prime le classi di difetto
