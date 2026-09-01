@@ -4,6 +4,60 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.16.0] — 2026-09-01 — Si torna indietro, e si incollano le coordinate
+
+Cinque voci di arretrato chiuse in un colpo: due si vedono, tre stanno sotto e servono a
+quello che verrà dopo.
+
+### Added
+- **Annulla e rifai.** Fino a cinquanta passi indietro, con Ctrl/Cmd+Z e Ctrl/Cmd+Maiusc+Z,
+  e **i pulsanti dicono cosa annullano**: «Annulla: rimozione del waypoint», non «Annulla».
+  Chi preme quel tasto di solito lo fa proprio perché non è più sicuro di cosa ha appena
+  combinato.
+
+  Nella storia entrano solo i gesti veri: aggiungere, togliere, spostare, rinominare,
+  riordinare, scrivere un valore a mano. Restano fuori i valori che calcola l'app in
+  modalità Track, i giudizi della verifica e il nome che trova la geocodifica — non sono
+  cose che qualcuno ha *fatto*, e annullarle non risponderebbe a nessuna domanda. Le
+  scorciatoie non scattano mentre si scrive in un campo: lì Ctrl+Z deve annullare le
+  lettere, come fa il browser.
+
+- **Si possono incollare le coordinate.** Prima l'unico modo di mettere un punto con
+  precisione era toccare la mappa col dito: chi arrivava con una coordinata già in mano —
+  da una relazione, da una guida, dal messaggio di un compagno — doveva cercare il posto a
+  occhio.
+
+  Ora si incolla, in una qualunque delle forme in cui una coordinata si trova scritta:
+  `42.4419, 13.5595`, `42,4419 13,5595` all'italiana, `42° 26' 30" N, 13° 33' 34" E`,
+  `N 42 26.514, E 13 33.570`, con le lettere in italiano o in inglese e anche in ordine
+  invertito. **Si vede dove finirà il punto mentre si scrive**, e un testo che non è una
+  coordinata lo dichiara invece di lasciar premere un pulsante che non farebbe niente.
+
+- **Un avviso quando si ingrandisce oltre il dettaglio della mappa.** Su una carta si è
+  abituati al contrario — più ci si avvicina, più si vede — ma oltre un certo punto il
+  server non ha altre mattonelle e quelle che ci sono vengono stirate: l'immagine diventa
+  più grande, non più precisa. Le quattro mappe si fermano a punti diversi (22, 20, 19,
+  17), e l'avviso dice quale e dove.
+
+- **Un formato in più per esportare: KML**, per vedere il percorso drappeggiato sul
+  rilievo in Google Earth. I formati stanno ora dietro una voce «Esporta», e ognuno dice a
+  cosa serve e — se è spento — perché.
+
+- **«Su questo tipo di errore stai migliorando»** compare nel dettaglio di una verifica
+  sbagliata, quando lo storico lo dice davvero: servono almeno sei sessioni su quel campo
+  e un calo di almeno un quinto. Un incoraggiamento dato sul rumore sarebbe una frase
+  falsa.
+
+### Fixed
+- L'istogramma delle ultime sessioni nel Progresso, per la categoria «distanza», era una
+  fila di barre tutte uguali qualunque fosse il miglioramento: le medie venivano
+  arrotondate al chilometro, quindi ogni errore sotto i 500 metri valeva zero.
+
+### Changed
+- Lo store dell'itinerario è diviso in parti (nessun cambiamento visibile: 1335 test
+  passati invariati), e la ricostruzione della catena delle tratte — che era scritta tre
+  volte quasi identica — ora è una funzione sola.
+
 ## [0.15.3] — 2026-09-01 — Le parole si possono chiedere
 
 ### Added
