@@ -29,6 +29,7 @@ import { QuizBoundsSync } from './QuizBoundsSync';
 import { useRouteLibraryStore } from '@/stores/routeLibraryStore';
 import { PreviewRouteLayer } from './PreviewRouteLayer';
 import { mostra } from '@/lib/profilo';
+import { MaxZoomHint } from './MaxZoomHint';
 
 const EmergencyLayers = dynamic(() => import('./emergency/EmergencyLayers'), { ssr: false });
 
@@ -203,6 +204,12 @@ export function InteractiveMap() {
       {mostra('layerEmergenza', profiloAttivo) && <EmergencyLayers />}
       <GeolocateOnMount />
       <LocationSearch mobileSearchOpen={searchOpen} />
+      {/*
+        Le quattro mappe hanno limiti di dettaglio diversi (22, 20, 19, 17): oltre il
+        loro zoom nativo le mattonelle si stirano, e su una carta ci si aspetta il
+        contrario — piu' ci si avvicina, piu' si vede.
+      */}
+      <MaxZoomHint baseMap={baseMap} />
 
       {libraryPreview && previewRoute && <PreviewRouteLayer route={previewRoute} />}
 

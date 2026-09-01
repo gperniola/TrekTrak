@@ -5,6 +5,7 @@ import { useItineraryStore } from '@/stores/itineraryStore';
 import { saveRouteToCloud } from '@/lib/sync';
 import { computeRouteMetrics } from '@/lib/calculations';
 import { SaveRouteModal } from './SaveRouteModal';
+import { UndoRedo } from './UndoRedo';
 import { exportItineraryJSON, importItineraryJSON } from '@/lib/export-json';
 import { confirm as appConfirm, toast } from '@/stores/notificationStore';
 import { useUIStore } from '@/stores/uiStore';
@@ -136,6 +137,12 @@ export function ItineraryHeader() {
         </p>
       )}
       <div className="p-3 flex items-center justify-end gap-1">
+        {/*
+          Annulla/rifai a SINISTRA di tutto: sono i comandi che riguardano quello che si
+          e' appena fatto, mentre Salva, Carica e Nuovo riguardano l'itinerario intero.
+        */}
+        <UndoRedo />
+        <span className="flex-1" />
         {/* Salva e Carica sono la libreria CONDIVISA: seguono il profilo. */}
         {libreriaVisibile && (
           <>

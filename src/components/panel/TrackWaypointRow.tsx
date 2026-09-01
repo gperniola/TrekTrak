@@ -7,6 +7,8 @@ import { azimuthToCardinal } from '@/lib/calculations';
 import { formatTime } from '@/lib/format';
 import { dislivello, km, metri, numero, percento } from '@/lib/formato';
 import { confirm as appConfirm, toast } from '@/stores/notificationStore';
+import { IncollaCoordinate } from '@/components/shared/IncollaCoordinate';
+import { coordinataItaliana } from '@/lib/coordinate';
 
 /**
  * Waypoint e tratta successiva, **in modalità Track**: valori letti, non campi.
@@ -116,16 +118,21 @@ export function TrackWaypointRow({
             <span className="text-[11px] text-gray-400 tabular-nums" title="WGS84 — gradi decimali">
               {waypoint.lat == null || waypoint.lon == null
                 ? 'coordinate non ancora note'
-                : `${numero(Math.abs(waypoint.lat), 4)}° ${waypoint.lat >= 0 ? 'N' : 'S'}`
-                  + `  ${numero(Math.abs(waypoint.lon), 4)}° ${waypoint.lon >= 0 ? 'E' : 'O'}`}
+                : coordinataItaliana(waypoint.lat, waypoint.lon)}
             </span>
-            <button
-              onClick={() => setRinominando((p) => !p)}
-              className="text-[11px] text-gray-400 hover:text-gray-200 min-h-[32px] px-1 shrink-0"
-              aria-label={`Modifica nome di ${nome}`}
-            >
-              ✎ rinomina
-            </button>
+            <span className="flex items-center gap-1 shrink-0">
+              <IncollaCoordinate
+                compatto
+                onCoordinate={(c) => updateWaypoint(waypoint.id, { lat: c.lat, lon: c.lon })}
+              />
+              <button
+                onClick={() => setRinominando((p) => !p)}
+                className="text-[11px] text-gray-400 hover:text-gray-200 min-h-[32px] px-1"
+                aria-label={`Modifica nome di ${nome}`}
+              >
+                ✎ rinomina
+              </button>
+            </span>
           </div>
           {rinominando && (
             <input

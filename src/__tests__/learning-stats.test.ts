@@ -4,6 +4,7 @@ import {
   computeTrendData,
   computeCategoryStats,
   computeTrendDirection,
+  staMigliorando,
 } from '../lib/learning-stats';
 import type { ValidationSession } from '../lib/types';
 import type { QuizSession } from '../lib/quiz';
@@ -147,5 +148,62 @@ describe('computeCategoryStats', () => {
   test('returns empty stats when no data', () => {
     const result = computeCategoryStats([]);
     expect(result.altitude.count).toBe(0);
+  });
+});
+
+/**
+ * TASK-20 D. Il rinforzo positivo si appoggia a `recentDeltas`, che pero' arrotondava
+ * ogni media di sessione all'intero — lo stesso difetto gia' corretto su `avgDelta`. Per
+ * la categoria «distanza», misurata in km, significava che ogni errore sotto i 500 m
+ * diventava 0: l'istogramma delle ultime sessioni era una fila di barre uguali e la
+ * tendenza era illeggibile, qualunque fosse il miglioramento vero.
+ */
+describe('gli scarti per sessione non sono arrotondati', () => {
+  const sessione = (data: string, delta: number): ValidationSession => ({
+    date: data,
+    itineraryName: 'x',
+    results: [{ field: 'distance', status: 'warning', delta, tolerance: { strict: 0.1, loose: 0.3 } }],
+  });
+
+  test('un miglioramento sotto il chilometro resta visibile', () => {
+    const storia = [sessione('2026-01-01', 0.8), sessione('2026-01-02', 0.4), sessione('2026-01-03', 0.2)];
+    const deltas = computeCategoryStats(storia).distance.recentDeltas;
+    expect(deltas).toEqual([0.8, 0.4, 0.2]);
+    // prima dell'arrotondamento tolto sarebbero stati [1, 0, 0]
+    expect(deltas.every((d) => Number.isInteger(d))).toBe(false);
+  });
+});
+
+/**
+ * «Stai migliorando» detto sul rumore e' una frase falsa: serve abbastanza storia e un
+ * calo che si vede. E si dice solo il verso positivo — comunicare a qualcuno che sta
+ * peggiorando, subito dopo che ha sbagliato un valore, non lo aiuta a leggere una carta.
+ */
+describe('staMigliorando', () => {
+  test('con poche sessioni non si pronuncia', () => {
+    expect(staMigliorando([10, 9, 8, 7, 6])).toBe(false);
+    expect(staMigliorando([])).toBe(false);
+  });
+
+  test('un calo netto sulle ultime tre e un miglioramento', () => {
+    expect(staMigliorando([10, 10, 10, 4, 3, 2])).toBe(true);
+  });
+
+  test('un calo minimo non basta', () => {
+    // media prima 10, media dopo 9,5: sotto la soglia del quinto
+    expect(staMigliorando([10, 10, 10, 9.5, 9.5, 9.5])).toBe(false);
+  });
+
+  test('se si peggiora non si dice niente', () => {
+    expect(staMigliorando([2, 2, 2, 9, 9, 9])).toBe(false);
+  });
+
+  test('partendo da zero errori non si migliora', () => {
+    expect(staMigliorando([0, 0, 0, 0, 0, 0])).toBe(false);
+  });
+
+  test('guarda le ultime sei, non tutta la storia', () => {
+    // le prime tre sono pessime ma vecchie: contano le due terzine finali
+    expect(staMigliorando([99, 99, 99, 5, 5, 5, 1, 1, 1])).toBe(true);
   });
 });

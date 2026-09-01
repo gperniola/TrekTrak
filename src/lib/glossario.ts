@@ -17,6 +17,23 @@
  * distanza è quella che si ottiene con l'impostazione attiva.
  */
 
+/**
+ * Le sei classi della scala SAC in forma breve, quelle che il riquadro della difficolta'
+ * elenca a colpo d'occhio. Stanno qui e non nel componente perche' il glossario ha una
+ * voce sulla stessa scala: due elenchi in due file sono due elenchi che prima o poi
+ * dicono cose diverse. Un test verifica che coprano gli stessi sei gradi.
+ */
+export const LIVELLI_SAC = {
+  T1: 'Camminata — sentiero ben segnato',
+  T2: 'Sentiero di montagna — tratti meno definiti',
+  T3: 'Sentiero alpino impegnativo — passaggi esposti possibili',
+  T4: 'Alpino — capacità di orientamento richiesta',
+  T5: 'Alpinismo facile — passaggi tecnici',
+  T6: 'Alpinismo difficile',
+} as const;
+
+export type LivelloSac = keyof typeof LIVELLI_SAC;
+
 export type Termine =
   | 'azimut'
   | 'declinazione-magnetica'

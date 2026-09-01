@@ -1,7 +1,7 @@
 ---
 id: TASK-7
 title: Misc deferred polish items (ORS key docs, copy link tooltip, leaflet markers)
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-05-15 17:30'
 labels:
@@ -21,7 +21,7 @@ Raggruppa i deferred minori della campagna polish/v0.6.2 che non meritano una ta
 ## Sotto-task
 
 ### R3-05 — Documentare ORS API key client-side
-- [ ] Aggiungere sezione in `README.md` (o creare `docs/setup.md`) che spiega:
+- [x] Aggiungere sezione in `README.md` (o creare `docs/setup.md`) che spiega:
   - Perché `NEXT_PUBLIC_ORS_API_KEY` è esposta nel bundle client (pattern standard per ORS via CORS)
   - Come ottenere e limitare la propria key (dashboard ORS, restrizioni domain/referrer)
   - Cosa succede se manca (`isRoutingAvailable()` ritorna false, fallback a classic)
@@ -47,3 +47,17 @@ Raggruppa i deferred minori della campagna polish/v0.6.2 che non meritano una ta
 
 R7-05 e il commento in `.env.example` risultano già fatti (spuntati retroattivamente). **Resta da fare: la sezione README di R3-05 (perché la key ORS è esposta client-side e come limitarla per dominio — oggi il README copre solo il setup) e l'indagine R5-08 sugli aria-label dei marker Leaflet.**
 <!-- SECTION:DESCRIPTION:END -->
+
+## Chiusura 2026-09-01 (riconciliazione del backlog)
+
+R3-05 fatto: nel README, sotto le variabili d'ambiente, c'e' ora **«Perche' due chiavi
+sono `NEXT_PUBLIC_` e una no»** — perche' ORS e Thunderforest finiscono nel bundle (sono
+servizi che il browser interroga via CORS), come si limitano invece di nasconderle
+(tetto giornaliero e revoca su ORS, restrizione per referrer su Thunderforest), e cosa
+succede senza: `isRoutingAvailable()` torna `false`, «Percorso su sentiero» resta spenta
+e le distanze sono in linea d'aria. La sezione spiega anche il contrasto con
+`FIRMS_MAP_KEY`, che non ha il prefisso perche' NASA FIRMS non manda gli header CORS e
+la chiamata la fa il server.
+
+Gli altri tre sotto-task erano gia' chiusi. Task chiuso.
+

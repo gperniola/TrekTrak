@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { Waypoint } from '@/lib/types';
 import { NumberInput } from '@/components/shared/NumberInput';
+import { IncollaCoordinate } from '@/components/shared/IncollaCoordinate';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { confirm as appConfirm, toast } from '@/stores/notificationStore';
 
@@ -71,11 +72,18 @@ export function WaypointCard({ waypoint, dragHandleProps }: { waypoint: Waypoint
           />
         </div>
       )}
-      {waypoint.order === 0 && (
-        <div className="text-[10px] text-gray-500 mb-1" title="World Geodetic System 1984 — EPSG:4326">
-          Coordinate: <span className="text-gray-400 font-medium">WGS84</span> — gradi decimali
-        </div>
-      )}
+      <div className="flex items-center justify-between gap-2 mb-1">
+        {waypoint.order === 0 ? (
+          <span className="text-[10px] text-gray-500" title="World Geodetic System 1984 — EPSG:4326">
+            Coordinate: <span className="text-gray-400 font-medium">WGS84</span> — gradi decimali
+          </span>
+        ) : <span />}
+        {/*
+          Fino a ieri l'unico modo di mettere un punto con precisione era toccare la mappa:
+          chi arriva con una coordinata gia' in mano non aveva nessuna porta d'ingresso.
+        */}
+        <IncollaCoordinate onCoordinate={(c) => updateWaypoint(waypoint.id, { lat: c.lat, lon: c.lon })} />
+      </div>
       <div className="grid grid-cols-3 gap-2">
         <NumberInput
           label="Lat"

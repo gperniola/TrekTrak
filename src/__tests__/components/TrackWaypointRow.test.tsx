@@ -148,22 +148,31 @@ describe('la lista sceglie la forma in base alla modalita', () => {
     expect(screen.getAllByLabelText('Dist (km)').length).toBe(3);
   });
 
-  /** Una riga per volta: due aperte insieme rifarebbero il muro di prima. */
+  /**
+   * Una riga per volta: due aperte insieme rifarebbero il muro di prima.
+   *
+   * Le righe si scelgono per NOME e non per `expanded: false`: dal task-26 anche il
+   * pulsante «incolla coordinate» dichiara di potersi aprire, e prendere «il primo
+   * chiuso» pescherebbe quello.
+   */
+  const rigaDi = (nome: string) =>
+    screen.getAllByRole('button').find((b) => (b.textContent ?? '').includes(nome))!;
+
   test('aprendo una riga si chiude la precedente', () => {
     useItineraryStore.setState({ waypoints: quattro, legs: tratte, appMode: 'track' });
     render(<WaypointList />);
-    const righe = screen.getAllByRole('button', { expanded: false });
-    fireEvent.click(righe[0]);
+    fireEvent.click(rigaDi('Campo Imperatore'));
     expect(screen.getAllByRole('button', { expanded: true })).toHaveLength(1);
-    fireEvent.click(screen.getAllByRole('button', { expanded: false })[0]);
+    fireEvent.click(rigaDi('Sella di Monte Aquila'));
     expect(screen.getAllByRole('button', { expanded: true })).toHaveLength(1);
+    expect(rigaDi('Sella di Monte Aquila').getAttribute('aria-expanded')).toBe('true');
   });
 
   test('toccando di nuovo la stessa riga si chiude', () => {
     useItineraryStore.setState({ waypoints: quattro, legs: tratte, appMode: 'track' });
     render(<WaypointList />);
-    fireEvent.click(screen.getAllByRole('button', { expanded: false })[0]);
-    fireEvent.click(screen.getByRole('button', { expanded: true }));
+    fireEvent.click(rigaDi('Campo Imperatore'));
+    fireEvent.click(rigaDi('Campo Imperatore'));
     expect(screen.queryAllByRole('button', { expanded: true })).toHaveLength(0);
   });
 });
@@ -184,5 +193,45 @@ describe('il segno dei dislivelli', () => {
     render(<TrackWaypointRow waypoint={wp(0, 'A', 100)} leg={leg(0, { elevationGain: 205, elevationLoss: 12 })} aperta={false} onApri={() => {}} />);
     expect(screen.getByText('+205 m')).toBeInTheDocument();
     expect(screen.getByText('−12 m')).toBeInTheDocument();
+  });
+});
+
+/**
+ * TASK-26. Il pulsante di incolla sta nel dettaglio della riga in Track — il piano
+ * originale diceva «sbloccare i campi Lat/Lon», ma dalla v0.15.2 in Track quei campi non
+ * esistono: un campo in cui non si può scrivere non è un campo.
+ */
+describe('incollare le coordinate', () => {
+  test('nel dettaglio della riga c e il pulsante di incolla', () => {
+    render(<TrackWaypointRow waypoint={wp(0, 'A', 100)} aperta onApri={() => {}} />);
+    expect(screen.getByRole('button', { name: /Incolla coordinate/i })).toBeInTheDocument();
+  });
+
+  test('a riga chiusa non compare: e roba da dettaglio', () => {
+    render(<TrackWaypointRow waypoint={wp(0, 'A', 100)} aperta={false} onApri={() => {}} />);
+    expect(screen.queryByRole('button', { name: /Incolla coordinate/i })).not.toBeInTheDocument();
+  });
+
+  test('incollando in gradi primi secondi il waypoint si sposta', () => {
+    useItineraryStore.setState({ waypoints: [wp(0, 'A', 100, 0, 0)] });
+    render(<TrackWaypointRow waypoint={wp(0, 'A', 100, 0, 0)} aperta onApri={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: /Incolla coordinate/i }));
+    fireEvent.change(screen.getByLabelText('Coordinate da incollare'), {
+      target: { value: '42° 26\' 30.84" N, 13° 33\' 34.2" E' },
+    });
+    // si vede dove finira' prima di confermare
+    expect(screen.getByRole('status')).toHaveTextContent('42,4419° N');
+    fireEvent.click(screen.getByRole('button', { name: 'Posiziona qui' }));
+    const wpAggiornato = useItineraryStore.getState().waypoints[0];
+    expect(wpAggiornato.lat).toBeCloseTo(42.4419, 3);
+    expect(wpAggiornato.lon).toBeCloseTo(13.5595, 3);
+  });
+
+  test('un testo che non e una coordinata non si puo confermare', () => {
+    render(<TrackWaypointRow waypoint={wp(0, 'A', 100)} aperta onApri={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: /Incolla coordinate/i }));
+    fireEvent.change(screen.getByLabelText('Coordinate da incollare'), { target: { value: 'Campo Imperatore' } });
+    expect(screen.getByRole('status')).toHaveTextContent(/Non riconosciuto/);
+    expect(screen.getByRole('button', { name: 'Posiziona qui' })).toBeDisabled();
   });
 });

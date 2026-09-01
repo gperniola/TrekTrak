@@ -26,16 +26,17 @@ describe('gli export per profilo', () => {
     expect(screen.getByRole('button', { name: /PDF Roadbook/i })).toBeInTheDocument();
   });
 
-  test('in Imparo GPX, copia link e meteo non ci sono', () => {
+  test('in Imparo export, copia link e meteo non ci sono', () => {
     conProfilo('imparo');
-    expect(screen.queryByRole('button', { name: /^GPX$/ })).not.toBeInTheDocument();
+    // Dal task-28 i formati stanno dietro «Esporta ▾»: il profilo nasconde la tendina.
+    expect(screen.queryByRole('button', { name: /Esporta/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Copia link/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Meteo$/ })).not.toBeInTheDocument();
   });
 
   test('in Montagna ci sono tutti', () => {
     conProfilo('montagna');
-    expect(screen.getByRole('button', { name: /^GPX$/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Esporta/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Copia link/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Meteo$/ })).toBeInTheDocument();
   });

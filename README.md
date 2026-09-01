@@ -194,6 +194,31 @@ FIRMS_MAP_KEY=la_tua_api_key
 
 Senza API key, l'app funziona comunque con OpenTopoMap come mappa e calcoli in linea d'aria.
 
+#### Perché due chiavi sono `NEXT_PUBLIC_` e una no
+
+`NEXT_PUBLIC_ORS_API_KEY` e `NEXT_PUBLIC_THUNDERFOREST_API_KEY` **finiscono nel bundle
+che arriva al browser**, e chiunque apra gli strumenti di sviluppo può leggerle. Non è
+una svista: sono servizi che il browser interroga direttamente via CORS — i tile della
+mappa e il calcolo del percorso su sentiero — e mandare tutto attraverso un nostro server
+significherebbe pagare due volte la latenza per nascondere una chiave che quei servizi
+si aspettano di vedere pubblica.
+
+La protezione non è tenerle segrete ma **limitarle**:
+
+- **OpenRouteService** — dalla dashboard (Tokens) si vede il consumo per chiave e la si
+  può revocare. Il piano gratuito ha un tetto giornaliero, quindi l'abuso costa il
+  servizio per un giorno, non soldi.
+- **Thunderforest** — nel pannello si imposta la restrizione per *referrer*: la chiave
+  funziona solo se la richiesta arriva dal proprio dominio.
+
+Se una delle due manca, l'app **non si rompe e lo dice**: senza ORS `isRoutingAvailable()`
+restituisce `false`, l'impostazione «Percorso su sentiero» resta spenta e le distanze
+sono in linea d'aria; senza Thunderforest la mappa parte su OpenTopoMap.
+
+`FIRMS_MAP_KEY` invece è **senza prefisso di proposito**: NASA FIRMS non manda gli
+header CORS, quindi la richiesta la fa il server nella route `/api/fires`. Prefissarla
+con `NEXT_PUBLIC_` la pubblicherebbe senza nessun vantaggio.
+
 ### Avvio
 
 ```bash

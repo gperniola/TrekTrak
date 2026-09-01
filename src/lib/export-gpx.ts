@@ -1,5 +1,5 @@
-import type { Waypoint, Leg } from './types';
-import { sanitizeFilename } from './format';
+import type { Itinerary, Waypoint, Leg } from './types';
+import { downloadAs, gpxExporter } from './exporters/registro';
 import { escapeMarkup } from './escape-markup';
 
 const escapeXml = escapeMarkup;
@@ -78,15 +78,11 @@ ${trkptElements}
   return parts.join('\n');
 }
 
+/**
+ * La consegna del file sta in `downloadAs`, una volta sola per tutti i formati. Qui
+ * resta la firma che i chiamanti conoscono, con il nome del file che dipendeva da
+ * `name`: il registry lo ricava dall'itinerario, quindi glielo si passa cosi'.
+ */
 export function downloadGPX(name: string, waypoints: Waypoint[], legs: Leg[] = []): void {
-  const gpx = generateGPX(name, waypoints, legs);
-  const blob = new Blob([gpx], { type: 'application/gpx+xml' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${sanitizeFilename(name || 'trektrak-route')}.gpx`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  downloadAs(gpxExporter, { name, waypoints, legs } as Itinerary);
 }
