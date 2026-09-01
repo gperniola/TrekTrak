@@ -1,4 +1,4 @@
-import { numero, km, metri, gradi, percento, distanza } from '@/lib/formato';
+import { dislivello, distanza, gradi, km, metri, numero, percento } from '@/lib/formato';
 import { parseDecimale } from '@/components/shared/NumberInput';
 
 describe('numeri scritti in italiano', () => {
@@ -70,5 +70,31 @@ describe('quello che stampo, riletto dai campi dell app, vale lo stesso numero',
 
   test('una pendenza con un decimale torna indietro identica', () => {
     expect(parseDecimale(numero(11.1, 1))).toBeCloseTo(11.1, 6);
+  });
+});
+
+/**
+ * La regola dei dislivelli stava in due componenti, e la barra di riepilogo la sbagliava:
+ * scriveva `+205 m` e `-0 m` interpolando il numero grezzo, quindi niente separatore
+ * delle migliaia, trattino al posto del segno meno, e «meno zero» sulle tratte in piano.
+ */
+describe('dislivello', () => {
+  test('il segno c e quando serve', () => {
+    expect(dislivello(205, '+')).toBe('+205 m');
+    expect(dislivello(12, '−')).toBe('−12 m');
+  });
+
+  test('lo zero non porta il segno', () => {
+    expect(dislivello(0, '−')).toBe('0 m');
+    expect(dislivello(0, '+')).toBe('0 m');
+  });
+
+  test('le migliaia hanno il punto, come in italiano', () => {
+    expect(dislivello(1205, '+')).toBe('+1.205 m');
+  });
+
+  test('il segno e quello tipografico, non il trattino', () => {
+    expect(dislivello(12, '−')).not.toContain('-');
+    expect(dislivello(12, '−').charCodeAt(0)).toBe(0x2212);
   });
 });

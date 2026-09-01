@@ -50,6 +50,21 @@ export function gradi(valore: number, decimali = 1): string {
   return `${numero(valore, decimali)}°`;
 }
 
+/**
+ * Dislivello col segno: `dislivello(205, '+')` -> `"+205 m"`, `dislivello(1205, '−')` ->
+ * `"−1.205 m"`.
+ *
+ * **Lo zero non porta il segno**: `dislivello(0, '−')` vale `"0 m"`, non `"−0 m"`, che si
+ * legge «meno zero». Il segno e' quello tipografico (U+2212), non il trattino.
+ *
+ * Sta qui e non nei componenti perche' serviva gia' in due posti — la riga compatta
+ * dell'editor e la barra di riepilogo — e una regola scritta due volte prima o poi viene
+ * scritta in due modi diversi.
+ */
+export function dislivello(valore: number, segno: '+' | '−'): string {
+  return valore === 0 ? metri(0) : `${segno}${metri(Math.abs(valore))}`;
+}
+
 /** Pendenza in percentuale: `percento(11.1)` -> `"11,1%"`. */
 export function percento(valore: number, decimali = 1): string {
   return `${numero(valore, decimali)}%`;
