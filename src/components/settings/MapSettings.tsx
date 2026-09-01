@@ -6,6 +6,7 @@ import { isRoutingAvailable } from '@/lib/routing-api';
 import { useEffect } from 'react';
 import { SAMPLE_INTERVAL_OPTIONS, BASE_MAPS } from '@/lib/types';
 import type { SampleIntervalOption, BaseMapId } from '@/lib/types';
+import { MappaOffline } from './MappaOffline';
 
 function ToggleSwitch({ checked, onChange, label, disabled }: { checked: boolean; onChange: () => void; label: string; disabled?: boolean }) {
   return (
@@ -62,7 +63,17 @@ export function MapSettings({ onClose }: { onClose: () => void }) {
         aria-modal="true"
         aria-label="Impostazioni mappa"
         onClick={(e) => e.stopPropagation()}
-        className="bg-gray-900 border border-gray-700 rounded-xl max-w-xs w-full p-5 shadow-2xl"
+        /*
+          `max-h` e `overflow-y-auto` non sono rifiniture: senza, un dialogo centrato con
+          flex piu' alto della finestra sborda **da entrambi i lati**, e la parte sopra il
+          bordo superiore non si raggiunge in nessun modo — non c'e' scorrimento che ce la
+          porti. E' successo appena questo pannello e' cresciuto con la sezione dell'uso
+          senza rete: l'ultima riga risultava «visibile e stabile» al browser e insieme
+          «fuori dalla finestra», quindi impossibile da premere. `dvh` e non `vh` perche'
+          sul telefono la barra degli indirizzi che compare e sparisce cambia l'altezza
+          buona, e `vh` conta quella senza barra.
+        */
+        className="bg-gray-900 border border-gray-700 rounded-xl max-w-xs w-full p-5 shadow-2xl max-h-[90dvh] overflow-y-auto"
       >
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-bold text-gray-200">Impostazioni mappa</h2>
@@ -213,6 +224,14 @@ export function MapSettings({ onClose }: { onClose: () => void }) {
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
+        </div>
+
+        {/*
+          La mappa senza rete sta qui perche' le mattonelle appartengono alla mappa base
+          scelta poche righe sopra: sceglierla e scaricarla sono lo stesso discorso.
+        */}
+        <div className="pt-3 mt-1 border-t border-gray-700">
+          <MappaOffline />
         </div>
 
         {/* Versione app — utile per verificare di avere l'ultima release */}

@@ -75,6 +75,27 @@ function ColoredPathMockup() {
  */
 const RELEASES: Release[] = [
   {
+    version: '0.18.0',
+    date: '2026-09-01',
+    steps: [
+      {
+        title: 'La mappa resta anche senza segnale',
+        text: 'In Impostazioni mappa c’è «Scarica per l’uso senza rete»: prende l’area del tuo itinerario e la conserva sul telefono. In quota, dove non prende, la mappa si vede lo stesso.',
+        icon: '📶',
+      },
+      {
+        title: 'Ti dice prima fin dove arriva',
+        text: 'Quante mattonelle sono, quanto spazio serve e fino a che ingrandimento si vedrà nitida: tutto scritto prima di scaricare, non da scoprire in cima. Oltre quell’ingrandimento la mappa resta sfocata.',
+        icon: '🔍',
+      },
+      {
+        title: 'Lo spazio si vede e si libera',
+        text: 'Sotto al pulsante c’è quanto occupano le mappe conservate, e un modo per buttarle quando l’escursione è passata. Scadono comunque da sole dopo trenta giorni.',
+        icon: '🧹',
+      },
+    ],
+  },
+  {
     version: '0.15.0',
     date: '2026-08-31',
     steps: [

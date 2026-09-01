@@ -1,6 +1,7 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { ENDPOINT_OVERPASS } from '@/lib/overpass';
+import { CACHE_TESSERE, TETTO_TESSERE } from '@/lib/tile-offline';
 
 /**
  * Nelle regole del service worker **vince la prima che corrisponde**, e
@@ -45,9 +46,21 @@ describe('ordine delle regole del service worker', () => {
     const righe = righeRegole();
     const iDefault = righe.findIndex((r) => r.includes('...defaultCache'));
     const prima = righe.slice(0, iDefault).join('\n');
-    for (const cache of ['tiles-osm', 'tiles-opentopomap', 'tiles-thunderforest', 'tiles-cyclosm', 'tiles-waymarked']) {
-      expect(prima).toContain(cache);
-    }
+    /*
+     * I nomi delle cache non sono più scritti qui: vengono da `CACHE_TESSERE`, che li
+     * condivide col pannello dell'offline (task-37) — quello che dice quanto spazio
+     * occupano e che li svuota. Due elenchi in due file sono due elenchi che divergono.
+     */
+    CACHE_TESSERE.forEach((_, i) => {
+      expect(prima).toContain(`CACHE_TESSERE[${i}]`);
+    });
+  });
+
+  /** Ogni nome dell'elenco deve avere la sua regola: cinque mappe, cinque cache. */
+  test('c e una regola per ogni cache dichiarata', () => {
+    const righe = righeRegole();
+    const usati = righe.filter((r) => r.includes('CACHE_TESSERE[')).length;
+    expect(usati).toBe(CACHE_TESSERE.length);
   });
 
   test('i servizi che non tollerano il taglio a 10 secondi stanno prima', () => {
@@ -88,5 +101,38 @@ describe('ordine delle regole del service worker', () => {
     const righe = righeRegole();
     const rigaOverpass = righe.find((r) => /hostOverpass/.test(r)) ?? '';
     expect(rigaOverpass).toContain('NetworkOnly');
+  });
+
+  /**
+   * **Il tetto della cache e quello dello scaricamento non si conoscono, ma dipendono
+   * l'uno dall'altro.** Un pre-caricamento riempie fino a `TETTO_TESSERE` voci in una
+   * sola cache; se `maxEntries` fosse vicino a quel numero, le ultime mattonelle prese
+   * sfratterebbero le prime — e si tornerebbe in quota con meta' mappa, senza che nulla
+   * lo abbia segnalato, perche' lo sfratto e' silenzioso per progetto.
+   *
+   * Il margine chiesto qui e' il doppio: lo spazio per un pre-caricamento intero piu'
+   * altrettanto di navigazione normale.
+   */
+  test('la cache tiene almeno il doppio di uno scaricamento intero', () => {
+    const m = sorgente.match(/maxEntries:\s*(\d+)/);
+    expect(m).not.toBeNull();
+    expect(Number(m![1])).toBeGreaterThanOrEqual(TETTO_TESSERE * 2);
+  });
+
+  /**
+   * Le mattonelle sono le uniche cose che si riottengono da sole: quando lo spazio
+   * finisce devono essere le prime a cadere, invece di far fallire la scrittura del
+   * guscio dell'app o dei dati dell'utente.
+   */
+  test('le mattonelle sono dichiarate le prime da sacrificare quando lo spazio finisce', () => {
+    expect(sorgente).toMatch(/purgeOnQuotaError:\s*true/);
+  });
+
+  /**
+   * La riga che ha reso reale tutta la cache: senza, le risposte opache — quelle che
+   * tornano dalle immagini di altri siti — venivano rifiutate in silenzio.
+   */
+  test('le risposte opache sono accettate, altrimenti la cache resta vuota', () => {
+    expect(sorgente).toMatch(/CacheableResponsePlugin\(\{\s*statuses:\s*\[0,\s*200\]/);
   });
 });

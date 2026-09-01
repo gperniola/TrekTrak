@@ -30,7 +30,14 @@ export function InviteModal() {
         aria-label="Accesso area condivisa"
         onClick={(e) => e.stopPropagation()}
         style={{ animation: 'tt-invite-pop 260ms cubic-bezier(0.16,1,0.3,1)' }}
-        className="relative w-[26rem] max-w-[92vw] overflow-hidden rounded-2xl bg-gray-900 border border-green-500/25 shadow-2xl shadow-black/60 ring-1 ring-white/5"
+        /*
+          `max-h` + `overflow-y-auto`: un dialogo centrato piu' alto della finestra sborda
+          anche dal bordo SUPERIORE, e quella parte non si raggiunge con nessuno
+          scorrimento. Qui il rischio e' il telefono in orizzontale, dove restano poco
+          piu' di trecento pixel d'altezza. `overflow-x` resta nascosto — serve agli
+          angoli arrotondati — perche' `overflow-y-auto` cambia solo l'asse verticale.
+        */
+        className="relative w-[26rem] max-w-[92vw] max-h-[90dvh] overflow-hidden overflow-y-auto rounded-2xl bg-gray-900 border border-green-500/25 shadow-2xl shadow-black/60 ring-1 ring-white/5"
       >
         <button
           onClick={dismissInvite}

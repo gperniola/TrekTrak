@@ -4,6 +4,47 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.18.0] — 2026-09-01 — La mappa che resta quando il segnale se ne va
+
+### Added
+- **Pre-caricamento delle mattonelle per l'uso senza rete** (TASK-37). In Impostazioni
+  mappa una nuova sezione calcola l'area dell'itinerario più un margine del 20%, dice
+  quante mattonelle sono e fino a che zoom si arriva, e le scarica con una barra di
+  avanzamento interrompibile. Zoom 12-16, tetto di 500 mattonelle per servizio — che non è
+  una difesa dal nostro codice ma un patto con chi ci regala le mappe. Il numero dichiarato
+  comprende i sentieri quando sono accesi, perché è quello che si scarica davvero. Con un
+  waypoint solo si prende comunque un chilometro attorno, invece di una colonna larga
+  quanto un punto. Lo spazio occupato si vede e si libera.
+- **`npm run test:e2e:offline`**: uno scenario che costruisce per la produzione, scarica
+  davvero le mattonelle e **spegne la rete**. Non usa l'emulazione «offline» del DevTools,
+  che non raggiunge il service worker e regala un falso verde: ogni scenario comincia
+  verificando che una URL mai vista fallisca sul serio, altrimenti si ferma.
+
+### Fixed
+- **La cache delle mattonelle non aveva mai funzionato.** Workbox rifiuta le risposte
+  *opache* — quelle che tornano dalle immagini di altri siti, prive di stato leggibile —
+  se non gli si dice esplicitamente di accettarle. Misurato su una build di produzione:
+  ventiquattro mattonelle a schermo e nessuna cache `tiles-*` esistente. Da mesi la mappa
+  non veniva conservata da nessuna parte, e non c'era test che potesse accorgersene perché
+  il codice era scritto correttamente: era il browser a non fare ciò che sembrava
+  chiedergli.
+- **Un dialogo centrato più alto della finestra è in parte irraggiungibile.** Cresciute con
+  la nuova sezione, le Impostazioni mappa sbordavano dallo schermo: un elemento centrato
+  con flex che supera l'altezza della finestra esce **anche dal bordo superiore**, e da lì
+  nessuno scorrimento lo riporta indietro. L'ultima riga risultava «visibile e stabile» e
+  insieme «fuori dalla finestra». Sistemati tutti e tre i dialoghi che non avevano un tetto
+  d'altezza (Impostazioni mappa, invito, salvataggio in libreria).
+
+### Changed
+- Le cache delle mattonelle sono ora **le prime a essere sacrificate** quando lo spazio del
+  browser finisce (`purgeOnQuotaError`). Sono le uniche che si riottengono da sole: il
+  guscio dell'app e i dati salvati no, e sono anche quelle che riempiono lo spazio.
+- Il peso delle mappe conservate non si stima più: lo dichiara il browser. Le risposte
+  opache vengono conteggiate con un forte arrotondamento in eccesso — **4,5 MB a
+  mattonella misurati, contro i ~15 kB reali su disco** — quindi il pannello lo scrive
+  esplicitamente e avvisa **prima** di scaricare se lo spazio concesso non basta, invece
+  di lasciar fallire una scrittura a metà.
+
 ## [0.17.2] — 2026-09-01 — La classe che non esisteva
 
 ### Fixed

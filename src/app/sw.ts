@@ -1,7 +1,8 @@
 import { defaultCache } from '@serwist/next/worker';
-import { CacheFirst, ExpirationPlugin, NetworkOnly, Serwist } from 'serwist';
+import { CacheFirst, CacheableResponsePlugin, ExpirationPlugin, NetworkOnly, Serwist } from 'serwist';
 import type { PrecacheEntry, SerwistGlobalConfig } from 'serwist';
 import { ENDPOINT_OVERPASS } from '@/lib/overpass';
+import { CACHE_TESSERE } from '@/lib/tile-offline';
 
 declare global {
   interface WorkerGlobalScope extends SerwistGlobalConfig {
@@ -11,15 +12,55 @@ declare global {
 
 declare const self: ServiceWorkerGlobalScope & typeof globalThis;
 
-const TILE_EXPIRATION = { maxEntries: 1000, maxAgeSeconds: 30 * 24 * 60 * 60 };
+/**
+ * Quanto si conserva di ogni servizio di mattonelle.
+ *
+ * `maxEntries` è **per cache**, e deve stare comodamente sopra `TETTO_TESSERE`: un
+ * pre-caricamento riempie fino a 500 voci in una sola cache, e se il tetto della cache
+ * fosse vicino a quello dello scaricamento le mattonelle appena prese sfratterebbero
+ * quelle prese un attimo prima — si tornerebbe in quota con metà mappa, senza che nulla
+ * lo abbia segnalato. Il rapporto è verificato in `service-worker-ordine.test.ts`.
+ *
+ * `purgeOnQuotaError` dichiara queste cache **le prime da sacrificare** quando lo spazio
+ * finisce. È la scelta giusta perché sono le uniche che si riottengono da sole: tutto il
+ * resto — il guscio dell'app, i dati salvati — non si può riscaricare a comando. Ed è
+ * proprio la cache che riempie lo spazio, visto che il browser conta le risposte opache
+ * con un forte arrotondamento in eccesso.
+ */
+const TILE_EXPIRATION = {
+  maxEntries: 1000,
+  maxAgeSeconds: 30 * 24 * 60 * 60,
+  purgeOnQuotaError: true,
+};
 
 /** Host di tutte le porte Overpass, per la regola piu' sotto. */
 const hostOverpass = new Set(ENDPOINT_OVERPASS.map((e) => new URL(e).hostname));
 
+/**
+ * La cache delle mattonelle.
+ *
+ * **`statuses: [0, 200]` non e' un dettaglio: senza, questa cache non esiste.** Leaflet
+ * chiede le mattonelle con dei tag `<img>`, cioe' richieste `no-cors`, e la risposta che
+ * ne torna e' **opaca**: stato 0, contenuto illeggibile dal codice. La strategia, per
+ * difetto, conserva solo le risposte con stato 200 — quindi rifiutava tutto, in silenzio.
+ *
+ * Misurato il 2026-09-01 su build di produzione: ventiquattro mattonelle caricate a
+ * schermo, `caches.keys()` senza nemmeno una delle cinque cache dei tile. La mappa
+ * offline che il progetto credeva di avere **non e' mai esistita**: la correzione della
+ * v0.13.5 aveva sistemato l'ORDINE delle regole, cioe' aveva reso la regola
+ * raggiungibile, ma raggiunta rifiutava comunque.
+ *
+ * Il prezzo di accettare le risposte opache va detto: non potendone leggere lo stato, una
+ * pagina d'errore del server finisce in cache come se fosse una mattonella. E' il
+ * compromesso obbligato per le immagini, e la scadenza a trenta giorni lo limita.
+ */
 const tileHandler = (cacheName: string) =>
   new CacheFirst({
     cacheName,
-    plugins: [new ExpirationPlugin(TILE_EXPIRATION)],
+    plugins: [
+      new CacheableResponsePlugin({ statuses: [0, 200] }),
+      new ExpirationPlugin(TILE_EXPIRATION),
+    ],
   });
 
 const serwist = new Serwist({
@@ -81,23 +122,23 @@ const serwist = new Serwist({
     // l'itinerario consultabile senza campo.
     {
       matcher: /^https:\/\/.*\.tile\.openstreetmap\.org\/.*/i,
-      handler: tileHandler('tiles-osm'),
+      handler: tileHandler(CACHE_TESSERE[0]),
     },
     {
       matcher: /^https:\/\/.*\.tile\.opentopomap\.org\/.*/i,
-      handler: tileHandler('tiles-opentopomap'),
+      handler: tileHandler(CACHE_TESSERE[1]),
     },
     {
       matcher: /^https:\/\/tile\.thunderforest\.com\/.*/i,
-      handler: tileHandler('tiles-thunderforest'),
+      handler: tileHandler(CACHE_TESSERE[2]),
     },
     {
       matcher: /^https:\/\/.*\.tile-cyclosm\.openstreetmap\.fr\/.*/i,
-      handler: tileHandler('tiles-cyclosm'),
+      handler: tileHandler(CACHE_TESSERE[3]),
     },
     {
       matcher: /^https:\/\/tile\.waymarkedtrails\.org\/.*/i,
-      handler: tileHandler('tiles-waymarked'),
+      handler: tileHandler(CACHE_TESSERE[4]),
     },
 
     // Per ultimo, sempre: acchiappa tutto il resto.
