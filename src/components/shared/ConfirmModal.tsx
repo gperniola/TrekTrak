@@ -4,9 +4,9 @@ import { useEffect, useRef } from 'react';
 import { useNotificationStore, type ConfirmRequest } from '@/stores/notificationStore';
 
 const VARIANT_STYLES: Record<ConfirmRequest['variant'], { confirmBtn: string; icon: string; iconColor: string }> = {
-  confirm: { confirmBtn: 'bg-green-600 hover:bg-green-500 text-white', icon: '?', iconColor: 'text-green-400' },
-  info:    { confirmBtn: 'bg-blue-600 hover:bg-blue-500 text-white',  icon: 'ⓘ', iconColor: 'text-blue-400' },
-  error:   { confirmBtn: 'bg-red-600 hover:bg-red-500 text-white',    icon: '!', iconColor: 'text-red-400' },
+  confirm: { confirmBtn: 'bg-green-600 hover:bg-green-500 text-black', icon: '?', iconColor: 'text-green-400' },
+  info:    { confirmBtn: 'bg-blue-600 hover:bg-blue-600 text-su-colore',  icon: 'ⓘ', iconColor: 'text-blue-400' },
+  error:   { confirmBtn: 'bg-red-600 hover:bg-red-600 text-su-colore',    icon: '!', iconColor: 'text-red-400' },
 };
 
 function ConfirmDialog({ request }: { request: ConfirmRequest }) {

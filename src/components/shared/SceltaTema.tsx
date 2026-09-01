@@ -36,7 +36,7 @@ export function SceltaTema() {
             onClick={() => scegli(t)}
             className={`flex-1 px-2 py-1.5 rounded-lg text-xs min-h-[44px] flex flex-col items-center justify-center gap-0.5 transition-colors ${
               tema === t
-                ? 'bg-green-600 text-white font-bold'
+                ? 'bg-green-700 text-su-colore font-bold'
                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
             }`}
           >

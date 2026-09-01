@@ -47,7 +47,7 @@ export function QuizSummary({ answers, average, onNewSession, onClose }: {
         })}
       </div>
       <div className="flex gap-2">
-        <button onClick={onNewSession} className="flex-1 py-2 bg-purple-500 text-white rounded font-bold text-xs hover:bg-purple-400">Nuova sessione</button>
+        <button onClick={onNewSession} className="flex-1 py-2 bg-purple-600 text-su-colore rounded font-bold text-xs hover:bg-purple-700">Nuova sessione</button>
         <button onClick={() => setShowHistory((p) => !p)} className="flex-1 py-2 bg-gray-700 text-white rounded font-bold text-xs hover:bg-gray-600">{showHistory ? 'Nascondi storico' : 'Storico'}</button>
         <button onClick={onClose} className="flex-1 py-2 bg-gray-600 text-white rounded font-bold text-xs hover:bg-gray-500">Chiudi</button>
       </div>

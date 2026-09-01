@@ -122,3 +122,24 @@ describe('i passi indicano l elemento di cui parlano', () => {
     expect(screen.getByText('Aggiungi waypoint')).toBeInTheDocument();
   });
 });
+
+/**
+ * Trovato in review: il pannello dichiarava il gesto di trascinamento ma **non agganciava
+ * la ref al nodo**, quindi il gesto non aveva niente su cui lavorare e il pannello non
+ * riceveva nemmeno il fuoco all'apertura. I test non potevano vederlo — jsdom non ha i
+ * Pointer Events — quindi qui si verifica il collegamento, che è la cosa che mancava.
+ */
+describe('il pannello e collegato al gesto e al fuoco', () => {
+  test('il nodo del dialogo esiste ed e raggiungibile da tastiera', () => {
+    render(<LearnTutorial />);
+    const p = pannello();
+    expect(p).toHaveAttribute('tabindex', '-1');
+    // Il fuoco all'apertura: senza la ref agganciata restava sul body.
+    expect(document.activeElement).toBe(p);
+  });
+
+  test('la maniglia del trascinamento c e', () => {
+    const { container } = render(<LearnTutorial />);
+    expect(container.querySelector('.touch-none')).not.toBeNull();
+  });
+});

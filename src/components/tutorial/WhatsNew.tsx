@@ -404,7 +404,7 @@ export function WhatsNew() {
             )}
             <button
               onClick={isSingleStep ? handleClose : handleNext}
-              className="px-4 min-h-[44px] bg-green-600 rounded text-xs text-white font-bold hover:bg-green-500"
+              className="px-4 min-h-[44px] bg-green-600 rounded text-xs text-black font-bold hover:bg-green-500"
             >
               {isLast || isSingleStep ? 'Ho capito!' : 'Avanti'}
             </button>

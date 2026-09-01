@@ -95,14 +95,14 @@ function WaypointQuickActions({ wpId }: { wpId: string }) {
       <div className="flex gap-1">
         <button
           onClick={handleCopy}
-          className="flex-1 px-2 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs"
+          className="flex-1 px-2 py-1 bg-blue-600 hover:bg-blue-600 text-su-colore rounded text-xs"
           aria-label="Copia coordinate"
         >
           📋 Copia
         </button>
         <button
           onClick={handleDelete}
-          className="flex-1 px-2 py-1 bg-red-600 hover:bg-red-500 text-white rounded text-xs"
+          className="flex-1 px-2 py-1 bg-red-600 hover:bg-red-600 text-su-colore rounded text-xs"
           aria-label="Elimina waypoint"
         >
           🗑 Elimina

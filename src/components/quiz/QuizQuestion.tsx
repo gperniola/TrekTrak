@@ -122,7 +122,7 @@ export function QuizQuestionView({ question, questionNumber, totalQuestions, onA
           <button
             onClick={handleSubmit}
             disabled={!input}
-            className="px-4 py-2 bg-purple-500 text-white rounded font-bold text-sm hover:bg-purple-400 disabled:opacity-50"
+            className="px-4 py-2 bg-purple-600 text-su-colore rounded font-bold text-sm hover:bg-purple-700 disabled:opacity-50"
           >
             Conferma
           </button>

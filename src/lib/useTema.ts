@@ -13,7 +13,18 @@ import { applicaTema, temaEffettivo, temaValido, type Tema } from './tema';
  */
 export function useTema(): { tema: Tema; sistemaScuro: boolean; effettivo: 'chiaro' | 'scuro' } {
   const tema = temaValido(useItineraryStore((s) => s.settings.tema));
-  const [sistemaScuro, setSistemaScuro] = useState(false);
+  /*
+   * Si parte dal valore VERO, non da `false`: con `false` il primo calcolo dava «chiaro»
+   * a tutti — anche a chi ha il sistema scuro — e l'app lampeggiava bianca prima di
+   * correggersi. Sul server `matchMedia` non esiste e si assume scuro, che e' l'aspetto
+   * con cui il markup viene generato: nessuna differenza fra server e browser, perche'
+   * questo valore non finisce nell'HTML ma solo in un attributo scritto da un effetto.
+   */
+  const [sistemaScuro, setSistemaScuro] = useState(
+    () => typeof window === 'undefined' || typeof window.matchMedia !== 'function'
+      ? true
+      : window.matchMedia('(prefers-color-scheme: dark)').matches,
+  );
 
   /*
    * `prefers-color-scheme` si legge in un effetto e non durante il render: al primo
@@ -27,7 +38,6 @@ export function useTema(): { tema: Tema; sistemaScuro: boolean; effettivo: 'chia
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
     const query = window.matchMedia('(prefers-color-scheme: dark)');
-    setSistemaScuro(query.matches);
     const cambio = (e: MediaQueryListEvent) => setSistemaScuro(e.matches);
     query.addEventListener('change', cambio);
     return () => query.removeEventListener('change', cambio);

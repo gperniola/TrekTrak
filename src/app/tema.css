@@ -22,6 +22,12 @@
   --grigio-900: 17 24 39;
   --grigio-950: 3 7 18;
   --bianco: 255 255 255;
+  /*
+   * Il testo scritto SOPRA un colore pieno (pulsanti, pastiglie, contatori). Resta bianco
+   * nei due temi: un pulsante si dipinge il fondo e non segue la pagina, quindi qui il
+   * bianco che si rovescia sarebbe nero su viola.
+   */
+  --su-colore: 255 255 255;
 
   /* accenti usati come TESTO sul fondo della pagina */
   --verde-300: 134 239 172;
@@ -62,6 +68,8 @@
   --grigio-950: 255 255 255;
   /* Nel chiaro il «bianco» e' il colore del testo acceso: diventa quasi nero. */
   --bianco: 15 23 42;
+  /* Questo invece NON si rovescia: sta sopra un colore, non sopra la pagina. */
+  --su-colore: 255 255 255;
 
   /*
    * Accenti piu' cupi: `text-green-400` sul bianco sarebbe illeggibile. Le tonalita' sono

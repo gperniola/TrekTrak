@@ -137,7 +137,7 @@ export function DpcPositionWarning() {
       // In flusso normale come OfflineBanner e UpdateBanner: un avviso che copre la
       // bottom navigation lascerebbe l'app senza navigazione finché non lo si chiude.
       className={`shrink-0 flex items-start gap-2 px-3 py-2 text-xs font-medium ${
-        grave ? 'bg-red-700 text-white' : 'bg-amber-600 text-black'
+        grave ? 'bg-red-700 text-su-colore' : 'bg-amber-700 text-black'
       }`}
     >
       <span aria-hidden className="leading-tight pt-0.5">⚠</span>
