@@ -12,6 +12,7 @@ export type SliceDocumento = Pick<
   | 'resetItinerary'
   | 'loadItinerary'
   | 'hydrateCurrent'
+  | 'ripristiniItinerario'
 >;
 
 /** Massimo imposto anche in importazione: un file di fuori non deve poterlo aggirare. */
@@ -25,6 +26,7 @@ export const creaSliceDocumento: StateCreator<ItineraryState, [], [], SliceDocum
   itineraryId: generateId(),
   itineraryName: '',
   createdAt: new Date().toISOString(),
+  ripristiniItinerario: 0,
 
   setItineraryName: (name) => {
     set({ itineraryName: name });
@@ -75,6 +77,9 @@ export const creaSliceDocumento: StateCreator<ItineraryState, [], [], SliceDocum
 
   hydrateCurrent: (saved) => {
     set({
+      // Il conteggio e' il segnale che la mappa aspetta per inquadrare il percorso: un
+      // itinerario che torna dal disco non e' la stessa cosa di un waypoint appena messo.
+      ripristiniItinerario: get().ripristiniItinerario + 1,
       itineraryId: saved.itineraryId,
       itineraryName: saved.itineraryName,
       createdAt: saved.createdAt,

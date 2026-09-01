@@ -56,6 +56,16 @@ export interface ItineraryState {
     appMode: AppMode; waypoints: Waypoint[]; legs: Leg[];
   }) => void;
 
+  /**
+   * Quante volte un itinerario e' stato **ripreso dall'autosalvataggio**.
+   *
+   * Serve alla mappa per sapere quando inquadrare il percorso (task-61), e il conteggio
+   * distingue cio' che i waypoint da soli non distinguono: un itinerario che ritorna
+   * dal disco da un waypoint che l'utente sta mettendo adesso. Guardando i waypoint, la
+   * mappa si sposterebbe sotto le dita di chi tocca per creare il primo punto.
+   */
+  ripristiniItinerario: number;
+
   /** Annulla e rifai: vedi `sliceStoria`. */
   storia: Storia;
   registraGesto: (azione: AzioneStoria) => void;

@@ -4,6 +4,20 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.18.1] — 2026-09-01 — Aprire l'app e vedere il proprio percorso
+
+### Fixed
+- **Al ripristino, la mappa non guardava l'itinerario** (TASK-61). Si scaricavano le
+  mattonelle del proprio percorso e poi, riaprendo l'app, ci si trovava sul centro
+  predefinito — Chieti — con il Gran Sasso cinquanta chilometri più in là. Con il GPS
+  acceso non si notava; senza segnale e senza posizione, che è **la situazione per cui
+  esiste il pre-caricamento**, bisognava trascinare la mappa a mano fino a incontrare il
+  proprio percorso, attraversando aree mai scaricate. Ora un itinerario ripreso
+  dall'autosalvataggio viene inquadrato all'apertura.
+- La posizione sposta la mappa **solo se cade entro cinque chilometri dal percorso**. Chi
+  prepara la gita da casa non viene più sbalzato via da un fix GPS che dice «Roma»; chi è
+  al parcheggio dell'attacco continua a essere seguito come prima.
+
 ## [0.18.0] — 2026-09-01 — La mappa che resta quando il segnale se ne va
 
 ### Added
