@@ -4,6 +4,40 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.17.0] — 2026-09-01 — Un tema chiaro, una guida che non copre la mappa
+
+### Added
+- **Tema chiaro.** Chiaro, scuro, o «come il sistema» — che è il valore di partenza e non
+  è un terzo aspetto: è una delega, e l'app segue la preferenza del telefono **mentre
+  cambia**, senza bisogno di riaprirla. Si sceglie dalle impostazioni, si applica al tocco.
+
+  Che sia leggibile non è affidato all'occhio: venti accoppiate di colori vengono misurate
+  con la formula del contrasto WCAG in entrambi i temi, a ogni giro di test. Il colore è
+  l'unica parte dell'interfaccia che nessun test guarda mai, ed è per questo che in questa
+  app un grigio troppo tenue è passato due volte.
+
+- **La guida non copre più la mappa.** Era una finestra al centro dello schermo, con un
+  velo scuro sopra tutto: al secondo passo diceva «tocca la mappa per posizionare i
+  waypoint» **impedendo di toccarla**. Adesso è un pannello — a destra su schermo grande,
+  un foglio in basso su telefono, che si manda via col dito — e la mappa dietro resta
+  visibile e utilizzabile.
+
+  In più, i passi **indicano** l'elemento di cui parlano, con un contorno verde: la mappa
+  quando spiega i waypoint, l'interruttore Learn/Track quando spiega le modalità, il
+  grafico quando spiega il profilo.
+
+### Fixed
+- **Il passo personale non si perdeva più a ogni riavvio.** Chi si era tarato l'andatura
+  per le stime di tempo la ritrovava a 1,0 al lancio successivo, e da lì in poi tutti i
+  tempi erano calcolati su un'andatura che non era la sua. Succedeva da sempre.
+
+### Changed
+- Test end-to-end in un browser vero (dieci scenari, un minuto e mezzo): il primo avvio, i
+  waypoint dal tocco, la tratta calcolata, la verifica in Learn, la ricarica che non perde
+  il lavoro, il link condiviso, e i pannelli che non devono creare punti sotto di sé.
+  Servono per una ragione precisa: i difetti che contano stanno nel divario fra «i test
+  passano» e «cosa si vede a schermo».
+
 ## [0.16.0] — 2026-09-01 — Si torna indietro, e si incollano le coordinate
 
 Cinque voci di arretrato chiuse in un colpo: due si vedono, tre stanno sotto e servono a
