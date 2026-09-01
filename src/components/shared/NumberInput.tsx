@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import type { ValidationResult, ValidationFieldType } from '@/lib/types';
 import { ValidationBadge } from '@/components/validation/ValidationBadge';
+import { TermineGlossario } from '@/components/shared/TermineGlossario';
+import type { Termine } from '@/lib/glossario';
 
 /**
  * Legge un numero scritto **all'italiana o all'inglese**: `1,5` e `1.5` valgono
@@ -63,7 +65,12 @@ interface NumberInputProps {
   placeholder?: string;
   readOnly?: boolean;
   highlight?: boolean;
-  info?: string;
+  /**
+   * Termine del glossario spiegato dal ⓘ accanto all'etichetta. Prima era una frase
+   * scritta qui (`info`), e le frasi **usavano** le parole da spiegare: «Dislivello
+   * positivo cumulativo» aiuta chi sa gia' cos'e' un dislivello cumulativo.
+   */
+  termine?: Termine;
 }
 
 export function NumberInput({
@@ -79,31 +86,8 @@ export function NumberInput({
   placeholder,
   readOnly,
   highlight,
-  info,
+  termine,
 }: NumberInputProps) {
-  const [infoOpen, setInfoOpen] = useState(false);
-  const infoRef = useRef<HTMLSpanElement>(null);
-
-  useEffect(() => {
-    if (!infoOpen) return;
-    const handleOutside = (e: MouseEvent | TouchEvent) => {
-      if (infoRef.current && !infoRef.current.contains(e.target as Node)) {
-        setInfoOpen(false);
-      }
-    };
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setInfoOpen(false);
-    };
-    document.addEventListener('mousedown', handleOutside);
-    document.addEventListener('touchstart', handleOutside);
-    document.addEventListener('keydown', handleKey);
-    return () => {
-      document.removeEventListener('mousedown', handleOutside);
-      document.removeEventListener('touchstart', handleOutside);
-      document.removeEventListener('keydown', handleKey);
-    };
-  }, [infoOpen]);
-
   // Il testo battuto vive qui, non nello store: `1,` e `-` non sono numeri, ma devono
   // restare a schermo mentre si scrive. Lo store riceve solo numeri o null.
   const [testo, setTesto] = useState(value == null ? '' : String(value));
@@ -129,23 +113,9 @@ export function NumberInput({
           {label}
           {unit && <span className={highlight ? 'text-amber-500' : 'text-gray-500'}> ({unit})</span>}
         </span>
-        {info && (
-          <span ref={infoRef} className="relative inline-flex">
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); setInfoOpen((p) => !p); }}
-              className="text-gray-500 hover:text-gray-300 text-xs leading-none"
-              aria-label={`Info: ${label}`}
-            >
-              ⓘ
-            </button>
-            {infoOpen && (
-              <div role="tooltip" className="absolute left-1/2 -translate-x-1/2 top-5 z-[1300] bg-gray-800 border border-gray-600 rounded px-2 py-1 text-[10px] text-gray-300 shadow-lg max-w-[180px] leading-tight">
-                {info}
-              </div>
-            )}
-          </span>
-        )}
+        {/* Il nome accessibile dice il TERMINE, non l'abbreviazione del campo: «Che cos'e':
+            Lat» non spiega niente piu' di quanto facesse «Info: Lat». */}
+        {termine && <TermineGlossario termine={termine} />}
         <ValidationBadge result={validation} fieldType={validationFieldType} />
       </div>
       <input

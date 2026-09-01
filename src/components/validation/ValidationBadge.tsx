@@ -2,7 +2,9 @@
 
 import { useState, useRef, useEffect } from 'react';
 import type { ValidationResult, ValidationFieldType } from '@/lib/types';
-import { getTip } from '@/lib/didactic-tips';
+import { getTip, getTermini } from '@/lib/didactic-tips';
+import { GLOSSARIO, type Termine } from '@/lib/glossario';
+import { ContenutoGlossario } from '@/components/shared/TermineGlossario';
 import { gradi, km, metri } from '@/lib/formato';
 import { mostra } from '@/lib/profilo';
 import { useUIStore } from '@/stores/uiStore';
@@ -57,6 +59,11 @@ const DESCRIZIONE_STATO = {
 export function ValidationBadge({ result, fieldType }: { result?: ValidationResult; fieldType?: ValidationFieldType }) {
   const [open, setOpen] = useState(false);
   const [popoverBelow, setPopoverBelow] = useState(false);
+  /**
+   * Quale termine si sta leggendo dentro il popover. Si azzera quando il popover si
+   * chiude: riaprendolo si vuole il suggerimento, non la definizione lasciata a meta'.
+   */
+  const [termineAperto, setTermineAperto] = useState<Termine | null>(null);
   const popoverRef = useRef<HTMLSpanElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const prevStatusRef = useRef<string | undefined>(undefined);
@@ -83,13 +90,12 @@ export function ValidationBadge({ result, fieldType }: { result?: ValidationResu
   // Close on outside click/touch + Escape key
   useEffect(() => {
     if (!open) return;
+    const chiudi = () => { setOpen(false); setTermineAperto(null); };
     const handleOutside = (e: MouseEvent | TouchEvent) => {
-      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) chiudi();
     };
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key === 'Escape') chiudi();
     };
     document.addEventListener('mousedown', handleOutside);
     document.addEventListener('touchstart', handleOutside);
@@ -118,10 +124,14 @@ export function ValidationBadge({ result, fieldType }: { result?: ValidationResu
       const rect = buttonRef.current.getBoundingClientRect();
       setPopoverBelow(rect.top < window.innerHeight * 0.25);
     }
-    setOpen((p) => !p);
+    setOpen((p) => {
+      if (p) setTermineAperto(null);
+      return !p;
+    });
   };
 
   const tip = fieldType ? getTip(fieldType, result.delta, result.tolerance) : null;
+  const termini = fieldType ? getTermini(fieldType) : [];
 
   return (
     <span ref={popoverRef} className="relative inline-flex">
@@ -145,8 +155,43 @@ export function ValidationBadge({ result, fieldType }: { result?: ValidationResu
             <div className="text-gray-300 mt-0.5">Scarto: {formatDelta(result.delta, fieldType)}</div>
           )}
           {tip && (
-            <div className="text-amber-300 text-[10px] italic mt-1.5 leading-tight border-t border-gray-700 pt-1.5">
-              💡 {tip}
+            <div className="text-[10px] mt-1.5 leading-tight border-t border-gray-700 pt-1.5">
+              {/*
+                La definizione si apre QUI DENTRO e non in un popover suo: un popover
+                dentro un popover si posiziona rispetto al pulsantino e finisce per
+                coprire il suggerimento che dovrebbe spiegare.
+              */}
+              {termineAperto == null ? (
+                <>
+                  <div className="text-amber-300 italic">💡 {tip}</div>
+                  {termini.length > 0 && (
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                      <span className="text-gray-500">Che cos&rsquo;è:</span>
+                      {termini.map((t) => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setTermineAperto(t); }}
+                          className="underline decoration-dotted text-gray-300 hover:text-white"
+                        >
+                          {GLOSSARIO[t].titolo}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <ContenutoGlossario termine={termineAperto} />
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setTermineAperto(null); }}
+                    className="mt-1.5 text-gray-400 hover:text-white underline decoration-dotted"
+                  >
+                    &lsquo; torna al suggerimento
+                  </button>
+                </>
+              )}
             </div>
           )}
         </div>

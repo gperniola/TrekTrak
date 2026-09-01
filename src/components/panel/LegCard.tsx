@@ -26,7 +26,7 @@ export function LegCard({ leg }: { leg: Leg }) {
           placeholder=""
           readOnly={isTrack}
           highlight
-          info="Distanza in linea d'aria tra i due waypoint"
+          termine="linea-daria"
         />
         <NumberInput
           label="Azim."
@@ -40,7 +40,7 @@ export function LegCard({ leg }: { leg: Leg }) {
           placeholder=""
           readOnly={isTrack}
           highlight
-          info="Direzione in gradi rispetto al Nord (0°=N, 90°=E, 180°=S, 270°=W)"
+          termine="azimut"
         />
         <NumberInput
           label="D+"
@@ -53,7 +53,7 @@ export function LegCard({ leg }: { leg: Leg }) {
           placeholder=""
           readOnly={isTrack}
           highlight
-          info="Dislivello positivo cumulativo (metri di salita)"
+          termine="dislivello-positivo"
         />
         <NumberInput
           label="D-"
@@ -66,7 +66,7 @@ export function LegCard({ leg }: { leg: Leg }) {
           placeholder=""
           readOnly={isTrack}
           highlight
-          info="Dislivello negativo cumulativo (metri di discesa)"
+          termine="dislivello-negativo"
         />
       </div>
       {/* Derived data */}

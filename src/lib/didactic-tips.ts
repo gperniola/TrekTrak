@@ -1,4 +1,5 @@
 import type { ValidationFieldType } from './types';
+import type { Termine } from './glossario';
 
 type TipField = 'altitude' | 'distance' | 'elevationGain' | 'elevationLoss' | 'azimuth';
 
@@ -26,6 +27,27 @@ const TIPS: Record<string, Record<TipBand, string>> = {
     large: "Potresti aver invertito la direzione di lettura. L'azimut si misura dal punto di partenza verso il punto di arrivo, in senso orario dal Nord.",
   },
 };
+
+/**
+ * I termini che ogni suggerimento tira in ballo: il testo parla di «declinazione
+ * magnetica», di «curva direttrice», di «dislivello cumulativo», e chi ha appena
+ * sbagliato quel valore e' esattamente la persona che potrebbe non sapere cosa siano.
+ *
+ * Sono dichiarati qui invece di essere cercati dentro le frasi: riconoscere una parola
+ * in una stringa funziona finche' qualcuno non riscrive la frase, e allora il
+ * collegamento sparisce senza che nessun test se ne accorga.
+ */
+const TERMINI_TIP: Record<string, readonly Termine[]> = {
+  altitude: ['curve-di-livello', 'quota'],
+  distance: ['linea-daria', 'percorso-su-sentiero'],
+  elevation: ['dislivello-positivo', 'dislivello-negativo'],
+  azimuth: ['declinazione-magnetica', 'azimut'],
+};
+
+/** I termini da offrire accanto al suggerimento di quel campo. */
+export function getTermini(field: ValidationFieldType): readonly Termine[] {
+  return TERMINI_TIP[tipKey(field as TipField)] ?? [];
+}
 
 function getBand(delta: number, tolerance: { strict: number; loose: number }): TipBand {
   if (delta <= tolerance.loose) return 'small';
