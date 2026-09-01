@@ -1,10 +1,13 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import type { Leg } from '@/lib/types';
+import type { Itinerary, Leg } from '@/lib/types';
 import { useItineraryStore } from '@/stores/itineraryStore';
 // Note: lib/export-pdf imports jspdf (~100kB). Loaded lazily on first export to keep first-paint bundle small.
-import { downloadGPX } from '@/lib/export-gpx';
+import { REGISTRO, downloadAs } from '@/lib/exporters/registro';
+
+/** Il JSON sta nell'intestazione, accanto al pulsante che lo riapre. */
+const FORMATI = REGISTRO.filter((e) => e.id !== 'json');
 import { calculateDifficulty, haversineDistance, forwardAzimuth, interpolatePoints, cumulativeElevation, sampleInterval } from '@/lib/calculations';
 import { fetchElevation, fetchElevationProfile } from '@/lib/elevation-api';
 import { validateValue, validateAzimuth, percentageTolerance } from '@/lib/validation';
@@ -32,6 +35,24 @@ export function ActionBar() {
   const appMode = useItineraryStore((s) => s.appMode);
   const [verifying, setVerifying] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [formatiAperti, setFormatiAperti] = useState(false);
+  const refFormati = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!formatiAperti) return;
+    const fuori = (e: MouseEvent | TouchEvent) => {
+      if (refFormati.current && !refFormati.current.contains(e.target as Node)) setFormatiAperti(false);
+    };
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setFormatiAperti(false); };
+    document.addEventListener('mousedown', fuori);
+    document.addEventListener('touchstart', fuori);
+    document.addEventListener('keydown', esc);
+    return () => {
+      document.removeEventListener('mousedown', fuori);
+      document.removeEventListener('touchstart', fuori);
+      document.removeEventListener('keydown', esc);
+    };
+  }, [formatiAperti]);
   const verifyingRef = useRef(false);
   const mountedRef = useRef(true);
   const verifyGenerationRef = useRef(0);
@@ -82,14 +103,8 @@ export function ActionBar() {
     }, format);
   };
 
-  const handleGPX = () => {
-    const validCoordWps = waypoints.filter((wp) => wp.lat != null && wp.lon != null);
-    if (validCoordWps.length < 2) {
-      toast.warning('Servono almeno 2 waypoint con coordinate valide per il GPX');
-      return;
-    }
-    downloadGPX(itineraryName, waypoints, legs);
-  };
+  /** L'itinerario nella forma che il registry si aspetta. */
+  const itinerarioCorrente = () => ({ name: itineraryName, waypoints, legs } as Itinerary);
 
   const handleVerify = async () => {
     if (verifyingRef.current) return;
@@ -427,15 +442,46 @@ export function ActionBar() {
           GPX, link condiviso e meteo sono roba da gita vera: in Imparo non compaiono.
           I due PDF sopra restano, perche' servono a portarsi l'esercizio su carta.
         */}
+        {/*
+          Una tendina invece di un pulsante per formato: i formati sono destinati a
+          crescere (il registry esiste per quello) e una fila di pulsanti verdi era gia'
+          la cosa che questo pannello ha smesso di fare nella v0.14.0. Ogni voce dice a
+          cosa serve e, se e' spenta, perche'.
+        */}
         {datiVisibili && (
-          <button
-            onClick={handleGPX}
-            disabled={!canExportGpx}
-            aria-describedby={!canExportGpx ? 'motivo-export' : undefined}
-            className="flex-1 py-2 bg-blue-500 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-blue-400 disabled:opacity-50 disabled:cursor-not-allowed max-lg:min-h-[44px]"
-          >
-            GPX
-          </button>
+          <div className="relative flex-1" ref={refFormati}>
+            <button
+              onClick={() => setFormatiAperti((p) => !p)}
+              aria-expanded={formatiAperti}
+              aria-haspopup="menu"
+              disabled={waypoints.length < 2}
+              aria-describedby={waypoints.length < 2 ? 'motivo-export' : undefined}
+              className="w-full py-2 bg-blue-500 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-blue-400 disabled:opacity-50 disabled:cursor-not-allowed max-lg:min-h-[44px]"
+            >
+              Esporta ▾
+            </button>
+            {formatiAperti && (
+              <div role="menu" className="absolute right-0 bottom-full mb-1 z-[1300] w-56 bg-gray-800 border border-gray-600 rounded-lg shadow-xl p-1">
+                {FORMATI.map((f) => {
+                  const motivo = f.impedimento(itinerarioCorrente());
+                  return (
+                    <button
+                      key={f.id}
+                      role="menuitem"
+                      disabled={motivo != null}
+                      onClick={() => { downloadAs(f, itinerarioCorrente()); setFormatiAperti(false); }}
+                      className="w-full text-left px-2 py-1.5 rounded hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <span className="block text-xs font-bold text-gray-100">{f.etichetta}</span>
+                      <span className="block text-[10px] text-gray-400 leading-snug">
+                        {motivo ?? f.descrizione}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         )}
         {(() => {
           const meteoUrl = buildMeteoUrl(waypoints);

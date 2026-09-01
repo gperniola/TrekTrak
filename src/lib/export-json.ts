@@ -1,22 +1,14 @@
 import type { Itinerary } from './types';
-import { sanitizeFilename } from './format';
+import { downloadAs, jsonExporter } from './exporters/registro';
 import { toast } from '@/stores/notificationStore';
 
+/**
+ * Il formato e la consegna stanno nel registry (`lib/exporters`): qui resta il nome che
+ * i chiamanti conoscono. L'importazione invece vive solo qui — non e' un export, e il
+ * registry non ha niente da dire su come si legge un file.
+ */
 export function exportItineraryJSON(itinerary: Itinerary): void {
-  const cleaned = {
-    ...itinerary,
-    legs: itinerary.legs.map(({ elevationProfile, ...leg }) => leg),
-  };
-  const json = JSON.stringify(cleaned, null, 2);
-  const blob = new Blob([json], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${sanitizeFilename(itinerary.name || 'trektrak-itinerario')}.json`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  downloadAs(jsonExporter, itinerary);
 }
 
 export function validateItinerarySchema(data: unknown): data is Itinerary {

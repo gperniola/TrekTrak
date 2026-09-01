@@ -2,12 +2,16 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, expect, test, beforeEach, jest } from '@jest/globals';
 
-jest.mock('@/lib/export-gpx', () => ({ downloadGPX: jest.fn() }));
+// Dal task-28 la consegna del file passa dal registry, non piu' da `downloadGPX`.
+jest.mock('@/lib/exporters/registro', () => ({
+  ...(jest.requireActual('@/lib/exporters/registro') as object),
+  downloadAs: jest.fn(),
+}));
 
 import { MoreMenu } from '@/components/panel/MoreMenu';
 import { useUIStore } from '@/stores/uiStore';
 import { useItineraryStore } from '@/stores/itineraryStore';
-import { downloadGPX } from '@/lib/export-gpx';
+import { downloadAs } from '@/lib/exporters/registro';
 
 beforeEach(() => {
   useUIStore.setState({ moreMenuOpen: true });
@@ -21,10 +25,11 @@ describe('MoreMenu', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  test('con 0 waypoint Meteo e GPX sono disabilitati', () => {
+  test('con 0 waypoint Meteo e i formati sono disabilitati', () => {
     render(<MoreMenu />);
     expect(screen.getByRole('menuitem', { name: /meteo/i })).toBeDisabled();
     expect(screen.getByRole('menuitem', { name: /gpx/i })).toBeDisabled();
+    expect(screen.getByRole('menuitem', { name: /kml/i })).toBeDisabled();
   });
 
   test('con 2 waypoint con coordinate, GPX scarica e chiude il menu', () => {
@@ -36,7 +41,10 @@ describe('MoreMenu', () => {
     const gpx = screen.getByRole('menuitem', { name: /gpx/i });
     expect(gpx).not.toBeDisabled();
     fireEvent.click(gpx);
-    expect(downloadGPX).toHaveBeenCalled();
+    expect(downloadAs).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'gpx' }),
+      expect.objectContaining({ name: 'X' }),
+    );
     expect(useUIStore.getState().moreMenuOpen).toBe(false);
   });
 });

@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, expect, test, beforeEach, jest } from '@jest/globals';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import type { ItineraryState } from '@/stores/itineraryStore';
@@ -67,13 +67,17 @@ beforeEach(() => {
 });
 
 describe('ActionBar', () => {
-  test('renders export buttons (PDF Sintetico, PDF Roadbook, GPX)', () => {
+  test('renders export buttons (PDF Sintetico, PDF Roadbook, Esporta)', () => {
     // Export e libreria vivono nel profilo Montagna: qui si parla di quelli.
     useUIStore.setState({ profilo: 'montagna' });
     render(<ActionBar />);
     expect(screen.getByText('PDF Sintetico')).toBeInTheDocument();
     expect(screen.getByText('PDF Roadbook')).toBeInTheDocument();
-    expect(screen.getByText('GPX')).toBeInTheDocument();
+    // Dal task-28 i formati stanno dietro una tendina: erano destinati a crescere e una
+    // fila di pulsanti verdi e' proprio cio' che questo pannello ha smesso di fare.
+    // (Cosa c'e' dentro la tendina lo verifica il test sugli export abilitati: a
+    // itinerario vuoto il pulsante e' spento e non si apre.)
+    expect(screen.getByText('Esporta ▾')).toBeInTheDocument();
   });
 
   test('shows Verifica button in learn mode', () => {
@@ -94,14 +98,14 @@ describe('ActionBar', () => {
   });
 
   // TASK-41: export non invitano ad azioni inutili quando l'itinerario è vuoto
-  test('TASK-41: PDF e GPX disabilitati con meno di 2 waypoint', () => {
+  test('TASK-41: PDF e la tendina degli export disabilitati con meno di 2 waypoint', () => {
     // Export e libreria vivono nel profilo Montagna: qui si parla di quelli.
     useUIStore.setState({ profilo: 'montagna' });
     useItineraryStore.setState({ ...BASE_ITINERARY_STATE, waypoints: [] });
     render(<ActionBar />);
     expect(screen.getByText('PDF Sintetico').closest('button')).toBeDisabled();
     expect(screen.getByText('PDF Roadbook').closest('button')).toBeDisabled();
-    expect(screen.getByText('GPX').closest('button')).toBeDisabled();
+    expect(screen.getByText('Esporta ▾').closest('button')).toBeDisabled();
   });
 
   test('TASK-41: export abilitati con 2+ waypoint con coordinate', () => {
@@ -117,7 +121,9 @@ describe('ActionBar', () => {
     render(<ActionBar />);
     expect(screen.getByText('PDF Sintetico').closest('button')).not.toBeDisabled();
     expect(screen.getByText('PDF Roadbook').closest('button')).not.toBeDisabled();
-    expect(screen.getByText('GPX').closest('button')).not.toBeDisabled();
+    fireEvent.click(screen.getByText('Esporta ▾'));
+    expect(screen.getByRole('menuitem', { name: /GPX/ })).not.toBeDisabled();
+    expect(screen.getByRole('menuitem', { name: /KML/ })).not.toBeDisabled();
   });
 
   // TASK-42: "Progresso" non è più nel gruppo degli export

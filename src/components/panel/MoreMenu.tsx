@@ -2,7 +2,15 @@
 
 import { useUIStore } from '@/stores/uiStore';
 import { useItineraryStore } from '@/stores/itineraryStore';
-import { downloadGPX } from '@/lib/export-gpx';
+import { REGISTRO, downloadAs } from '@/lib/exporters/registro';
+
+/**
+ * Il JSON resta fuori da qui: sta nell'intestazione accanto al pulsante che lo
+ * RIAPRE, ed e' l'unica coppia dell'app in cui esportare e importare sono lo stesso
+ * gesto in due versi. Metterlo anche qui sarebbe una seconda porta per la stessa cosa.
+ */
+const FORMATI = REGISTRO.filter((e) => e.id !== 'json');
+import type { Itinerary } from '@/lib/types';
 import { buildMeteoUrl } from '@/lib/meteo';
 import { calculateDifficulty } from '@/lib/calculations';
 import { toast } from '@/stores/notificationStore';
@@ -55,11 +63,11 @@ export function MoreMenu() {
     downloadPDF({ name: itineraryName, waypoints, legs, totalDistance, totalElevGain: totalGain, totalElevLoss: totalLoss, totalTime, difficulty: calculateDifficulty(maxSlope) }, format);
     close();
   };
-  const handleGpx = () => {
-    if (!canGpx) { toast.warning('Servono almeno 2 waypoint con coordinate'); return; }
-    downloadGPX(itineraryName, waypoints, legs);
-    close();
-  };
+  /** L'itinerario nella forma che il registry si aspetta. */
+  const itinerarioCorrente = () => ({ name: itineraryName, waypoints, legs } as Itinerary);
+  /* Quali formati sono spenti adesso: la nota qui sotto guarda questo, non una
+     condizione riscritta a mano che potrebbe divergere da quella dei formati. */
+  const formatiSpenti = FORMATI.filter((f) => f.impedimento(itinerarioCorrente()) != null);
   // Apre il pannello del percorso invece di Meteoblue: il collegamento esterno sta
   // dentro il pannello.
   const handleMeteo = () => { setWeatherOpen(true); close(); };
@@ -89,9 +97,23 @@ export function MoreMenu() {
         )}
         <button role="menuitem" disabled={!canPdf} onClick={() => handlePdf('summary')} className={itemCls}>📄 PDF sintetico</button>
         <button role="menuitem" disabled={!canPdf} onClick={() => handlePdf('roadbook')} className={itemCls}>📋 PDF roadbook</button>
-        {mostra('exportDati', profilo) && (
-          <button role="menuitem" disabled={!canGpx} onClick={handleGpx} className={itemCls}>🛰️ GPX</button>
-        )}
+        {/*
+          I formati vengono dal registry: aggiungerne uno non richiede di ricordarsi di
+          questo menu. Ognuno dichiara il proprio impedimento, quindi la voce si spegne
+          per la sua ragione e non per una condizione riscritta qui.
+        */}
+        {mostra('exportDati', profilo) && FORMATI.map((f) => (
+          <button
+            key={f.id}
+            role="menuitem"
+            disabled={f.impedimento(itinerarioCorrente()) != null}
+            onClick={() => { downloadAs(f, itinerarioCorrente()); close(); }}
+            className={itemCls}
+            title={f.descrizione}
+          >
+            🛰️ {f.etichetta}
+          </button>
+        ))}
         {/*
           Con l'itinerario vuoto tutte le voci sono grigie: senza questa riga il menu
           era quattro voci spente e nessuna spiegazione, e su un telefono non c'e'
@@ -99,7 +121,7 @@ export function MoreMenu() {
         */}
         {/* Come in ActionBar: si guardano solo le voci visibili in questo profilo. */}
         {(!canPdf
-          || (mostra('exportDati', profilo) && !canGpx)
+          || (mostra('exportDati', profilo) && formatiSpenti.length > 0)
           || (mostra('meteo', profilo) && !meteoUrl)) && (
           <p className="px-3 py-2 text-[11px] text-amber-300/90 leading-snug">
             {waypoints.length < 2
