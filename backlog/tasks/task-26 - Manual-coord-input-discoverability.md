@@ -1,7 +1,7 @@
 ---
 id: TASK-26
 title: Discoverability dell'input manuale coordinate (per esperti)
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-05-15 19:00'
 labels:
@@ -70,3 +70,14 @@ solo UTM, che nessuna parte dell'app usa.
 
 B (incolla coordinate con parser DMS) resta il cuore del task ed e' intatto.
 
+## Chiusura 2026-09-01 (v0.16.0)
+
+B fatto e C assolto. Il parser (`lib/coordinate.ts`) accetta decimali col punto e con la
+virgola all'italiana, gradi/primi/secondi, gradi e primi decimali, lettere in italiano o
+inglese, davanti o dietro, e l'ordine invertito quando le lettere lo dichiarano. Il punto
+difficile era che **la virgola fa due mestieri** — decimale e separatore — e si scioglie
+guardando quale virgola non ha una cifra subito dopo.
+
+A e' stato reinterpretato come annotato sopra: in Track non ci sono campi da sbloccare, e
+il pulsante di incolla sta nel dettaglio della riga. L'interfaccia mostra dove finira' il
+punto **mentre si scrive**. 24 test sul parser.

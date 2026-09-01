@@ -1,7 +1,7 @@
 ---
 id: TASK-20
 title: Bundle UI cues — Progresso disabled, T1-T6 tooltip, maxZoom badge, positive feedback
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-05-15 19:00'
 labels:
@@ -82,3 +82,14 @@ un test verifica che le due forme coprano gli stessi sei gradi.
 
 I criteri di accettazione restano non spuntati perche' C manca.
 
+## Chiusura 2026-09-01 (v0.16.0)
+
+C e D fatti. Il banner dello zoom nomina la mappa e il suo limite, si chiude e ricompare
+cambiando mappa. Il rinforzo positivo compare nel popover del badge quando lo storico lo
+dice davvero: sei sessioni su quel campo e un calo di almeno un quinto fra le ultime tre
+e le tre precedenti — un incoraggiamento dato sul rumore sarebbe una frase falsa. Si dice
+**solo il verso positivo**.
+
+Strada facendo e' saltato fuori che `recentDeltas` arrotondava le medie di sessione
+all'intero: per la distanza, in km, l'istogramma del Progresso era piatto qualunque fosse
+il miglioramento. Corretto.
