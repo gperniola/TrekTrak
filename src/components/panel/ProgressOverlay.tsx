@@ -182,7 +182,7 @@ export function ProgressOverlay({ onClose }: { onClose: () => void }) {
                 <div className="flex flex-wrap gap-1 mt-2">
                   <button
                     onClick={() => setCategoryFilter(null)}
-                    className={`px-2 py-1 rounded text-[10px] ${!categoryFilter ? 'bg-green-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'}`}
+                    className={`px-2 py-1 rounded text-[10px] ${!categoryFilter ? 'bg-green-700 text-su-colore' : 'bg-gray-800 text-gray-400 hover:text-su-colore'}`}
                   >
                     Tutte
                   </button>
@@ -190,7 +190,7 @@ export function ProgressOverlay({ onClose }: { onClose: () => void }) {
                     <button
                       key={cat}
                       onClick={() => setCategoryFilter(cat === categoryFilter ? null : cat)}
-                      className={`px-2 py-1 rounded text-[10px] ${categoryFilter === cat ? 'bg-green-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'}`}
+                      className={`px-2 py-1 rounded text-[10px] ${categoryFilter === cat ? 'bg-green-700 text-su-colore' : 'bg-gray-800 text-gray-400 hover:text-su-colore'}`}
                     >
                       {CATEGORY_LABELS[cat]}
                     </button>
@@ -243,7 +243,7 @@ export function ProgressOverlay({ onClose }: { onClose: () => void }) {
                 <div className="space-y-2">
                   <div className="text-sm text-gray-300">Sei sicuro? Questa azione è irreversibile.</div>
                   <div className="flex gap-2 justify-center">
-                    <button onClick={handleReset} className="px-4 py-2 bg-red-600 text-white rounded text-xs font-bold hover:bg-red-500">Cancella tutto</button>
+                    <button onClick={handleReset} className="px-4 py-2 bg-red-600 text-su-colore rounded text-xs font-bold hover:bg-red-600">Cancella tutto</button>
                     <button onClick={() => setConfirmReset(false)} className="px-4 py-2 bg-gray-700 text-white rounded text-xs hover:bg-gray-600">Annulla</button>
                   </div>
                 </div>

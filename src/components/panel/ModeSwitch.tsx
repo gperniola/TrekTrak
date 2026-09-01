@@ -49,7 +49,7 @@ export function ModeSwitch() {
           onClick={toggleCompass}
           className={`px-2 py-1 rounded-lg transition-all active:scale-95 min-w-[44px] min-h-[40px] flex flex-col items-center justify-center gap-0.5 ${
             compassActive
-              ? 'bg-amber-500 text-white shadow-sm shadow-amber-900/40'
+              ? 'bg-amber-500 text-black shadow-sm shadow-amber-900/40'
               : 'bg-gray-700/80 text-gray-300 hover:bg-gray-700 hover:text-white'
           }`}
           aria-label={compassActive ? 'Disattiva bussola' : 'Attiva bussola'}
@@ -63,7 +63,7 @@ export function ModeSwitch() {
           onClick={toggleRuler}
           className={`px-2 py-1 rounded-lg transition-all active:scale-95 min-w-[44px] min-h-[40px] flex flex-col items-center justify-center gap-0.5 ${
             rulerActive
-              ? 'bg-blue-500 text-white shadow-sm shadow-blue-900/40'
+              ? 'bg-blue-600 text-su-colore shadow-sm shadow-blue-900/40'
               : 'bg-gray-700/80 text-gray-300 hover:bg-gray-700 hover:text-white'
           }`}
           aria-label={rulerActive ? 'Disattiva righello' : 'Attiva righello'}
@@ -82,7 +82,7 @@ export function ModeSwitch() {
           onClick={toggleQuiz}
           className={`px-2 py-1 rounded-lg transition-all active:scale-95 min-w-[44px] min-h-[40px] flex flex-col items-center justify-center gap-0.5 ${
             quizActive
-              ? 'bg-purple-500 text-white shadow-sm shadow-purple-900/40'
+              ? 'bg-purple-600 text-su-colore shadow-sm shadow-purple-900/40'
               : 'bg-gray-700/80 text-gray-300 hover:bg-gray-700 hover:text-white'
           }`}
           aria-label={quizActive ? 'Disattiva quiz' : 'Attiva quiz'}
@@ -117,7 +117,7 @@ export function ModeSwitch() {
           onClick={() => handleToggle('track')}
           className={`flex-1 py-1.5 rounded-md text-xs font-bold transition-all active:scale-[0.98] max-lg:min-h-[44px] ${
             isTrack
-              ? 'bg-gradient-to-r from-green-400 to-emerald-600 text-gray-950 shadow-sm shadow-emerald-900/40'
+              ? 'bg-gradient-to-r from-green-400 to-emerald-600 text-black shadow-sm shadow-emerald-900/40'
               : 'text-gray-400 hover:text-white'
           }`}
         >

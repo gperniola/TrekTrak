@@ -43,7 +43,7 @@ export function SaveRouteModal({
           <button onClick={onClose} className="flex-1 py-2 bg-gray-700 rounded-lg text-sm transition-all active:scale-[0.98] hover:bg-gray-600">Annulla</button>
           <button
             onClick={() => onConfirm(name.trim() || 'Senza nome', notes)}
-            className="flex-1 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-gray-950 rounded-lg text-sm font-bold shadow-sm transition-all active:scale-[0.98] hover:from-green-400 hover:to-emerald-500"
+            className="flex-1 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-black rounded-lg text-sm font-bold shadow-sm transition-all active:scale-[0.98] hover:from-green-400 hover:to-emerald-500"
           >
             Salva
           </button>

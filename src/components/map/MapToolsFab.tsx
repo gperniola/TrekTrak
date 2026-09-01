@@ -65,7 +65,7 @@ export function MapToolsFab() {
         aria-expanded={open}
         aria-pressed={anyActive}
         className={`w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-xl transition-colors ${
-          anyActive && !open ? 'bg-amber-500 text-white' : 'bg-green-500 text-black'
+          anyActive && !open ? 'bg-amber-500 text-black' : 'bg-green-500 text-black'
         }`}
       >
         <span aria-hidden="true">{open ? '✕' : '🧭'}</span>

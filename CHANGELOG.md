@@ -4,6 +4,32 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.17.1] — 2026-09-01 — Tre correzioni dal consolidamento
+
+Review del lavoro delle due versioni precedenti, cercando per prime le classi di difetto
+che questo progetto ripete.
+
+### Fixed
+- **La guida non si poteva mandare via col dito, e non prendeva il fuoco.** Dichiarava il
+  gesto di trascinamento ma non era collegata al proprio riquadro, quindi il gesto non
+  aveva niente su cui lavorare — e chi usa la tastiera non arrivava al pannello appena
+  aperto.
+
+- **L'app lampeggiava a ogni avvio.** Il tema veniva applicato solo dopo il primo disegno:
+  chi aveva scelto il chiaro vedeva un lampo scuro, chi ha il sistema scuro un lampo
+  bianco. Il primo fotogramma non si corregge dopo, quindi adesso il tema si decide prima
+  che la pagina venga dipinta.
+
+- **Il testo bianco sopra i pulsanti colorati.** Nel tema chiaro il bianco si rovescia in
+  quasi nero: giusto per il testo sulla pagina, sbagliato per la scritta di un pulsante
+  viola o rosso, che il fondo se lo dipinge da sé. Corretto in venticinque punti.
+
+  Aggiungendo la misura di questa famiglia di accoppiate sono venuti fuori difetti **più
+  vecchi del tema**: la scritta bianca sul pulsante degli strumenti con la bussola attiva
+  stava a 2,15:1 — praticamente illeggibile — e lo era anche nel tema scuro, da sempre.
+  Con lei, altre quattro tinte sotto la soglia, e tre pulsanti che **peggioravano al
+  passaggio del mouse**, schiarendo lo sfondo e tenendo la scritta bianca.
+
 ## [0.17.0] — 2026-09-01 — Un tema chiaro, una guida che non copre la mappa
 
 ### Added

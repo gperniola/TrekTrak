@@ -72,7 +72,7 @@ export function ClearWaypointsButton() {
                  focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
     >
       🗑️
-      <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+      <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-red-600 text-su-colore text-[10px] font-bold flex items-center justify-center">
         {waypoints.length}
       </span>
     </button>

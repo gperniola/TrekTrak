@@ -126,7 +126,7 @@ export function RouteDetailCard() {
       <div className="flex flex-wrap gap-2">
         <button
           onClick={handleLoad}
-          className="flex-1 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-gray-950 rounded-lg text-xs font-bold shadow-sm transition-all active:scale-[0.98] hover:from-green-400 hover:to-emerald-500 max-lg:min-h-[44px]"
+          className="flex-1 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-black rounded-lg text-xs font-bold shadow-sm transition-all active:scale-[0.98] hover:from-green-400 hover:to-emerald-500 max-lg:min-h-[44px]"
         >
           Carica nell&apos;editor
         </button>

@@ -8,7 +8,7 @@ export function BrandMark({ size = 'md' }: { size?: 'sm' | 'md' }) {
   return (
     <span className="inline-flex items-center gap-2 select-none">
       <span
-        className={`${badge} grid place-items-center rounded-lg bg-gradient-to-br from-green-400 to-emerald-600 text-gray-950 font-black shadow-sm shadow-emerald-900/40 ring-1 ring-white/10`}
+        className={`${badge} grid place-items-center rounded-lg bg-gradient-to-br from-green-400 to-emerald-600 text-black font-black shadow-sm shadow-emerald-900/40 ring-1 ring-white/10`}
         aria-hidden="true"
       >
         &#9650;

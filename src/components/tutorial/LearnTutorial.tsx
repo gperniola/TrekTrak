@@ -37,7 +37,7 @@ function MenuMockup({ highlight }: { highlight?: 'fields' | 'verify' | 'badges' 
   return (
     <div className="mt-3 bg-gray-800 rounded-lg border border-gray-600 p-2 text-xs">
       <div className="flex gap-1 mb-2">
-        <span className="flex-1 py-1 text-center bg-purple-600 rounded-l text-white font-bold">Learn</span>
+        <span className="flex-1 py-1 text-center bg-purple-600 rounded-l text-su-colore font-bold">Learn</span>
         <span className="flex-1 py-1 text-center bg-gray-700 rounded-r text-gray-400">Track</span>
       </div>
       <div className="bg-gray-900 rounded p-2 mb-1">
@@ -64,7 +64,7 @@ function MenuMockup({ highlight }: { highlight?: 'fields' | 'verify' | 'badges' 
       </div>
       {highlight === 'verify' && (
         <div className="flex justify-end mt-1">
-          <span className="bg-green-600 text-white px-2 py-0.5 rounded font-bold animate-pulse">Verifica</span>
+          <span className="bg-green-700 text-su-colore px-2 py-0.5 rounded font-bold animate-pulse">Verifica</span>
         </div>
       )}
     </div>
@@ -106,14 +106,14 @@ function ToolbarMockup() {
   const profilo = useUIStore((s) => s.profilo);
   return (
     <div className="mt-3 bg-gray-800 rounded-lg border border-gray-600 p-2 flex items-center gap-1 text-xs">
-      <span className="px-2 py-1 bg-amber-600 text-white rounded font-bold">◎</span>
-      <span className="px-2 py-1 bg-blue-600 text-white rounded font-bold">↕</span>
+      <span className="px-2 py-1 bg-amber-700 text-su-colore rounded font-bold">◎</span>
+      <span className="px-2 py-1 bg-blue-600 text-su-colore rounded font-bold">↕</span>
       {mostra('quiz', profilo) && (
-        <span className="px-2 py-1 bg-purple-500 text-white rounded font-bold">?</span>
+        <span className="px-2 py-1 bg-purple-600 text-su-colore rounded font-bold">?</span>
       )}
       {mostra('switchLearnTrack', profilo) && (
         <>
-          <span className="flex-1 py-1 text-center bg-purple-600 text-white rounded font-bold">Learn</span>
+          <span className="flex-1 py-1 text-center bg-purple-600 text-su-colore rounded font-bold">Learn</span>
           <span className="flex-1 py-1 text-center bg-gray-700 text-gray-400 rounded">Track</span>
         </>
       )}
@@ -312,7 +312,7 @@ export function LearnTutorial() {
    * riceve il fuoco all'apertura.
    */
   const piccolo = useSchermoPiccolo();
-  const { propsFoglio, propsManiglia } = useSheetDrag<HTMLDivElement>({
+  const { refFoglio, propsFoglio, propsManiglia } = useSheetDrag<HTMLDivElement>({
     onDismiss: () => { markSeen(); setStep(null); },
     refEsterna: (n) => { dialogRef.current = n; },
     attivo: piccolo,
@@ -436,6 +436,10 @@ export function LearnTutorial() {
      * foglio in basso, sopra la barra di navigazione, alto un terzo dello schermo.
      */
     <div
+      // Senza questa `ref` il gesto non ha un nodo su cui lavorare: il trascinamento non
+      // parte e il pannello non riceve il fuoco all'apertura. Era il difetto trovato
+      // nella review — i test non lo vedevano perche' jsdom non ha i Pointer Events.
+      ref={refFoglio}
       role="dialog"
       aria-label="Guida iniziale TrekTrak"
       tabIndex={-1}
@@ -500,7 +504,7 @@ export function LearnTutorial() {
             )}
             <button
               onClick={handleNext}
-              className="px-4 min-h-[44px] bg-green-600 rounded text-xs text-white font-bold hover:bg-green-500"
+              className="px-4 min-h-[44px] bg-green-600 rounded text-xs text-black font-bold hover:bg-green-500"
             >
               {isLast ? 'Inizia!' : 'Avanti'}
             </button>
