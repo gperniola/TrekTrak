@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import type { ValidationResult, ValidationFieldType } from '@/lib/types';
 import { getTip, getTermini } from '@/lib/didactic-tips';
+import { computeCategoryStats, staMigliorando } from '@/lib/learning-stats';
+import { loadValidationHistory } from '@/lib/storage';
 import { GLOSSARIO, type Termine } from '@/lib/glossario';
 import { ContenutoGlossario } from '@/components/shared/TermineGlossario';
 import { gradi, km, metri } from '@/lib/formato';
@@ -64,6 +66,16 @@ export function ValidationBadge({ result, fieldType }: { result?: ValidationResu
    * chiude: riaprendolo si vuole il suggerimento, non la definizione lasciata a meta'.
    */
   const [termineAperto, setTermineAperto] = useState<Termine | null>(null);
+  /*
+   * Il rinforzo positivo si calcola solo a popover aperto: i badge a schermo possono
+   * essere venti, e leggere lo storico dal disco per ognuno a ogni ridisegno sarebbe
+   * lavoro buttato. Qui la lettura avviene una volta, quando qualcuno guarda davvero.
+   */
+  const staMeglio = useMemo(() => {
+    if (!open || fieldType == null) return false;
+    const stats = computeCategoryStats(loadValidationHistory());
+    return staMigliorando(stats[fieldType]?.recentDeltas ?? []);
+  }, [open, fieldType]);
   const popoverRef = useRef<HTMLSpanElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const prevStatusRef = useRef<string | undefined>(undefined);
@@ -164,6 +176,17 @@ export function ValidationBadge({ result, fieldType }: { result?: ValidationResu
               {termineAperto == null ? (
                 <>
                   <div className="text-amber-300 italic">💡 {tip}</div>
+                  {/*
+                    Detto DOPO il suggerimento e non al posto suo: l'errore appena fatto
+                    resta la cosa da leggere, questo e' il contorno. Compare solo col
+                    verso positivo e con abbastanza sessioni alle spalle — un
+                    incoraggiamento dato sul rumore e' una frase falsa.
+                  */}
+                  {staMeglio && (
+                    <div className="text-green-400 mt-1">
+                      📈 Su questo tipo di errore stai migliorando.
+                    </div>
+                  )}
                   {termini.length > 0 && (
                     <div className="mt-1.5 flex flex-wrap items-center gap-1">
                       <span className="text-gray-500">Che cos&rsquo;è:</span>

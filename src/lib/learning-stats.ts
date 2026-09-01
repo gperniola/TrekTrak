@@ -166,9 +166,47 @@ export function computeCategoryStats(
         bySession.set(session.date, [...(bySession.get(session.date) ?? []), avg]);
       }
     }
-    const sessionAvgs = Array.from(bySession.values()).map((arr: number[]) => Math.round(arr.reduce((s: number, v: number) => s + v, 0) / arr.length));
+    /*
+     * NON arrotondati, per la stessa ragione di `avgDelta` qui sopra: l'unita' cambia da
+     * categoria a categoria, e `Math.round` su una distanza in km faceva diventare 0 ogni
+     * errore sotto i 500 m. Per la categoria «distanza» significava che l'istogramma delle
+     * ultime sessioni era una fila di barre tutte uguali — il massimo era 1 per via della
+     * guardia — qualunque fosse il miglioramento vero. L'arrotondamento lo decide chi
+     * stampa, che sa in che unita' sta scrivendo.
+     */
+    const sessionAvgs = Array.from(bySession.values()).map((arr: number[]) => arr.reduce((s: number, v: number) => s + v, 0) / arr.length);
     stats[cat].recentDeltas = sessionAvgs.slice(-10);
   }
 
   return stats;
 }
+
+/**
+ * Quante sessioni servono per dire «stai migliorando» senza inventare.
+ *
+ * `computeTrendDirection` ne chiede dieci, ma guarda TUTTE le categorie insieme; qui si
+ * guarda un campo solo, dove le sessioni sono molte meno. Sei e' il minimo per avere due
+ * terzine da confrontare.
+ */
+export const SESSIONI_MINIME_TENDENZA = 6;
+
+/** Di quanto deve calare lo scarto perche' sia un miglioramento e non rumore. */
+const CALO_SIGNIFICATIVO = 0.8;
+
+/**
+ * Se su questo tipo di errore si sta davvero migliorando.
+ *
+ * Torna **solo il verso positivo**: dire a qualcuno che sta peggiorando subito dopo che
+ * ha sbagliato un valore non lo aiuta a leggere una carta. E la soglia c'e' perche' un
+ * incoraggiamento dato sul rumore e' una frase falsa, cioe' la classe di difetto che
+ * questo progetto ha corretto piu' volte.
+ */
+export function staMigliorando(scartiPerSessione: number[]): boolean {
+  if (scartiPerSessione.length < SESSIONI_MINIME_TENDENZA) return false;
+  const media = (v: number[]) => v.reduce((s, x) => s + x, 0) / v.length;
+  const recenti = media(scartiPerSessione.slice(-3));
+  const precedenti = media(scartiPerSessione.slice(-6, -3));
+  if (precedenti <= 0) return false;   // non si migliora partendo da zero errori
+  return recenti <= precedenti * CALO_SIGNIFICATIVO;
+}
+
