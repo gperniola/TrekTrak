@@ -86,7 +86,7 @@ export function WaypointCard({ waypoint, dragHandleProps }: { waypoint: Waypoint
           max={90}
           placeholder="46.123"
           readOnly={isTrack}
-          info="Latitudine WGS84 in gradi decimali (-90 a 90)"
+          termine="wgs84"
         />
         <NumberInput
           label="Lon"
@@ -97,7 +97,7 @@ export function WaypointCard({ waypoint, dragHandleProps }: { waypoint: Waypoint
           max={180}
           placeholder="11.456"
           readOnly={isTrack}
-          info="Longitudine WGS84 in gradi decimali (-180 a 180)"
+          termine="gradi-decimali"
         />
         <NumberInput
           label="Alt"
@@ -107,7 +107,7 @@ export function WaypointCard({ waypoint, dragHandleProps }: { waypoint: Waypoint
           validation={waypoint.validationState?.altitude}
           validationFieldType="altitude"
           placeholder=""
-          info="Altitudine sul livello del mare in metri"
+          termine="quota"
           readOnly={isTrack}
         />
       </div>

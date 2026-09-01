@@ -5,7 +5,7 @@ import type { Leg, Waypoint } from '@/lib/types';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { azimuthToCardinal } from '@/lib/calculations';
 import { formatTime } from '@/lib/format';
-import { km, metri, numero, percento } from '@/lib/formato';
+import { dislivello, km, metri, numero, percento } from '@/lib/formato';
 import { confirm as appConfirm, toast } from '@/stores/notificationStore';
 
 /**
@@ -54,11 +54,11 @@ export function TrackWaypointRow({
 
   /**
    * Il segno solo quando c'è qualcosa da segnare: una tratta in piano scriveva «−0 m»,
-   * che si legge «meno zero». Visto solo a schermo — nei test i numeri erano diversi da
-   * zero e la riga sembrava giusta.
+   * che si legge «meno zero». La regola sta in `formato.ts` perché serve anche alla barra
+   * di riepilogo, che faceva lo stesso sbaglio.
    */
-  const dislivello = (v: number | null | undefined, segno: '+' | '−') =>
-    v == null ? 'n/d' : v === 0 ? metri(0) : `${segno}${metri(v)}`;
+  const disl = (v: number | null | undefined, segno: '+' | '−') =>
+    v == null ? 'n/d' : dislivello(v, segno);
 
   const rimuovi = async () => {
     const ok = await appConfirm({
@@ -164,11 +164,11 @@ export function TrackWaypointRow({
           </span>
           <span aria-hidden className="text-gray-600">·</span>
           <span className="tabular-nums text-red-300" title="dislivello in salita">
-            {dislivello(leg.elevationGain, '+')}
+            {disl(leg.elevationGain, '+')}
           </span>
           <span aria-hidden className="text-gray-600">·</span>
           <span className="tabular-nums text-blue-300" title="dislivello in discesa">
-            {dislivello(leg.elevationLoss, '−')}
+            {disl(leg.elevationLoss, '−')}
           </span>
         </div>
       )}

@@ -4,6 +4,36 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.15.3] — 2026-09-01 — Le parole si possono chiedere
+
+### Added
+- **Un glossario che si apre dove serve.** I pulsanti ⓘ accanto ai campi mostravano frasi
+  che *usavano* le parole da spiegare — «Dislivello positivo cumulativo (metri di
+  salita)», «Latitudine WGS84 in gradi decimali» — cioè aiutavano chi già sapeva. Per
+  un'app che esiste per insegnare la cartografia era il posto peggiore dove dare per
+  scontato.
+
+  Adesso quel ⓘ apre una vera definizione, presa da un catalogo di **13 termini**: azimut,
+  declinazione magnetica, D+ e D−, distanza in linea d'aria, percorso su sentiero, quota,
+  curve di livello, pendenza, WGS84, gradi decimali, scala SAC da T1 a T6, metodo Munter.
+  Ogni voce dice che cos'è e poi la parte pratica: come si misura e dove ci si sbaglia.
+
+- **Dopo una verifica sbagliata, il giro si chiude.** Il suggerimento che compare parla
+  per esempio di «equidistanza fra le curve»; sotto, adesso, c'è scritto *Che cos'è: Curve
+  di livello · Quota*, e toccando il termine la definizione prende il posto del
+  suggerimento nello stesso riquadro. Chi ha appena sbagliato un valore è esattamente la
+  persona che potrebbe non sapere cosa siano quelle parole.
+
+  Le definizioni descrivono **quello che l'app fa davvero**: la voce sul metodo Munter
+  dichiara le velocità che l'app usa per stimare i tempi, e un test le riprova sul calcolo
+  vero — se un giorno cambiassero, il glossario mentirebbe proprio a chi lo sta usando per
+  imparare.
+
+### Fixed
+- **I dislivelli si scrivono in un modo solo.** La barra di riepilogo mostrava `+1205 m`
+  senza il punto delle migliaia, con un trattino al posto del segno meno, e `-0 m` su ogni
+  percorso senza discesa — che si legge «meno zero».
+
 ## [0.15.2] — 2026-08-31 — Ripari che rispondono, editor che si legge
 
 ### Fixed
