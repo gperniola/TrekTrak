@@ -4,6 +4,13 @@ import { haversineDistance, forwardAzimuth, interpolatePoints, cumulativeElevati
 import { fetchTrailRoute } from '@/lib/routing-api';
 import type { Leg } from '@/lib/types';
 
+/**
+ * Tutto quello che scrive questo modulo lo calcola l'app, non lo digita nessuno: resta
+ * fuori dalla storia di annulla/rifai (task-19). Senza il contrassegno, «annulla»
+ * disferebbe una distanza che il programma ricalcolerebbe subito dopo.
+ */
+const CALCOLATA = { calcolata: true } as const;
+
 // Generation counter to cancel stale auto-fill operations
 let autoFillGeneration = 0;
 
@@ -44,7 +51,7 @@ async function autoFillLegClassic(
   const distanceM = distanceKm * 1000;
   if (distanceM < 1) {
     if (isStale()) return;
-    updateLeg(leg.id, legUpdate);
+    updateLeg(leg.id, legUpdate, CALCOLATA);
     return;
   }
 
@@ -80,10 +87,10 @@ async function autoFillLegClassic(
   const firstEl = elevations[0];
   const lastEl = elevations[elevations.length - 1];
   if (fromWp && fromWp.altitude == null && firstEl != null) {
-    updateWaypoint(leg.fromWaypointId, { altitude: Math.round(firstEl) });
+    updateWaypoint(leg.fromWaypointId, { altitude: Math.round(firstEl) }, CALCOLATA);
   }
   if (toWp && toWp.altitude == null && lastEl != null) {
-    updateWaypoint(leg.toWaypointId, { altitude: Math.round(lastEl) });
+    updateWaypoint(leg.toWaypointId, { altitude: Math.round(lastEl) }, CALCOLATA);
   }
 
   // Calculate cumulative D+/D- from the full elevation profile
@@ -104,7 +111,7 @@ async function autoFillLegClassic(
   }
 
   if (isStale()) return;
-  updateLeg(leg.id, legUpdate);
+  updateLeg(leg.id, legUpdate, CALCOLATA);
 }
 
 async function autoFillLegGuided(
@@ -136,14 +143,14 @@ async function autoFillLegGuided(
     const fromWp = freshWps.find((w) => w.id === leg.fromWaypointId);
     const toWp = freshWps.find((w) => w.id === leg.toWaypointId);
     if (fromWp && fromWp.altitude == null && route.fromElevation != null) {
-      updateWaypoint(fromWp.id, { altitude: Math.round(route.fromElevation) });
+      updateWaypoint(fromWp.id, { altitude: Math.round(route.fromElevation) }, CALCOLATA);
     }
     if (toWp && toWp.altitude == null && route.toElevation != null) {
-      updateWaypoint(toWp.id, { altitude: Math.round(route.toElevation) });
+      updateWaypoint(toWp.id, { altitude: Math.round(route.toElevation) }, CALCOLATA);
     }
     if (isStale()) return;
 
-    updateLeg(leg.id, legUpdate);
+    updateLeg(leg.id, legUpdate, CALCOLATA);
   } else {
     // Fallback to classic with non-blocking warning
     console.warn(`[TrekTrak] Nessun sentiero trovato tra "${fromWpName || '?'}" e "${toWpName || '?'}". Fallback linea d'aria.`);
@@ -178,7 +185,7 @@ export async function autoFillTrackData(waypointId: string) {
       const wpElevation = await getCachedElevation(wp.lat, wp.lon, elevationCache);
       if (isStale()) return;
       if (wpElevation != null) {
-        updateWaypoint(wp.id, { altitude: Math.round(wpElevation) });
+        updateWaypoint(wp.id, { altitude: Math.round(wpElevation) }, CALCOLATA);
       }
     }
   }

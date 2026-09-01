@@ -43,6 +43,7 @@ export const creaSliceWaypoints: StateCreator<ItineraryState, [], [], SliceWaypo
       tratte.push(createEmptyLeg(waypoints[waypoints.length - 1].id, nuovo.id));
     }
     set({ waypoints: [...waypoints, nuovo], legs: tratte });
+    get().registraGesto('aggiunta del waypoint');
   },
 
   addWaypointAtPosition: (lat, lon) => {
@@ -61,21 +62,24 @@ export const creaSliceWaypoints: StateCreator<ItineraryState, [], [], SliceWaypo
       tratte.push(createEmptyLeg(waypoints[waypoints.length - 1].id, nuovo.id));
     }
     set({ waypoints: [...waypoints, nuovo], legs: tratte });
+    get().registraGesto('aggiunta del waypoint');
   },
 
   removeWaypoint: (id) => {
     const { waypoints, legs } = get();
     const rimasti = waypoints.filter((wp) => wp.id !== id).map((wp, i) => ({ ...wp, order: i }));
     set({ waypoints: rimasti, legs: catenaTratte(rimasti, legs) });
+    get().registraGesto('rimozione del waypoint');
   },
 
   clearWaypoints: () => {
     // `profileHover`/`profileFlyTo` puntano a waypoint: lasciarli farebbe riferire il
     // profilo altimetrico a punti che non esistono più.
     set({ waypoints: [], legs: [], profileHover: null, profileFlyTo: null });
+    get().registraGesto('cancellazione dei waypoint');
   },
 
-  updateWaypoint: (id, data) => {
+  updateWaypoint: (id, data, opzioni) => {
     set({
       waypoints: get().waypoints.map((wp) => {
         if (wp.id !== id) return wp;
@@ -89,6 +93,10 @@ export const creaSliceWaypoints: StateCreator<ItineraryState, [], [], SliceWaypo
         return aggiornato;
       }),
     });
+    // Un giudizio scritto dalla verifica non e' un gesto, e nemmeno un valore calcolato
+    // dall'app in Track: nessuno dei due entra nella storia.
+    const soloValidazione = Object.keys(data).every((k) => k === 'validationState');
+    if (!opzioni?.calcolata && !soloValidazione) get().registraGesto('modifica del waypoint');
   },
 
   updateWaypointPosition: (id, lat, lon) => {
@@ -97,6 +105,7 @@ export const creaSliceWaypoints: StateCreator<ItineraryState, [], [], SliceWaypo
         wp.id === id ? { ...wp, lat, lon, validationState: undefined } : wp,
       ),
     });
+    get().registraGesto('spostamento del waypoint');
   },
 
   reorderWaypoints: (nuovoOrdine) => {
@@ -109,5 +118,6 @@ export const creaSliceWaypoints: StateCreator<ItineraryState, [], [], SliceWaypo
 
     const riordinati = nuovoOrdine.map((vecchio, nuovo) => ({ ...waypoints[vecchio], order: nuovo }));
     set({ waypoints: riordinati, legs: catenaTratte(riordinati, legs) });
+    get().registraGesto('riordino dei waypoint');
   },
 });

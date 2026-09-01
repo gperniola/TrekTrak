@@ -26,7 +26,10 @@ export const creaSliceDocumento: StateCreator<ItineraryState, [], [], SliceDocum
   itineraryName: '',
   createdAt: new Date().toISOString(),
 
-  setItineraryName: (name) => set({ itineraryName: name }),
+  setItineraryName: (name) => {
+    set({ itineraryName: name });
+    get().registraGesto('modifica del nome');
+  },
   setItineraryId: (id) => set({ itineraryId: id }),
 
   resetItinerary: () => {
@@ -43,6 +46,7 @@ export const creaSliceDocumento: StateCreator<ItineraryState, [], [], SliceDocum
       profileHover: null,
       profileFlyTo: null,
     });
+    get().azzeraStoria();
   },
 
   loadItinerary: (id, name, waypoints, legs, createdAt) => {
@@ -66,6 +70,7 @@ export const creaSliceDocumento: StateCreator<ItineraryState, [], [], SliceDocum
       profileHover: null,
       profileFlyTo: null,
     });
+    get().azzeraStoria();
   },
 
   hydrateCurrent: (saved) => {
@@ -79,5 +84,6 @@ export const creaSliceDocumento: StateCreator<ItineraryState, [], [], SliceDocum
       profileHover: null,
       profileFlyTo: null,
     });
+    get().azzeraStoria();
   },
 });

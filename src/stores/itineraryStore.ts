@@ -5,6 +5,7 @@ import { creaSliceWaypoints } from './itinerary/sliceWaypoints';
 import { creaSliceTratte } from './itinerary/sliceTratte';
 import { creaSliceModo } from './itinerary/sliceModo';
 import { creaSliceProfilo } from './itinerary/sliceProfilo';
+import { creaSliceStoria } from './itinerary/sliceStoria';
 
 /**
  * Lo store dell'itinerario, composto da slice (task-27).
@@ -20,7 +21,8 @@ import { creaSliceProfilo } from './itinerary/sliceProfilo';
  * - `sliceWaypoint` — i punti, e per forza anche la catena delle tratte fra loro;
  * - `sliceTratte` — quel poco che si tocca su una tratta da sola;
  * - `sliceModo` — Learn/Track e le impostazioni, che si parlano solo al cambio di modo;
- * - `sliceProfilo` — il dito sul grafico, che non è un dato dell'itinerario.
+ * - `sliceProfilo` — il dito sul grafico, che non è un dato dell'itinerario;
+ * - `sliceStoria` — annulla e rifai.
  *
  * Waypoint e tratte NON sono divisi, benché il task lo chiedesse: una tratta esiste *fra*
  * due waypoint consecutivi, quindi ogni aggiunta o rimozione è per forza un fatto di
@@ -34,6 +36,7 @@ export const useItineraryStore = create<ItineraryState>()((...a) => ({
   ...creaSliceTratte(...a),
   ...creaSliceModo(...a),
   ...creaSliceProfilo(...a),
+  ...creaSliceStoria(...a),
 }));
 
 export type { ItineraryState };

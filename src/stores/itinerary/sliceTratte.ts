@@ -12,7 +12,7 @@ export type SliceTratte = Pick<ItineraryState, 'legs' | 'updateLeg' | 'clearAllV
 export const creaSliceTratte: StateCreator<ItineraryState, [], [], SliceTratte> = (set, get) => ({
   legs: [],
 
-  updateLeg: (id, data) => {
+  updateLeg: (id, data, opzioni) => {
     set({
       legs: get().legs.map((leg) => {
         if (leg.id !== id) return leg;
@@ -33,6 +33,8 @@ export const creaSliceTratte: StateCreator<ItineraryState, [], [], SliceTratte> 
         return recalculateLeg(aggiornata, get().settings.pace?.factor ?? 1);
       }),
     });
+    const soloValidazione = Object.keys(data).every((k) => k === 'validationState');
+    if (!opzioni?.calcolata && !soloValidazione) get().registraGesto('modifica della tratta');
   },
 
   clearAllValidation: () => {

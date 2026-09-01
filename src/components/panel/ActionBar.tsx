@@ -249,7 +249,8 @@ export function ActionBar() {
           legUpdate.validationState = validationUpdates;
         }
         if (Object.keys(legUpdate).length > 0) {
-          updateLeg(leg.id, legUpdate);
+          // La verifica LEGGE i dati e scrive un giudizio: non e' un gesto da annullare.
+          updateLeg(leg.id, legUpdate, { calcolata: true });
         }
       }
 
@@ -270,9 +271,10 @@ export function ActionBar() {
               strict: tol.altitude,
               loose: tol.altitude * 2,
             }) },
-          });
+          }, { calcolata: true });
         } else {
-          updateWaypoint(wp.id, { altitude: Math.round(realAlt) });
+          // Quota mancante compilata dalla verifica: e' un dato che arriva dal servizio.
+          updateWaypoint(wp.id, { altitude: Math.round(realAlt) }, { calcolata: true });
         }
       }
 

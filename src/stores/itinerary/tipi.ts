@@ -1,4 +1,5 @@
 import type { Waypoint, Leg, AppSettings, AppMode } from '../../lib/types';
+import type { AzioneStoria, Storia } from './storia';
 
 /**
  * La forma completa dello store, dichiarata in un posto solo.
@@ -27,9 +28,15 @@ export interface ItineraryState {
    * `resetItinerary`, che genera un itinerario nuovo e butta anche il nome.
    */
   clearWaypoints: () => void;
-  updateWaypoint: (id: string, data: Partial<Waypoint>) => void;
+  /**
+   * `calcolata` distingue una scrittura dell'APP da un gesto della persona: in Track
+   * distanze, dislivelli e geometria arrivano dal calcolo, e non devono finire nella
+   * storia di annulla/rifai — annullare un calcolo che il programma rifarebbe subito
+   * non risponde a nessuna domanda.
+   */
+  updateWaypoint: (id: string, data: Partial<Waypoint>, opzioni?: { calcolata?: boolean }) => void;
   updateWaypointPosition: (id: string, lat: number, lon: number) => void;
-  updateLeg: (id: string, data: Partial<Leg>) => void;
+  updateLeg: (id: string, data: Partial<Leg>, opzioni?: { calcolata?: boolean }) => void;
   reorderWaypoints: (newOrder: number[]) => void;
   clearAllValidation: () => void;
   updateSettings: (settings: AppSettings) => void;
@@ -48,6 +55,13 @@ export interface ItineraryState {
     itineraryId: string; itineraryName: string; createdAt: string;
     appMode: AppMode; waypoints: Waypoint[]; legs: Leg[];
   }) => void;
+
+  /** Annulla e rifai: vedi `sliceStoria`. */
+  storia: Storia;
+  registraGesto: (azione: AzioneStoria) => void;
+  annulla: () => void;
+  rifai: () => void;
+  azzeraStoria: () => void;
 
   profileHover: { distance: number; source: 'chart' | 'map' } | null;
   setProfileHover: (distance: number, source: 'chart' | 'map') => void;
