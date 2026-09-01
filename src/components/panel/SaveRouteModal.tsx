@@ -24,7 +24,10 @@ export function SaveRouteModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="save-route-title"
-        className="bg-gray-800 rounded-lg p-6 w-96 max-w-[90vw]"
+        /* Vedi `dialoghi-raggiungibili.test.ts`: senza tetto d'altezza, un dialogo
+           centrato che cresce esce anche dal bordo superiore e diventa in parte
+           impossibile da raggiungere. */
+        className="bg-gray-800 rounded-lg p-6 w-96 max-w-[90vw] max-h-[90dvh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <h3 id="save-route-title" className="text-lg font-bold text-green-400 mb-4">Salva in libreria</h3>
