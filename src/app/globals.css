@@ -26,3 +26,29 @@ body {
 .animate-badge-pop {
   animation: badge-pop 300ms ease-out;
 }
+
+/*
+ * L'elemento di cui la guida sta parlando (task-38).
+ *
+ * La classe la mette e la toglie il tutorial, cercando `[data-guida="<chiave>"]`: cosi'
+ * un passo puo' indicare un pezzo di interfaccia senza che quel pezzo sappia niente
+ * della guida. Il contorno sta FUORI dall'elemento (`outline` e non `border`), altrimenti
+ * evidenziare cambierebbe il layout di cio' che si sta indicando.
+ */
+.guida-evidenziata {
+  outline: 3px solid #4ade80;
+  outline-offset: 2px;
+  border-radius: 8px;
+  animation: guida-pulsa 1.8s ease-in-out infinite;
+}
+
+@keyframes guida-pulsa {
+  0%, 100% { outline-color: rgba(74, 222, 128, 1); }
+  50% { outline-color: rgba(74, 222, 128, 0.25); }
+}
+
+/* Chi ha chiesto meno movimento vede il contorno fermo, non niente. */
+@media (prefers-reduced-motion: reduce) {
+  .guida-evidenziata { animation: none; }
+}
+

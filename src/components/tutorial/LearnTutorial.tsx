@@ -5,8 +5,10 @@ import { mostra, type Area, type Profilo } from '@/lib/profilo';
 import { useState, useEffect, useRef } from 'react';
 import { KEYS } from '@/lib/storage';
 import { markWhatsNewSeen } from './WhatsNew';
-import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { useItineraryStore } from '@/stores/itineraryStore';
+import { useSheetDrag } from '@/lib/useSheetDrag';
+import { useSchermoPiccolo } from '@/lib/useSchermoPiccolo';
+import { SheetHandle } from '@/components/shared/SheetHandle';
 
 interface TutorialStep {
   title: string;
@@ -23,6 +25,12 @@ interface TutorialStep {
   area?: Area;
   /** Fa parte del primo contatto (vedi `quantiEssenziali`). */
   essenziale?: boolean;
+  /**
+   * Elemento dell'interfaccia di cui il passo parla, per `[data-guida="..."]`. La guida
+   * gli mette un contorno verde intorno: leggere «tocca la mappa» mentre la mappa e'
+   * coperta dalla guida stessa era il difetto che questo task esiste per togliere.
+   */
+  evidenzia?: string;
 }
 
 function MenuMockup({ highlight }: { highlight?: 'fields' | 'verify' | 'badges' }) {
@@ -127,12 +135,14 @@ const STEPS: TutorialStep[] = [
   },
   {
     title: 'Aggiungi waypoint',
+    evidenzia: 'mappa',
     text: 'Clicca o tocca la mappa per posizionare i waypoint del tuo itinerario. Ogni waypoint rappresenta un punto di passaggio. Puoi trascinare i marker per riposizionarli.',
     icon: '📍',
     essenziale: true,
   },
   {
     title: 'Learn e Track',
+    evidenzia: 'modi',
     text: 'In modalità Learn inserisci manualmente distanza, dislivello e azimuth, poi usa "Verifica" per confrontare con i dati reali. In modalità Track i valori vengono calcolati automaticamente. Puoi passare da una all\'altra liberamente: i tuoi dati di entrambe le modalità restano salvati separatamente.',
     icon: '✏️',
     mockup: <MenuMockup highlight="fields" />,
@@ -162,6 +172,7 @@ const STEPS: TutorialStep[] = [
   },
   {
     title: 'Strumenti mappa',
+    evidenzia: 'strumenti',
     text: 'Sulla mappa trovi la Bussola (◎) per l\'azimuth in tempo reale col GPS e il Righello (↕) per misurare distanza e quota tra due punti.',
     icon: '🧭',
     mockup: <ToolbarMockup />,
@@ -180,6 +191,7 @@ const STEPS: TutorialStep[] = [
   },
   {
     title: 'Profilo interattivo',
+    evidenzia: 'profilo',
     text: 'Il grafico in basso mostra il profilo altimetrico colorato per pendenza. Passa il dito sul grafico per vedere il punto sulla mappa, e viceversa. Clicca sul grafico per centrare la mappa.',
     icon: '📊',
   },
@@ -292,8 +304,39 @@ export function LearnTutorial() {
    * successivi diventano quelli di quel profilo.
    */
   const profilo = useUIStore((s) => s.profilo);
-  const dialogRef = useRef<HTMLDivElement>(null);
-  useBodyScrollLock(step !== null);
+  // Mutabile: la riempie la callback del gesto, che e' l'unica `ref` sul nodo.
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  /*
+   * Su telefono la guida e' un foglio come gli altri tre, quindi si manda via col dito
+   * verso il basso. `refEsterna` perche' il pannello ha gia' una ref sua, quella che
+   * riceve il fuoco all'apertura.
+   */
+  const piccolo = useSchermoPiccolo();
+  const { propsFoglio, propsManiglia } = useSheetDrag<HTMLDivElement>({
+    onDismiss: () => { markSeen(); setStep(null); },
+    refEsterna: (n) => { dialogRef.current = n; },
+    attivo: piccolo,
+  });
+  /*
+   * Niente blocco dello scorrimento e niente trappola del fuoco: dal task-38 la guida NON
+   * e' piu' una finestra modale. La mappa dietro deve restare toccabile, altrimenti il
+   * passo «tocca la mappa per aggiungere un waypoint» chiede una cosa che la guida stessa
+   * impedisce.
+   */
+
+  /*
+   * Il contorno verde sull'elemento di cui parla il passo. Si cerca il bersaglio quando
+   * serve invece di tenerne un riferimento: i pezzi indicati compaiono e spariscono da
+   * soli (il FAB e' solo su telefono, l'interruttore dei modi solo in Imparo).
+   */
+  const chiaveEvidenza = step == null ? undefined : passiVisibili(profilo)[step]?.evidenzia;
+  useEffect(() => {
+    if (chiaveEvidenza == null) return;
+    const bersaglio = document.querySelector(`[data-guida="${chiaveEvidenza}"]`);
+    if (bersaglio == null) return;
+    bersaglio.classList.add('guida-evidenziata');
+    return () => bersaglio.classList.remove('guida-evidenziata');
+  }, [chiaveEvidenza]);
 
   // Check localStorage on mount
   useEffect(() => {
@@ -325,40 +368,19 @@ export function LearnTutorial() {
     // si vede cosa e' stato scelto e si puo' cambiare idea.
   };
 
-  // Escape key, focus trap, body scroll lock
+  /*
+   * Escape chiude, e basta. La trappola del fuoco e' stata tolta insieme al velo nero: un
+   * pannello che lascia usare l'app non deve trattenere il Tab, altrimenti si puo' vedere
+   * la mappa ma non raggiungerla da tastiera.
+   */
   useEffect(() => {
     if (step === null) return;
-
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        markSeen();
-        setStep(null);
-      }
+    const tasto = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { markSeen(); setStep(null); }
     };
-    window.addEventListener('keydown', handleKey);
-
+    window.addEventListener('keydown', tasto);
     dialogRef.current?.focus();
-
-    const dialogEl = dialogRef.current;
-    const trapFocus = (e: KeyboardEvent) => {
-      if (e.key !== 'Tab' || !dialogEl) return;
-      const focusable = dialogEl.querySelectorAll<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      );
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (e.shiftKey) {
-        if (document.activeElement === first) { e.preventDefault(); last?.focus(); }
-      } else {
-        if (document.activeElement === last) { e.preventDefault(); first?.focus(); }
-      }
-    };
-    dialogEl?.addEventListener('keydown', trapFocus);
-
-    return () => {
-      window.removeEventListener('keydown', handleKey);
-      dialogEl?.removeEventListener('keydown', trapFocus);
-    };
+    return () => window.removeEventListener('keydown', tasto);
   }, [step]);
 
   function markSeen() {
@@ -407,20 +429,33 @@ export function LearnTutorial() {
   const atEssentialEnd = !showAdvanced && step === essenziali - 1;
 
   return (
+    /*
+     * **Pannello, non finestra modale** (task-38). Niente velo nero e niente contenitore a
+     * tutto schermo: la mappa resta visibile e si puo' toccare mentre la guida spiega come
+     * si tocca. Su schermo grande sta a destra sotto la barra di ricerca; su telefono e' un
+     * foglio in basso, sopra la barra di navigazione, alto un terzo dello schermo.
+     */
     <div
-      className="fixed inset-0 z-[1400] flex items-center justify-center p-4 bg-black/60"
-      onClick={handleClose}
+      role="dialog"
+      aria-label="Guida iniziale TrekTrak"
+      tabIndex={-1}
+      {...propsFoglio}
+      className="fixed z-[1400] bg-gray-900 border border-gray-700 shadow-2xl outline-none overflow-y-auto
+        max-lg:inset-x-2 max-lg:bottom-[68px] max-lg:max-h-[42vh] max-lg:rounded-xl
+        lg:top-20 lg:right-4 lg:w-80 lg:max-h-[calc(100vh-8rem)] lg:rounded-xl"
     >
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Guida iniziale TrekTrak"
-        tabIndex={-1}
-        onClick={(e) => e.stopPropagation()}
-        className="bg-gray-900 border border-gray-700 rounded-xl max-w-sm w-full p-5 shadow-2xl outline-none overflow-y-auto max-h-[calc(100vh-2rem)]"
-      >
-        <div className="text-3xl mb-3">{current.icon}</div>
+      <SheetHandle gesto={propsManiglia} />
+      <div className="p-5 pt-2 lg:pt-5">
+        <div className="flex items-start justify-between gap-2 mb-3">
+          <div className="text-3xl">{current.icon}</div>
+          <button
+            onClick={handleClose}
+            aria-label="Chiudi la guida"
+            className="text-gray-500 hover:text-white min-h-[32px] min-w-[32px] -mr-1 -mt-1"
+          >
+            ✕
+          </button>
+        </div>
         <h2 className="text-base font-bold text-green-400 mb-2">{current.title}</h2>
         <p className="text-sm text-gray-300 leading-relaxed">{current.text}</p>
 
