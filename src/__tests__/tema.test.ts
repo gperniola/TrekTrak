@@ -385,3 +385,62 @@ describe('nessuno riscrive text-white sopra un colore', () => {
     expect(colpevoli).toEqual([]);
   });
 });
+
+/**
+ * **Il difetto peggiore di questa giornata, e il piu' stupido.**
+ *
+ * `text-su-colore` era usato in 25 componenti, la variabile CSS c'era, il test del
+ * contrasto era verde, il build passava — e la classe **non esisteva**, perche' la riga
+ * che la definisce sta in `tailwind.config.ts`, nella radice, e un `git add -A src/`
+ * l'aveva lasciata fuori dal commit. In produzione quei 25 elementi ereditavano il colore
+ * del genitore: nel tema chiaro, testo scuro su pulsante viola.
+ *
+ * Nessun test guardava il ponte fra «la classe che i componenti scrivono» e «il colore che
+ * Tailwind conosce». Adesso sì.
+ */
+describe('le classi di colore inventate esistono davvero', () => {
+  const CONFIG = readFileSync(join(process.cwd(), 'tailwind.config.ts'), 'utf8');
+
+  test('la config definisce su-colore, altrimenti la classe non genera nulla', () => {
+    expect(CONFIG).toContain('"su-colore"');
+    expect(CONFIG).toContain('var(--su-colore)');
+  });
+
+  /** E il token esiste nei due temi, sennò la classe genera una regola vuota. */
+  test('e il token c e nei due temi', () => {
+    expect(SCURO['su-colore']).toBeDefined();
+    expect(CHIARO['su-colore']).toBeDefined();
+  });
+
+  /**
+   * Il controllo generale: ogni nome di colore **non standard** che i componenti scrivono
+   * deve stare nella config. Se domani qualcuno inventa `text-su-mappa`, questo test lo
+   * ferma prima del rilascio invece di lasciarlo diventare una classe muta.
+   */
+  test('nessun componente usa un colore che la config non conosce', () => {
+    const STANDARD = /^(gray|green|red|blue|amber|yellow|purple|cyan|indigo|emerald|fuchsia|orange|violet|teal|sky|rose|lime|pink|slate|zinc|neutral|stone|white|black|transparent|current|inherit)$/;
+    const inventati: string[] = [];
+    const visita = (dir: string) => {
+      for (const voce of readdirSync(dir, { withFileTypes: true })) {
+        const p = join(dir, voce.name);
+        if (voce.isDirectory()) { visita(p); continue; }
+        if (!voce.name.endsWith('.tsx')) continue;
+        const testo = readFileSync(p, 'utf8');
+        const cerca = /\b(?:text|bg|border)-([a-z]+-[a-z]+(?:-[a-z]+)*)\b/g;
+        let m: RegExpExecArray | null;
+        while ((m = cerca.exec(testo)) != null) {
+          const nome = m[1];
+          // Si guardano solo i nomi composti che NON sono utilita' di Tailwind
+          if (STANDARD.test(nome.split('-')[0])) continue;
+          if (/^(gradient|clip|opacity|wrap|balance|nowrap|left|right|center|justify|start|end|top|bottom|none|auto|solid|dashed|dotted|current|transparent|inherit|ellipsis)/.test(nome)) continue;
+          if (!CONFIG.includes(`"${nome}"`) && !CONFIG.includes(`${nome}:`)) {
+            inventati.push(`${voce.name}: ${nome}`);
+          }
+        }
+      }
+    };
+    visita(join(process.cwd(), 'src', 'components'));
+    const unici = inventati.filter((v, i, t) => t.indexOf(v) === i).sort();
+    expect(unici).toEqual([]);
+  });
+});

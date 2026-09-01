@@ -32,6 +32,8 @@ const config: Config = {
           950: "rgb(var(--grigio-950) / <alpha-value>)",
         },
         white: "rgb(var(--bianco) / <alpha-value>)",
+        /* Testo sopra un colore pieno: bianco in entrambi i temi. */
+        "su-colore": "rgb(var(--su-colore) / <alpha-value>)",
         green: {
           300: "rgb(var(--verde-300) / <alpha-value>)",
           400: "rgb(var(--verde-400) / <alpha-value>)",
