@@ -1,7 +1,7 @@
 ---
 id: TASK-23
 title: Setup Playwright per test end-to-end
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-05-15 19:00'
 labels:
@@ -51,3 +51,20 @@ ordinal: 23000
 - `backlog/docs/persona-usability-tests.md` A.6
 - `backlog/docs/feature-suggestions.md` E3
 <!-- SECTION:DESCRIPTION:END -->
+
+## Chiusura 2026-09-01 (v0.17.0)
+
+Fatto: Playwright + Chromium, dieci scenari, **84 secondi** (il criterio diceva sotto i
+90). La rete si finge tutta — mattonelle, geocodifica, quote, Overpass, layer — perche'
+questi test devono dire se l'app funziona, non se oggi Nominatim risponde.
+
+Due scenari **riscritti** rispetto al piano: E2E-05 («salva → nuovo → carica») non e'
+riproducibile offline da quando salvare significa Supabase, ed e' diventato «una ricarica
+non deve far perdere il lavoro»; E2E-06 (quiz) e' diventato «toccare un pannello non crea
+waypoint sotto di se'», che non era nel piano ma e' la classe di difetto arrivata **tre
+volte in produzione**.
+
+Cosa ha insegnato scriverli: al primo giro sette scenari su dieci dicevano «il waypoint
+non nasce», e la causa era il **popup delle novita'** aperto davanti. Il conteggio dei
+waypoint contava marker che non erano waypoint. E il link condiviso va aperto in un
+CONTESTO nuovo, non in una scheda nuova, perche' le schede condividono lo storage.

@@ -1,7 +1,7 @@
 ---
 id: TASK-35
 title: Light mode toggle (oltre al dark attuale)
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-05-15 19:00'
 labels:
@@ -49,3 +49,19 @@ ordinal: 35000
 - `backlog/docs/feature-suggestions.md` D4
 - Tailwind docs: https://tailwindcss.com/docs/dark-mode
 <!-- SECTION:DESCRIPTION:END -->
+
+## Chiusura 2026-09-01 (v0.17.0)
+
+Fatto, con una strada diversa da quella scritta nel piano. Il piano diceva «aggiungere
+varianti `light:` alle classi»: sarebbero stati 690 punti su 58 file, con la certezza di
+sbagliarne qualcuno in silenzio. Invece si **ridefinisce cosa significa `gray-400`** con
+variabili CSS, e nel tema chiaro la scala si rovescia: l'app si ribalta senza che un solo
+componente cambi.
+
+La parte che vale e' il **test del contrasto**: venti accoppiate misurate con la formula
+WCAG nei due temi, leggendo i token dal foglio di stile vero. Ha trovato subito
+`ambra-300` a 4,49:1 contro i 4,5 richiesti — un centesimo, invisibile a occhio.
+
+Due difetti trovati guardando lo schermo: il tema **non veniva persistito**
+(`loadSettings` ricostruisce l'oggetto e buttava il campo), e accanto ho scoperto che
+nemmeno il **passo personale** sopravviveva a un riavvio, da sempre. Entrambi corretti.
