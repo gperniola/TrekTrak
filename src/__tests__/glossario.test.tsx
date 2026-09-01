@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { GLOSSARIO, TERMINI, voce, type Termine } from '@/lib/glossario';
+import { GLOSSARIO, LIVELLI_SAC, TERMINI, voce, type Termine } from '@/lib/glossario';
 import { TermineGlossario } from '@/components/shared/TermineGlossario';
 import { getTermini } from '@/lib/didactic-tips';
 import { NumberInput } from '@/components/shared/NumberInput';
@@ -199,5 +199,30 @@ describe('dal suggerimento alla definizione, senza uscire dal riquadro', () => {
     fireEvent.click(badge);
     expect(screen.getByText('Curve di livello')).toBeInTheDocument();
     expect(screen.queryByText(/uniscono i punti di uguale quota/)).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * Riconciliazione del backlog (task-20 B). Il riquadro della difficoltà elencava i sei
+ * gradi SAC per conto suo, e il glossario ne parla in una voce: due elenchi in due file
+ * sono due elenchi che prima o poi dicono cose diverse. Ora l'elenco breve sta nel
+ * glossario e il componente lo importa; questo test tiene insieme le due forme.
+ */
+describe('la scala SAC ha una casa sola', () => {
+  test('l elenco breve copre esattamente T1..T6', () => {
+    expect(Object.keys(LIVELLI_SAC)).toEqual(['T1', 'T2', 'T3', 'T4', 'T5', 'T6']);
+  });
+
+  test('la voce del glossario nomina tutti i gradi dell elenco', () => {
+    const testo = `${voce('scala-sac').definizione} ${voce('scala-sac').comeSiUsa ?? ''}`;
+    for (const g of Object.keys(LIVELLI_SAC)) {
+      expect(testo).toContain(g);
+    }
+  });
+
+  test('nessun grado dell elenco resta senza descrizione', () => {
+    for (const d of Object.values(LIVELLI_SAC)) {
+      expect(d.trim().length).toBeGreaterThan(10);
+    }
   });
 });

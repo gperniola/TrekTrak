@@ -6,15 +6,7 @@ import { calculateDifficulty } from '@/lib/calculations';
 import { formatTime } from '@/lib/format';
 import type { DifficultyGrade } from '@/lib/types';
 import { dislivello, km } from '@/lib/formato';
-
-const SAC_DESCRIPTIONS: Record<DifficultyGrade, string> = {
-  T1: 'Camminata — sentiero ben segnato',
-  T2: 'Sentiero di montagna — tratti meno definiti',
-  T3: 'Sentiero alpino impegnativo — passaggi esposti possibili',
-  T4: 'Alpino — capacità di orientamento richiesta',
-  T5: 'Alpinismo facile — passaggi tecnici',
-  T6: 'Alpinismo difficile',
-};
+import { LIVELLI_SAC } from '@/lib/glossario';
 
 function SacBadge({ grade }: { grade: DifficultyGrade }) {
   const [open, setOpen] = useState(false);
@@ -42,7 +34,7 @@ function SacBadge({ grade }: { grade: DifficultyGrade }) {
         type="button"
         onClick={(e) => { e.stopPropagation(); setOpen((p) => !p); }}
         className="underline decoration-dotted underline-offset-2 text-gray-300 hover:text-white"
-        aria-label={`Scala SAC: ${grade}. ${SAC_DESCRIPTIONS[grade]}. Clicca per dettagli`}
+        aria-label={`Scala SAC: ${grade}. ${LIVELLI_SAC[grade]}. Clicca per dettagli`}
         aria-expanded={open}
       >
         {grade}
@@ -50,9 +42,9 @@ function SacBadge({ grade }: { grade: DifficultyGrade }) {
       {open && (
         <div role="tooltip" className="absolute right-0 bottom-5 z-[1300] bg-gray-800 border border-gray-600 rounded px-2.5 py-1.5 text-[10px] text-gray-300 shadow-lg w-56 leading-snug">
           <div className="font-bold text-gray-100 mb-1">Scala SAC (Club Alpino Svizzero)</div>
-          {(Object.keys(SAC_DESCRIPTIONS) as DifficultyGrade[]).map((g) => (
+          {(Object.keys(LIVELLI_SAC) as DifficultyGrade[]).map((g) => (
             <div key={g} className={g === grade ? 'text-green-400 font-medium' : ''}>
-              <span className="font-mono">{g}</span> — {SAC_DESCRIPTIONS[g]}
+              <span className="font-mono">{g}</span> — {LIVELLI_SAC[g]}
             </div>
           ))}
         </div>
