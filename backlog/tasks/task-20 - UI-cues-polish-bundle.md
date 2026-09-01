@@ -32,7 +32,9 @@ Bundle di piccoli "UI cues" emersi dai persona test. Ognuno isolato è banale, i
   - T4 — Sentiero alpino, capacità di lettura del terreno richiesta
   - T5 — Alpinismo facile, passaggi tecnici
   - T6 — Alpinismo difficile
-- [ ] Versione concisa nel tooltip; link al glossario (TASK-16) per la descrizione completa
+- [x] Versione concisa nel tooltip; link al glossario (TASK-16) — **risolto diversamente**,
+      vedi la riconciliazione in fondo: il riquadro mostra gia' tutti e sei i gradi, quindi
+      il link non serve; e' stata tolta la doppia fonte
 
 ### C. Banner "zoom oltre dettaglio nativo" (C.2)
 - [ ] In `InteractiveMap.tsx` o in un nuovo `MaxZoomHint.tsx`: ascolta `zoomend` event di Leaflet
@@ -59,3 +61,24 @@ Bundle di piccoli "UI cues" emersi dai persona test. Ognuno isolato è banale, i
 
 A, B (popover SAC in `SummaryBar.tsx`, senza link al glossario) e D (banner "+N%" in `ActionBar.tsx:301-320`) risultano già implementati e sono stati spuntati retroattivamente. **Resta da fare: C (banner "zoom oltre dettaglio nativo"), il tip trend positivo di D, e il link B→glossario (dipende da [[task-16-tutorial-glossary-profile-choice]]).**
 <!-- SECTION:DESCRIPTION:END -->
+
+## Riconciliazione 2026-09-01
+
+**B e' chiuso, ma non col link previsto.** Quando questo punto e' stato scritto il
+glossario non esisteva e il riquadro della difficolta' mostrava una riga sola. Oggi
+`SacBadge` elenca gia' **tutti e sei i gradi** ed evidenzia quello corrente: mandare a
+un'altra schermata per leggere le stesse sei righe sarebbe un passo in piu' per la stessa
+informazione.
+
+Il problema vero, comparso solo ieri con la v0.15.3, era un altro: la voce `scala-sac` del
+glossario e l'elenco dentro `SummaryBar.tsx` erano **due fonti della stessa cosa**. Ora
+l'elenco breve sta in `lib/glossario.ts` come `LIVELLI_SAC`, il componente lo importa, e
+un test verifica che le due forme coprano gli stessi sei gradi.
+
+**Resta aperto:**
+- **C**, il banner «zoom oltre il dettaglio nativo» — mai iniziato;
+- l'ultimo punto di **D**, il suggerimento «stai migliorando su questo tipo di errore»
+  (`computeTrendDirection` esiste gia' e non e' usata per questo).
+
+I criteri di accettazione restano non spuntati perche' C manca.
+
