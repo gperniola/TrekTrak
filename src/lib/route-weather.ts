@@ -19,6 +19,15 @@ export interface PuntoInterrogato {
   lat: number;
   lon: number;
   name: string;
+  /**
+   * Quota del punto, quella che l'utente ha scritto (o che l'app ha ricavato in Track).
+   *
+   * Serve a **chiedere la previsione alla quota giusta**: la maglia del modello sta dove
+   * capita, e sulla Maiella la cella di Cima delle Murelle (2596 m) e' a 1257 m. Misurato
+   * il 2026-09-02: 26,1 gradi contro 19,5, e raffiche 47 contro 40, per lo stesso punto
+   * alla stessa ora. Senza la quota si legge il meteo del fondovalle.
+   */
+  alt: number | null;
 }
 
 /** Una lettura oraria per un punto. */
@@ -29,7 +38,18 @@ export interface PuntoOrario {
   weatherCode: number;
   gusts: number;
   precipProb: number;
+  /** Temperatura in gradi, alla quota chiesta al modello. */
+  temp: number;
 }
+
+/**
+ * Quel che basta per **giudicare** un'ora: la temperatura non entra nel giudizio.
+ *
+ * Tenerla fuori non e' pignoleria: `classifyHour` e' la funzione che decide i livelli di
+ * rischio, e chiederle un campo che non guarda vorrebbe dire inventarne un valore in ogni
+ * punto che la chiama — cioe' esattamente dove nascono i dati finti.
+ */
+export type OraDaClassificare = Omit<PuntoOrario, 'temp'>;
 
 /** Serie orarie come arrivano da Open-Meteo, un oggetto per punto. */
 export interface SerieOraria {
@@ -38,6 +58,7 @@ export interface SerieOraria {
   weather_code: number[];
   wind_gusts_10m: number[];
   precipitation_probability: number[];
+  temperature_2m: number[];
 }
 
 /**
@@ -85,7 +106,13 @@ export function samplePoints(waypoints: Waypoint[], max = MAX_PUNTI): PuntoInter
   const visti = new Set<number>();
   return scelti
     .filter(({ i }) => (visti.has(i) ? false : (visti.add(i), true)))
-    .map(({ wp, i }) => ({ waypointIndex: i, lat: wp.lat as number, lon: wp.lon as number, name: wp.name }));
+    .map(({ wp, i }) => ({
+      waypointIndex: i,
+      lat: wp.lat as number,
+      lon: wp.lon as number,
+      name: wp.name,
+      alt: wp.altitude,
+    }));
 }
 
 /**
@@ -113,7 +140,7 @@ export function arrivalTimes(waypoints: Waypoint[], legs: Leg[], departure: Date
   return out;
 }
 
-export function classifyHour(o: PuntoOrario): Classificazione {
+export function classifyHour(o: OraDaClassificare): Classificazione {
   const reasons: string[] = [];
   let level: Livello = 0;
   let qualcosaDiNoto = false;
@@ -174,6 +201,16 @@ export function defaultDeparture(now: Date, oraTipica = 7): Date {
 export interface RigaPercorso {
   waypointIndex: number;
   name: string;
+  /** Quota del punto secondo l'itinerario, se c'e'. */
+  alt: number | null;
+  /**
+   * Quota a cui il modello ha risposto per questo punto, come la dichiara lui stesso.
+   *
+   * Non e' un dettaglio da nascondere: se non coincide con quella del punto, temperatura
+   * e raffiche sono di un altro posto — piu' in basso, quindi piu' calde e piu' miti di
+   * quel che si trovera'.
+   */
+  modelElevation: number | null;
   /** Orario stimato di arrivo (ISO UTC), o `null` se i tempi non sono stimabili. */
   arrival: string | null;
   /** Lettura dell'ora più vicina all'arrivo, se disponibile. */
@@ -236,6 +273,7 @@ function letturaVicina(serie: SerieOraria, quando: Date): PuntoOrario | null {
     weatherCode: serie.weather_code?.[migliore] ?? Number.NaN,
     gusts: serie.wind_gusts_10m?.[migliore] ?? Number.NaN,
     precipProb: serie.precipitation_probability?.[migliore] ?? Number.NaN,
+    temp: serie.temperature_2m?.[migliore] ?? Number.NaN,
   };
 }
 
@@ -372,6 +410,8 @@ export function buildRouteWeather(input: {
   departure: Date;
   punti: PuntoInterrogato[];
   serie: SerieOraria[];
+  /** Quote a cui il modello ha risposto, una per punto, nello stesso ordine. */
+  elevations?: number[];
 }): RouteWeatherReport {
   const { waypoints, legs, departure, punti, serie } = input;
   if (punti.length === 0 || serie.length === 0) {
@@ -398,9 +438,12 @@ export function buildRouteWeather(input: {
     // il motivo, invece di leggere un'ora a caso.
     const hour = arrivo != null && mia != null ? letturaVicina(mia, arrivo) : null;
     const motivo = arrivo == null ? 'orario di arrivo non stimabile' : 'dati non disponibili';
+    const quotaModello = input.elevations?.[k];
     return {
       waypointIndex: p.waypointIndex,
       name: p.name,
+      alt: p.alt,
+      modelElevation: Number.isFinite(quotaModello) ? (quotaModello as number) : null,
       arrival: arrivo?.toISOString() ?? null,
       hour,
       classification: hour ? classifyHour(hour) : { level: null, reasons: [motivo] },
@@ -526,4 +569,34 @@ export function buildRouteWeather(input: {
   }
 
   return { rows, windows, hitWindow, verdict: { level: peggio, message }, sampled: punti.length };
+}
+
+/**
+ * Di quanto la quota del modello si scosta da quella del punto, in metri (segno incluso:
+ * negativo = il modello sta piu' in basso). `null` quando manca una delle due — e allora
+ * la cosa da dire e' "non lo so", non "coincidono".
+ */
+export function scartoQuota(r: RigaPercorso): number | null {
+  if (r.alt == null || r.modelElevation == null) return null;
+  if (!Number.isFinite(r.alt) || !Number.isFinite(r.modelElevation)) return null;
+  return Math.round(r.modelElevation - r.alt);
+}
+
+/**
+ * Oltre questo scarto conviene dirlo.
+ *
+ * Centocinquanta metri di quota valgono circa un grado: sotto, il margine e' minore
+ * dell'incertezza del modello stesso e avvisare sarebbe rumore.
+ */
+export const SCARTO_QUOTA_RILEVANTE = 150;
+
+/** Lo scarto piu' grosso fra le righe, quello che vale la pena dichiarare. */
+export function scartoQuotaMassimo(rows: RigaPercorso[]): number | null {
+  let peggiore: number | null = null;
+  for (const r of rows) {
+    const s = scartoQuota(r);
+    if (s == null) continue;
+    if (peggiore == null || Math.abs(s) > Math.abs(peggiore)) peggiore = s;
+  }
+  return peggiore;
 }

@@ -1,8 +1,8 @@
 import { buildForecastUrl, fetchRouteForecast } from '@/lib/weather-api';
 
 const punti = [
-  { waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'Rifugio' },
-  { waypointIndex: 3, lat: 46.45, lon: 11.86, name: 'Forcella' },
+  { waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'Rifugio', alt: null },
+  { waypointIndex: 3, lat: 46.45, lon: 11.86, name: 'Forcella', alt: null },
 ];
 
 const serie = (base = 0) => ({
@@ -11,6 +11,7 @@ const serie = (base = 0) => ({
   weather_code: [0, 3],
   precipitation_probability: [0, 5],
   wind_gusts_10m: [12, 18],
+  temperature_2m: [14, 15],
 });
 
 describe('URL della previsione', () => {
@@ -24,7 +25,7 @@ describe('URL della previsione', () => {
   test('chiede le variabili che servono, e solo quelle', () => {
     const orarie = decodeURIComponent(new URL(url).searchParams.get('hourly') || '');
     expect(orarie.split(',').sort()).toEqual(
-      ['cape', 'precipitation_probability', 'weather_code', 'wind_gusts_10m']
+      ['cape', 'precipitation_probability', 'temperature_2m', 'weather_code', 'wind_gusts_10m']
     );
   });
 
@@ -91,5 +92,46 @@ describe('lettura della risposta', () => {
     const r = await fetchRouteForecast([], 2);
     expect(spia).not.toHaveBeenCalled();
     expect(r.serie).toEqual([]);
+  });
+});
+
+/**
+ * **La previsione si chiede alla quota del punto.**
+ *
+ * MISURATO il 2026-09-02 su Cima delle Murelle (2596 m): senza `elevation` il modello
+ * risponde per una maglia a 1257 m — 26,1 gradi e raffiche a 47,5 km/h alle 12 — mentre
+ * con `elevation=2596` da' 19,5 gradi e 40,3 km/h. Sei gradi e mezzo, cioe' il meteo del
+ * fondovalle presentato come quello di vetta.
+ */
+describe('la quota nella richiesta', () => {
+  const conQuota = [
+    { waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'Rifugio', alt: 2100 },
+    { waypointIndex: 3, lat: 46.45, lon: 11.86, name: 'Forcella', alt: 2596.4 },
+  ];
+
+  test('con tutte le quote note, le chiede al modello', () => {
+    const q = new URL(buildForecastUrl(conQuota, 2)).searchParams.get('elevation');
+    // Arrotondate: il servizio vuole numeri, e il decimetro non cambia una previsione.
+    expect(q).toBe('2100,2596');
+  });
+
+  /**
+   * Il servizio pretende **tanti elementi quante le coordinate** (verificato: con
+   * `elevation=2596,` risponde con un errore esplicito) e non ha un modo per dire
+   * "questo lascialo al valore di default". Inventare la quota mancante sarebbe peggio
+   * del difetto che si vuole correggere: meglio nessuna quota e dichiararlo a schermo.
+   */
+  test('se a un punto manca la quota, non ne chiede nessuna', () => {
+    const misto = [conQuota[0], { ...conQuota[1], alt: null }];
+    expect(new URL(buildForecastUrl(misto, 2)).searchParams.has('elevation')).toBe(false);
+  });
+
+  test('una quota non finita conta come mancante', () => {
+    const rotto = [conQuota[0], { ...conQuota[1], alt: Number.NaN }];
+    expect(new URL(buildForecastUrl(rotto, 2)).searchParams.has('elevation')).toBe(false);
+  });
+
+  test('senza quote la richiesta resta quella di prima', () => {
+    expect(new URL(buildForecastUrl(punti, 2)).searchParams.has('elevation')).toBe(false);
   });
 });

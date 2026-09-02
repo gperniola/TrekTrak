@@ -4,6 +4,75 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.20.0] — 2026-09-02 — Radar che non lampeggia, cielo per ogni waypoint
+
+Tre segnalazioni, e due difetti trovati per strada mentre le verificavo — uno dei quali
+faceva perdere il lavoro salvato.
+
+### Added
+- **I comandi del radar sono sulla mappa**, in basso, quando il layer è accesso: play,
+  cursore dei fotogrammi, orario, e la riga che dice che è **pioggia già caduta**. Prima
+  stavano solo nel pannello dei layer: si accendeva il radar, si chiudeva il pannello per
+  guardare la mappa, e da quel momento la pioggia si muoveva senza che niente dicesse che
+  era un'animazione, di che ora, né come fermarla. Restano anche nel pannello, dove si
+  sceglie cosa vedere.
+- **L'iconcina del cielo per ogni waypoint**, con la parola e la temperatura di quell'ora,
+  in «Quando partire». Il codice meteo c'era già — serviva a riconoscere i temporali — e non
+  arrivava mai a schermo: si vedevano tre colonne di numeri e il cielo bisognava
+  immaginarselo. Sotto la tabella, una legenda con **le sole icone presenti** (al tocco non
+  esiste nessun `title` da leggere). Un codice che non si conosce si scrive `n/d`, non lo si
+  disegna sereno.
+
+### Fixed
+- **La pioggia non lampeggia più fra un fotogramma e l'altro.** Il layer veniva
+  *rimontato* a ogni fotogramma — altrimenti Leaflet riusava i tile in cache e l'animazione
+  restava ferma — ma rimontare toglie lo strato vecchio *prima* che il nuovo abbia
+  scaricato, e fra i due a schermo non c'era niente. Ora sono **due strati**: uno si vede,
+  sull'altro si carica il successivo, e si scambiano quando è pronto. Le regole stanno in
+  `lib/radar-anim.ts`, senza Leaflet. MISURATO su pioggia vera (96 tile, 7 secondi di
+  animazione, build di produzione): **zero istanti su 70 senza pioggia a schermo**, fra
+  52.000 e 73.000 pixel di pioggia sempre presenti.
+- **Il layer dell'instabilità non spariva più cambiando zoom.** Da zoom 11 in su il
+  servizio EUMETSAT restituisce un PNG valido e **completamente trasparente** (misurato sui
+  pixel: 100% opaco a z6-z8, 86% a z9, 14% a z10, 0% da z11). Ora `maxNativeZoom: 8`: si
+  chiedono le immagini che esistono e si ingrandiscono, sfocate ma vere.
+- **La previsione si chiede alla quota dei punti.** MISURATO su Cima delle Murelle
+  (2596 m): la maglia del modello sta a **1257 m**, e senza dichiarare la quota Open-Meteo
+  risponde 26,1 gradi contro 19,5, con raffiche a 47,5 km/h invece di 40,3 — il meteo del
+  fondovalle presentato come quello di vetta, per tutti e tre i dati che il pannello mostra.
+  Ora l'app manda le quote che l'utente ha scritto. Quando non le ha tutte non si possono
+  mandare (il servizio pretende una lista completa) e allora **lo dichiara**, con lo scarto
+  in metri, invece di far finta.
+- **Il lavoro salvato non si cancella più da solo.** Salvare uno stato **vuoto** cancellava
+  l'itinerario in lavorazione, e l'autosalvataggio salva anche quando la pagina viene
+  nascosta: bastava aprire l'app in una seconda scheda — che parte sempre vuota, perché il
+  ripristino avviene dopo — e cambiare scheda, per far sparire il lavoro salvato dalla
+  prima. Al riavvio non tornava niente, che è esattamente il difetto per cui la v0.11.8
+  esiste. Ora cancellare è un **gesto** (Nuovo, il cestino), non uno stato: `saveCurrent`
+  non cancella più, e chi vuole cancellare chiama `clearCurrent`.
+- **La barra dei comandi del radar copriva altri comandi.** Alla prima stesura il bordo
+  sinistro finiva sopra il pulsante tondo degli strumenti e la didascalia tagliava la riga
+  delle attribuzioni. Visto guardando lo schermo; da qui in avanti lo vede
+  `e2e/radar-comandi.spec.ts`.
+- **La legenda del cielo ha un nome accessibile.** Le icone sono `aria-hidden`, quindi per
+  chi non vede era una filza di parole senza appiglio.
+
+### Changed
+- **Gli scenari end-to-end non registrano più il service worker.** Le risposte finte
+  valgono solo per le richieste che passano dalla pagina: quelle che passano dal service
+  worker non le vede `page.route`. In sviluppo il service worker non c'è e non si notava,
+  ma con un server di produzione in ascolto sulla stessa porta gli stub smettevano di
+  valere **in silenzio** e i test interrogavano i servizi veri. Il comportamento offline si
+  prova con `playwright.offline.config.ts`, che il service worker lo pretende.
+- Il finto `TileLayer` dei test ora modella le due cose che l'animazione usa davvero —
+  l'opacità cambiata a mano sull'oggetto Leaflet e l'evento `load`. Un layer che non dice
+  mai di aver caricato metteva il codice davanti a uno scenario impossibile e nascondeva
+  l'unico comportamento che conta: che a schermo ci sia sempre pioggia.
+
+### Test
+- 1676 unità (+52), 32 end-to-end (+10), 4 offline. Nuovi: `radar-anim`, `cielo`,
+  `e2e/radar-comandi`, `e2e/meteo-percorso`, più i casi sull'autosalvataggio e sulla quota.
+
 ## [0.19.2] — 2026-09-02 — Consolidamento: tre round di review
 
 Tre giri sul lavoro delle 0.19.x, ognuno con un metodo diverso — il codice, lo schermo, gli

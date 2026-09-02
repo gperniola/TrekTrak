@@ -78,12 +78,14 @@ export function saveCurrent(stato: {
   legs: Leg[];
 }): void {
   try {
-    // Un itinerario senza waypoint non è lavoro da conservare: dopo "Nuovo" la
-    // ricarica non deve far ricomparire nulla.
-    if (stato.waypoints.length === 0) {
-      localStorage.removeItem(CURRENT_KEY);
-      return;
-    }
+    /*
+      Uno stato vuoto non scrive **e non cancella**: salvare non deve poter distruggere.
+      Prima qui c'era una `removeItem`, e siccome l'autosalvataggio salva anche quando la
+      pagina viene nascosta, bastava aprire l'app in una seconda scheda — che parte sempre
+      vuota — e cambiare scheda per cancellare il lavoro salvato dalla prima.
+      Chi vuole cancellare chiama `clearCurrent`, che e' l'unico modo di dirlo.
+    */
+    if (stato.waypoints.length === 0) return;
     const savedAt = new Date().toISOString();
     try {
       scrivi({ ...stato, savedAt });

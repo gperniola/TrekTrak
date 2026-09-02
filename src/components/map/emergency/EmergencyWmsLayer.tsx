@@ -67,6 +67,14 @@ export function EmergencyWmsLayer({ def }: { def: EmergencyLayerDef }) {
       url={def.wms.url}
       params={params}
       opacity={def.wms.opacity}
+      /*
+        Oltre `maxNativeZoom` Leaflet **stira** l'ultimo livello disponibile invece di
+        chiedere mattonelle che il servizio non ha. Senza, il layer dell'instabilita'
+        svaniva ingrandendo: EUMETSAT risponde 200 con un PNG valido e completamente
+        trasparente da z11, quindi nessun errore e nessun `tileerror` — solo il layer che
+        sparisce. Misurato sui pixel, non sul peso del PNG.
+      */
+      maxNativeZoom={def.wms.maxNativeZoom}
       pane={EMERGENCY_PANE}
       eventHandlers={{
         tileload: () => reportWmsTile(def.id, 'load'),

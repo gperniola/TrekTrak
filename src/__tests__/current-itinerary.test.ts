@@ -44,13 +44,24 @@ describe('autosalvataggio dell\'itinerario in lavorazione', () => {
     expect(loadCurrent()).toBeNull();
   });
 
-  // Un itinerario vuoto non è lavoro da conservare: dopo "Nuovo" la ricarica non deve
-  // far ricomparire nulla, e non deve nemmeno lasciare spazzatura in storage.
+  // Un itinerario vuoto non è lavoro da conservare: non si scrive.
   test('un itinerario senza waypoint non viene conservato', () => {
-    saveCurrent(stato());
     saveCurrent(stato({ waypoints: [], legs: [] }));
     expect(loadCurrent()).toBeNull();
     expect(localStorage.getItem(CURRENT_KEY)).toBeNull();
+  });
+
+  /**
+   * **Salvare non cancella.** Trovato il 2026-09-02: qui c'era una `removeItem` per lo
+   * stato vuoto, e siccome l'autosalvataggio salva anche quando la pagina viene nascosta,
+   * bastava aprire l'app in una seconda scheda — che parte sempre vuota, perche' il
+   * ripristino avviene dopo — e cambiare scheda, per far sparire il lavoro salvato dalla
+   * prima. Cancellare e' un gesto dell'utente, e ha la sua funzione.
+   */
+  test('salvare uno stato vuoto non cancella quello che c era', () => {
+    saveCurrent(stato());
+    saveCurrent(stato({ waypoints: [], legs: [] }));
+    expect(loadCurrent()?.waypoints).toHaveLength(2);
   });
 
   test('clearCurrent cancella', () => {
