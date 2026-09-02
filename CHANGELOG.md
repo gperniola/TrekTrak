@@ -4,6 +4,30 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.18.3] — 2026-09-02 — Cinque punti illeggibili nel tema chiaro
+
+### Fixed
+- **I popup della mappa erano illeggibili nel tema chiaro** (TASK-63). Leaflet dà loro un
+  fondo bianco per la sua CSS, ma il tema chiaro funziona **rovesciando la scala grigia**:
+  un fondo che non si rovescia sotto colori che si rovesciano regge in un tema e crolla
+  nell'altro. Misurato: il testo secondario dei popup faceva 7,56:1 nel tema scuro e
+  **1,54:1** nel chiaro. Ora i popup hanno il fondo dell'app e sono pannelli come gli altri.
+- Cercando la radice è emerso che lo stesso difetto era in **cinque punti**, non uno. Nel
+  tema chiaro erano invisibili: il **toast di avviso** (1,13:1), l'errore della **bussola**
+  e quello della **posizione** (1,05:1), l'avviso del **meteo** (2,23:1). Il toast di avviso
+  era rotto e i suoi fratelli identici stavano bene per un caso — `amber-100` è fra i colori
+  che seguono il tema, `green-100` e `red-100` no.
+
+### Added
+- **Il contrasto si misura sul DOM vero, nei due temi** (`e2e/contrasto.spec.ts`). Cinque
+  scenari attraversano le viste e **aprono i popup**, chiedendo a ogni elemento con testo il
+  colore calcolato e il fondo composto — componendo l'opacità, perché `bg-black/20` sopra il
+  verde non è nero. È l'audit che il 2026-09-02 ha trovato in dieci minuti quattro difetti
+  invisibili a 1.500 test unitari e a Lighthouse 100, scritto una volta e poi tenuto.
+- Un controllo che ricava dalla configurazione di Tailwind **quali tonalità cambiano fra i
+  due temi**, e segnala chi le mescola con un fondo fisso: è la classe di difetto sopra, e
+  finora si trovava un pezzo alla volta.
+
 ## [0.18.2] — 2026-09-02 — Testo che si legge, in tutti e due i temi
 
 ### Fixed

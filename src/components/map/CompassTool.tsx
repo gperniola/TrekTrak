@@ -157,7 +157,7 @@ export function CompassOverlay({ active, onDeactivate }: { active: boolean; onDe
 
   if (error) {
     return (
-      <div ref={guardiaPannello} className="absolute bottom-2 left-1/2 -translate-x-1/2 z-[1000] bg-red-900/90 rounded-lg px-4 py-2 text-sm text-red-200 max-w-[calc(100%-1rem)] text-center">
+      <div ref={guardiaPannello} className="absolute bottom-2 left-1/2 -translate-x-1/2 z-[1000] bg-red-900/90 rounded-lg px-4 py-2 text-sm text-[#fecaca] max-w-[calc(100%-1rem)] text-center">
         {error}
       </div>
     );

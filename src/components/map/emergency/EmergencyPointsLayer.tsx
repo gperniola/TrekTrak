@@ -127,7 +127,7 @@ export function firePopupHtml(p: FirePoint): string {
     '<div style="min-width:170px;font-size:12px">'
     + '<div style="font-weight:700;margin-bottom:4px">🔥 Anomalia termica</div>'
     + rows.map((r) => `<div>${escapeMarkup(r)}</div>`).join('')
-    + '<div style="font-size:10px;color:#6b7280;margin-top:4px">'
+    + '<div style="font-size:10px;color:var(--tenue);margin-top:4px">'
     + 'Rilevazione satellitare NASA FIRMS — non è la conferma di un incendio in corso.'
     + '</div></div>'
   );

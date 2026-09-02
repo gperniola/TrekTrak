@@ -74,7 +74,7 @@ function renderContent(
     const msg = failed
       ? 'Dettagli non disponibili'
       : 'Nessun dato di emergenza in questo punto';
-    return `<div style="font-size:12px;color:#6b7280">${escapeMarkup(msg)}</div>`;
+    return `<div style="font-size:12px;color:var(--tenue)">${escapeMarkup(msg)}</div>`;
   }
   // Tutto ciò che arriva da EFFIS passa dall'escaping: sono dati di terze parti.
   return results

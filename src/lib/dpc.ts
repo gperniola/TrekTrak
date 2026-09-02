@@ -73,11 +73,11 @@ function riskRow(label: string, level: DpcLevel): string {
 export function zonePopupHtml(zone: DpcZone, dayLabel: string, issuedLabel: string): string {
   return `<div style="min-width:190px;font-size:12px">` +
     `<div style="font-weight:bold;margin-bottom:4px">${esc(zone.name)}</div>` +
-    `<div style="color:#6b7280;margin-bottom:6px">${esc(dayLabel)}</div>` +
+    `<div style="color:var(--tenue);margin-bottom:6px">${esc(dayLabel)}</div>` +
     riskRow('Idraulico', zone.idraulico) +
     riskRow('Temporali', zone.temporali) +
     riskRow('Idrogeologico', zone.idrogeologico) +
-    `<div style="color:#6b7280;margin-top:6px;font-size:10px">${esc(issuedLabel)}</div></div>`;
+    `<div style="color:var(--tenue);margin-top:6px;font-size:10px">${esc(issuedLabel)}</div></div>`;
 }
 
 /** Data locale in `YYYY-MM-DD`. Unica implementazione: la copia in EmergencyWmsLayer

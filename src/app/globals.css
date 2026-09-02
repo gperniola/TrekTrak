@@ -20,6 +20,67 @@ body {
   background: var(--fondo-mappa);
 }
 
+/*
+ * I popup entrano nel sistema delle superfici dell'app (task-63).
+ *
+ * **Il difetto che questo risolve.** Leaflet dà ai popup un fondo bianco per la sua CSS, e
+ * l'app non lo ridefiniva. Ma il tema chiaro funziona **rovesciando la scala grigia**:
+ * `grigio-600` è scuro nel tema scuro e chiaro nel chiaro. Un fondo che non si rovescia
+ * sotto colori che si rovesciano dà un contrasto che regge in un tema e crolla nell'altro.
+ * Misurato sul DOM: `text-gray-600` in un popup faceva 7,56:1 nel tema scuro e **1,54:1**
+ * nel chiaro — nel tema chiaro il testo secondario dei popup era invisibile.
+ *
+ * Si può sistemare in due modi: rendere fissi i colori, o rendere il fondo variabile. La
+ * seconda è quella scelta, perché la prima lascia in piedi una **trappola**: una superficie
+ * bianca per sempre, dentro un'app a tema, su cui ogni modifica futura deve ricordarsi di
+ * non usare i grigi normali. Così invece un popup è un pannello come gli altri, e qualunque
+ * classe grigia ci funziona come funziona altrove.
+ */
+/*
+  **La specificita' conta, e non a favore nostro.**
+
+  La CSS di Leaflet arriva dal componente della mappa e finisce nel pacchetto DOPO questo
+  foglio: a pari specificita' vince lei, e un `.leaflet-popup-content-wrapper` scritto qui
+  non ha **nessun** effetto. Misurato: la regola c'era, scritta bene, e il popup restava
+  bianco. Da qui il prefisso `.leaflet-container`, che aggiunge una classe e basta a
+  scavalcare.
+
+  Spostare l'import di Leaflet in questo foglio sembrava la soluzione piu' pulita, ed e'
+  stata provata: riordina la cascata anche per tutto il resto, e le attribuzioni della
+  mappa sono scese a 3,24:1. Un rimedio locale e' meglio di un riordino globale che
+  cambia cose che nessuno stava guardando.
+*/
+.leaflet-container .leaflet-popup-content-wrapper,
+.leaflet-container .leaflet-popup-tip {
+  background: rgb(var(--grigio-800));
+  color: rgb(var(--grigio-200));
+  box-shadow: 0 3px 14px rgb(0 0 0 / 0.4);
+}
+
+.leaflet-container .leaflet-popup a.leaflet-popup-close-button {
+  color: rgb(var(--grigio-400));
+}
+
+.leaflet-container .leaflet-popup a.leaflet-popup-close-button:hover {
+  color: rgb(var(--grigio-100));
+}
+
+/* I link dentro un popup (numeri di telefono dei rifugi) sull'accento della pagina. */
+.leaflet-container .leaflet-popup-content a:not(.leaflet-popup-close-button) {
+  color: rgb(var(--verde-400));
+}
+
+/*
+ * Il grigio tenue del testo secondario nei popup, per l'HTML costruito a stringa
+ * (`lib/dpc.ts`, i focolai, il GetFeatureInfo). La' non ci sono classi di Tailwind: c'era
+ * un `#6b7280` scritto a mano — cioe' `gray-500`, che a 3,67:1 non passava nemmeno sul
+ * bianco di prima. Una variabile che segue il tema, invece di quattro letterali da tenere
+ * allineati a mano.
+ */
+.leaflet-container .leaflet-popup-content {
+  --tenue: rgb(var(--grigio-400));
+}
+
 @keyframes badge-pop {
   0% { transform: scale(0); opacity: 0; }
   70% { transform: scale(1.2); }

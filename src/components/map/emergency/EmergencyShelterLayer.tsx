@@ -127,7 +127,13 @@ export function EmergencyShelterLayer({ shelters }: { shelters: Riparo[] | null 
             <div className="text-xs space-y-0.5">
               <div className="font-bold">{r.name ?? ETICHETTA[r.tipo]}</div>
               {/* Senza nome il titolo E' gia' il tipo: ripeterlo sotto sembrava un errore. */}
-              {r.name != null && <div className="text-gray-600">{ETICHETTA[r.tipo]}</div>}
+              {/*
+                `text-gray-400` e non `text-gray-600`: da quando il popup ha il fondo
+                dell'app (task-63) i grigi qui dentro si comportano come altrove, e il 600
+                sul fondo di un pannello non si legge. Prima il fondo era il bianco fisso
+                di Leaflet e il 600 faceva 7,56:1 nel tema scuro — ma 1,54:1 nel chiaro.
+              */}
+              {r.name != null && <div className="text-gray-400">{ETICHETTA[r.tipo]}</div>}
               {r.capacity != null && <div>{r.capacity} posti</div>}
               {r.phone != null && <div><a href={`tel:${r.phone.replace(/\s/g, '')}`}>{r.phone}</a></div>}
               {/* Un ricovero mappato non è una garanzia: può essere chiuso, diroccato o
