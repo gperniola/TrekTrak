@@ -7,11 +7,15 @@ import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { buildMeteoUrl } from '@/lib/meteo';
 import { sunTimes } from '@/lib/sun';
 import { ATTRIBUZIONE_METEO, fetchRouteForecast } from '@/lib/weather-api';
+import { cielo, cieliPresenti } from '@/lib/cielo';
+import { metri } from '@/lib/formato';
 import {
   buildRouteWeather, defaultDeparture, samplePoints,
   type Livello, type RouteWeatherReport,
   formattaFascia,
   giornoItaliano,
+  scartoQuotaMassimo,
+  SCARTO_QUOTA_RILEVANTE,
   istanteItaliano,
   oraItalianaDi,
 } from '@/lib/route-weather';
@@ -116,6 +120,23 @@ export function RouteWeatherPanel() {
 
   const punti = useMemo(() => samplePoints(waypoints), [waypoints]);
 
+  /*
+    La legenda spiega SOLO le icone che si vedono in questa tabella: ventotto voci
+    sarebbero un manuale, e un'iconcina senza la sua parola resta un indovinello (il
+    `title` del mouse, al tocco, non esiste).
+  */
+  const legenda = useMemo(
+    () => cieliPresenti((report?.rows ?? []).map((r) => r.hour?.weatherCode)),
+    [report],
+  );
+  /*
+    Se il modello ha risposto per una quota diversa da quella del punto, temperatura e
+    raffiche sono di un altro posto. Succede quando all'itinerario mancano le quote:
+    misurato il 2026-09-02, la maglia di Cima delle Murelle sta 1339 m piu' in basso, che
+    fa sei gradi e mezzo di differenza.
+  */
+  const scartoQuota = useMemo(() => scartoQuotaMassimo(report?.rows ?? []), [report]);
+
   const carica = useCallback((quando: Date, signal: AbortSignal) => {
     if (punti.length === 0) { setReport(null); setErrore(null); return; }
     setCaricamento(true);
@@ -124,9 +145,9 @@ export function RouteWeatherPanel() {
     // sforano la mezzanotte o le partenze di dopodomani.
     const giorni = Math.ceil((quando.getTime() - Date.now()) / 86400000) + 2;
     fetchRouteForecast(punti, giorni, signal)
-      .then(({ serie }) => {
+      .then(({ serie, elevations }) => {
         if (signal.aborted) return;
-        setReport(buildRouteWeather({ waypoints, legs, departure: quando, punti, serie }));
+        setReport(buildRouteWeather({ waypoints, legs, departure: quando, punti, serie, elevations }));
       })
       .catch((e: unknown) => {
         if (signal.aborted) return;
@@ -310,6 +331,7 @@ export function RouteWeatherPanel() {
                   <tr className="text-gray-400 text-left">
                     <th scope="col" className="py-1 pr-2 font-medium">Punto</th>
                     <th scope="col" className="py-1 pr-2 font-medium">Arrivo</th>
+                    <th scope="col" className="py-1 pr-2 font-medium">Cielo</th>
                     <th scope="col" className="py-1 pr-2 font-medium">CAPE</th>
                     <th scope="col" className="py-1 pr-2 font-medium">Raffiche</th>
                     <th scope="col" className="py-1 font-medium">Piogg.</th>
@@ -335,6 +357,9 @@ export function RouteWeatherPanel() {
                       <td className="py-1.5 pr-2 text-gray-300 font-mono">
                         {r.arrival != null ? ora(r.arrival) : <span className="text-gray-400 font-sans">n/d</span>}
                       </td>
+                      <td className="py-1.5 pr-2 text-gray-300 whitespace-nowrap">
+                        <Iconcina codice={r.hour?.weatherCode} temp={r.hour?.temp} />
+                      </td>
                       <td className="py-1.5 pr-2 text-gray-300">{numero(r.hour?.cape)}</td>
                       <td className="py-1.5 pr-2 text-gray-300">{numero(r.hour?.gusts, ' km/h')}</td>
                       <td className="py-1.5 text-gray-300">{numero(r.hour?.precipProb, '%')}</td>
@@ -343,6 +368,36 @@ export function RouteWeatherPanel() {
                 </tbody>
               </table>
             </div>
+
+            {legenda.length > 0 && (
+              /*
+                Un nome accessibile, perche' senza di esso un lettore di schermo legge
+                "sereno coperto temporale" di fila, senza dire che cos'e' quell'elenco —
+                le icone accanto sono `aria-hidden`, e per chi non vede resta una filza
+                di parole senza appiglio.
+              */
+              <p
+                role="note"
+                aria-label="Cosa vogliono dire le icone del cielo"
+                className="text-[11px] text-gray-400 flex flex-wrap gap-x-3 gap-y-0.5"
+              >
+                {legenda.map((c) => (
+                  <span key={c.testo}>
+                    <span aria-hidden>{c.icona}</span>{' '}{c.testo}
+                  </span>
+                ))}
+              </p>
+            )}
+
+            {scartoQuota != null && Math.abs(scartoQuota) > SCARTO_QUOTA_RILEVANTE && (
+              <p className="text-[11px] text-amber-300 bg-gray-800 border border-amber-800/60 rounded px-2 py-1.5 leading-snug">
+                Manca la quota di qualche punto, quindi il modello ha risposto per la sua
+                maglia, {metri(Math.abs(scartoQuota))} più{' '}
+                {scartoQuota < 0 ? 'in basso' : 'in alto'} del punto: temperatura e raffiche
+                vanno lette con quel margine (circa un grado ogni 150 m). Scrivi le quote
+                nell&rsquo;Editor e la previsione arriva alla quota giusta.
+              </p>
+            )}
 
             {report.rows.some((r) => r.arrival == null) && (
               <p className="text-[11px] text-amber-300 bg-gray-800 border border-amber-800/60 rounded px-2 py-1.5 leading-snug">
@@ -429,5 +484,38 @@ export function RouteWeatherPanel() {
         </p>
       </div>
     </div>
+  );
+}
+
+/**
+ * La cella del cielo: iconcina, e la temperatura di quell'ora.
+ *
+ * L'icona è **decorativa** (`aria-hidden`) e accanto c'è sempre la parola in `sr-only`:
+ * un'emoji letta da un lettore di schermo dà nomi tecnici tipo «sun behind cloud», che
+ * non è la previsione. Il pallino della gravità, in questo progetto, è già stato corretto
+ * per lo stesso motivo.
+ *
+ * Un codice che non si conosce si scrive **n/d**, non lo si disegna sereno: è la regola
+ * che questo progetto ha pagato più volte.
+ */
+function Iconcina({ codice, temp }: { codice?: number; temp?: number }) {
+  const c = cielo(codice);
+  const gradi = temp != null && Number.isFinite(temp) ? Math.round(temp) : null;
+  if (c == null && gradi == null) return <span className="text-gray-400">n/d</span>;
+  return (
+    <>
+      {c == null ? <span className="text-gray-400">n/d</span> : (
+        <>
+          <span aria-hidden className="text-sm">{c.icona}</span>
+          <span className="sr-only">{c.testo}</span>
+        </>
+      )}
+      {gradi != null && (
+        <>
+          <span aria-hidden className="ml-1 tabular-nums">{gradi}°</span>
+          <span className="sr-only">, {gradi} gradi</span>
+        </>
+      )}
+    </>
   );
 }

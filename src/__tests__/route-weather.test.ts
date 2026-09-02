@@ -1,6 +1,7 @@
 import {
   samplePoints, arrivalTimes, classifyHour, defaultDeparture, buildRouteWeather,
-  type PuntoOrario,
+  scartoQuota, scartoQuotaMassimo, SCARTO_QUOTA_RILEVANTE,
+  type OraDaClassificare, type RigaPercorso,
 } from '@/lib/route-weather';
 import type { Waypoint, Leg } from '@/lib/types';
 
@@ -86,7 +87,9 @@ describe('orari di arrivo dai tempi Munter', () => {
  * c'è, non che il temporale ci sarà.
  */
 describe('classificazione di un\'ora', () => {
-  const ora = (over: Partial<PuntoOrario> = {}): PuntoOrario => ({
+  // Il tipo e' quello che `classifyHour` accetta davvero: la temperatura non entra nel
+  // giudizio, e chiederla qui vorrebbe dire inventarne una in ogni caso di prova.
+  const ora = (over: Partial<OraDaClassificare> = {}): OraDaClassificare => ({
     time: '2026-08-28T12:00:00.000Z', cape: 0, weatherCode: 0, gusts: 10, precipProb: 0, ...over,
   });
 
@@ -170,13 +173,13 @@ describe('rapporto completo', () => {
       wind_gusts_10m.push(15);
       precipitation_probability.push(10);
     }
-    return { time, cape, weather_code, wind_gusts_10m, precipitation_probability };
+    return { time, cape, weather_code, wind_gusts_10m, precipitation_probability, temperature_2m: [] };
   };
 
   test('giornata tranquilla: nessuna finestra critica', () => {
     const r = buildRouteWeather({
       waypoints: [wp(0), wp(1)], legs: [leg(0, 120)], departure: partenza,
-      punti: [{ waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'WP 0' }],
+      punti: [{ waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'WP 0', alt: null }],
       serie: [orario({})],
     });
     expect(r.windows).toEqual([]);
@@ -190,7 +193,7 @@ describe('rapporto completo', () => {
     for (let h = 12; h <= 18; h++) pomeriggio[h] = 1200;
     const r = buildRouteWeather({
       waypoints: [wp(0), wp(1)], legs: [leg(0, 480)], departure: partenza,
-      punti: [{ waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'WP 0' }],
+      punti: [{ waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'WP 0', alt: null }],
       serie: [orario(pomeriggio)],
     });
     // Una sola fascia, contigua, con istanti: le ore nude stampate come erano
@@ -218,7 +221,7 @@ describe('rapporto completo', () => {
     for (let h = 12; h <= 18; h++) pomeriggio[h] = 1200;
     const r = buildRouteWeather({
       waypoints: [wp(0), wp(1)], legs: [leg(0, 480)], departure: partenza,
-      punti: [{ waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'WP 0' }],
+      punti: [{ waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'WP 0', alt: null }],
       serie: [orario(pomeriggio)],
     });
     // 12:00 UTC in agosto = 14:00 in Italia
@@ -237,7 +240,7 @@ describe('rapporto completo', () => {
     for (const h of [2, 3, 14, 15, 16]) sparse[h] = 1200;
     const r = buildRouteWeather({
       waypoints: [wp(0), wp(1)], legs: [leg(0, 120)], departure: partenza,
-      punti: [{ waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'WP 0' }],
+      punti: [{ waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'WP 0', alt: null }],
       serie: [orario(sparse)],
     });
     expect(r.windows).toHaveLength(2);
@@ -251,7 +254,7 @@ describe('rapporto completo', () => {
     for (const h of [2, 3, 6, 7]) sparse[h] = 1200;  // 05:00-06:00 UTC: dentro il cammino
     const r = buildRouteWeather({
       waypoints: [wp(0), wp(1)], legs: [leg(0, 180)], departure: partenza,
-      punti: [{ waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'WP 0' }],
+      punti: [{ waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'WP 0', alt: null }],
       serie: [orario(sparse)],
     });
     expect(r.hitWindow?.fromISO).toBe('2026-08-28T06:00:00.000Z');
@@ -270,7 +273,7 @@ describe('rapporto completo', () => {
     // critico solo alle 08:00 UTC: il primo punto arriva alle 05:00, il secondo alle 11:00
     const r = buildRouteWeather({
       waypoints: [wp(0), wp(1)], legs: [leg(0, 360)], departure: partenza,
-      punti: [{ waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'Parcheggio' }],
+      punti: [{ waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'Parcheggio', alt: null }],
       serie: [orario({ 8: 1200 })],
     });
     expect(r.verdict.level).toBe(2);
@@ -306,7 +309,7 @@ describe('quando i tempi di percorrenza non ci sono', () => {
       cape.push(h >= 12 && h <= 15 ? 1400 : 20);
       wc.push(0); g.push(10); pp.push(0);
     }
-    return { time, cape, weather_code: wc, wind_gusts_10m: g, precipitation_probability: pp };
+    return { time, cape, weather_code: wc, wind_gusts_10m: g, precipitation_probability: pp, temperature_2m: [] };
   };
   const senzaTempo = { ...leg(0, 0), estimatedTime: undefined };
 
@@ -314,8 +317,8 @@ describe('quando i tempi di percorrenza non ci sono', () => {
     const r = buildRouteWeather({
       waypoints: [wp(0), wp(1)], legs: [senzaTempo], departure: partenza,
       punti: [
-        { waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'Parcheggio' },
-        { waypointIndex: 1, lat: 46.5, lon: 11.8, name: 'Vetta' },
+        { waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'Parcheggio', alt: null },
+        { waypointIndex: 1, lat: 46.5, lon: 11.8, name: 'Vetta', alt: null },
       ],
       serie: [serieCritica(), serieCritica()],
     });
@@ -327,7 +330,7 @@ describe('quando i tempi di percorrenza non ci sono', () => {
   test('il verdetto non afferma nulla sull\'incrocio, ma dice le ore instabili', () => {
     const r = buildRouteWeather({
       waypoints: [wp(0), wp(1)], legs: [senzaTempo], departure: partenza,
-      punti: [{ waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'Parcheggio' }],
+      punti: [{ waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'Parcheggio', alt: null }],
       serie: [serieCritica()],
     });
     expect(r.verdict.level).toBeNull();
@@ -345,11 +348,112 @@ describe('quando i tempi di percorrenza non ci sono', () => {
     }
     const r = buildRouteWeather({
       waypoints: [wp(0), wp(1)], legs: [senzaTempo], departure: partenza,
-      punti: [{ waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'Parcheggio' }],
-      serie: [{ time, cape, weather_code: wc, wind_gusts_10m: g, precipitation_probability: pp }],
+      punti: [{ waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'Parcheggio', alt: null }],
+      serie: [{ time, cape, weather_code: wc, wind_gusts_10m: g, precipitation_probability: pp, temperature_2m: [] }],
     });
     expect(r.verdict.level).toBeNull();
     expect(r.verdict.message).toMatch(/Nessuna criticità/i);
     expect(r.verdict.message).toMatch(/dislivelli/);
+  });
+});
+
+/**
+ * Lo **scarto di quota**: di quanto la maglia del modello sta piu' in basso (o in alto)
+ * del punto. Non e' un dettaglio da nascondere — sono i gradi e le raffiche di un altro
+ * posto — ed e' l'unica cosa che il pannello puo' dire quando le quote non ci sono tutte
+ * e la previsione non ha potuto essere chiesta alla quota giusta.
+ */
+describe('scarto fra la quota del punto e quella del modello', () => {
+  const riga = (alt: number | null, modelElevation: number | null): RigaPercorso => ({
+    waypointIndex: 0, name: 'Vetta', alt, modelElevation,
+    arrival: null, hour: null, classification: { level: null, reasons: [] },
+  });
+
+  test('lo dice col segno: negativo se il modello sta piu in basso', () => {
+    expect(scartoQuota(riga(2596, 1257))).toBe(-1339);
+    expect(scartoQuota(riga(1000, 1200))).toBe(200);
+  });
+
+  /**
+   * Se manca una delle due quote la risposta e' **non lo so**, non "coincidono": un
+   * "nessuno scarto" inventato farebbe leggere la temperatura del fondovalle come se
+   * fosse quella della vetta, che e' il difetto per cui tutto questo esiste.
+   */
+  test('senza una delle due quote non si sa', () => {
+    expect(scartoQuota(riga(null, 1257))).toBeNull();
+    expect(scartoQuota(riga(2596, null))).toBeNull();
+    expect(scartoQuota(riga(Number.NaN, 1257))).toBeNull();
+  });
+
+  test('fra piu righe conta lo scarto piu grosso, in valore assoluto', () => {
+    expect(scartoQuotaMassimo([riga(1000, 1050), riga(2596, 1257), riga(1000, 900)])).toBe(-1339);
+    expect(scartoQuotaMassimo([riga(null, null)])).toBeNull();
+    expect(scartoQuotaMassimo([])).toBeNull();
+  });
+
+  test('la soglia per parlarne vale circa un grado', () => {
+    // Un grado ogni 150 m: sotto, il margine e' minore dell'incertezza del modello.
+    expect(SCARTO_QUOTA_RILEVANTE).toBeGreaterThanOrEqual(100);
+    expect(SCARTO_QUOTA_RILEVANTE).toBeLessThanOrEqual(300);
+  });
+});
+
+/**
+ * Il pezzo che unisce l'itinerario alla richiesta: la quota che l'utente ha scritto deve
+ * arrivare fino al servizio, o la previsione resta quella della maglia del modello.
+ */
+describe('la quota dei punti campionati', () => {
+  test('viene dall itinerario, punto per punto', () => {
+    const punti = samplePoints([wp(0, 46.4, 1200), wp(1, 46.5, 2596)]);
+    expect(punti.map((p) => p.alt)).toEqual([1200, 2596]);
+  });
+
+  test('una quota che manca resta mancante, non diventa zero', () => {
+    const punti = samplePoints([wp(0, 46.4, null), wp(1, 46.5, 2596)]);
+    expect(punti[0].alt).toBeNull();
+  });
+});
+
+/** La temperatura dell'ora d'arrivo arriva fino alla riga, o l'iconcina resta senza. */
+describe('la temperatura nella riga', () => {
+  test('e quella dell ora piu vicina all arrivo', () => {
+    const time: string[] = [];
+    const temperature_2m: number[] = [];
+    const vuoti: number[] = [];
+    const giorno = new Date().toISOString().slice(0, 10);
+    for (let h = 0; h < 24; h++) {
+      time.push(`${giorno}T${String(h).padStart(2, '0')}:00`);
+      temperature_2m.push(h);            // la temperatura E' l'ora: facile da riconoscere
+      vuoti.push(0);
+    }
+    const partenza = new Date(`${giorno}T09:00:00.000Z`);
+    const r = buildRouteWeather({
+      waypoints: [wp(0)], legs: [], departure: partenza,
+      punti: [{ waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'WP 0', alt: 2000 }],
+      serie: [{
+        time, cape: vuoti, weather_code: vuoti, wind_gusts_10m: vuoti,
+        precipitation_probability: vuoti, temperature_2m,
+      }],
+      elevations: [2000],
+    });
+    expect(r.rows[0].hour?.temp).toBe(9);
+    expect(r.rows[0].modelElevation).toBe(2000);
+    expect(scartoQuota(r.rows[0])).toBe(0);
+  });
+
+  test('senza temperature nella risposta, la riga non ne inventa una', () => {
+    const giorno = new Date().toISOString().slice(0, 10);
+    const r = buildRouteWeather({
+      waypoints: [wp(0)], legs: [], departure: new Date(`${giorno}T09:00:00.000Z`),
+      punti: [{ waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'WP 0', alt: 2000 }],
+      serie: [{
+        time: [`${giorno}T09:00`], cape: [0], weather_code: [0], wind_gusts_10m: [0],
+        precipitation_probability: [0], temperature_2m: [],
+      }],
+    });
+    expect(Number.isFinite(r.rows[0].hour?.temp)).toBe(false);
+    // E senza le quote del modello, lo scarto non si sa: non e' "zero".
+    expect(r.rows[0].modelElevation).toBeNull();
+    expect(scartoQuota(r.rows[0])).toBeNull();
   });
 });

@@ -18,6 +18,7 @@ import { MyLocationButton } from './MyLocationButton';
 import { ClearWaypointsButton } from './ClearWaypointsButton';
 import { EmergencyLayersButton } from './emergency/EmergencyLayersButton';
 import { EmergencyLayersPanel } from './emergency/EmergencyLayersPanel';
+import { RadarControls } from './emergency/RadarControls';
 import type { BaseMapDef } from '@/lib/types';
 import { BASE_MAPS, HIKING_TRAILS_OVERLAY } from '@/lib/types';
 import { GeolocateOnMount, DEFAULT_CENTER, DEFAULT_ZOOM, MAX_ZOOM } from './GeolocateOnMount';
@@ -242,6 +243,13 @@ export function InteractiveMap() {
       <MyLocationButton hidden={compassActive} />
       {!libraryPreview && <ClearWaypointsButton />}
       <EmergencyLayersButton />
+      {/*
+        I comandi del radar stanno sulla mappa, non solo nel pannello: si accende il layer,
+        si chiude il pannello per guardare, e da quel momento la pioggia si muoveva senza
+        che niente dicesse che era un'animazione ne' di che ora. Compaiono solo col layer
+        acceso.
+      */}
+      <RadarControls />
       <EmergencyLayersPanel />
       <CompassOverlay active={compassActive} onDeactivate={deactivateCompass} />
       <RulerTool active={rulerActive} onDeactivate={deactivateRuler} />

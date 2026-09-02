@@ -94,3 +94,65 @@ describe('legende allineate alla fonte EFFIS', () => {
     EMERGENCY_LAYERS.forEach((l) => expect(l.legend.length).toBeGreaterThan(0));
   });
 });
+
+/**
+ * **Il layer dell'instabilità sparisce ingrandendo, se non gli si dice fin dove ha dati.**
+ *
+ * Segnalato il 2026-09-02: «la mappa dell'instabilità meteo a volte fa sparire il layer se
+ * cambio lo zoom». Misurato sui **pixel** — non sul peso del PNG, che per una mattonella di
+ * un solo colore è indistinguibile da una trasparente — disegnando la risposta su una
+ * canvas e contando l'alfa, sulla mattonella del Gran Sasso:
+ *
+ * | zoom | pixel opachi | colori distinti |
+ * |---|---|---|
+ * | 6 | 100% | 11 |
+ * | 8 | 100% | 3.986 |
+ * | 9 | 86% | 5 |
+ * | 10 | 14% | 1 |
+ * | 11 e oltre | **0%** | 0 |
+ *
+ * Il servizio risponde **200 con un PNG valido e vuoto**: nessun errore, nessun
+ * `tileerror`, solo il layer che svanisce. È lo stesso schema del mirror Overpass svuotato
+ * — un successo che non contiene nulla è indistinguibile da «qui non c'è niente».
+ *
+ * Il prodotto MSG ha una risoluzione dell'ordine dei chilometri: oltre lo zoom 8 non ci
+ * sono dati da mostrare, e la cosa onesta è **stirare** l'ultimo livello disponibile
+ * invece di chiedere mattonelle vuote. È a questo che serve `maxNativeZoom`, e l'app lo
+ * usa già per le mappe di base.
+ *
+ * Verificato che gli altri due layer WMS **non** hanno il problema: la copertura del FWI
+ * *cresce* con lo zoom (20% a z5, 100% da z10), e le aree bruciate sono vuote solo dove
+ * non ci sono poligoni.
+ */
+describe('fin dove i layer WMS hanno dati', () => {
+  const instabilita = EMERGENCY_LAYERS.find((l) => l.id === 'storm-instability');
+
+  test('il layer dell instabilita dichiara il suo zoom nativo massimo', () => {
+    expect(instabilita?.wms?.maxNativeZoom).toBe(8);
+  });
+
+  /**
+   * Il numero non è a caso: è l'ultimo livello con dati veri. Se qualcuno lo alzasse,
+   * tornerebbero le mattonelle vuote; se lo abbassasse, si butterebbe via del dettaglio
+   * che il servizio ha.
+   */
+  test('e sta dove la misura lo ha trovato', () => {
+    expect(instabilita?.wms?.maxNativeZoom).toBeGreaterThanOrEqual(7);
+    expect(instabilita?.wms?.maxNativeZoom).toBeLessThanOrEqual(9);
+  });
+
+  /**
+   * Gli altri layer WMS non lo dichiarano, e non per dimenticanza: misurati, hanno dati a
+   * tutti gli zoom dell'app. Dichiarare un tetto la' butterebbe via dettaglio vero.
+   */
+  test('gli altri layer WMS non dichiarano un tetto, perche non serve', () => {
+    const altri = EMERGENCY_LAYERS.filter((l) => l.wms != null && l.id !== 'storm-instability');
+    expect(altri.length).toBeGreaterThan(0);
+    for (const l of altri) expect(l.wms?.maxNativeZoom).toBeUndefined();
+  });
+
+  /** Chi guarda deve sapere che oltre quel punto sta guardando un ingrandimento. */
+  test('la descrizione dice che la risoluzione e grossa', () => {
+    expect(instabilita?.description).toMatch(/km|risoluzion|grossolan|stirat/i);
+  });
+});

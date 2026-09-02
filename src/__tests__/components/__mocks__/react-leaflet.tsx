@@ -25,9 +25,55 @@ export const MapContainer = ({ children }: { children?: React.ReactNode }) => (
   <div data-testid="map-container">{children}</div>
 );
 
-export const TileLayer = (props: Record<string, unknown>) => (
-  <div data-testid="tile-layer" data-url={String(props.url ?? '')} data-pane={String(props.pane ?? '')} />
-);
+/**
+ * Quanto passa fra la richiesta dei tile e l'evento `load`.
+ *
+ * Leaflet emette `load` quando i tile visibili sono arrivati, cioe' **dopo** la rete: il
+ * mock non puo' farlo succedere nello stesso istante del render, o il codice che aspetta
+ * il caricamento verrebbe messo alla prova su un caso che nella realta' non esiste.
+ */
+export const RITARDO_CARICO_MS = 50;
+
+/**
+ * Il layer dei tile, con le due cose che l'animazione del radar usa davvero: l'opacita'
+ * cambiata **a mano** sull'oggetto Leaflet e l'evento `load`.
+ *
+ * Prima il mock le ignorava entrambe. Un layer che non dice mai di aver caricato mette il
+ * codice davanti a uno scenario impossibile — attesa infinita — e ne nasconde l'unico
+ * comportamento che conta: che a schermo ci sia sempre pioggia.
+ */
+export const TileLayer = React.forwardRef((props: Record<string, unknown>, ref: React.Ref<unknown>) => {
+  const [opacita, setOpacita] = React.useState<number | null>(
+    typeof props.opacity === 'number' ? props.opacity : null,
+  );
+
+  // `setOpacity` come quello vero: scrive sull'oggetto, non passa da un render.
+  React.useImperativeHandle(ref, () => ({
+    setOpacity: (o: number) => setOpacita((precedente) => (precedente === o ? precedente : o)),
+  }), []);
+
+  const handlers = props.eventHandlers as { load?: () => void } | undefined;
+  const url = String(props.url ?? '');
+  React.useEffect(() => {
+    if (!handlers?.load) return;
+    const t = setTimeout(() => handlers.load?.(), RITARDO_CARICO_MS);
+    return () => clearTimeout(t);
+    // Le dipendenze sono l'URL: e' il cambio di URL che fa ricaricare i tile.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [url]);
+
+  return (
+    <div
+      data-testid="tile-layer"
+      data-url={url}
+      data-pane={String(props.pane ?? '')}
+      data-opacity={opacita == null ? '' : String(opacita)}
+      data-zindex={String(props.zIndex ?? '')}
+      data-maxnativezoom={String(props.maxNativeZoom ?? '')}
+    />
+  );
+});
+TileLayer.displayName = 'TileLayer';
 
 export const Marker = ({ children, ...props }: { children?: React.ReactNode } & Record<string, unknown>) => (
   <div

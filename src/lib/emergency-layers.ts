@@ -48,6 +48,20 @@ export interface WmsConfig {
   timeMode: 'today' | 'yearToDate' | 'latest';
   opacity: number;
   /**
+   * Fin dove il servizio ha **davvero** dati. Oltre, Leaflet stira l'ultimo livello
+   * disponibile invece di chiedere mattonelle vuote.
+   *
+   * Serve perché un WMS non lo dichiara e non si deduce: `GetCapabilities` di EUMETSAT
+   * non pubblica nessun `MaxScaleDenominator`, e a qualunque zoom la risposta è
+   * **200 con un PNG valido**. Solo guardando i pixel si scopre che oltre un certo
+   * ingrandimento è tutto trasparente — un successo che non contiene nulla, cioè lo
+   * stesso schema del mirror Overpass svuotato.
+   *
+   * Si dichiara **solo** dove la misura lo ha trovato necessario: metterlo per prudenza
+   * su un layer che ha dati butterebbe via dettaglio vero.
+   */
+  maxNativeZoom?: number;
+  /**
    * Il layer risponde a `GetFeatureInfo`, quindi si può interrogare con una pressione
    * lunga sulla mappa. Va dichiarato per layer perché non è deducibile: EFFIS pubblica
    * i tile del FWI ma non lo offre come queryable (`QUERY_LAYERS=mf010.fwi` risponde
@@ -198,7 +212,12 @@ export const EMERGENCY_LAYERS: EmergencyLayerDef[] = [
     id: 'storm-instability',
     category: 'temporali',
     label: 'Instabilit\u00e0 osservata (satellite)',
-    description: 'Lifted Index MSG: instabilit\u00e0 misurata adesso, non prevista (EUMETSAT)',
+    /*
+      La risoluzione va detta: il prodotto MSG e' dell'ordine dei chilometri, e oltre lo
+      zoom 8 l'immagine e' un ingrandimento dell'ultimo livello con dati. Senza dirlo, chi
+      ingrandisce vede una macchia sempre piu' sgranata e la crede piu' precisa.
+    */
+    description: 'Lifted Index MSG: instabilit\u00e0 misurata adesso, non prevista. Risoluzione di alcuni km: oltre lo zoom 8 l\u2019immagine \u00e8 stirata, non pi\u00f9 precisa (EUMETSAT)',
     kind: 'wms',
     attribution: 'Instabilit\u00e0: <a href="https://view.eumetsat.int/">EUMETSAT</a>',
     /*
@@ -229,6 +248,20 @@ export const EMERGENCY_LAYERS: EmergencyLayerDef[] = [
       layers: 'msg_fes:gii_liftedindex',
       timeMode: 'latest',
       opacity: 0.45,
+      /*
+        **Otto, e non e' un numero prudenziale: e' dove finiscono i dati.**
+
+        Segnalato: «a volte fa sparire il layer se cambio lo zoom». Misurato sui pixel —
+        il peso del PNG non basta, perche' una mattonella di un solo colore comprime come
+        una trasparente — disegnando la risposta su una canvas e contando l'alfa, sulla
+        mattonella del Gran Sasso: 100% di pixel opachi a z6 e z8, 86% a z9, **14% a z10,
+        zero da z11**. Il servizio risponde sempre 200 con un PNG valido: nessun errore,
+        nessun `tileerror`, solo il layer che svanisce.
+
+        Il prodotto MSG ha risoluzione dell'ordine dei chilometri, quindi oltre lo zoom 8
+        non c'e' nulla da mostrare e la cosa onesta e' stirare l'ultimo livello buono.
+      */
+      maxNativeZoom: 8,
       /*
        * NON interrogabile, malgrado il capabilities dichiari `queryable="1"`.
        * Misurato: GetFeatureInfo risponde con RED_BAND / GREEN_BAND / BLUE_BAND, cioe'

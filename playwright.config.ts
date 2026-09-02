@@ -27,6 +27,18 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     viewport: { width: 1280, height: 900 },
+    /*
+      **Niente service worker.** Le risposte finte di `supporto.ts` valgono solo per le
+      richieste che passano dalla pagina: quelle che passano dal service worker non le
+      vede `page.route`. In sviluppo il service worker non c'e', quindi di solito non si
+      nota — ma basta che sulla 3210 stia in ascolto un server di produzione (succede:
+      `reuseExistingServer`) perche' gli stub smettano di valere in silenzio e i test
+      interroghino i servizi VERI. Il 2026-09-02 e' costato un'ora: un test diceva «il
+      nome non arriva dalla geocodifica» mentre il nome arrivava da Nominatim davvero.
+      Il comportamento offline si prova con `playwright.offline.config.ts`, che il
+      service worker lo tiene e lo pretende.
+    */
+    serviceWorkers: 'block',
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {

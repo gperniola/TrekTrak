@@ -93,7 +93,7 @@ describe('una fascia che arriva a fine giornata', () => {
       wind_gusts_10m.push(critica ? 80 : 10);
       precipitation_probability.push(critica ? 90 : 0);
     }
-    return { time, cape, weather_code, wind_gusts_10m, precipitation_probability };
+    return { time, cape, weather_code, wind_gusts_10m, precipitation_probability, temperature_2m: [] };
   };
 
   const giorno = '2026-08-28';
@@ -111,8 +111,8 @@ describe('una fascia che arriva a fine giornata', () => {
     distance: null, azimuth: null, elevationGain: null, elevationLoss: null,
   }];
   const punti: PuntoInterrogato[] = [
-    { waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'Rifugio' },
-    { waypointIndex: 1, lat: 46.5, lon: 11.9, name: 'Cima' },
+    { waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'Rifugio', alt: null },
+    { waypointIndex: 1, lat: 46.5, lon: 11.9, name: 'Cima', alt: null },
   ];
 
   /** In estate l'Italia e' UTC+2: le 22:00Z sono la mezzanotte italiana. */
@@ -166,7 +166,7 @@ describe('anche il pannello scrive la fascia per intero', () => {
         g.push(critica ? 85 : 8);
         pr.push(critica ? 95 : 0);
       }
-      return { time: t, cape: c, weather_code: w, wind_gusts_10m: g, precipitation_probability: pr };
+      return { time: t, cape: c, weather_code: w, wind_gusts_10m: g, precipitation_probability: pr, temperature_2m: [] };
     };
     const giornoUTC = (scarto: number) => {
       const d = new Date();
@@ -182,6 +182,7 @@ describe('anche il pannello scrive la fascia per intero', () => {
       weather_code: [...a.weather_code, ...b.weather_code],
       wind_gusts_10m: [...a.wind_gusts_10m, ...b.wind_gusts_10m],
       precipitation_probability: [...a.precipitation_probability, ...b.precipitation_probability],
+      temperature_2m: [...a.temperature_2m, ...b.temperature_2m],
     };
     mockFetchRouteForecast.mockResolvedValue({ serie: [serie, serie], elevations: [] });
 
@@ -220,7 +221,7 @@ describe('la tabella dice perche un punto e problematico', () => {
       t.push(`${giorno}T${String(h).padStart(2, '0')}:00`);
       c.push(valori.cape); w.push(valori.code); g.push(valori.gusts); pr.push(valori.pioggia);
     }
-    return { time: t, cape: c, weather_code: w, wind_gusts_10m: g, precipitation_probability: pr };
+    return { time: t, cape: c, weather_code: w, wind_gusts_10m: g, precipitation_probability: pr, temperature_2m: [] };
   };
 
   test('scrive le raffiche e l instabilita, non solo un pallino', async () => {
@@ -243,6 +244,7 @@ describe('la tabella dice perche un punto e problematico', () => {
       weather_code: [...a.weather_code, ...b.weather_code],
       wind_gusts_10m: [...a.wind_gusts_10m, ...b.wind_gusts_10m],
       precipitation_probability: [...a.precipitation_probability, ...b.precipitation_probability],
+      temperature_2m: [...a.temperature_2m, ...b.temperature_2m],
     };
     mockFetchRouteForecast.mockResolvedValue({ serie: [serie, serie], elevations: [] });
 
