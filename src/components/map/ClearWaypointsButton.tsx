@@ -3,6 +3,7 @@
 import { useRef } from 'react';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { choose, toast } from '@/stores/notificationStore';
+import { liberaTessereDelPercorso } from '@/lib/useTessereOffline';
 import { useMapOverlayGuard } from './useMapOverlayGuard';
 
 /**
@@ -33,9 +34,15 @@ export function ClearWaypointsButton() {
       const n = waypoints.length;
       const scelta = await choose({
         title: 'Cancellare i waypoint?',
-        message: n === 1
+        /*
+          Cancellare tutto vuol dire abbandonare il percorso, e con lui vanno anche le
+          mattonelle scaricate per quel percorso. Si dice **qui**: l'alternativa e'
+          scoprirlo in quota, cioe' nel momento peggiore possibile.
+        */
+        message: (n === 1
           ? 'C\'è un solo waypoint sulla mappa.'
-          : `Ci sono ${n} waypoint sulla mappa. Puoi cancellarli tutti, oppure solo l'ultimo che hai aggiunto.`,
+          : `Ci sono ${n} waypoint sulla mappa. Puoi cancellarli tutti, oppure solo l'ultimo che hai aggiunto.`)
+          + ' Cancellando tutto si liberano anche le mappe scaricate per questo percorso.',
         variant: 'error',
         confirmText: n === 1 ? 'Cancella' : 'Cancella tutti',
         secondaryText: n === 1 ? undefined : 'Solo l\'ultimo',
@@ -50,6 +57,13 @@ export function ClearWaypointsButton() {
 
       if (scelta === 'primary') {
         clearWaypoints();
+        /*
+          Via i waypoint, via anche le mattonelle: erano state scaricate per QUEL
+          percorso, e senza di lui occupano spazio per niente — che su un telefono e'
+          circa cinque megabyte di quota per mattonella. Cancellare **l'ultimo** invece
+          non le tocca: il percorso c'e' ancora.
+        */
+        void liberaTessereDelPercorso();
         toast.success(attuali.length === 1 ? 'Waypoint cancellato' : `${attuali.length} waypoint cancellati`);
         return;
       }

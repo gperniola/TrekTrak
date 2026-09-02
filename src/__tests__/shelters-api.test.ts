@@ -162,3 +162,41 @@ describe('elenco troncato', () => {
     expect(r.troncato).toBe(true);
   });
 });
+
+/**
+ * **`shelter_type` dice cosa e' davvero.**
+ *
+ * Trovato il 2026-09-02 verificando il Bivacco Carlo Fusco: OpenStreetMap lo tagga
+ * `amenity=shelter` — che per noi vale «ricovero» — ma dichiara anche
+ * `shelter_type=basic_hut`, che nella convenzione OSM e' esattamente un bivacco. L'app
+ * lo mostrava come «Ricovero», e nella legenda un ricovero e' cosa diversa e piu' povera
+ * di un bivacco: una tettoia contro un locale in cui si dorme.
+ *
+ * Distinguere costa una riga e cambia cio' che si legge in quota, dove la differenza fra
+ * «qui mi riparo dalla pioggia» e «qui ci passo la notte» non e' un dettaglio.
+ */
+describe('il tipo si affina con shelter_type', () => {
+  const el = (tags: Record<string, string>) =>
+    ({ elements: [{ type: 'way', id: 1, center: { lat: 42.1152, lon: 14.1214 }, tags }] });
+
+  test('amenity=shelter con basic_hut e un bivacco, non un ricovero', () => {
+    const r = parseShelters(el({ amenity: 'shelter', shelter_type: 'basic_hut', name: 'Bivacco Carlo Fusco' }));
+    expect(r[0].tipo).toBe('bivacco');
+  });
+
+  test('anche `weather_shelter` e le tettoie restano ricoveri', () => {
+    for (const t of ['weather_shelter', 'picnic_shelter', 'public_transport', 'lean_to']) {
+      expect(parseShelters(el({ amenity: 'shelter', shelter_type: t }))[0].tipo).toBe('ricovero');
+    }
+  });
+
+  test('senza shelter_type resta un ricovero: non si indovina', () => {
+    expect(parseShelters(el({ amenity: 'shelter' }))[0].tipo).toBe('ricovero');
+  });
+
+  /** `tourism` ha la precedenza: e' il tag piu' specifico dei due. */
+  test('un alpine_hut resta un rifugio anche con shelter_type', () => {
+    const r = parseShelters(el({ tourism: 'alpine_hut', amenity: 'shelter', shelter_type: 'basic_hut' }));
+    expect(r[0].tipo).toBe('rifugio');
+  });
+});

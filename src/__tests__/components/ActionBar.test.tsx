@@ -67,17 +67,33 @@ beforeEach(() => {
 });
 
 describe('ActionBar', () => {
-  test('renders export buttons (PDF Sintetico, PDF Roadbook, Esporta)', () => {
+  /**
+   * **Un solo «Esporta», i due PDF dentro.**
+   *
+   * Erano due pulsanti verdi a tutta larghezza accanto a una tendina che gia' esisteva
+   * per gli altri formati: tre controlli per la stessa idea, e i due piu' grossi per i
+   * formati che si usano meno. Segnalato dall'utente il 2026-09-02: «i pulsanti pdf
+   * accorpali in un unico solo, occupano troppo spazio».
+   */
+  test('gli export stanno tutti dietro una sola tendina', () => {
     // Export e libreria vivono nel profilo Montagna: qui si parla di quelli.
     useUIStore.setState({ profilo: 'montagna' });
+    useItineraryStore.setState({
+      ...BASE_ITINERARY_STATE,
+      waypoints: [
+        { id: 'a', name: 'A', lat: 42, lon: 14 },
+        { id: 'b', name: 'B', lat: 42.1, lon: 14.1 },
+      ] as never,
+    });
     render(<ActionBar />);
-    expect(screen.getByText('PDF Sintetico')).toBeInTheDocument();
-    expect(screen.getByText('PDF Roadbook')).toBeInTheDocument();
-    // Dal task-28 i formati stanno dietro una tendina: erano destinati a crescere e una
-    // fila di pulsanti verdi e' proprio cio' che questo pannello ha smesso di fare.
-    // (Cosa c'e' dentro la tendina lo verifica il test sugli export abilitati: a
-    // itinerario vuoto il pulsante e' spento e non si apre.)
+    // I PDF non sono piu' pulsanti a se': prima di aprire la tendina non ci sono.
+    expect(screen.queryByRole('button', { name: /PDF sintetico/i })).not.toBeInTheDocument();
     expect(screen.getByText('Esporta ▾')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Esporta ▾'));
+    for (const voce of [/PDF sintetico/i, /PDF roadbook/i, /GPX/, /KML/]) {
+      expect(screen.getByRole('menuitem', { name: voce })).toBeInTheDocument();
+    }
   });
 
   test('shows Verifica button in learn mode', () => {
@@ -98,13 +114,11 @@ describe('ActionBar', () => {
   });
 
   // TASK-41: export non invitano ad azioni inutili quando l'itinerario è vuoto
-  test('TASK-41: PDF e la tendina degli export disabilitati con meno di 2 waypoint', () => {
+  test('TASK-41: la tendina degli export e disabilitata con meno di 2 waypoint', () => {
     // Export e libreria vivono nel profilo Montagna: qui si parla di quelli.
     useUIStore.setState({ profilo: 'montagna' });
     useItineraryStore.setState({ ...BASE_ITINERARY_STATE, waypoints: [] });
     render(<ActionBar />);
-    expect(screen.getByText('PDF Sintetico').closest('button')).toBeDisabled();
-    expect(screen.getByText('PDF Roadbook').closest('button')).toBeDisabled();
     expect(screen.getByText('Esporta ▾').closest('button')).toBeDisabled();
   });
 
@@ -119,11 +133,10 @@ describe('ActionBar', () => {
       ] as never,
     });
     render(<ActionBar />);
-    expect(screen.getByText('PDF Sintetico').closest('button')).not.toBeDisabled();
-    expect(screen.getByText('PDF Roadbook').closest('button')).not.toBeDisabled();
     fireEvent.click(screen.getByText('Esporta ▾'));
-    expect(screen.getByRole('menuitem', { name: /GPX/ })).not.toBeDisabled();
-    expect(screen.getByRole('menuitem', { name: /KML/ })).not.toBeDisabled();
+    for (const voce of [/PDF sintetico/i, /PDF roadbook/i, /GPX/, /KML/]) {
+      expect(screen.getByRole('menuitem', { name: voce })).not.toBeDisabled();
+    }
   });
 
   // TASK-42: "Progresso" non è più nel gruppo degli export
@@ -131,7 +144,7 @@ describe('ActionBar', () => {
     render(<ActionBar />);
     const exportGroup = screen.getByRole('group', { name: /esporta/i });
     const progresso = screen.getByRole('button', { name: /Progresso/ });
-    expect(exportGroup).toContainElement(screen.getByText('PDF Sintetico').closest('button'));
+    expect(exportGroup).toContainElement(screen.getByText('Esporta ▾').closest('button'));
     expect(exportGroup).not.toContainElement(progresso);
   });
 });

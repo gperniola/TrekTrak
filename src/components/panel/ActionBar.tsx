@@ -8,6 +8,28 @@ import { REGISTRO, downloadAs } from '@/lib/exporters/registro';
 
 /** Il JSON sta nell'intestazione, accanto al pulsante che lo riapre. */
 const FORMATI = REGISTRO.filter((e) => e.id !== 'json');
+
+/**
+ * I due PDF, come voci della stessa tendina degli altri formati.
+ *
+ * Non stanno nel registry perché non seguono la sua forma: il registry produce un file da
+ * un itinerario in memoria, i PDF passano da `html2canvas` sulla mappa disegnata a schermo
+ * e da un caricamento pigro di jsPDF. Metterli lì avrebbe voluto dire piegare
+ * l'interfaccia del registry per un caso che non le assomiglia; elencarli qui costa due
+ * righe e dice la verità.
+ */
+const PDF_VOCI = [
+  {
+    id: 'summary' as const,
+    etichetta: 'PDF sintetico',
+    descrizione: 'Una pagina: mappa, profilo e tabella',
+  },
+  {
+    id: 'roadbook' as const,
+    etichetta: 'PDF roadbook',
+    descrizione: 'Una riga per tratta, da seguire camminando',
+  },
+];
 import { calculateDifficulty, haversineDistance, forwardAzimuth, interpolatePoints, cumulativeElevation, sampleInterval } from '@/lib/calculations';
 import { fetchElevation, fetchElevationProfile } from '@/lib/elevation-api';
 import { validateValue, validateAzimuth, percentageTolerance } from '@/lib/validation';
@@ -20,6 +42,8 @@ import type { ValidationSessionResult } from '@/lib/types';
 import { useUIStore } from '@/stores/uiStore';
 import { toast } from '@/stores/notificationStore';
 import { mostra } from '@/lib/profilo';
+import { useTessereOffline } from '@/lib/useTessereOffline';
+import { numero } from '@/lib/formato';
 
 
 export function ActionBar() {
@@ -36,6 +60,7 @@ export function ActionBar() {
   const [verifying, setVerifying] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [formatiAperti, setFormatiAperti] = useState(false);
+  const offline = useTessereOffline();
   const refFormati = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -423,23 +448,27 @@ export function ActionBar() {
             : 'Per il GPX servono almeno 2 waypoint con coordinate.'}
         </p>
       )}
+      {/*
+        **«Quando partire» sta fuori dal gruppo degli export, e in evidenza.**
+
+        Non è un export ed è il passo finale del percorso: il pannello incrocia i waypoint
+        con gli orari di Munter e dice a che ora sei in ogni punto e che tempo trovi lì a
+        quell'ora, col verdetto sulla fascia critica. È l'unica cosa che questa app sa dire
+        e un sito meteo no. Chiamarlo «Meteo» lo faceva passare per un widget fra cinque
+        pastiglie uguali, e la funzione che decide *se e quando andare* non è una pastiglia.
+      */}
+      {mostra('meteo', profilo) && buildMeteoUrl(waypoints) != null && (
+        <button
+          onClick={() => setWeatherOpen(true)}
+          className="w-full text-left px-3 py-2.5 bg-cyan-600 text-black rounded-lg shadow-sm transition-all active:scale-[0.99] hover:bg-cyan-500 max-lg:min-h-[44px]"
+        >
+          <span className="block text-sm font-bold">🕐 Quando partire</span>
+          <span className="block text-[11px] leading-snug opacity-90">
+            Orari lungo il percorso e meteo a quell&rsquo;ora
+          </span>
+        </button>
+      )}
       <div role="group" aria-label="Esporta e condividi" className="flex flex-wrap gap-2">
-        <button
-          onClick={() => handlePDF('summary')}
-          disabled={!canExportPdf}
-          aria-describedby={!canExportPdf ? 'motivo-export' : undefined}
-          className="flex-1 py-2 bg-green-500 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed max-lg:min-h-[44px]"
-        >
-          PDF Sintetico
-        </button>
-        <button
-          onClick={() => handlePDF('roadbook')}
-          disabled={!canExportPdf}
-          aria-describedby={!canExportPdf ? 'motivo-export' : undefined}
-          className="flex-1 py-2 bg-green-600 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed max-lg:min-h-[44px]"
-        >
-          PDF Roadbook
-        </button>
         {/*
           GPX, link condiviso e meteo sono roba da gita vera: in Imparo non compaiono.
           I due PDF sopra restano, perche' servono a portarsi l'esercizio su carta.
@@ -450,21 +479,53 @@ export function ActionBar() {
           la cosa che questo pannello ha smesso di fare nella v0.14.0. Ogni voce dice a
           cosa serve e, se e' spenta, perche'.
         */}
-        {datiVisibili && (
-          <div className="relative flex-1" ref={refFormati}>
-            <button
-              onClick={() => setFormatiAperti((p) => !p)}
-              aria-expanded={formatiAperti}
-              aria-haspopup="menu"
-              disabled={waypoints.length < 2}
-              aria-describedby={waypoints.length < 2 ? 'motivo-export' : undefined}
-              className="w-full py-2 bg-blue-500 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-blue-400 disabled:opacity-50 disabled:cursor-not-allowed max-lg:min-h-[44px]"
-            >
-              Esporta ▾
-            </button>
-            {formatiAperti && (
-              <div role="menu" className="absolute right-0 bottom-full mb-1 z-[1300] w-56 bg-gray-800 border border-gray-600 rounded-lg shadow-xl p-1">
-                {FORMATI.map((f) => {
+        {/*
+          **Un solo «Esporta», i due PDF dentro.**
+
+          Erano due pulsanti verdi a tutta larghezza accanto a una tendina che gia'
+          esisteva per gli altri formati: tre controlli per la stessa idea, e i due piu'
+          grossi per i due formati che si usano meno spesso. Ora ogni cosa che esce
+          dall'app sta in un posto, con scritto sotto a cosa serve.
+
+          La tendina compare in **entrambi** i profili: in Imparo elenca solo i PDF —
+          servono a portarsi l'esercizio su carta — e non i formati da gita.
+        */}
+        <div className="relative flex-1" ref={refFormati}>
+          <button
+            onClick={() => setFormatiAperti((p) => !p)}
+            aria-expanded={formatiAperti}
+            aria-haspopup="menu"
+            disabled={!canExportPdf}
+            aria-describedby={!canExportPdf ? 'motivo-export' : undefined}
+            className="w-full py-2 bg-blue-500 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-blue-400 disabled:opacity-50 disabled:cursor-not-allowed max-lg:min-h-[44px]"
+          >
+            Esporta ▾
+          </button>
+          {formatiAperti && (
+            /*
+              `left-0`, non `right-0`: la tendina si ancora al SUO pulsante, che ora e' il
+              primo della fila. Con `right-0` — giusto finche' stava a destra di due PDF a
+              tutta larghezza — il menu si estendeva a sinistra oltre il bordo del pannello
+              e le voci risultavano tagliate a meta'. Nessun test l'ha visto: si vede solo
+              aprendola.
+            */
+            <div role="menu" className="absolute left-0 bottom-full mb-1 z-[1300] w-60 max-w-[calc(100vw-2rem)] bg-gray-800 border border-gray-600 rounded-lg shadow-xl p-1">
+              {PDF_VOCI.map((v) => (
+                <button
+                  key={v.id}
+                  role="menuitem"
+                  disabled={!canExportPdf}
+                  onClick={() => { handlePDF(v.id); setFormatiAperti(false); }}
+                  className="w-full text-left px-2 py-1.5 rounded hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <span className="block text-xs font-bold text-gray-100">{v.etichetta}</span>
+                  <span className="block text-[10px] text-gray-400 leading-snug">
+                    {canExportPdf ? v.descrizione : 'Servono almeno 2 waypoint'}
+                  </span>
+                </button>
+              ))}
+              {datiVisibili && <div className="my-1 border-t border-gray-700" />}
+              {datiVisibili && FORMATI.map((f) => {
                   const motivo = f.impedimento(itinerarioCorrente());
                   return (
                     <button
@@ -481,26 +542,35 @@ export function ActionBar() {
                     </button>
                   );
                 })}
-              </div>
-            )}
-          </div>
+            </div>
+          )}
+        </div>
+        {/*
+          **Le mattonelle del percorso appena fatto, da qui.**
+
+          La sezione in Impostazioni mappa resta — e' il posto dove si vede quanto spazio
+          occupano e si liberano — ma chiedere di scaricare la mappa *di questo percorso*
+          e' un gesto che appartiene al percorso, non alle impostazioni: chi finisce di
+          disegnarlo e' qui, non in un pannello due tocchi piu' in la'.
+
+          Il conto arriva dallo stesso modulo che poi scarica: il numero che si legge e'
+          esattamente quello che verra' chiesto.
+        */}
+        {mostra('meteo', profilo) && (
+          <button
+            onClick={() => { void offline.scarica(); }}
+            disabled={offline.daScaricare.length === 0 || offline.inCorso}
+            aria-describedby={offline.daScaricare.length === 0 ? 'motivo-export' : undefined}
+            title={offline.daScaricare.length > 0
+              ? `${numero(offline.daScaricare.length)} mattonelle di ${offline.nomeMappa}`
+              : undefined}
+            className="flex-1 py-2 bg-gray-200 text-gray-900 rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed max-lg:min-h-[44px]"
+          >
+            {offline.inCorso
+              ? `↓ ${numero(offline.avanzamento?.fatte ?? 0)}/${numero(offline.avanzamento?.totali ?? 0)}`
+              : '📥 Mappa offline'}
+          </button>
         )}
-        {(() => {
-          const meteoUrl = buildMeteoUrl(waypoints);
-          return meteoUrl && mostra('meteo', profilo) ? (
-            <button
-              // Apre il pannello del PERCORSO, non piu' Meteoblue in una scheda: la
-              // previsione incrociata con gli orari e' l'unica cosa che questa app puo'
-              // dire e un sito meteo no. Il collegamento a Meteoblue vive dentro il
-              // pannello, come "previsione completa": due voci meteo separate
-              // confondevano.
-              onClick={() => setWeatherOpen(true)}
-              className="flex-1 py-2 bg-cyan-600 text-black rounded-lg font-bold text-xs shadow-sm transition-all active:scale-[0.98] hover:bg-cyan-500 max-lg:min-h-[44px]"
-            >
-              Meteo
-            </button>
-          ) : null;
-        })()}
         {datiVisibili && (
           <button
             onClick={handleShareLink}
@@ -547,6 +617,21 @@ export function ActionBar() {
       {mostra('progresso', profilo) && loadValidationHistory().length === 0 && loadQuizHistory().length === 0 && (
         <p id="motivo-progresso" className="text-[11px] text-gray-400">
           Il Progresso si sblocca dopo la prima verifica o il primo quiz.
+        </p>
+      )}
+      {/*
+        Il promemoria delle mattonelle, in fondo e in piccolo.
+
+        Compare solo quando c'e' qualcosa da scaricare e non lo si sta gia' facendo: un
+        suggerimento che sta li' sempre diventa arredamento e non lo legge piu' nessuno.
+        Dice **quante** sono, perche' «scarica le mappe» senza un numero non aiuta a
+        decidere se sia il momento — e in quota si arriva senza aver deciso.
+      */}
+      {mostra('meteo', profilo) && offline.daScaricare.length > 0 && !offline.inCorso && (
+        <p className="text-[10px] text-gray-400 leading-snug">
+          Prima di partire: <strong className="font-medium">📥 Mappa offline</strong> conserva
+          le {numero(offline.daScaricare.length)} mattonelle di questo percorso sul telefono,
+          per vederlo dove non c&rsquo;è segnale.
         </p>
       )}
     </div>

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { ActionBar } from '@/components/panel/ActionBar';
 import { useUIStore } from '@/stores/uiStore';
 import { useItineraryStore } from '@/stores/itineraryStore';
@@ -20,24 +20,35 @@ const conProfilo = (p: 'imparo' | 'montagna') => {
  * link condiviso sono roba da gita vera.
  */
 describe('gli export per profilo', () => {
-  test('in Imparo i due PDF restano', () => {
+  test('in Imparo i due PDF restano, dentro la tendina', () => {
     conProfilo('imparo');
-    expect(screen.getByRole('button', { name: /PDF Sintetico/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /PDF Roadbook/i })).toBeInTheDocument();
+    // Dal 2026-09-02 i PDF non sono pulsanti a se': stanno nell'unica tendina «Esporta»,
+    // che in Imparo elenca **solo** loro — i formati da gita non servono a un esercizio.
+    fireEvent.click(screen.getByRole('button', { name: /Esporta/ }));
+    expect(screen.getByRole('menuitem', { name: /PDF sintetico/i })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /PDF roadbook/i })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /GPX/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /KML/ })).not.toBeInTheDocument();
   });
 
-  test('in Imparo export, copia link e meteo non ci sono', () => {
+  test('in Imparo copia link, «quando partire» e mappa offline non ci sono', () => {
     conProfilo('imparo');
     // Dal task-28 i formati stanno dietro «Esporta ▾»: il profilo nasconde la tendina.
-    expect(screen.queryByRole('button', { name: /Esporta/ })).not.toBeInTheDocument();
+    /*
+      La tendina «Esporta» ora c'e' anche in Imparo, perche' i PDF stanno dentro: cio' che
+      NON deve comparire sono le voci da gita vera.
+    */
     expect(screen.queryByRole('button', { name: /Copia link/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /^Meteo$/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Quando partire/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Mappa offline/i })).not.toBeInTheDocument();
   });
 
   test('in Montagna ci sono tutti', () => {
     conProfilo('montagna');
     expect(screen.getByRole('button', { name: /Esporta/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Copia link/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^Meteo$/ })).toBeInTheDocument();
+    // «Meteo» si chiamava cosi' e non diceva cosa fa: e' il passo finale del percorso.
+    expect(screen.getByRole('button', { name: /Quando partire/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Mappa offline/i })).toBeInTheDocument();
   });
 });

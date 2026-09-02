@@ -1,30 +1,22 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useItineraryStore } from '@/stores/itineraryStore';
-import { BASE_MAPS, HIKING_TRAILS_OVERLAY } from '@/lib/types';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from '@/stores/notificationStore';
 import {
   AREA_MASSIMA_KM2,
   TETTO_TESSERE,
   ZOOM_MASSIMO,
   ZOOM_MINIMO,
-  areaKm2,
   areaLeggibile,
   pesoLeggibile,
-  pianifica,
-  rettangoloConMargine,
-  rettangoloDaPunti,
-  urlDaScaricare,
 } from '@/lib/tile-offline';
 import {
   COSTO_QUOTA_PER_TESSERA,
-  scaricaTessere,
   spazioOrigine,
   spazioTessere,
   svuotaTessere,
-  type Avanzamento,
 } from '@/lib/tile-download';
+import { useTessereOffline } from '@/lib/useTessereOffline';
 import { numero } from '@/lib/formato';
 
 /**
@@ -37,67 +29,24 @@ import { numero } from '@/lib/formato';
  * con chi ci regala le mappe.
  */
 export function MappaOffline() {
-  const waypoints = useItineraryStore((s) => s.waypoints);
-  const settings = useItineraryStore((s) => s.settings);
-  const [avanzamento, setAvanzamento] = useState<Avanzamento | null>(null);
+  /*
+    Piano, elenco e scaricamento arrivano dal modulo condiviso: lo stesso lo usa il
+    pulsante nell'editor. Quando i due erano separati, il conto mostrato e il lavoro
+    fatto sono divergiti — 35 dichiarate, 70 scaricate.
+  */
+  const { piano, area, daScaricare, nomeMappa, conSentieri, avanzamento, inCorso, scarica, interrompi } =
+    useTessereOffline();
   const [conservate, setConservate] = useState<{ quante: number } | null>(null);
   const [spazio, setSpazio] = useState<{ usato: number; disponibile: number } | null>(null);
-  const controllo = useRef<AbortController | null>(null);
 
   const aggiornaSpazio = useCallback(() => {
     void spazioTessere().then(setConservate);
     void spazioOrigine().then(setSpazio);
   }, []);
 
-  useEffect(() => {
-    aggiornaSpazio();
-    return () => controllo.current?.abort();
-  }, [aggiornaSpazio]);
-
-  const rettangolo = rettangoloDaPunti(waypoints);
-  const conMargine = rettangolo ? rettangoloConMargine(rettangolo) : null;
-  const piano = conMargine ? pianifica(conMargine) : null;
-  const area = conMargine ? areaKm2(conMargine) : 0;
-  const mappa = BASE_MAPS.find((m) => m.id === settings.mapDisplay.baseMap);
-  // Se i sentieri escursionistici sono accesi fanno parte di cio' che si vede: senza,
-  // offline la mappa ci sarebbe e i sentieri no.
-  const conSentieri = settings.mapDisplay.showHikingTrails;
-
-  /*
-    **Un solo elenco**, sia per dire sia per fare. Quando il numero mostrato e quello
-    scaricato erano due conti distinti, il pannello prometteva 35 mattonelle e la barra
-    subito dopo ne annunciava 70 — e il controllo dello spazio si faceva sulla meta'.
-  */
-  const daScaricare = piano != null && mappa != null
-    ? urlDaScaricare(piano.tessere, mappa.url, conSentieri ? HIKING_TRAILS_OVERLAY.url : null)
-    : [];
-
-  const scarica = async () => {
-    if (piano == null || mappa == null || daScaricare.length === 0) return;
-    const url = daScaricare;
-
-    const ac = new AbortController();
-    controllo.current = ac;
-    setAvanzamento({ fatte: 0, totali: url.length, fallite: 0 });
-    const esito = await scaricaTessere(url, { onAvanzamento: setAvanzamento, signal: ac.signal });
-    setAvanzamento(null);
-    controllo.current = null;
-    aggiornaSpazio();
-
-    /*
-      Anche chiudere questo pannello interrompe. Non e' grave e conviene dirlo: le
-      mattonelle gia' prese le serve il service worker dalla cache, quindi riavviare lo
-      scaricamento non le richiede alla rete una seconda volta.
-    */
-    if (esito.interrotto) {
-      toast.info('Scaricamento interrotto: quello che è arrivato resta, e riavviandolo non si riscarica.');
-    }
-    else if (esito.fallite > 0) {
-      toast.warning(`Scaricate ${numero(esito.fatte)} mattonelle, ${numero(esito.fallite)} non sono arrivate.`);
-    } else {
-      toast.success(`Mappa disponibile senza rete fino allo zoom ${piano.zoomRaggiunto}.`);
-    }
-  };
+  useEffect(() => { aggiornaSpazio(); }, [aggiornaSpazio]);
+  // Lo spazio si rilegge quando lo scaricamento finisce.
+  useEffect(() => { if (!inCorso) aggiornaSpazio(); }, [inCorso, aggiornaSpazio]);
 
   const svuota = async () => {
     const quante = await svuotaTessere();
@@ -105,13 +54,13 @@ export function MappaOffline() {
     toast.info(quante > 0 ? 'Mappe offline liberate.' : 'Non c’era niente da liberare.');
   };
 
-  const inCorso = avanzamento != null;
+
 
   return (
     <div className="space-y-2">
       <div className="text-xs uppercase text-gray-400">Mappa senza rete</div>
 
-      {rettangolo == null ? (
+      {piano == null ? (
         /* Il motivo va scritto, non lasciato a un pulsante grigio: e' la lezione della v0.11.8. */
         <p className="text-[11px] text-gray-400">
           Aggiungi almeno un waypoint con coordinate: l&rsquo;area da scaricare si ricava dall&rsquo;itinerario.
@@ -123,8 +72,8 @@ export function MappaOffline() {
               <>
                 <strong className="font-medium">{numero(daScaricare.length)} mattonelle</strong>
                 {conSentieri
-                  ? <> di {mappa?.label ?? 'mappa'} e dei sentieri</>
-                  : <> di {mappa?.label ?? 'mappa'}</>}
+                  ? <> di {nomeMappa} e dei sentieri</>
+                  : <> di {nomeMappa}</>}
                 , fino allo zoom {piano.zoomRaggiunto}, su un&rsquo;area di {areaLeggibile(area)}.
                 {piano.limitatoDalTetto && (
                   <>
@@ -164,7 +113,7 @@ export function MappaOffline() {
             </p>
           )}
 
-          {inCorso ? (
+          {avanzamento != null ? (
             <div className="space-y-1">
               <div className="flex items-center justify-between text-[11px] text-gray-300">
                 <span>
@@ -172,7 +121,7 @@ export function MappaOffline() {
                   {avanzamento.fallite > 0 && <> · {numero(avanzamento.fallite)} non arrivate</>}
                 </span>
                 <button
-                  onClick={() => controllo.current?.abort()}
+                  onClick={interrompi}
                   className="text-gray-400 hover:text-white underline decoration-dotted px-2 max-lg:min-h-[44px]"
                 >
                   interrompi
@@ -189,7 +138,7 @@ export function MappaOffline() {
             </div>
           ) : (
             <button
-              onClick={scarica}
+              onClick={() => { void scarica(); }}
               disabled={daScaricare.length === 0}
               className="w-full py-2 bg-green-500 text-black rounded-lg text-xs font-bold min-h-[44px] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-green-400"
             >

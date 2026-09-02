@@ -1,3 +1,5 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { COSTO_QUOTA_PER_TESSERA, scaricaTessere, spazioTessere, svuotaTessere } from '@/lib/tile-download';
 import { CACHE_TESSERE } from '@/lib/tile-offline';
 
@@ -193,3 +195,48 @@ describe('il costo di quota', () => {
   });
 });
 
+
+/**
+ * **Buttato il percorso, si buttano anche le sue mattonelle** (segnalato il 2026-09-02:
+ * «quando si cancella un percorso si cancellano anche i tile salvati in locale»).
+ *
+ * Erano state scaricate per QUEL percorso: senza di lui occupano spazio per niente, e su
+ * un telefono il browser le conta circa cinque megabyte l'una — cinquecento mattonelle
+ * sono qualche gigabyte di quota trattenuta per una gita che non si fa piu'.
+ *
+ * La condizione difficile non e' cancellare: e' **dirlo**. Chi ha scaricato la mappa della
+ * gita di domani e tocca «Nuovo» deve saperlo li', perche' l'alternativa e' scoprirlo in
+ * quota. Per questo la conferma lo nomina e la liberazione lascia un avviso.
+ */
+describe('la liberazione quando si abbandona il percorso', () => {
+  test('la conferma di «Nuovo» nomina le mappe scaricate', () => {
+    const src = readFileSync(join(process.cwd(), 'src', 'components', 'panel', 'ItineraryHeader.tsx'), 'utf8');
+    // Non basta che il codice liberi: se non lo dice, l'utente lo scopre dove non serve.
+    expect(src).toMatch(/mappe scaricate/);
+    expect(src).toContain('liberaTessereDelPercorso');
+  });
+
+  /**
+   * Cancellare **tutti** i waypoint e' abbandonare il percorso; cancellare **l'ultimo**
+   * no — il percorso c'e' ancora, e portargli via la mappa sarebbe una punizione per una
+   * correzione.
+   */
+  test('il cestino libera solo quando cancella tutto', () => {
+    const src = readFileSync(join(process.cwd(), 'src', 'components', 'map', 'ClearWaypointsButton.tsx'), 'utf8');
+    const iTutti = src.indexOf('clearWaypoints();');
+    const iUltimo = src.indexOf('removeWaypoint(ultimo.id);');
+    // `lastIndexOf` e non `indexOf`: la prima occorrenza del nome e' **l'import**, in
+    // cima al file, e cercandola il confronto sull'ordine diceva sempre di no.
+    const iLibera = src.lastIndexOf('liberaTessereDelPercorso');
+    expect(iTutti).toBeGreaterThan(-1);
+    expect(iUltimo).toBeGreaterThan(-1);
+    // La liberazione sta nel ramo "tutti": dopo di lui e prima del ramo "ultimo".
+    expect(iLibera).toBeGreaterThan(iTutti);
+    expect(iLibera).toBeLessThan(iUltimo);
+  });
+
+  test('e la conferma del cestino lo dice', () => {
+    const src = readFileSync(join(process.cwd(), 'src', 'components', 'map', 'ClearWaypointsButton.tsx'), 'utf8');
+    expect(src).toMatch(/mappe scaricate/);
+  });
+});

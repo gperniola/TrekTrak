@@ -53,11 +53,29 @@ export function buildSheltersQuery(b: BBox): string {
     + `);out center ${MAX_RISULTATI};`;
 }
 
+/**
+ * I `shelter_type` che in OpenStreetMap indicano un **locale in cui si dorme**, non una
+ * tettoia. Tutto il resto — pensiline, tettoie da picnic, ripari dal vento — resta un
+ * ricovero.
+ */
+const SHELTER_TYPE_BIVACCO = new Set(['basic_hut', 'alpine_hut', 'rock_shelter']);
+
 function tipoDa(tags: Record<string, string> | undefined): TipoRiparo | null {
   if (tags == null) return null;
+  // `tourism` ha la precedenza: fra i due e' il tag piu' specifico.
   if (tags.tourism === 'alpine_hut') return 'rifugio';
   if (tags.tourism === 'wilderness_hut') return 'bivacco';
-  if (tags.amenity === 'shelter') return 'ricovero';
+  if (tags.amenity === 'shelter') {
+    /*
+      **`shelter_type` dice cosa e' davvero.** Il Bivacco Carlo Fusco, sulla Maiella, e'
+      taggato `amenity=shelter` — che per noi vale «ricovero» — e insieme
+      `shelter_type=basic_hut`, che nella convenzione OSM e' esattamente un bivacco.
+      Mostrarlo come ricovero non e' un dettaglio di nomenclatura: nella legenda un
+      ricovero e' una tettoia, un bivacco e' un posto in cui si passa la notte, e in
+      quota la differenza e' la decisione.
+    */
+    return SHELTER_TYPE_BIVACCO.has(tags.shelter_type ?? '') ? 'bivacco' : 'ricovero';
+  }
   return null;
 }
 
