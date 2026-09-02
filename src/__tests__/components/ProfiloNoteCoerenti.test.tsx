@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { ActionBar } from '@/components/panel/ActionBar';
 import { useUIStore } from '@/stores/uiStore';
 import { useItineraryStore } from '@/stores/itineraryStore';
@@ -35,7 +35,12 @@ describe('review 2: la nota sui pulsanti spenti guarda solo quelli visibili', ()
     useUIStore.setState({ profilo: 'imparo' });
     render(<ActionBar />);
     expect(screen.queryByText(/Per il GPX servono/i)).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /PDF Sintetico/i })).not.toBeDisabled();
+    // I PDF stanno nella tendina dal 2026-09-02: quello che conta e' che siano
+    // raggiungibili e attivi, non che siano pulsanti a se'.
+    const esporta = screen.getByRole('button', { name: /Esporta/ });
+    expect(esporta).not.toBeDisabled();
+    fireEvent.click(esporta);
+    expect(screen.getByRole('menuitem', { name: /PDF sintetico/i })).not.toBeDisabled();
   });
 
   test('in Imparo con meno di 2 waypoint la nota torna, perche i PDF sono spenti', () => {

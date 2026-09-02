@@ -1,4 +1,4 @@
-import { apriApp, contaWaypoint, expect, test, tocca } from './supporto';
+import { apriApp, apriEditor, contaWaypoint, expect, test, tocca } from './supporto';
 
 /**
  * I percorsi che una persona fa davvero, in un browser vero.
@@ -176,5 +176,58 @@ test.describe('i pannelli non creano waypoint sotto di sé', () => {
 
     await page.waitForTimeout(600);
     expect(await contaWaypoint(page)).toBe(prima);
+  });
+});
+
+test.describe('la barra dell editor', () => {
+  /**
+   * **La tendina degli export deve stare dentro lo schermo.**
+   *
+   * Accorpando i due PDF (2026-09-02) il pulsante «Esporta» è diventato il primo della
+   * fila, e il menu — ancorato a destra da quando stava a destra di due pulsanti a tutta
+   * larghezza — si estendeva a sinistra oltre il bordo del pannello: quattro voci con la
+   * metà sinistra tagliata via, illeggibili. Nessun test unitario poteva vederlo, perché
+   * le voci esistevano nel DOM ed erano abilitate.
+   */
+  test('la tendina degli export sta dentro lo schermo, e si legge', async ({ page }) => {
+    await apriApp(page);
+    await tocca(page, -60, -80);
+    await tocca(page, 60, 60);
+    await expect.poll(() => contaWaypoint(page)).toBe(2);
+    await apriEditor(page);
+
+    await page.getByRole('button', { name: 'Esporta ▾' }).click();
+    const menu = page.getByRole('menu');
+    await expect(menu).toBeVisible();
+    /*
+      `ratio: 1`, cioe' **per intero**. Senza, `toBeInViewport()` si accontenta di
+      un'intersezione qualunque: col menu ancorato male e mezzo fuori dallo schermo il
+      controllo passava comunque — verificato per mutazione, ed e' il motivo per cui e'
+      scritto cosi'.
+    */
+    await expect(menu).toBeInViewport({ ratio: 1 });
+
+    // Ogni voce dev'essere per intero a schermo: una meta' fuori e' una voce illeggibile.
+    for (const voce of [/PDF sintetico/i, /PDF roadbook/i, /GPX/, /KML/]) {
+      await expect(menu.getByRole('menuitem', { name: voce })).toBeInViewport({ ratio: 1 });
+    }
+  });
+
+  /**
+   * Il promemoria delle mattonelle esiste perché lo scaricamento è **manuale**: se non lo
+   * si ricorda, in quota si arriva senza mappa. Va detto col numero, perché «scarica le
+   * mappe» senza una quantità non aiuta a decidere se sia il momento.
+   */
+  test('con un percorso pronto, il promemoria della mappa offline dice quante sono', async ({ page }) => {
+    await apriApp(page);
+    await tocca(page, -60, -80);
+    await tocca(page, 60, 60);
+    await expect.poll(() => contaWaypoint(page)).toBe(2);
+    await apriEditor(page);
+
+    const nota = page.getByText(/Prima di partire/i);
+    await expect(nota).toBeVisible();
+    await expect(nota).toContainText(/\d+ mattonelle/);
+    await expect(page.getByRole('button', { name: /Mappa offline/i })).toBeEnabled();
   });
 });

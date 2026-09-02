@@ -4,6 +4,49 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.19.0] — 2026-09-02 — Il percorso finisce con «quando partire»
+
+### Fixed
+- **I rifugi e i bivacchi non comparivano.** Segnalato: il Bivacco Carlo Fusco, sotto Cima
+  delle Murelle sulla Maiella, non c'era. Verificato che query e parser erano giusti — il
+  bivacco è in OpenStreetMap come *way* con `amenity=shelter`, e l'app lo prende. Il guasto
+  era a monte: l'app **ricorda sul dispositivo la porta Overpass che ha funzionato**, e il
+  mirror imparato il 31 agosto nel frattempo si è svuotato — risponde `HTTP 200` con
+  `elements: []` per qualunque parte del mondo. Un successo vuoto è indistinguibile da «qui
+  non ci sono ripari», quindi il layer dichiarava con sicurezza che non c'era nulla. Ora una
+  risposta il cui database non dichiara una data plausibile non si accetta e la sua porta non
+  si ricorda: verificato sulla rete vera, partendo dallo stato guasto, e i ripari sono
+  quattro dove prima erano zero.
+- **Un bivacco non è un ricovero.** `shelter_type=basic_hut` in OpenStreetMap indica un
+  locale in cui si dorme; l'app lo ignorava e mostrava «Ricovero», che nella legenda è una
+  tettoia. In quota la differenza fra «qui mi riparo dalla pioggia» e «qui ci passo la
+  notte» è la decisione.
+
+### Changed
+- **Il pulsante «Meteo» è diventato «Quando partire»**, in evidenza e staccato dagli export.
+  Non era un widget meteo: il pannello incrocia i waypoint con gli orari di Munter e dice a
+  che ora sei in ogni punto e che tempo trovi lì a quell'ora. Chiamarlo «Meteo» lo faceva
+  passare per una pastiglia fra cinque uguali, e la funzione che decide *se e quando andare*
+  non è una pastiglia.
+- **Un solo «Esporta».** I due PDF erano pulsanti a tutta larghezza accanto a una tendina che
+  già esisteva per gli altri formati: tre controlli per la stessa idea, e i due più grossi
+  per i formati che si usano meno. Ora PDF, GPX e KML stanno in un posto, ognuno con scritto
+  sotto a cosa serve. Da cinque pastiglie a tre.
+
+### Added
+- **«📥 Mappa offline» nell'editor**: scarica le mattonelle del percorso appena disegnato,
+  senza passare dalle impostazioni. Il gesto appartiene al percorso, non alle impostazioni —
+  chi finisce di disegnarlo è lì. Sotto, un promemoria che dice **quante** sono: «scarica le
+  mappe» senza un numero non aiuta a decidere se sia il momento, e in quota si arriva senza
+  aver deciso.
+- Le mattonelle **non si scaricano mai da sé**: nessun effetto, nessun timer, nessuna soglia.
+  Arrivano da servizi che ce le regalano, e un'app che le prende di sua iniziativa spende la
+  banda di qualcun altro senza che nessuno l'abbia chiesto. C'è un test che monta l'editor con
+  un percorso pronto e pretende zero richieste.
+- **Abbandonando il percorso si liberano anche le sue mattonelle** — «Nuovo» e «cancella
+  tutti i waypoint» — e la conferma lo dice prima. Cancellare solo l'ultimo waypoint non le
+  tocca: il percorso c'è ancora.
+
 ## [0.18.3] — 2026-09-02 — Cinque punti illeggibili nel tema chiaro
 
 ### Fixed

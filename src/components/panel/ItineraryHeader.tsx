@@ -8,6 +8,7 @@ import { SaveRouteModal } from './SaveRouteModal';
 import { UndoRedo } from './UndoRedo';
 import { exportItineraryJSON, importItineraryJSON } from '@/lib/export-json';
 import { confirm as appConfirm, toast } from '@/stores/notificationStore';
+import { liberaTessereDelPercorso } from '@/lib/useTessereOffline';
 import { useUIStore } from '@/stores/uiStore';
 import { useRouteLibraryStore } from '@/stores/routeLibraryStore';
 import { useAuthStore } from '@/stores/authStore';
@@ -165,14 +166,20 @@ export function ItineraryHeader() {
         <button
           onClick={async () => {
             if (waypoints.length > 0) {
+              /*
+                Si dice ANCHE delle mattonelle. Chi ha scaricato la mappa della gita di
+                domani e tocca «Nuovo» deve saperlo qui, non scoprirlo in quota — che e'
+                il momento peggiore in cui accorgersene.
+              */
               const ok = await appConfirm({
                 title: 'Creare un nuovo itinerario?',
-                message: 'Le modifiche non salvate andranno perse.',
+                message: 'Le modifiche non salvate andranno perse, insieme alle mappe scaricate per questo percorso.',
                 confirmText: 'Crea nuovo',
               });
               if (!ok) return;
             }
             resetItinerary();
+            void liberaTessereDelPercorso();
             toast.info('Nuovo itinerario creato');
           }}
           className="px-2 py-1 bg-gray-700 rounded-lg text-xs transition-all active:scale-[0.97] hover:bg-gray-600 max-lg:min-h-[44px]"

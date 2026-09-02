@@ -71,6 +71,52 @@ export interface EsitoOverpass {
   endpoint: string;
 }
 
+/**
+ * Quanto indietro può stare il database di un mirror prima di non essere più affidabile.
+ *
+ * I mirror sani stanno a **minuti** dal presente. Trenta giorni è molto largo di
+ * proposito: serve a respingere un'istanza che non sincronizza affatto, non a pretendere
+ * che sia aggiornata al secondo.
+ */
+export const RITARDO_MASSIMO_MS = 30 * 24 * 3600 * 1000;
+
+/**
+ * Se dietro una porta c'è un database vero.
+ *
+ * **Il difetto che questo controllo esiste per fermare.** Un mirror può *degradare in
+ * silenzio*: risponde `HTTP 200` con `elements: []` a qualunque query, per qualunque
+ * parte del mondo. Un successo vuoto è indistinguibile da «qui non c'è niente», quindi
+ * l'app dichiara con sicurezza che in zona non ci sono ripari — e la porta, avendo
+ * "funzionato", **finisce in memoria** e viene riprovata per prima a ogni apertura.
+ *
+ * È accaduto: il 2026-08-31 `overpass.osm.ch` rispondeva con trentanove ripari veri e
+ * l'app se l'è ricordato; il 2026-09-02 rispondeva 200 con zero elementi, e il Bivacco
+ * Carlo Fusco — che in OpenStreetMap c'è, e che la nostra query prende — risultava
+ * inesistente.
+ *
+ * La differenza è leggibile nella risposta stessa:
+ *
+ * | endpoint | `osm3s.timestamp_osm_base` |
+ * |---|---|
+ * | `overpass-api.de` | `2026-09-02T09:47:06Z` |
+ * | `overpass.osm.ch` | `116840` — non è una data |
+ *
+ * **Un campo assente vale «non lo so» e si accetta**: non tutte le istanze lo
+ * dichiarano, e respingerle romperebbe porte funzionanti per colpa di un controllo. Ciò
+ * che si respinge è il campo *presente e non plausibile*, che è il caso misurato.
+ */
+export function databaseSano(risposta: unknown): boolean {
+  const osm3s = (risposta as { osm3s?: { timestamp_osm_base?: unknown } } | null)?.osm3s;
+  const dichiarato = osm3s?.timestamp_osm_base;
+  if (typeof dichiarato !== 'string' || dichiarato === '') return true;   // non lo so
+
+  const istante = Date.parse(dichiarato);
+  if (!Number.isFinite(istante)) return false;
+  const scarto = Date.now() - istante;
+  // Nel futuro non ci può stare: sarebbe un orologio sbagliato o un valore inventato.
+  return scarto >= -24 * 3600 * 1000 && scarto <= RITARDO_MASSIMO_MS;
+}
+
 function portaPreferita(): string | null {
   try {
     const salvata = localStorage.getItem(CHIAVE_PORTA_PREFERITA);
@@ -135,6 +181,13 @@ export async function interrogaOverpass(
       }
       if (!res.ok) continue;
       const dati = await res.json();
+      /*
+        Una porta che risponde 200 con un database non plausibile NON e' una porta che
+        funziona: si passa alla successiva e non la si ricorda. Senza questo, un mirror
+        svuotato viene scelto per primo a ogni apertura e l'app dichiara che in zona non
+        c'e' niente — vedi il commento di `databaseSano`.
+      */
+      if (!databaseSano(dati)) continue;
       ricordaPorta(endpoint);
       return { dati, endpoint };
     } catch {
