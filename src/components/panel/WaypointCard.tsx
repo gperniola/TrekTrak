@@ -24,7 +24,7 @@ export function WaypointCard({ waypoint, dragHandleProps }: { waypoint: Waypoint
           </span>
           <button
             onClick={() => setEditing((p) => !p)}
-            className="text-gray-500 hover:text-gray-300 text-sm shrink-0 min-w-[28px] min-h-[28px] flex items-center justify-center"
+            className="text-gray-400 hover:text-gray-300 text-sm shrink-0 min-w-[28px] min-h-[28px] flex items-center justify-center"
             aria-label="Modifica nome"
             title="Modifica nome"
           >
@@ -32,7 +32,7 @@ export function WaypointCard({ waypoint, dragHandleProps }: { waypoint: Waypoint
           </button>
         </div>
         <div className="flex gap-1 items-center shrink-0">
-          <span {...dragHandleProps} className="cursor-grab text-gray-600 hover:text-gray-400 text-xs px-1" title="Trascina per riordinare" aria-label="Trascina per riordinare">
+          <span {...dragHandleProps} className="cursor-grab text-gray-400 hover:text-gray-200 text-xs px-1" title="Trascina per riordinare" aria-label="Trascina per riordinare">
             ☰
           </span>
           <button
@@ -48,7 +48,7 @@ export function WaypointCard({ waypoint, dragHandleProps }: { waypoint: Waypoint
                 toast.success('Waypoint rimosso');
               }
             }}
-            className="text-gray-500 hover:text-red-400 text-xs px-1"
+            className="text-gray-400 hover:text-red-400 text-xs px-1"
             title="Rimuovi"
             aria-label="Rimuovi waypoint"
           >
@@ -74,7 +74,7 @@ export function WaypointCard({ waypoint, dragHandleProps }: { waypoint: Waypoint
       )}
       <div className="flex items-center justify-between gap-2 mb-1">
         {waypoint.order === 0 ? (
-          <span className="text-[10px] text-gray-500" title="World Geodetic System 1984 — EPSG:4326">
+          <span className="text-[10px] text-gray-400" title="World Geodetic System 1984 — EPSG:4326">
             Coordinate: <span className="text-gray-400 font-medium">WGS84</span> — gradi decimali
           </span>
         ) : <span />}

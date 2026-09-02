@@ -32,7 +32,7 @@ function TrailRoutingMockup() {
       <div className="bg-gray-900 p-2">
         <div className="flex items-center gap-2 text-[9px] text-gray-400">
           <span className="text-green-400">━━━</span> sentiero reale
-          <span className="text-gray-500">╌╌╌</span> linea d&apos;aria
+          <span className="text-gray-400">╌╌╌</span> linea d&apos;aria
         </div>
       </div>
     </div>
@@ -59,7 +59,7 @@ function ColoredPathMockup() {
         <div className="h-1 flex-[0.5] rounded bg-yellow-400" />
         <div className="h-1 flex-1 rounded bg-green-400" />
       </div>
-      <div className="bg-gray-900 px-2 pb-2 flex justify-between text-[8px] text-gray-500">
+      <div className="bg-gray-900 px-2 pb-2 flex justify-between text-[8px] text-gray-400">
         <span>piano</span>
         <span>moderato</span>
         <span>ripido</span>
@@ -381,7 +381,7 @@ export function WhatsNew() {
           <span className="text-3xl">{current.icon}</span>
           <div>
             <h2 className="text-base font-bold text-green-400">{current.title}</h2>
-            <p className="text-[10px] text-gray-500">Novità v{release.version}</p>
+            <p className="text-[10px] text-gray-400">Novità v{release.version}</p>
           </div>
         </div>
 

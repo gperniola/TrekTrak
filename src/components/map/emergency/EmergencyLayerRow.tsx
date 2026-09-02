@@ -223,7 +223,7 @@ export function EmergencyLayerRow({ def, aperta, onApri }: Props) {
           {stato && (
             <span aria-hidden="true" className={`w-2 h-2 rounded-full shrink-0 ${stato.classe}`} />
           )}
-          <span aria-hidden="true" className="text-gray-500 text-[10px] shrink-0">{aperta ? '▲' : '▼'}</span>
+          <span aria-hidden="true" className="text-gray-400 text-[10px] shrink-0">{aperta ? '▲' : '▼'}</span>
         </button>
         <button
           role="switch"

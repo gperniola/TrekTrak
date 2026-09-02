@@ -31,7 +31,7 @@ export function BottomNav() {
     setMobileTab(key);
   };
 
-  // `text-gray-500` su `bg-gray-900` dà un contrasto di 3,67: sotto la soglia AA di
+  // `text-gray-400` su `bg-gray-900` dà un contrasto di 3,67: sotto la soglia AA di
   // 4,5 per testo normale, e queste etichette sono a 11px. `text-gray-400` misura
   // 6,99. È la voce che, insieme ai nomi dei marker, separava l'app dal target
   // Lighthouse di 97.

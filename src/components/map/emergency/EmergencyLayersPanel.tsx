@@ -103,7 +103,7 @@ export function EmergencyLayersPanel() {
           <button
             onClick={() => setOpen(false)}
             aria-label="Chiudi"
-            className="text-gray-500 hover:text-white max-lg:min-h-[44px] max-lg:min-w-[44px]"
+            className="text-gray-400 hover:text-white max-lg:min-h-[44px] max-lg:min-w-[44px]"
           >
             ✕
           </button>
@@ -136,14 +136,14 @@ export function EmergencyLayersPanel() {
           type="button"
           onClick={() => setNoteAperte((v) => !v)}
           aria-expanded={noteAperte}
-          className="mt-2 w-full text-left text-[10px] text-gray-500 hover:text-gray-300 max-lg:min-h-[36px]"
+          className="mt-2 w-full text-left text-[10px] text-gray-400 hover:text-gray-300 max-lg:min-h-[36px]"
         >
           ⓘ fonti e avvertenze {noteAperte ? '▲' : '▼'}
         </button>
         {noteAperte && (
           <div className="mt-1 space-y-1">
-            <div className="text-[9px] text-gray-500">{DISCLAIMER}</div>
-            {sourcesText && <div className="text-[9px] text-gray-500">{sourcesText}</div>}
+            <div className="text-[9px] text-gray-400">{DISCLAIMER}</div>
+            {sourcesText && <div className="text-[9px] text-gray-400">{sourcesText}</div>}
           </div>
         )}
       </div>

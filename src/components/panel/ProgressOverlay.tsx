@@ -121,7 +121,7 @@ export function ProgressOverlay({ onClose }: { onClose: () => void }) {
         </div>
 
         {!hasData ? (
-          <div className="text-gray-500 text-sm text-center py-8">
+          <div className="text-gray-400 text-sm text-center py-8">
             Inizia a verificare i tuoi itinerari e completare quiz per vedere il tuo progresso qui.
           </div>
         ) : (
@@ -129,7 +129,7 @@ export function ProgressOverlay({ onClose }: { onClose: () => void }) {
             {/* Section 1: Summary Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <div className="bg-gray-800 rounded-lg p-3 text-center">
-                <div className="text-gray-500 text-[10px] uppercase">Verifiche</div>
+                <div className="text-gray-400 text-[10px] uppercase">Verifiche</div>
                 <div className="text-white font-bold text-lg">{summary.totalVerifications}</div>
                 {summary.lastVerifyValidPercent != null && (
                   <div className={`${coloreEsito(summary.lastVerifyValidPercent)} text-[10px]`}>
@@ -138,7 +138,7 @@ export function ProgressOverlay({ onClose }: { onClose: () => void }) {
                 )}
               </div>
               <div className="bg-gray-800 rounded-lg p-3 text-center">
-                <div className="text-gray-500 text-[10px] uppercase">Quiz</div>
+                <div className="text-gray-400 text-[10px] uppercase">Quiz</div>
                 <div className="text-white font-bold text-lg">{summary.totalQuizzes}</div>
                 {summary.lastQuizAverage != null && (
                   <div className={`${coloreEsito(summary.lastQuizAverage)} text-[10px]`}>
@@ -147,19 +147,19 @@ export function ProgressOverlay({ onClose }: { onClose: () => void }) {
                 )}
               </div>
               <div className="bg-gray-800 rounded-lg p-3 text-center">
-                <div className="text-gray-500 text-[10px] uppercase">Trend</div>
+                <div className="text-gray-400 text-[10px] uppercase">Trend</div>
                 {trend ? (
                   <div className={`font-bold text-2xl ${TREND_COLORS[trend]}`}>{TREND_ICONS[trend]}</div>
                 ) : (
-                  <div className="text-gray-600 text-lg">—</div>
+                  <div className="text-gray-400 text-lg">—</div>
                 )}
-                {!trend && <div className="text-gray-600 text-[10px]">Tendenza da 10 sessioni</div>}
+                {!trend && <div className="text-gray-400 text-[10px]">Tendenza da 10 sessioni</div>}
               </div>
             </div>
 
             {/* Section 2: Trend Chart */}
             {trendData.length > 0 && trendData.length < 3 && (
-              <div className="text-gray-500 text-xs text-center py-3">
+              <div className="text-gray-400 text-xs text-center py-3">
                 Il grafico dell&apos;andamento compare da 3 sessioni; la freccia della tendenza da 10.
               </div>
             )}
@@ -207,9 +207,9 @@ export function ProgressOverlay({ onClose }: { onClose: () => void }) {
                   const s = catStats[cat];
                   return (
                     <div key={cat} className="bg-gray-800 rounded-lg p-2 min-w-[72px] shrink-0 sm:min-w-0 sm:shrink">
-                      <div className="text-gray-500 text-[9px] uppercase font-medium">{CATEGORY_LABELS[cat]}</div>
+                      <div className="text-gray-400 text-[9px] uppercase font-medium">{CATEGORY_LABELS[cat]}</div>
                       {s.count === 0 ? (
-                        <div className="text-gray-600 text-sm mt-1">—</div>
+                        <div className="text-gray-400 text-sm mt-1">—</div>
                       ) : (
                         <>
                           <div className="text-white text-xs font-bold mt-1">
@@ -248,7 +248,7 @@ export function ProgressOverlay({ onClose }: { onClose: () => void }) {
                   </div>
                 </div>
               ) : (
-                <button onClick={() => setConfirmReset(true)} className="text-xs text-gray-500 hover:text-red-400">
+                <button onClick={() => setConfirmReset(true)} className="text-xs text-gray-400 hover:text-red-400">
                   Cancella storico
                 </button>
               )}

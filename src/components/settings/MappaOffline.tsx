@@ -231,7 +231,7 @@ export function MappaOffline() {
         ci sono. In quota non c'e' modo di scoprirlo se non ingrandendo e trovando il grigio.
       */}
       {/*
-        `text-gray-400` e non `text-gray-500`: sul fondo di questo dialogo il 500 fa
+        `text-gray-400` e non `text-gray-400`: sul fondo di questo dialogo il 500 fa
         **3,67:1**, sotto il 4,5:1 che serve a un testo di questa taglia. E' lo stesso
         contrasto gia' corretto due volte in questo progetto, e sarebbe la terza.
       */}

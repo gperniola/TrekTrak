@@ -132,7 +132,7 @@ export function EmergencyShelterLayer({ shelters }: { shelters: Riparo[] | null 
               {r.phone != null && <div><a href={`tel:${r.phone.replace(/\s/g, '')}`}>{r.phone}</a></div>}
               {/* Un ricovero mappato non è una garanzia: può essere chiuso, diroccato o
                   stagionale. Dirlo qui è più utile che scoprirlo sotto la pioggia. */}
-              <div className="text-gray-500">
+              <div className="text-gray-400">
                 Da OpenStreetMap: apertura e stato non sono verificati.
               </div>
             </div>

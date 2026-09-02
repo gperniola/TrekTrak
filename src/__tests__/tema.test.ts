@@ -444,3 +444,123 @@ describe('le classi di colore inventate esistono davvero', () => {
     expect(unici).toEqual([]);
   });
 });
+
+/**
+ * **I grigi usati come testo di pagina, contati nel codice invece che elencati a mano.**
+ *
+ * L'elenco `ACCOPPIATE` qui sopra è scritto a mano, e per gli accenti va bene: il fondo su
+ * cui stanno non si deduce da nulla. Ma è proprio la parte scritta a mano che ha lasciato
+ * passare per la **terza** volta un `text-gray-500` a 3,67:1 — e in cima a questo file
+ * c'era perfino un commento che avvertiva delle prime due. Un commento non è un controllo.
+ *
+ * ## I fondi, e perché sono tre
+ *
+ * `grigio-800`, `grigio-900` e `grigio-950`. Misurati il 2026-09-02 sul DOM di una build
+ * di produzione, chiedendo a ogni elemento con testo quale fosse il primo fondo opaco
+ * sopra di lui: 44 su `grigio-900`, 4 su `grigio-800`, 1 su `grigio-950`. **Nessuno** su
+ * `grigio-700`, che nell'app è la traccia degli interruttori e il colore dei bordi, non un
+ * piano su cui si scrive — e la differenza conta, perché su `grigio-700` non passerebbe
+ * nemmeno `grigio-400` (4,06:1).
+ *
+ * ## Cosa questo blocco NON guarda, e perché
+ *
+ * Si scartano due categorie, e in entrambi i casi lo scarto può solo far **passare** un
+ * uso cattivo, mai far fallire un uso buono — un controllo che grida al lupo viene
+ * indebolito dal primo che ci sbatte contro:
+ *
+ * - i separatori decorativi (`aria-hidden`), che le regole di contrasto non riguardano;
+ * - il testo su un fondo **chiaro fisso**: i popup di Leaflet e un paio di campi
+ *   `bg-gray-100`. Là il problema è di natura diversa e più grave — il fondo non si
+ *   rovescia col tema mentre la scala grigia sì, quindi *nessuna* classe grigia può
+ *   funzionare nei due temi. Misurato: `text-gray-600` in un popup fa 7,56:1 nel tema
+ *   scuro e **1,54:1** nel chiaro. Serve un token che non si rovesci, come `--su-colore`,
+ *   ed è il TASK-63.
+ */
+describe('i grigi usati come testo di pagina', () => {
+  /** I fondi su cui l'app scrive davvero: vedi la misura nel commento qui sopra. */
+  const FONDI_DI_TESTO = ['grigio-800', 'grigio-900', 'grigio-950'];
+
+  /** Un fondo chiaro **fisso**, che non segue il tema: là i grigi non si applicano. */
+  const FONDO_CHIARO_FISSO = /bg-gray-100\b|bg-white\b/;
+
+  /** I file il cui contenuto vive dentro un popup di Leaflet (fondo bianco fisso). */
+  const DENTRO_UN_POPUP = ['EmergencyShelterLayer.tsx'];
+
+  /** Le classi `text-gray-N` che i componenti usano come testo di pagina. */
+  const grigiUsatiComeTesto = (): string[] => {
+    const trovati = new Set<string>();
+    const scendi = (dir: string) => {
+      for (const voce of readdirSync(dir, { withFileTypes: true })) {
+        const p = join(dir, voce.name);
+        if (voce.isDirectory()) {
+          // I file di prova nominano queste classi per vietarle: non sono usi.
+          if (voce.name === '__tests__') continue;
+          scendi(p);
+          continue;
+        }
+        if (!voce.name.endsWith('.tsx') || DENTRO_UN_POPUP.includes(voce.name)) continue;
+        for (const riga of readFileSync(p, 'utf8').split('\n')) {
+          if (riga.includes('aria-hidden') || FONDO_CHIARO_FISSO.test(riga)) continue;
+          // `matchAll` non e' iterabile col bersaglio TS di questo progetto: `exec` in ciclo.
+          const re = /\b(?:text|placeholder:text)-gray-(\d+)\b/g;
+          let m: RegExpExecArray | null;
+          while ((m = re.exec(riga)) != null) trovati.add(`grigio-${m[1]}`);
+        }
+      }
+    };
+    scendi(join(process.cwd(), 'src'));
+    return Array.from(trovati).sort();
+  };
+
+  const USATI = grigiUsatiComeTesto();
+
+  test('ce ne sono, altrimenti la ricerca non sta guardando niente', () => {
+    // Senza questo, cartelle spostate o classi scritte diversamente farebbero passare
+    // il blocco su un elenco vuoto, in silenzio.
+    expect(USATI.length).toBeGreaterThanOrEqual(3);
+    expect(USATI).toContain('grigio-400');
+  });
+
+  describe.each([['scuro', SCURO], ['chiaro', CHIARO]])('nel tema %s', (nome, token) => {
+    test.each(USATI.flatMap((testo) => FONDI_DI_TESTO.map((fondo) => [testo, fondo])))(
+      '--%s su --%s',
+      (testo, fondo) => {
+        const valore = contrasto(canali(token[testo]), canali(token[fondo]));
+        const esito = `${testo} su ${fondo} nel tema ${nome}: ${valore.toFixed(2)}:1`;
+        const atteso = valore >= TESTO_NORMALE ? esito : `${esito} — serve almeno ${TESTO_NORMALE}:1`;
+        expect(atteso).toBe(esito);
+      },
+    );
+  });
+
+  /**
+   * **Il grigio che non si può schiarire.**
+   *
+   * `grigio-500` non passa su nessun fondo dell'app nel tema scuro: 2,13 su `grigio-700`,
+   * 3,04 su `grigio-800`, 3,67 su `grigio-900`. La tentazione naturale è schiarire il
+   * token, e romperebbe altro: `bg-gray-500` fa il fondo di due pulsanti secondari e il
+   * loro testo chiaro sta a 4,83:1, cioè appena sopra la soglia. Portando il token al
+   * valore che servirebbe al testo su `grigio-800`, quei pulsanti scenderebbero a 3,05:1.
+   *
+   * Per questo la correzione è stata sulle **classi** — 96 usi in 33 file, nessuno dei
+   * quali arriva alla taglia del testo grande — e non sul token. E per questo la classe va
+   * tenuta fuori: rimetterla non è una scelta di stile, è un guasto.
+   */
+  test('nessun componente scrive in grigio-500, nemmeno come segnaposto', () => {
+    const colpevoli: string[] = [];
+    const scendi = (dir: string) => {
+      for (const voce of readdirSync(dir, { withFileTypes: true })) {
+        const p = join(dir, voce.name);
+        if (voce.isDirectory()) {
+          if (voce.name === '__tests__') continue;
+          scendi(p);
+        } else if (voce.name.endsWith('.tsx')
+          && /\b(?:text|placeholder:text|placeholder)-gray-500\b/.test(readFileSync(p, 'utf8'))) {
+          colpevoli.push(voce.name);
+        }
+      }
+    };
+    scendi(join(process.cwd(), 'src'));
+    expect(colpevoli).toEqual([]);
+  });
+});

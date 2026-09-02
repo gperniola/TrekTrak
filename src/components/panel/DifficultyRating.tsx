@@ -26,7 +26,7 @@ export function DifficultyRating({
     return (
       <span className="inline-flex items-center gap-1 text-xs text-gray-300" title={DIFFICULTY_LABELS[value]}>
         <span aria-hidden="true">{'🥾'.repeat(value)}</span>
-        <span className="text-gray-500">{DIFFICULTY_LABELS[value]}</span>
+        <span className="text-gray-400">{DIFFICULTY_LABELS[value]}</span>
       </span>
     );
   }

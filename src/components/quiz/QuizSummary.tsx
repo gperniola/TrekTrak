@@ -30,7 +30,7 @@ export function QuizSummary({ answers, average, onNewSession, onClose }: {
   return (
     <div className="space-y-4">
       <div className="text-center">
-        <div className="text-gray-500 text-xs mb-1">Punteggio sessione</div>
+        <div className="text-gray-400 text-xs mb-1">Punteggio sessione</div>
         <div className={`text-4xl font-bold ${scoreColor}`}>{average}/100</div>
       </div>
       <div className="grid grid-cols-3 gap-2">
@@ -38,7 +38,7 @@ export function QuizSummary({ answers, average, onNewSession, onClose }: {
           const avg = averageByType(answers, type);
           return (
             <div key={type} className="text-center bg-gray-800 rounded p-2">
-              <div className="text-gray-500 text-[10px]">{TYPE_LABELS[type]}</div>
+              <div className="text-gray-400 text-[10px]">{TYPE_LABELS[type]}</div>
               <div className={`font-bold text-sm ${avg != null && avg >= 70 ? 'text-green-400' : avg != null && avg >= 40 ? 'text-amber-400' : 'text-red-400'}`}>
                 {avg != null ? `${avg}/100` : '-'}
               </div>
@@ -67,7 +67,7 @@ function HistoryView() {
   const recent = history.slice(-10).reverse();
 
   if (recent.length === 0) {
-    return <div className="text-gray-500 text-xs text-center py-2">Nessuno storico disponibile</div>;
+    return <div className="text-gray-400 text-xs text-center py-2">Nessuno storico disponibile</div>;
   }
 
   const allAnswers = recent.flatMap((s) => s.questions);
@@ -76,9 +76,9 @@ function HistoryView() {
     <div className="space-y-2 border-t border-gray-700 pt-2">
       <div className="text-xs text-gray-400 font-medium">Ultime 10 sessioni — medie</div>
       <div className="grid grid-cols-3 gap-2 text-center text-xs">
-        <div><span className="text-gray-500">Alt:</span> <span className="text-white">{averageByType(allAnswers, 'altitude') ?? '-'}</span></div>
-        <div><span className="text-gray-500">Dist:</span> <span className="text-white">{averageByType(allAnswers, 'distance') ?? '-'}</span></div>
-        <div><span className="text-gray-500">Az:</span> <span className="text-white">{averageByType(allAnswers, 'azimuth') ?? '-'}</span></div>
+        <div><span className="text-gray-400">Alt:</span> <span className="text-white">{averageByType(allAnswers, 'altitude') ?? '-'}</span></div>
+        <div><span className="text-gray-400">Dist:</span> <span className="text-white">{averageByType(allAnswers, 'distance') ?? '-'}</span></div>
+        <div><span className="text-gray-400">Az:</span> <span className="text-white">{averageByType(allAnswers, 'azimuth') ?? '-'}</span></div>
       </div>
       <div className="space-y-1 max-h-[120px] overflow-y-auto">
         {recent.map((s, i) => (

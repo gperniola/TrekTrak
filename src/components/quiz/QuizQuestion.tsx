@@ -89,7 +89,7 @@ export function QuizQuestionView({ question, questionNumber, totalQuestions, onA
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <span className="text-xs text-gray-500">Domanda {questionNumber}/{totalQuestions}</span>
+        <span className="text-xs text-gray-400">Domanda {questionNumber}/{totalQuestions}</span>
         <span className="text-xs font-bold text-purple-400">{TYPE_LABELS[question.type]}</span>
       </div>
       <p className="text-sm text-gray-200">{question.prompt}</p>
@@ -131,19 +131,19 @@ export function QuizQuestionView({ question, questionNumber, totalQuestions, onA
         <div className="space-y-2">
           <div className="grid grid-cols-3 gap-2 text-center">
             <div>
-              <div className="text-gray-500 text-[10px]">Tua risposta</div>
+              <div className="text-gray-400 text-[10px]">Tua risposta</div>
               <div className="text-white font-bold text-sm">
                 {numero(result.userValue, question.type === 'distance' ? 2 : 0)} {question.unit}
               </div>
             </div>
             <div>
-              <div className="text-gray-500 text-[10px]">Valore reale</div>
+              <div className="text-gray-400 text-[10px]">Valore reale</div>
               <div className="text-green-400 font-bold text-sm">
                 {numero(result.realValue, question.type === 'distance' ? 2 : 0)} {question.unit}
               </div>
             </div>
             <div>
-              <div className="text-gray-500 text-[10px]">Errore</div>
+              <div className="text-gray-400 text-[10px]">Errore</div>
               <div className="text-amber-400 font-bold text-sm">
                 {question.type === 'distance'
                   ? `${result.realValue !== 0 ? numero((delta! / result.realValue) * 100) : '∞'}%`

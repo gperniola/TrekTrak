@@ -115,7 +115,7 @@ export function MapSettings({ onClose }: { onClose: () => void }) {
                 />
                 <div>
                   <div className="text-xs text-gray-200">{m.label}</div>
-                  <div className="text-[10px] text-gray-500">{m.description}</div>
+                  <div className="text-[10px] text-gray-400">{m.description}</div>
                   {!m.available && <div className="text-[10px] text-red-400">API key richiesta</div>}
                 </div>
               </label>
@@ -127,7 +127,7 @@ export function MapSettings({ onClose }: { onClose: () => void }) {
         <div className="flex items-center justify-between py-3 border-t border-gray-700">
           <div>
             <div className="text-sm text-gray-300">Sentieri escursionistici</div>
-            <div className="text-[10px] text-gray-500 mt-0.5">
+            <div className="text-[10px] text-gray-400 mt-0.5">
               Overlay Waymarked Trails — percorsi CAI, GR e sentieri ufficiali
             </div>
           </div>
@@ -142,7 +142,7 @@ export function MapSettings({ onClose }: { onClose: () => void }) {
         <div className="flex items-center justify-between py-3 border-t border-gray-700">
           <div>
             <div className="text-sm text-gray-300">Griglia coordinate</div>
-            <div className="text-[10px] text-gray-500 mt-0.5">
+            <div className="text-[10px] text-gray-400 mt-0.5">
               Overlay con griglia in gradi decimali (WGS84)
             </div>
           </div>
@@ -157,7 +157,7 @@ export function MapSettings({ onClose }: { onClose: () => void }) {
         <div className="flex items-center justify-between py-3 border-t border-gray-700">
           <div>
             <div className="text-sm text-gray-300">Percorso su sentiero</div>
-            <div className="text-[10px] text-gray-500 mt-0.5">
+            <div className="text-[10px] text-gray-400 mt-0.5">
               Calcola distanza e tracciato lungo i sentieri (OpenRouteService)
             </div>
             {!orsAvailable && (
@@ -183,7 +183,7 @@ export function MapSettings({ onClose }: { onClose: () => void }) {
         <div className="flex items-center justify-between py-3 border-t border-gray-700">
           <div>
             <div className="text-sm text-gray-300">Percorso colorato</div>
-            <div className="text-[10px] text-gray-500 mt-0.5">
+            <div className="text-[10px] text-gray-400 mt-0.5">
               Colora la linea del percorso in base alla pendenza
             </div>
             {appMode === 'learn' && coloredPath && (
@@ -202,7 +202,7 @@ export function MapSettings({ onClose }: { onClose: () => void }) {
         {/* Sample interval selector */}
         <div className="py-3 border-t border-gray-700">
           <div className="text-sm text-gray-300 mb-1">Campionatura altimetrica</div>
-          <div className="text-[10px] text-gray-500 mb-2">
+          <div className="text-[10px] text-gray-400 mb-2">
             Intervallo tra i punti di campionamento per il calcolo del profilo altimetrico.
             Valori bassi = più dettaglio, più lento. Valori alti = meno dettaglio, più veloce.
           </div>
@@ -236,7 +236,7 @@ export function MapSettings({ onClose }: { onClose: () => void }) {
 
         {/* Versione app — utile per verificare di avere l'ultima release */}
         <div className="pt-3 mt-1 border-t border-gray-700 text-center">
-          <span className="text-[10px] text-gray-500">TrekTrak v{process.env.NEXT_PUBLIC_APP_VERSION}</span>
+          <span className="text-[10px] text-gray-400">TrekTrak v{process.env.NEXT_PUBLIC_APP_VERSION}</span>
         </div>
       </div>
     </div>

@@ -38,7 +38,7 @@ export function PreviewElevationProfile({ route }: { route: Itinerary }) {
 
   if (data.length < 2) {
     return (
-      <div className="h-full flex items-center justify-center text-xs text-gray-500 px-3 text-center">
+      <div className="h-full flex items-center justify-center text-xs text-gray-400 px-3 text-center">
         Profilo altimetrico non disponibile per questo percorso.
       </div>
     );

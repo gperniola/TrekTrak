@@ -15,7 +15,7 @@ import { km, metri, percento } from '@/lib/formato';
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="bg-gray-900 rounded px-2 py-1.5">
-      <div className="text-[10px] text-gray-500 uppercase">{label}</div>
+      <div className="text-[10px] text-gray-400 uppercase">{label}</div>
       <div className="text-sm font-medium">{value}</div>
     </div>
   );
@@ -92,7 +92,7 @@ export function RouteDetailCard() {
     <div className="border-t border-gray-700 p-3 space-y-3">
       <h3 className="text-base font-bold text-green-400">{route.name || 'Senza nome'}</h3>
       {route.createdByUsername && (
-        <p className="text-xs text-gray-500">creato da <span className="text-green-400">@{route.createdByUsername}</span></p>
+        <p className="text-xs text-gray-400">creato da <span className="text-green-400">@{route.createdByUsername}</span></p>
       )}
       {m && (
         <div className="grid grid-cols-2 gap-1.5">

@@ -56,14 +56,14 @@ export function MainViewSwitch() {
     <div className="flex border-b border-gray-700" role="tablist" aria-label="Vista principale">
       <button
         onClick={() => go('editor')} role="tab" aria-selected={mainView === 'editor'}
-        className={`flex-1 py-2 text-xs font-medium transition-colors ${mainView === 'editor' ? 'text-green-400 border-b-2 border-green-400' : 'text-gray-500 hover:text-gray-300'}`}
+        className={`flex-1 py-2 text-xs font-medium transition-colors ${mainView === 'editor' ? 'text-green-400 border-b-2 border-green-400' : 'text-gray-400 hover:text-gray-300'}`}
       >
         Editor
       </button>
       {showLibrary && (
         <button
           onClick={() => go('library')} role="tab" aria-selected={mainView === 'library'}
-          className={`flex-1 py-2 text-xs font-medium transition-colors ${mainView === 'library' ? 'text-green-400 border-b-2 border-green-400' : 'text-gray-500 hover:text-gray-300'}`}
+          className={`flex-1 py-2 text-xs font-medium transition-colors ${mainView === 'library' ? 'text-green-400 border-b-2 border-green-400' : 'text-gray-400 hover:text-gray-300'}`}
         >
           Libreria
         </button>

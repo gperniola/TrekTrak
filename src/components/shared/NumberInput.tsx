@@ -111,7 +111,7 @@ export function NumberInput({
       <div className="flex items-center gap-1">
         <span className={`text-xs uppercase ${highlight ? 'text-amber-400 font-medium' : 'text-gray-400'}`}>
           {label}
-          {unit && <span className={highlight ? 'text-amber-500' : 'text-gray-500'}> ({unit})</span>}
+          {unit && <span className={highlight ? 'text-amber-500' : 'text-gray-400'}> ({unit})</span>}
         </span>
         {/* Il nome accessibile dice il TERMINE, non l'abbreviazione del campo: «Che cos'e':
             Lat» non spiega niente piu' di quanto facesse «Info: Lat». */}
