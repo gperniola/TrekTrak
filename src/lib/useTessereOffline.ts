@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo } from 'react';
+import { create } from 'zustand';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { BASE_MAPS, HIKING_TRAILS_OVERLAY } from '@/lib/types';
 import { toast } from '@/stores/notificationStore';
@@ -51,14 +52,50 @@ export interface TessereOffline {
   interrompi: () => void;
 }
 
+/**
+ * Lo stato dello scaricamento sta **fuori dai componenti**, ed è uno solo.
+ *
+ * Il calcolo era già condiviso — è la correzione che ha evitato che il numero mostrato
+ * divergesse da quello scaricato — ma lo stato era per istanza, un `useState` per
+ * componente. Con l'editor e le impostazioni mappa montati insieme (aprire il dialogo non
+ * smonta l'editor) si otteneva:
+ *
+ * - il pannello mostrava «Scarica per l'uso senza rete» mentre l'editor stava scaricando;
+ * - premendolo partiva un **secondo** scaricamento in parallelo, cioè il doppio del
+ *   traffico su servizi gratuiti — la cosa che tutto questo codice dichiara di evitare;
+ * - «libera» restava attivo, quindi si poteva svuotare la cache a metà di uno
+ *   scaricamento.
+ *
+ * È la stessa lezione, applicata allo stato invece che al calcolo: due copie della stessa
+ * verità divergono.
+ */
+interface StatoScaricamento {
+  avanzamento: Avanzamento | null;
+  controllo: AbortController | null;
+  set: (a: Avanzamento | null) => void;
+  prendiIlControllo: (c: AbortController | null) => void;
+}
+
+const useStatoScaricamento = create<StatoScaricamento>((set) => ({
+  avanzamento: null,
+  controllo: null,
+  set: (avanzamento) => set({ avanzamento }),
+  prendiIlControllo: (controllo) => set({ controllo }),
+}));
+
 export function useTessereOffline(): TessereOffline {
   const waypoints = useItineraryStore((s) => s.waypoints);
   const legs = useItineraryStore((s) => s.legs);
   const settings = useItineraryStore((s) => s.settings);
-  const [avanzamento, setAvanzamento] = useState<Avanzamento | null>(null);
-  const controllo = useRef<AbortController | null>(null);
+  const avanzamento = useStatoScaricamento((s) => s.avanzamento);
+  const setAvanzamento = useStatoScaricamento((s) => s.set);
 
-  useEffect(() => () => controllo.current?.abort(), []);
+  /*
+    **Non si annulla allo smontaggio.** Prima si faceva, e con lo stato condiviso sarebbe
+    diventato un guasto: chiudere il dialogo delle impostazioni fermerebbe lo scaricamento
+    avviato dall'editor, che resta montato. Lo si annulla solo quando qualcuno tocca
+    «interrompi» — che e' l'unico gesto che lo chiede davvero.
+  */
 
   const mappa = BASE_MAPS.find((m) => m.id === settings.mapDisplay.baseMap);
   // Se i sentieri escursionistici sono accesi fanno parte di cio' che si vede: senza,
@@ -107,18 +144,25 @@ export function useTessereOffline(): TessereOffline {
 
   const scarica = useCallback(async () => {
     if (piano == null || mappa == null || daScaricare.length === 0) return;
+    /*
+      **Uno per volta.** Con lo stato condiviso, due pannelli montati insieme potevano
+      avviarne due in parallelo: il doppio del traffico su servizi gratuiti, per le stesse
+      mattonelle.
+    */
+    if (useStatoScaricamento.getState().avanzamento != null) return;
 
     const ac = new AbortController();
-    controllo.current = ac;
+    useStatoScaricamento.getState().prendiIlControllo(ac);
     setAvanzamento({ fatte: 0, totali: daScaricare.length, fallite: 0 });
     const esito = await scaricaTessere(daScaricare, { onAvanzamento: setAvanzamento, signal: ac.signal });
     setAvanzamento(null);
-    controllo.current = null;
+    useStatoScaricamento.getState().prendiIlControllo(null);
 
     /*
-      Anche chiudere il pannello interrompe. Non e' grave e conviene dirlo: le mattonelle
-      gia' prese le serve il service worker dalla cache, quindi riavviare lo scaricamento
-      non le richiede alla rete una seconda volta.
+      Si interrompe **solo** toccando «interrompi»: chiudere il pannello non ferma piu'
+      niente, da quando lo stato e' condiviso. E riavviarlo costa poco, perche' le
+      mattonelle gia' prese le serve il service worker dalla cache senza toccare la rete —
+      conviene dirlo, o si crede di aver buttato il lavoro fatto.
     */
     if (esito.interrotto) {
       toast.info('Scaricamento interrotto: quello che è arrivato resta, e riavviandolo non si riscarica.');
@@ -127,7 +171,7 @@ export function useTessereOffline(): TessereOffline {
     } else {
       toast.success(`Mappa disponibile senza rete fino allo zoom ${piano.zoomRaggiunto}.`);
     }
-  }, [piano, mappa, daScaricare]);
+  }, [piano, mappa, daScaricare, setAvanzamento]);
 
   return {
     piano,
@@ -138,7 +182,7 @@ export function useTessereOffline(): TessereOffline {
     avanzamento,
     inCorso: avanzamento != null,
     scarica,
-    interrompi: () => controllo.current?.abort(),
+    interrompi: () => useStatoScaricamento.getState().controllo?.abort(),
   };
 }
 

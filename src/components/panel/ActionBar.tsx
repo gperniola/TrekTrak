@@ -519,8 +519,14 @@ export function ActionBar() {
                   className="w-full text-left px-2 py-1.5 rounded hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <span className="block text-xs font-bold text-gray-100">{v.etichetta}</span>
+                  {/*
+                    Nessun ramo «spento» qui: il pulsante che apre la tendina e' disabilitato
+                    alla stessa condizione (`canExportPdf`), quindi un messaggio per il caso
+                    contrario non si potrebbe leggere mai. Il motivo, quando serve, sta nella
+                    nota sopra il gruppo — che si vede senza dover aprire niente.
+                  */}
                   <span className="block text-[10px] text-gray-400 leading-snug">
-                    {canExportPdf ? v.descrizione : 'Servono almeno 2 waypoint'}
+                    {v.descrizione}
                   </span>
                 </button>
               ))}

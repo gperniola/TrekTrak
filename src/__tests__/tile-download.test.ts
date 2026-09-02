@@ -1,6 +1,12 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { PESO_MEDIO_TESSERA, scaricaTessere, spazioTessere, svuotaTessere } from '@/lib/tile-download';
+import {
+  CAMPIONE_PESO,
+  PESO_MEDIO_TESSERA,
+  scaricaTessere,
+  spazioTessere,
+  svuotaTessere,
+} from '@/lib/tile-download';
 import { CACHE_TESSERE } from '@/lib/tile-offline';
 
 /**
@@ -250,5 +256,69 @@ describe('il peso medio di una mattonella', () => {
     const perIlTetto = 500 * PESO_MEDIO_TESSERA;
     expect(perIlTetto).toBeGreaterThan(5e6);
     expect(perIlTetto).toBeLessThan(5e7);
+  });
+});
+
+/**
+ * **Leggere il peso di mille mattonelle costa troppo per mostrare un numero.**
+ *
+ * Misurato il 2026-09-02 su Chrome, build di produzione: leggere il `content-length` di
+ * **168** voci ha richiesto **1.197 ms**. Con il tetto pieno — cinquecento per servizio,
+ * mille in tutto — sarebbero circa sette secondi in cui il pannello non sa cosa dire.
+ *
+ * Da qui il campione: si leggono fino a `CAMPIONE_PESO` voci e si scala sul totale. Nel
+ * caso comune il campione **è** tutto, quindi il numero è esatto; oltre, è una media
+ * misurata su cento mattonelle vere — che è un'altra cosa rispetto a una costante
+ * inventata, ed è dichiarata come approssimata invece di essere spacciata per esatta.
+ */
+describe('il peso si legge su un campione quando le voci sono tante', () => {
+  const conPesi = (pesi: number[]) => ({
+    has: (n: string) => Promise.resolve(n === CACHE_TESSERE[0]),
+    open: () => Promise.resolve({
+      keys: () => Promise.resolve(pesi.map((_, i) => ({ url: `https://x/${i}.png` }))),
+      match: (r: { url: string }) => {
+        const i = Number(/(\d+)\.png/.exec(typeof r === 'string' ? r : r.url)?.[1] ?? 0);
+        return Promise.resolve({
+          headers: new Map([['content-length', String(pesi[i])]]) as unknown as Headers,
+        });
+      },
+    }),
+  });
+
+  test('poche voci: si leggono tutte e il numero e esatto', async () => {
+    (global as { caches?: unknown }).caches = conPesi([1000, 2000, 3000]);
+    const s = await spazioTessere();
+    expect(s?.quante).toBe(3);
+    expect(s?.byte).toBe(6000);
+    expect(s?.stimato).toBe(false);
+  });
+
+  test('molte voci: si campiona, si scala, e si dichiara approssimato', async () => {
+    // Tutte da 20.000 byte: la media del campione coincide col vero, e il totale scala.
+    const molte = Array.from({ length: 600 }, () => 20_000);
+    (global as { caches?: unknown }).caches = conPesi(molte);
+    const s = await spazioTessere();
+    expect(s?.quante).toBe(600);
+    expect(s?.byte).toBe(600 * 20_000);
+    expect(s?.stimato).toBe(true);
+  });
+
+  /** Il campione non deve leggere più di quanto dichiara: è il motivo per cui esiste. */
+  test('con molte voci si leggono al massimo CAMPIONE_PESO risposte', async () => {
+    let letture = 0;
+    (global as { caches?: unknown }).caches = {
+      has: (n: string) => Promise.resolve(n === CACHE_TESSERE[0]),
+      open: () => Promise.resolve({
+        keys: () => Promise.resolve(Array.from({ length: 900 }, (_, i) => ({ url: `https://x/${i}.png` }))),
+        match: () => {
+          letture++;
+          return Promise.resolve({
+            headers: new Map([['content-length', '20000']]) as unknown as Headers,
+          });
+        },
+      }),
+    };
+    await spazioTessere();
+    expect(letture).toBeLessThanOrEqual(CAMPIONE_PESO);
   });
 });

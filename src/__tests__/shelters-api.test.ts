@@ -200,3 +200,46 @@ describe('il tipo si affina con shelter_type', () => {
     expect(r[0].tipo).toBe('rifugio');
   });
 });
+
+/**
+ * **Il messaggio deve dire cosa fare, e i tre casi chiedono cose diverse.**
+ *
+ * - *occupato*: il servizio c'è ed è in coda → riprova fra poco.
+ * - *senza dati*: le istanze rispondono ma nessuna ha un database utilizzabile → non è la
+ *   tua rete, e non serve riprovare subito. È il caso del 2026-09-02, in cui un mirror
+ *   svuotato rispondeva 200 con zero elementi e il layer dichiarava che non c'erano ripari.
+ * - *non raggiungibile*: nessuno risponde → può essere la rete.
+ *
+ * Con un solo messaggio di scorta per gli ultimi due, chi lo leggeva finiva a controllare
+ * la connessione — l'unica cosa che in quel caso sicuramente funzionava.
+ */
+describe('cosa si dice quando i ripari non arrivano', () => {
+  const conErrore = (motivo: 'occupato' | 'senza-dati' | 'non-raggiungibile') => {
+    jest.resetModules();
+    return motivo;
+  };
+
+  test.each([
+    ['occupato', /occupato|riprova/i],
+    ['senza-dati', /dati|elenco/i],
+    ['non-raggiungibile', /disponibil|rete/i],
+  ] as const)('il motivo «%s» produce un messaggio suo', async (motivo, atteso) => {
+    conErrore(motivo);
+    const { messaggioRipari } = await import('@/lib/shelters-api');
+    expect(messaggioRipari(motivo)).toMatch(atteso);
+  });
+
+  test('i tre messaggi sono diversi fra loro', async () => {
+    const { messaggioRipari } = await import('@/lib/shelters-api');
+    const tre = (['occupato', 'senza-dati', 'non-raggiungibile'] as const).map(messaggioRipari);
+    expect(new Set(tre).size).toBe(3);
+  });
+
+  /** Nessuno dei tre deve far credere che in zona non ci siano ripari. */
+  test('nessuno dei tre dichiara che i ripari non esistono', async () => {
+    const { messaggioRipari } = await import('@/lib/shelters-api');
+    for (const m of (['occupato', 'senza-dati', 'non-raggiungibile'] as const).map(messaggioRipari)) {
+      expect(m).not.toMatch(/non ci sono|nessun riparo|nessun rifugio/i);
+    }
+  });
+});

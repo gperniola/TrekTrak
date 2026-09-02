@@ -19,6 +19,7 @@ jest.mock('@/lib/storage', () => ({
 }));
 
 import { ActionBar } from '@/components/panel/ActionBar';
+import { useTessereOffline } from '@/lib/useTessereOffline';
 
 /**
  * **Le mattonelle si scaricano dall'editor, e solo quando lo si chiede.**
@@ -135,5 +136,58 @@ describe('il pulsante della mappa offline nell editor', () => {
     render(<ActionBar />);
     expect(screen.queryByRole('button', { name: /Mappa offline/i })).not.toBeInTheDocument();
     expect(screen.queryByText(/Prima di partire/i)).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * **Lo scaricamento è uno, e lo vedono tutti e due i pannelli.**
+ *
+ * `useTessereOffline` calcola in un posto solo — è la correzione che ha evitato che il
+ * numero mostrato divergesse da quello scaricato — ma lo **stato** era per istanza: un
+ * `useState` per componente. Con l'editor e le impostazioni mappa montati insieme (aprire
+ * il dialogo non smonta l'editor) si otteneva:
+ *
+ * - il pannello mostrava «Scarica per l'uso senza rete» mentre l'editor stava scaricando;
+ * - premendolo partiva un **secondo** scaricamento in parallelo, cioè il doppio del
+ *   traffico su servizi gratuiti — la cosa che tutto questo codice dichiara di volere
+ *   evitare;
+ * - «libera» restava attivo, quindi si poteva svuotare la cache a metà di uno
+ *   scaricamento in corso.
+ *
+ * È la stessa lezione di prima, applicata allo stato invece che al calcolo: due copie
+ * della stessa verità divergono.
+ */
+describe('lo scaricamento e uno solo, condiviso', () => {
+  /** Due componenti che usano il hook, montati insieme come nell'app. */
+  function DuePannelli() {
+    const a = useTessereOffline();
+    const b = useTessereOffline();
+    return (
+      <div>
+        <button onClick={() => { void a.scarica(); }}>avvia da A</button>
+        <span data-testid="stato-a">{a.inCorso ? 'in corso' : 'fermo'}</span>
+        <span data-testid="stato-b">{b.inCorso ? 'in corso' : 'fermo'}</span>
+      </div>
+    );
+  }
+
+  test('avviandolo da un pannello, anche l altro lo sa', async () => {
+    useItineraryStore.setState({ ...BASE, waypoints: [wp(0), wp(1)] });
+    // Una risposta che non si risolve subito: cosi' si osserva lo stato "in corso".
+    /*
+      Un contenitore e non una variabile: TypeScript non sa che la callback gira, quindi
+      restringerebbe la variabile a `null` e la chiamata finale non compilerebbe.
+    */
+    const rilascia: { fn?: () => void } = {};
+    global.fetch = jest.fn(() => new Promise((res) => {
+      rilascia.fn = () => res({ ok: true, status: 200, type: 'cors' } as unknown as Response);
+    })) as unknown as typeof fetch;
+
+    render(<DuePannelli />);
+    fireEvent.click(screen.getByText('avvia da A'));
+
+    await waitFor(() => expect(screen.getByTestId('stato-a').textContent).toBe('in corso'));
+    expect(screen.getByTestId('stato-b').textContent).toBe('in corso');
+    rilascia.fn?.();
   });
 });

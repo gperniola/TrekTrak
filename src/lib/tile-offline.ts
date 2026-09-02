@@ -55,9 +55,6 @@ export const TETTO_TESSERE = 500;
 export const ZOOM_MINIMO = 12;
 export const ZOOM_MASSIMO = 16;
 
-/** Oltre questa area il rettangolo non è più un'escursione: si avverte. */
-export const AREA_MASSIMA_KM2 = 400;
-
 /** Il margine attorno all'itinerario: si cammina anche appena fuori dalla riga. */
 export const MARGINE = 0.2;
 
@@ -120,12 +117,6 @@ export function tessereNelRettangolo(r: Rettangolo, z: number): Tessera[] {
     }
   }
   return tessere;
-}
-
-export function quanteTessere(r: Rettangolo, z: number): number {
-  const alto = tesseraDa(r.north, r.west, z);
-  const basso = tesseraDa(r.south, r.east, z);
-  return (basso.x - alto.x + 1) * (basso.y - alto.y + 1);
 }
 
 /**

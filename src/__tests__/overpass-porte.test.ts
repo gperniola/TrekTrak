@@ -324,3 +324,45 @@ describe('una porta col database guasto si scavalca', () => {
     await expect(interrogaOverpass('[out:json];node(1);out;')).rejects.toBeInstanceOf(ErroreOverpass);
   });
 });
+
+/**
+ * **«Non raggiungibile» non è la verità quando tutte rispondono e nessuna ha i dati.**
+ *
+ * Il messaggio serve a decidere cosa fare: «riprova fra poco» se il servizio è in coda,
+ * «non c'è rete» se non risponde nessuno. Un'istanza che risponde 200 con un database
+ * vuoto non è nessuno dei due, e chiamarla «non raggiungibile» manda a controllare la
+ * connessione — che è l'unica cosa che sicuramente funziona.
+ */
+describe('il motivo dichiarato quando non si ottengono dati', () => {
+  const rispondi = (dati: unknown) => jest.fn(() => Promise.resolve({
+    ok: true, status: 200, json: () => Promise.resolve(dati),
+  })) as unknown as typeof fetch;
+
+  afterEach(() => { try { localStorage.removeItem(CHIAVE_PORTA_PREFERITA); } catch { /* */ } });
+
+  test('se tutte hanno il database guasto, il motivo lo dice', async () => {
+    global.fetch = rispondi({ osm3s: { timestamp_osm_base: '116840' }, elements: [] });
+    await expect(interrogaOverpass('[out:json];node(1);out;')).rejects.toMatchObject({
+      motivo: 'senza-dati',
+    });
+  });
+
+  test('e il messaggio non parla di raggiungibilita', async () => {
+    global.fetch = rispondi({ osm3s: { timestamp_osm_base: '116840' }, elements: [] });
+    try {
+      await interrogaOverpass('[out:json];node(1);out;');
+      throw new Error('avrebbe dovuto lanciare');
+    } catch (e) {
+      expect(String((e as Error).message)).not.toMatch(/raggiungibile/i);
+      expect(String((e as Error).message)).toMatch(/dati|database/i);
+    }
+  });
+
+  /** Quando davvero non risponde nessuno, il motivo resta quello di prima. */
+  test('se nessuna risponde, resta «non raggiungibile»', async () => {
+    global.fetch = jest.fn(() => Promise.reject(new TypeError('rete'))) as unknown as typeof fetch;
+    await expect(interrogaOverpass('[out:json];node(1);out;')).rejects.toMatchObject({
+      motivo: 'non-raggiungibile',
+    });
+  });
+});
