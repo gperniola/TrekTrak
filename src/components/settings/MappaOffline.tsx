@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from '@/stores/notificationStore';
 import {
-  AREA_MASSIMA_KM2,
   TETTO_TESSERE,
   ZOOM_MASSIMO,
   ZOOM_MINIMO,
@@ -36,7 +35,14 @@ export function MappaOffline() {
   */
   const { piano, area, daScaricare, nomeMappa, conSentieri, avanzamento, inCorso, scarica, interrompi } =
     useTessereOffline();
-  const [conservate, setConservate] = useState<{ quante: number; byte: number } | null>(null);
+  /*
+    Tre stati, non due: `undefined` = non lo so ancora, `null` = non si puo' sapere,
+    l'oggetto = lo so. Confonderli faceva mostrare «Spazio non interrogabile su questo
+    browser» per oltre un secondo a ogni apertura del pannello — un messaggio definitivo
+    per uno stato transitorio.
+  */
+  const [conservate, setConservate] =
+    useState<{ quante: number; byte: number; stimato: boolean } | null | undefined>(undefined);
   const [spazio, setSpazio] = useState<{ usato: number; disponibile: number } | null>(null);
 
   const aggiornaSpazio = useCallback(() => {
@@ -44,8 +50,11 @@ export function MappaOffline() {
     void spazioOrigine().then(setSpazio);
   }, []);
 
-  useEffect(() => { aggiornaSpazio(); }, [aggiornaSpazio]);
-  // Lo spazio si rilegge quando lo scaricamento finisce.
+  /*
+    Un solo effetto: si conta al montaggio e ogni volta che uno scaricamento finisce.
+    Con due effetti separati partivano **due** letture al montaggio, e da quando il peso
+    si legge dalle risposte una lettura non e' gratis.
+  */
   useEffect(() => { if (!inCorso) aggiornaSpazio(); }, [inCorso, aggiornaSpazio]);
 
   const svuota = async () => {
@@ -53,8 +62,6 @@ export function MappaOffline() {
     aggiornaSpazio();
     toast.info(quante > 0 ? 'Mappe offline liberate.' : 'Non c’era niente da liberare.');
   };
-
-
 
   return (
     <div className="space-y-2">
@@ -84,18 +91,12 @@ export function MappaOffline() {
               </>
             ) : (
               <>
-                L&rsquo;area è troppo grande perfino per lo zoom {ZOOM_MINIMO}: servirebbero più di{' '}
-                {numero(TETTO_TESSERE)} mattonelle. Riduci l&rsquo;itinerario o scarica a tappe.
+                Il percorso è troppo lungo perfino per lo zoom {ZOOM_MINIMO}: servirebbero
+                più di {numero(TETTO_TESSERE)} mattonelle solo per quella scala. Dividilo in
+                tappe e scarica una tappa per volta.
               </>
             )}
           </p>
-
-          {area > AREA_MASSIMA_KM2 && (
-            <p className="text-[11px] text-amber-300">
-              {areaLeggibile(area)} non è più un&rsquo;escursione: quello che scarichi coprirà l&rsquo;area
-              solo alle scale più larghe.
-            </p>
-          )}
 
           {daScaricare.length > 0 && (
             /* Quanto occupera', detto PRIMA: il peso medio e' misurato sui servizi veri. */
@@ -154,16 +155,18 @@ export function MappaOffline() {
 
       <div className="flex items-center justify-between gap-2 pt-1 border-t border-gray-700/60">
         <span className="text-[11px] text-gray-400">
-          {conservate == null
-            ? 'Spazio non interrogabile su questo browser.'
-            : conservate.quante === 0
+          {conservate === undefined
+            ? 'Conto le mappe conservate…'
+            : conservate === null
+              ? 'Spazio non interrogabile su questo browser.'
+              : conservate.quante === 0
               ? 'Nessuna mappa conservata.'
-              : <>
-                  {conservate.quante === 1
-                    ? 'Una mattonella conservata'
-                    : `${numero(conservate.quante)} mattonelle conservate`}
-                  , {pesoLeggibile(conservate.byte)}
-                </>}
+                : <>
+                    {conservate.quante === 1
+                      ? 'Una mattonella conservata'
+                      : `${numero(conservate.quante)} mattonelle conservate`}
+                    , {conservate.stimato ? 'circa ' : ''}{pesoLeggibile(conservate.byte)}
+                  </>}
         </span>
         {conservate != null && conservate.quante > 0 && (
           <button
@@ -179,11 +182,6 @@ export function MappaOffline() {
       {/*
         Il limite fisico da dire prima, non dopo: lo zoom oltre il quale le mattonelle non
         ci sono. In quota non c'e' modo di scoprirlo se non ingrandendo e trovando il grigio.
-      */}
-      {/*
-        `text-gray-400` e non `text-gray-400`: sul fondo di questo dialogo il 500 fa
-        **3,67:1**, sotto il 4,5:1 che serve a un testo di questa taglia. E' lo stesso
-        contrasto gia' corretto due volte in questo progetto, e sarebbe la terza.
       */}
       <p className="text-[10px] text-gray-400 leading-snug">
         Si scaricano gli zoom da {ZOOM_MINIMO} a {ZOOM_MASSIMO} lungo il percorso, non su

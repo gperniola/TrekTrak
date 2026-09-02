@@ -119,39 +119,77 @@ export async function scaricaTessere(
 export const PESO_MEDIO_TESSERA = 25 * 1024;
 
 /**
+ * Quante risposte si leggono al massimo per stabilire il peso.
+ *
+ * Misurato il 2026-09-02 su Chrome, build di produzione: leggere il `content-length` di
+ * **168** voci ha richiesto **1.197 ms**. Col tetto pieno — cinquecento per servizio,
+ * mille in tutto — sarebbero circa sette secondi in cui il pannello non sa cosa dire, e
+ * per mostrare un numero è troppo.
+ *
+ * Cento: nel caso comune il campione **è** tutto, quindi il numero è esatto; oltre, è una
+ * media misurata su cento mattonelle vere, che è un'altra cosa rispetto a una costante
+ * inventata — e viene dichiarata come approssimata invece di essere spacciata per esatta.
+ */
+export const CAMPIONE_PESO = 100;
+
+/**
  * Quante mattonelle sono conservate, e **quanto pesano davvero**.
  *
- * Il peso si legge dal `Content-Length` di ogni risposta in cache, non si stima: è fra le
+ * Il peso si legge dal `Content-Length` delle risposte in cache, non si stima: è fra le
  * intestazioni accessibili di una risposta CORS, e verificato che coincide al byte con la
  * dimensione del contenuto (28.719 su una mattonella OpenStreetMap).
  *
  * Due stime precedenti erano entrambe sbagliate — «circa 15 kB» dichiarati a naso, e poi
- * il conteggio di `navigator.storage.estimate()` che riportava il riempimento delle
- * risposte opache. Da quando le risposte sono leggibili non serve stimare più nulla.
+ * il conteggio di `navigator.storage.estimate()`, che riportava il riempimento delle
+ * risposte opache. Da quando le risposte sono leggibili il peso si misura; `stimato` dice
+ * se è stato letto per intero o ricavato da un campione.
+ *
+ * `null` vuol dire **«non si può sapere»** (niente Cache API, o storage bloccato) e non
+ * «non lo so ancora»: quest'ultimo è il compito di chi chiama, e confonderli faceva
+ * mostrare al pannello «Spazio non interrogabile» per un secondo intero a ogni apertura.
  */
-export async function spazioTessere(): Promise<{ quante: number; byte: number } | null> {
+export async function spazioTessere(): Promise<
+  { quante: number; byte: number; stimato: boolean } | null
+> {
   if (typeof caches === 'undefined') return null;
   try {
+    /* Prima si contano tutte le voci: `keys()` e' una lettura sola per cache. */
+    const perCache: { cache: Cache; chiavi: readonly Request[] }[] = [];
     let quante = 0;
-    let byte = 0;
     for (const nome of CACHE_TESSERE) {
       if (!(await caches.has(nome))) continue;
       const cache = await caches.open(nome);
       const chiavi = await cache.keys();
+      perCache.push({ cache, chiavi });
       quante += chiavi.length;
-      for (const k of chiavi) {
+    }
+    if (quante === 0) return { quante: 0, byte: 0, stimato: false };
+
+    /*
+      Poi si leggono le intestazioni di **al massimo** `CAMPIONE_PESO` voci, distribuite
+      su tutte le cache in proporzione: se si prendessero tutte dalla prima, con una mappa
+      base pesante e un overlay leggero la media sarebbe quella della sola base.
+      Si legge l'intestazione e non il contenuto — leggere i corpi vorrebbe dire spostare
+      decine di megabyte per mostrare un numero.
+    */
+    const stimato = quante > CAMPIONE_PESO;
+    let lette = 0;
+    let byteLetti = 0;
+    for (const { cache, chiavi } of perCache) {
+      const quota = stimato
+        ? Math.max(1, Math.round((chiavi.length / quante) * CAMPIONE_PESO))
+        : chiavi.length;
+      for (const k of chiavi.slice(0, quota)) {
         const r = await cache.match(k);
-        /*
-          Si legge l'intestazione e non il contenuto: leggere il corpo di cinquecento
-          mattonelle vorrebbe dire spostare venti megabyte per mostrare un numero. Se
-          l'intestazione mancasse, il peso di quella voce resta fuori dal totale — meglio
-          un totale un po' basso che un pannello che si blocca.
-        */
         const dichiarato = Number(r?.headers.get('content-length') ?? 0);
-        if (Number.isFinite(dichiarato)) byte += dichiarato;
+        if (Number.isFinite(dichiarato) && dichiarato > 0) {
+          byteLetti += dichiarato;
+          lette++;
+        }
       }
     }
-    return { quante, byte };
+    const byte = lette === 0 ? 0 : Math.round((byteLetti / lette) * quante);
+    return { quante, byte, stimato };
   } catch {
     return null;
   }

@@ -1,5 +1,4 @@
 import {
-  AREA_MASSIMA_KM2,
   SPAN_MINIMO_GRADI,
   areaLeggibile,
   tessereLungoIlPercorso,
@@ -7,11 +6,11 @@ import {
   SOTTODOMINI,
   TETTO_TESSERE,
   ZOOM_MASSIMO,
+  ZOOM_MASSIMO_SENTIERI,
   ZOOM_MINIMO,
   areaKm2,
   pesoLeggibile,
   pianifica,
-  quanteTessere,
   rettangoloConMargine,
   rettangoloDaPunti,
   tesseraDa,
@@ -106,17 +105,22 @@ describe('dal punto alla mattonella', () => {
   });
 });
 
-describe('coprire un rettangolo', () => {
+/**
+ * Il rettangolo **non e' piu' come l'app pianifica** — dal 2026-09-02 si copre il
+ * corridoio lungo il percorso. `tessereNelRettangolo` resta perche' e' il termine di
+ * paragone che dimostra perche': il test piu' sotto pretende che il corridoio ne chieda
+ * molte meno, e se un giorno smettesse di essere vero lo si saprebbe.
+ */
+describe('coprire un rettangolo, come termine di paragone', () => {
   test('le mattonelle sono senza doppioni', () => {
     const t = tessereNelRettangolo(GRAN_SASSO, 14);
     const chiavi = t.map((x) => x.x + '/' + x.y);
     expect(new Set(chiavi).size).toBe(chiavi.length);
-    expect(t.length).toBe(quanteTessere(GRAN_SASSO, 14));
   });
 
   test('il conteggio cresce con lo zoom', () => {
-    const a = quanteTessere(GRAN_SASSO, 13);
-    const b = quanteTessere(GRAN_SASSO, 14);
+    const a = tessereNelRettangolo(GRAN_SASSO, 13).length;
+    const b = tessereNelRettangolo(GRAN_SASSO, 14).length;
     expect(b).toBeGreaterThan(a * 2);
     expect(b).toBeLessThan(a * 8);
   });
@@ -193,7 +197,7 @@ describe('il piano di scaricamento', () => {
     const perZoom = new Map<number, number>();
     for (const t of p.tessere) perZoom.set(t.z, (perZoom.get(t.z) ?? 0) + 1);
     perZoom.forEach((quante, z) => {
-      expect(quante).toBe(quanteTessere(GRAN_SASSO, z));
+      expect(quante).toBe(tessereNelRettangolo(GRAN_SASSO, z).length);
     });
   });
 
@@ -222,7 +226,7 @@ describe('area del rettangolo', () => {
   test('il Gran Sasso di prova e un area da escursione', () => {
     const a = areaKm2(GRAN_SASSO);
     expect(a).toBeGreaterThan(10);
-    expect(a).toBeLessThan(AREA_MASSIMA_KM2);
+    expect(a).toBeLessThan(400);
   });
 
   test('un grado quadrato all equatore sta intorno ai 12.300 km2', () => {
@@ -387,12 +391,24 @@ describe('l elenco di cio che si scarica', () => {
     expect(url.filter((u) => u.includes('sentieri.'))).toHaveLength(2);
   });
 
+  /**
+   * **Questo caso oggi non si verifica, e il test serve a domani.**
+   *
+   * L'overlay dei sentieri e' dichiarato fino allo zoom 17, e l'app si ferma al 16: il
+   * filtro non scatta mai con i valori attuali. Vale la pena tenerlo perche' `ZOOM_MASSIMO`
+   * e' una costante che qualcuno alzera' — e il giorno che diventasse 18, senza filtro si
+   * chiederebbero a Waymarked Trails mattonelle che non ha, contandole fra quelle prese e
+   * lasciando i sentieri invisibili proprio alla scala piu' fine.
+   */
   test('i sentieri non si chiedono oltre il loro zoom nativo', () => {
-    // L'overlay dei sentieri e' dichiarato fino allo zoom 17: oltre, il servizio non ha
-    // mattonelle e le chiederemmo per niente.
     const alte = [{ z: 18, x: 1, y: 1 }, { z: 16, x: 1, y: 1 }];
     const url = urlDaScaricare(alte, BASE, SENTIERI);
     expect(url.filter((u) => u.includes('sentieri.'))).toHaveLength(1);
+  });
+
+  /** E che oggi il filtro sia inerte va detto, non lasciato dedurre. */
+  test('con gli zoom di oggi il filtro dei sentieri non taglia nulla', () => {
+    expect(ZOOM_MASSIMO).toBeLessThanOrEqual(ZOOM_MASSIMO_SENTIERI);
   });
 
   test('nessuna URL resta con un segnaposto dentro', () => {

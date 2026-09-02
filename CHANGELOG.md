@@ -4,6 +4,58 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.19.2] — 2026-09-02 — Consolidamento: tre round di review
+
+Tre giri sul lavoro delle 0.19.x, ognuno con un metodo diverso — il codice, lo schermo, gli
+invarianti — perché tre giri con lo stesso metodo guardano tre volte la stessa cosa.
+
+### Fixed
+- **Due pannelli, due scaricamenti.** `useTessereOffline` condivideva il *calcolo* ma non lo
+  *stato*: un `useState` per componente. Con l'editor e le impostazioni mappa montati
+  insieme (aprire il dialogo non smonta l'editor) il pannello mostrava «Scarica per l'uso
+  senza rete» mentre l'editor stava scaricando, e premendolo partiva un **secondo**
+  scaricamento in parallelo — il doppio del traffico su servizi gratuiti, che è la cosa che
+  quel codice dichiara di volere evitare. E «libera» restava attivo, quindi si poteva
+  svuotare la cache a metà. È la stessa lezione di prima applicata allo stato: due copie
+  della stessa verità divergono.
+- **«Spazio non interrogabile su questo browser» per un secondo intero, a ogni apertura.**
+  `null` voleva dire due cose — «non lo so ancora» e «non si può sapere» — e il pannello
+  mostrava il messaggio definitivo anche per lo stato transitorio. Ora sono tre stati.
+- **Leggere il peso di 168 mattonelle costava 1.197 ms**, misurati; col tetto pieno sarebbero
+  stati sette secondi. Ora si leggono al massimo cento intestazioni, distribuite fra le
+  cache in proporzione, e si scala: nel caso comune il campione **è** tutto e il numero è
+  esatto, oltre è dichiarato approssimato.
+- **«Ripari non disponibili» diceva la cosa sbagliata** quando le istanze rispondono ma
+  nessuna ha un database: mandava a controllare la connessione, l'unica cosa che in quel
+  caso sicuramente funziona. Tre motivi, tre messaggi, e nessuno dei tre dice «non ci sono
+  ripari» — che è la cosa che non sappiamo.
+- **L'avviso sopra i 400 km² non era più vero.** Diceva che l'area sarebbe stata coperta
+  «solo alle scale più larghe», che valeva col rettangolo e non col corridoio. Rimosso
+  insieme alla sua costante, invece di lasciarlo a mentire. E il messaggio del tetto ora
+  parla del **percorso troppo lungo**, non dell'area troppo grande.
+
+### Changed
+- `quanteTessere` è stata rimossa: col corridoio non la chiamava più nessuno e sopravviveva
+  solo nei propri test. `tessereNelRettangolo` resta come **termine di paragone**, ed è
+  detto: il test che pretende che il corridoio chieda molte meno mattonelle è ciò che
+  dimostra perché il corridoio esiste.
+- Le due scansioni del codice in `tema.test.ts` ora **contano i file visitati**: un
+  `toEqual([])` su un elenco che nessuno ha popolato passa felice, e sarebbe una guardia
+  verde e cieca proprio per la classe di difetto che esiste per fermare. Verificato per
+  mutazione: rompendo la ricerca, cadono.
+- Via un ramo di testo irraggiungibile nella tendina degli export (il pulsante che la apre è
+  spento alla stessa condizione), e detto nel test che il filtro sullo zoom dei sentieri oggi
+  **non scatta** — serve al giorno in cui `ZOOM_MASSIMO` verrà alzato.
+
+### Verificato, non dedotto
+- **Il corridoio non ha buchi**: 2.515 punti campionati lungo il percorso caricato, ai
+  cinque zoom, tutti coperti. Un buco sarebbe un pezzo di sentiero senza mappa.
+- L'ordine delle coordinate della geometria dei sentieri (`[lat, lon]`, non `[lon, lat]`) è
+  protetto da un test — verificato per mutazione, perché scambiarlo scaricherebbe in
+  silenzio le mattonelle di un altro emisfero.
+- La tendina degli export sta dentro lo schermo anche a 1280 px, con tutte e quattro le voci
+  leggibili.
+
 ## [0.19.1] — 2026-09-02 — Megabyte, non gigabyte
 
 Segnalato: «mi sembra che stia salvando troppi dati, sia il numero di tile sembra eccessivo

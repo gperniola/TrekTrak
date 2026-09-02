@@ -1,4 +1,4 @@
-import { interrogaOverpass, ErroreOverpass } from './overpass';
+import { interrogaOverpass, ErroreOverpass, type MotivoOverpass } from './overpass';
 
 /**
  * Rifugi, bivacchi e ricoveri da **OpenStreetMap**, via Overpass.
@@ -122,6 +122,33 @@ export interface RisultatoRipari {
   troncato: boolean;
 }
 
+/**
+ * Il messaggio per ciascun modo in cui i ripari possono non arrivare.
+ *
+ * **Tre casi, tre cose da fare**, e con un solo messaggio di scorta si finiva a
+ * controllare la connessione anche quando era l'unica cosa che funzionava:
+ *
+ * - `occupato` — il servizio c'è ed è in coda: riprovare ha senso, e spesso subito.
+ * - `senza-dati` — le istanze **rispondono** ma nessuna ha un database utilizzabile. È il
+ *   caso del 2026-09-02: un mirror svuotato rispondeva 200 con zero elementi, e il layer
+ *   dichiarava che in zona non c'erano ripari. Non è la rete di chi guarda, e riprovare
+ *   fra un minuto non cambierà nulla.
+ * - `non-raggiungibile` — non risponde nessuno: qui la rete può davvero essere il problema.
+ *
+ * Nessuno dei tre dice «non ci sono ripari»: è la cosa che non sappiamo, e dirla sarebbe
+ * il difetto peggiore di tutti.
+ */
+export function messaggioRipari(motivo: MotivoOverpass): string {
+  switch (motivo) {
+    case 'occupato':
+      return 'Il servizio dei ripari è occupato: riprova fra poco';
+    case 'senza-dati':
+      return 'Il servizio dei ripari non ha restituito dati: non dipende dalla tua rete, riprova più tardi';
+    default:
+      return 'Ripari non disponibili in questo momento: controlla la rete';
+  }
+}
+
 export async function fetchShelters(b: BBox, signal?: AbortSignal): Promise<RisultatoRipari> {
   let raw: unknown;
   try {
@@ -129,11 +156,7 @@ export async function fetchShelters(b: BBox, signal?: AbortSignal): Promise<Risu
   } catch (e) {
     // 429 e 504 sono la norma su un'istanza pubblica condivisa: il messaggio deve
     // suggerire di riprovare, non far pensare che non ci siano ripari.
-    if (e instanceof ErroreOverpass) {
-      throw new Error(e.motivo === 'occupato'
-        ? 'Il servizio dei ripari è occupato: riprova fra poco'
-        : 'Ripari non disponibili in questo momento');
-    }
+    if (e instanceof ErroreOverpass) throw new Error(messaggioRipari(e.motivo));
     throw e;   // annullamento nostro: lo gestisce chi ha chiamato
   }
   const shelters = parseShelters(raw);

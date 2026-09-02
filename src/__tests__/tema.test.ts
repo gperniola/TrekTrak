@@ -559,20 +559,30 @@ describe('i grigi usati come testo di pagina', () => {
    */
   test('nessun componente scrive in grigio-500, nemmeno come segnaposto', () => {
     const colpevoli: string[] = [];
+    /*
+      Si contano i file visitati, e non e' zelo: un `toEqual([])` su un elenco che nessuno
+      ha popolato passa felice. Se un giorno la ricerca smettesse di trovare i componenti
+      — cartelle spostate, estensioni diverse — questa guardia diventerebbe verde e cieca,
+      ed e' proprio la classe di difetto che questo blocco esiste per fermare.
+    */
+    let visitati = 0;
     const scendi = (dir: string) => {
       for (const voce of readdirSync(dir, { withFileTypes: true })) {
         const p = join(dir, voce.name);
         if (voce.isDirectory()) {
           if (voce.name === '__tests__') continue;
           scendi(p);
-        } else if (voce.name.endsWith('.tsx')
-          && /\b(?:text|placeholder:text|placeholder)-gray-500\b/
+        } else if (voce.name.endsWith('.tsx')) {
+          visitati++;
+          if (/\b(?:text|placeholder:text|placeholder)-gray-500\b/
             .test(senzaCommenti(readFileSync(p, 'utf8')))) {
-          colpevoli.push(voce.name);
+            colpevoli.push(voce.name);
+          }
         }
       }
     };
     scendi(join(process.cwd(), 'src'));
+    expect(visitati).toBeGreaterThanOrEqual(40);
     expect(colpevoli).toEqual([]);
   });
 });
@@ -711,8 +721,12 @@ describe('non si mescola un colore del tema con un fondo che non lo segue', () =
     'QuizQuestion.tsx: text-gray-200 (varia) su bg-purple-900 (fisso)',
   ]);
 
+  /** Quanti componenti ha visitato l'ultima scansione: vedi la prova di non-vacuita'. */
+  let visitatiMescolanze = 0;
+
   const mescolanze = (): string[] => {
     const trovate: string[] = [];
+    visitatiMescolanze = 0;
     const scendi = (dir: string) => {
       for (const voce of readdirSync(dir, { withFileTypes: true })) {
         const p = join(dir, voce.name);
@@ -722,6 +736,7 @@ describe('non si mescola un colore del tema con un fondo che non lo segue', () =
           continue;
         }
         if (!voce.name.endsWith('.tsx')) continue;
+        visitatiMescolanze++;
         for (const riga of pulito(readFileSync(p, 'utf8')).split('\n')) {
           /*
             **Si valuta solo quando l'appaiamento e' certo**: una sola classe di testo e
@@ -760,6 +775,10 @@ describe('non si mescola un colore del tema con un fondo che non lo segue', () =
   };
 
   test('nessun componente mescola le due famiglie sullo stesso elemento', () => {
-    expect(mescolanze()).toEqual([]);
+    const trovate = mescolanze();
+    // La ricerca deve aver guardato qualcosa: un elenco vuoto per una ricerca rotta
+    // sarebbe indistinguibile da un elenco vuoto perche' va tutto bene.
+    expect(visitatiMescolanze).toBeGreaterThanOrEqual(40);
+    expect(trovate).toEqual([]);
   });
 });

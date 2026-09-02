@@ -53,9 +53,12 @@ export const CHIAVE_PORTA_PREFERITA = 'trektrak_overpass_endpoint';
  *
  * - `occupato`: qualcuno ha risposto 429 o 504, cioe' il servizio c'e' ed e' in coda.
  *   Riprovare ha senso, e il messaggio non deve far credere che non ci siano ripari.
+ * - `senza-dati`: qualcuno ha risposto 200, ma con un database non plausibile — vedi
+ *   `databaseSano`. Non e' un problema di rete e dirlo cosi' manderebbe a controllare la
+ *   connessione, che e' l'unica cosa che sicuramente funziona.
  * - `non-raggiungibile`: nessuno ha risposto affatto.
  */
-export type MotivoOverpass = 'occupato' | 'non-raggiungibile';
+export type MotivoOverpass = 'occupato' | 'senza-dati' | 'non-raggiungibile';
 
 export class ErroreOverpass extends Error {
   constructor(readonly motivo: MotivoOverpass, messaggio: string) {
@@ -156,6 +159,8 @@ export async function interrogaOverpass(
   const timeoutMs = opzioni?.timeoutMs ?? TIMEOUT_ENDPOINT_MS;
   const esterno = opzioni?.signal;
   let occupato = false;
+  /** Almeno una porta ha risposto, ma col database non plausibile. */
+  let senzaDati = false;
 
   for (const endpoint of ordineTentativi(portaPreferita())) {
     if (esterno?.aborted) break;
@@ -187,7 +192,10 @@ export async function interrogaOverpass(
         svuotato viene scelto per primo a ogni apertura e l'app dichiara che in zona non
         c'e' niente — vedi il commento di `databaseSano`.
       */
-      if (!databaseSano(dati)) continue;
+      if (!databaseSano(dati)) {
+        senzaDati = true;
+        continue;
+      }
       ricordaPorta(endpoint);
       return { dati, endpoint };
     } catch {
@@ -200,7 +208,15 @@ export async function interrogaOverpass(
   }
 
   if (esterno?.aborted) throw new DOMException('Richiesta annullata', 'AbortError');
-  throw occupato
-    ? new ErroreOverpass('occupato', 'Overpass è in coda su tutte le istanze')
-    : new ErroreOverpass('non-raggiungibile', 'Nessuna istanza Overpass raggiungibile');
+  if (occupato) throw new ErroreOverpass('occupato', 'Overpass è in coda su tutte le istanze');
+  /*
+    L'ordine conta: «occupato» prima, perche' una porta in coda tornera' a funzionare e
+    riprovare ha senso. Poi «senza dati», che e' il caso in cui le istanze RISPONDONO e
+    non hanno il database — chiamarlo irraggiungibile manderebbe a controllare la
+    connessione, che e' l'unica cosa che sicuramente funziona.
+  */
+  if (senzaDati) {
+    throw new ErroreOverpass('senza-dati', 'Nessuna istanza Overpass ha un database utilizzabile');
+  }
+  throw new ErroreOverpass('non-raggiungibile', 'Nessuna istanza Overpass raggiungibile');
 }
