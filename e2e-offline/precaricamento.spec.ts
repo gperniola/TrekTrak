@@ -222,3 +222,62 @@ test.describe('la mappa senza rete', () => {
     expect(dopo['tiles-thunderforest'] ?? 0).toBe(0);
   });
 });
+
+/**
+ * **Nessuna risposta opaca nelle cache delle mattonelle.**
+ *
+ * È l'invariante che costa gigabyte quando si rompe, ed è invisibile: una risposta opaca
+ * funziona — la mappa si vede, offline compresa — e intanto il browser addebita in quota
+ * un riempimento enorme, apposta, perché il peso di un'immagine di un altro sito non
+ * trapeli.
+ *
+ * Misurato il 2026-09-02 su Chrome, venti mattonelle per volta:
+ *
+ * | modo | quota addebitata per mattonella |
+ * |---|---|
+ * | `no-cors` (opaca) | **7.688.466 byte** |
+ * | `cors` | **1.907 byte** |
+ *
+ * Quattromila volte tanto per gli stessi byte. Da qui la richiesta riscritta in CORS nel
+ * service worker, che copre sia le mattonelle pre-caricate sia quelle prese navigando: e
+ * questo scenario pretende che nessuna delle due strade produca un'opaca.
+ */
+test.describe('il peso vero delle mattonelle', () => {
+  test('nessuna risposta opaca, e il peso si legge', async ({ page }) => {
+    await conIlWorker(page);
+    await scaricaDalPannello(page);
+
+    const esito = await page.evaluate(async () => {
+      let quante = 0;
+      let opache = 0;
+      let byte = 0;
+      let senzaPeso = 0;
+      for (const n of await caches.keys()) {
+        if (!n.startsWith('tiles-')) continue;
+        const c = await caches.open(n);
+        for (const k of await c.keys()) {
+          const r = await c.match(k);
+          quante++;
+          if (r?.type === 'opaque') opache++;
+          const cl = Number(r?.headers.get('content-length') ?? 0);
+          if (cl > 0) byte += cl; else senzaPeso++;
+        }
+      }
+      return { quante, opache, byte, senzaPeso };
+    });
+
+    expect(esito.quante).toBeGreaterThan(0);
+    // Una sola opaca vuol dire 7 MB di quota buttati: non se ne accetta nessuna.
+    expect(esito.opache).toBe(0);
+    // E il peso deve essere leggibile, altrimenti il pannello torna a stimare.
+    expect(esito.senzaPeso).toBe(0);
+    /*
+      Il peso medio deve stare nell'ordine delle decine di kilobyte. Se un giorno questo
+      salisse ai megabyte vorrebbe dire che siamo tornati a contare risposte opache —
+      misurato su scaricamenti veri: 16,9 kB e 23,2 kB di media.
+    */
+    const medio = esito.byte / esito.quante;
+    expect(medio).toBeGreaterThan(1_000);
+    expect(medio).toBeLessThan(200_000);
+  });
+});

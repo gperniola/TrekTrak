@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { COSTO_QUOTA_PER_TESSERA, scaricaTessere, spazioTessere, svuotaTessere } from '@/lib/tile-download';
+import { PESO_MEDIO_TESSERA, scaricaTessere, spazioTessere, svuotaTessere } from '@/lib/tile-download';
 import { CACHE_TESSERE } from '@/lib/tile-offline';
 
 /**
@@ -19,10 +19,11 @@ afterEach(() => {
 
 /**
  * Una risposta finta e non una `Response` vera: in questo ambiente di test la classe non
- * esiste, e il codice sotto esame non guarda la risposta — le richieste sono `no-cors`,
- * quindi lo stato non e' leggibile nemmeno in un browser.
+ * esiste. Ora e' di tipo `cors` con stato 200, perche' e' quello che si ottiene dal
+ * 2026-09-02 — e lo stato **si guarda**, per non contare fra le prese una mattonella che
+ * il server non ha.
  */
-const RISPOSTA_FINTA = { ok: true, status: 0, type: 'opaque' } as unknown as Response;
+const RISPOSTA_FINTA = { ok: true, status: 200, type: 'cors' } as unknown as Response;
 
 const urlFinti = (quanti: number) =>
   Array.from({ length: quanti }, (_, i) => `https://a.tile.example/14/${i}/0.png`);
@@ -38,16 +39,43 @@ describe('scaricare le mattonelle', () => {
   });
 
   /**
-   * `no-cors` di proposito: e' lo stesso tipo di richiesta che fa Leaflet coi suoi `<img>`,
-   * e la voce di cache che ne risulta deve essere indistinguibile da quella che l'app usera'
-   * poi. Con una richiesta di tipo diverso il pre-caricamento riempirebbe il disco senza
-   * che nessuno peschi da li'.
+   * **`cors`, e non `no-cors`: è la differenza fra megabyte e gigabyte.**
+   *
+   * La prima versione usava `no-cors` per somigliare alle richieste che Leaflet fa coi
+   * suoi `<img>`. Il prezzo era una risposta **opaca**, e il browser conta le risposte
+   * opache in quota con un riempimento enorme — apposta, perché il loro peso non trapeli.
+   *
+   * Misurato il 2026-09-02 su Chrome, venti mattonelle per volta, leggendo
+   * `navigator.storage.estimate()`:
+   *
+   * | modo | quota addebitata per mattonella |
+   * |---|---|
+   * | `no-cors` | **7.688.466 byte** |
+   * | `cors` | **1.907 byte** |
+   *
+   * Quattromila volte tanto, per gli stessi byte sulla rete. Si può fare perché tutti e
+   * cinque i servizi che l'app usa rispondono `access-control-allow-origin: *`, verificato
+   * lo stesso giorno con `Origin` esplicito. Il service worker riscrive in CORS anche le
+   * richieste dei tag `<img>`, così non resta nessuna via che produca risposte opache.
    */
-  test('la richiesta e dello stesso tipo di quelle di Leaflet', async () => {
+  test('la richiesta e in CORS, non opaca', async () => {
     const fetchMock = jest.fn().mockResolvedValue(RISPOSTA_FINTA);
     global.fetch = fetchMock as unknown as typeof fetch;
     await scaricaTessere(urlFinti(1));
-    expect(fetchMock.mock.calls[0][1]).toMatchObject({ mode: 'no-cors' });
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({ mode: 'cors' });
+  });
+
+  /**
+   * Con una risposta leggibile una mattonella mancante si **vede**. Prima, essendo opaca,
+   * un 404 risultava «fatta» e in quota si trovava un buco grigio senza preavviso.
+   */
+  test('una mattonella che il server non ha non viene contata fra le prese', async () => {
+    global.fetch = jest.fn().mockResolvedValue(
+      { ok: false, status: 404, type: 'cors' } as unknown as Response,
+    ) as unknown as typeof fetch;
+    const esito = await scaricaTessere(urlFinti(5));
+    expect(esito.fatte).toBe(0);
+    expect(esito.fallite).toBe(5);
   });
 
   /** Una mattonella che non arriva non deve fermare le altre quattrocentonovantanove. */
@@ -117,32 +145,7 @@ describe('scaricare le mattonelle', () => {
   });
 });
 
-describe('lo spazio delle mattonelle', () => {
-  /** Un finto `caches` con un numero di voci per cache. */
-  const finteCache = (voci: Record<string, number>) => ({
-    has: (n: string) => Promise.resolve(n in voci),
-    open: (n: string) => Promise.resolve({
-      keys: () => Promise.resolve(Array.from({ length: voci[n] ?? 0 }, (_, i) => ({ url: `https://x/${i}` }))),
-    }),
-    delete: (n: string) => Promise.resolve(n in voci),
-  });
-
-  test('somma le voci di tutte le cache delle mattonelle', async () => {
-    (global as { caches?: unknown }).caches = finteCache({ 'tiles-osm': 120, 'tiles-opentopomap': 80 });
-    const s = await spazioTessere();
-    expect(s?.quante).toBe(200);
-  });
-
-  test('senza niente conservato dice zero, non «non lo so»', async () => {
-    (global as { caches?: unknown }).caches = finteCache({});
-    expect((await spazioTessere())?.quante).toBe(0);
-  });
-
-  test('dove le cache non esistono si dice, invece di inventare uno zero', async () => {
-    delete (global as { caches?: unknown }).caches;
-    expect(await spazioTessere()).toBeNull();
-  });
-
+describe('liberare le mattonelle', () => {
   test('svuotare tocca tutte le cache dell elenco', async () => {
     const toccate: string[] = [];
     (global as { caches?: unknown }).caches = {
@@ -165,78 +168,87 @@ describe('lo spazio delle mattonelle', () => {
 });
 
 /**
- * **Il numero che avevo inventato.** La prima versione dichiarava «circa 15 kB a
- * mattonella» e mostrava «1,0 MB» dove il browser ne contava **518**: le risposte opache
- * — quelle che tornano dalle immagini di altri siti — vengono conteggiate con un forte
- * arrotondamento in eccesso, apposta, perché il loro peso reale non trapeli.
+ * **Il peso non si stima più: si legge.**
  *
- * Misurato il 2026-09-01 su Chrome, build di produzione: dieci mattonelle nuove hanno
- * portato il conteggio da 518 a 563 MB. Il peso non si stima: si chiede al browser.
+ * Storia in tre passaggi, e ognuno correggeva il precedente.
+ *
+ * 1. La prima versione dichiarava «circa 15 kB a mattonella» e mostrava «1,0 MB» dove il
+ *    browser ne contava **518**.
+ * 2. Allora si è smesso di stimare e si è chiesto al browser, con
+ *    `navigator.storage.estimate()`. Misurato: **4,5 MB per mattonella**, e il pannello
+ *    annunciava gigabyte.
+ * 3. Il 2026-09-02 si è scoperto **perché**: le mattonelle si chiedevano `no-cors`, la
+ *    risposta era opaca, e il browser conta le risposte opache in quota con un riempimento
+ *    enorme — misurato 7.688.466 byte l'una, contro 1.907 per la stessa mattonella in
+ *    CORS. I gigabyte erano veri come *quota trattenuta*, non come traffico: una
+ *    mattonella pesa fra i 7 e i 53 kB.
+ *
+ * Passati a CORS, la risposta è leggibile e il peso **vero** si ricava dal suo
+ * `content-length` — verificato che è fra le intestazioni accessibili di una risposta CORS
+ * e che coincide al byte con la dimensione del contenuto (28.719 su una mattonella OSM).
+ * Niente più stime: nessuna delle due precedenti era vicina.
  */
-describe('il costo di quota', () => {
-  test('e dell ordine dei megabyte, non dei kilobyte', () => {
-    expect(COSTO_QUOTA_PER_TESSERA).toBeGreaterThan(1024 * 1024);
-    expect(COSTO_QUOTA_PER_TESSERA).toBeLessThan(20 * 1024 * 1024);
+describe('lo spazio delle mattonelle, misurato', () => {
+  const conRisposte = (pesi: number[]) => ({
+    // `has` per UNA cache sola: rispondendo a tutte e cinque il conteggio si moltiplica.
+    has: (n: string) => Promise.resolve(n === CACHE_TESSERE[0]),
+    open: () => Promise.resolve({
+      keys: () => Promise.resolve(pesi.map((_, i) => ({ url: `https://x/${i}.png` }))),
+      match: (r: { url: string }) => {
+        const i = Number(/(\d+)\.png/.exec(typeof r === 'string' ? r : r.url)?.[1] ?? 0);
+        return Promise.resolve({
+          headers: new Map([['content-length', String(pesi[i])]]) as unknown as Headers,
+        });
+      },
+    }),
   });
 
-  test('cinquecento mattonelle sono qualche gigabyte, e va saputo prima', () => {
-    const perIlTetto = 500 * COSTO_QUOTA_PER_TESSERA;
-    expect(perIlTetto).toBeGreaterThan(1e9);
+  test('somma i pesi veri dichiarati dalle risposte', async () => {
+    (global as { caches?: unknown }).caches = conRisposte([28719, 45738, 8728]);
+    const s = await spazioTessere();
+    expect(s?.quante).toBe(3);
+    expect(s?.byte).toBe(28719 + 45738 + 8728);
   });
 
-  /** `spazioTessere` conta e basta: il peso lo dichiara il browser, non noi. */
-  test('spazioTessere non inventa un peso', async () => {
+  test('senza niente conservato dice zero, non «non lo so»', async () => {
     (global as { caches?: unknown }).caches = {
       has: () => Promise.resolve(true),
-      open: () => Promise.resolve({ keys: () => Promise.resolve([{ url: 'x' }]) }),
+      open: () => Promise.resolve({ keys: () => Promise.resolve([]) }),
     };
     const s = await spazioTessere();
-    expect(Object.keys(s ?? {})).toEqual(['quante']);
+    expect(s?.quante).toBe(0);
+    expect(s?.byte).toBe(0);
+  });
+
+  test('dove le cache non esistono si dice, invece di inventare uno zero', async () => {
+    delete (global as { caches?: unknown }).caches;
+    expect(await spazioTessere()).toBeNull();
   });
 });
 
-
 /**
- * **Buttato il percorso, si buttano anche le sue mattonelle** (segnalato il 2026-09-02:
- * «quando si cancella un percorso si cancellano anche i tile salvati in locale»).
+ * Il peso medio serve a **una cosa sola**: dire in anticipo quanto occuperà uno
+ * scaricamento. Misurato su due scaricamenti veri il 2026-09-02 — media di 16,9 kB su 168
+ * mattonelle e di 23,2 kB su 78 — e tenuto appena sopra, a 25 kB.
  *
- * Erano state scaricate per QUEL percorso: senza di lui occupano spazio per niente, e su
- * un telefono il browser le conta circa cinque megabyte l'una — cinquecento mattonelle
- * sono qualche gigabyte di quota trattenuta per una gita che non si fa piu'.
- *
- * La condizione difficile non e' cancellare: e' **dirlo**. Chi ha scaricato la mappa della
- * gita di domani e tocca «Nuovo» deve saperlo li', perche' l'alternativa e' scoprirlo in
- * quota. Per questo la conferma lo nomina e la liberazione lascia un avviso.
+ * La prima scelta era 60 kB, presa dai campioni singoli per servizio (fino a 53 kB), e il
+ * pannello annunciava «circa 9,8 MB» per uno scaricamento che ne occupava 2,7: un numero
+ * che non somiglia alla realtà, cioè il difetto da cui questa faccenda è partita.
  */
-describe('la liberazione quando si abbandona il percorso', () => {
-  test('la conferma di «Nuovo» nomina le mappe scaricate', () => {
-    const src = readFileSync(join(process.cwd(), 'src', 'components', 'panel', 'ItineraryHeader.tsx'), 'utf8');
-    // Non basta che il codice liberi: se non lo dice, l'utente lo scopre dove non serve.
-    expect(src).toMatch(/mappe scaricate/);
-    expect(src).toContain('liberaTessereDelPercorso');
+describe('il peso medio di una mattonella', () => {
+  test('e dell ordine delle decine di kilobyte, non dei megabyte', () => {
+    expect(PESO_MEDIO_TESSERA).toBeGreaterThan(10 * 1024);
+    expect(PESO_MEDIO_TESSERA).toBeLessThan(60 * 1024);
   });
 
   /**
-   * Cancellare **tutti** i waypoint e' abbandonare il percorso; cancellare **l'ultimo**
-   * no — il percorso c'e' ancora, e portargli via la mappa sarebbe una punizione per una
-   * correzione.
+   * Il confronto che spiega tutta questa faccenda: il tetto di cinquecento mattonelle
+   * costa **decine di megabyte**, non gigabyte. Se un giorno questo test fallisse verso
+   * l'alto, vorrebbe dire che siamo tornati a contare risposte opache.
    */
-  test('il cestino libera solo quando cancella tutto', () => {
-    const src = readFileSync(join(process.cwd(), 'src', 'components', 'map', 'ClearWaypointsButton.tsx'), 'utf8');
-    const iTutti = src.indexOf('clearWaypoints();');
-    const iUltimo = src.indexOf('removeWaypoint(ultimo.id);');
-    // `lastIndexOf` e non `indexOf`: la prima occorrenza del nome e' **l'import**, in
-    // cima al file, e cercandola il confronto sull'ordine diceva sempre di no.
-    const iLibera = src.lastIndexOf('liberaTessereDelPercorso');
-    expect(iTutti).toBeGreaterThan(-1);
-    expect(iUltimo).toBeGreaterThan(-1);
-    // La liberazione sta nel ramo "tutti": dopo di lui e prima del ramo "ultimo".
-    expect(iLibera).toBeGreaterThan(iTutti);
-    expect(iLibera).toBeLessThan(iUltimo);
-  });
-
-  test('e la conferma del cestino lo dice', () => {
-    const src = readFileSync(join(process.cwd(), 'src', 'components', 'map', 'ClearWaypointsButton.tsx'), 'utf8');
-    expect(src).toMatch(/mappe scaricate/);
+  test('cinquecento mattonelle sono decine di megabyte', () => {
+    const perIlTetto = 500 * PESO_MEDIO_TESSERA;
+    expect(perIlTetto).toBeGreaterThan(5e6);
+    expect(perIlTetto).toBeLessThan(5e7);
   });
 });

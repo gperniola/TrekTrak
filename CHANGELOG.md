@@ -4,6 +4,56 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.19.1] — 2026-09-02 — Megabyte, non gigabyte
+
+Segnalato: «mi sembra che stia salvando troppi dati, sia il numero di tile sembra eccessivo
+ma anche lo spazio occupato parla di giga scaricati in pochi secondi; non capisco se è
+sbagliata la stima o se sta scaricando tantissimo». Entrambe le cose, e per due ragioni
+diverse.
+
+### Fixed
+- **Il browser addebitava 7,3 MB di quota per ogni mattonella da 20 kB.** Le mattonelle si
+  chiedevano `no-cors`, come fa Leaflet coi suoi `<img>`, e la risposta che ne torna è
+  **opaca**: il browser la conta in quota con un riempimento enorme, apposta, perché il peso
+  di un'immagine di un altro sito non trapeli. Misurato su Chrome, venti mattonelle per
+  volta: **7.688.466 byte addebitati** per una risposta opaca contro **1.907** per la stessa
+  chiesta in CORS — un fattore quattromila, per gli stessi byte sulla rete.
+
+  Quindi: **non stava scaricando giga** (168 mattonelle sono 2,7 MB veri), ma il browser
+  gliene *tratteneva* 1,2 GB. Ora le richieste sono in CORS — tutti e cinque i servizi che
+  l'app usa rispondono `access-control-allow-origin: *`, verificato — e il service worker
+  riscrive in CORS anche le richieste dei tag `<img>`, così valgono le mattonelle
+  pre-caricate **e** quelle prese navigando. Misurato sulla build di produzione: la quota
+  addebitata per lo stesso scaricamento è passata da ~1,2 GB a **2,89 MB**, cioè al peso
+  vero.
+- **Le mattonelle erano davvero troppe: si copriva il rettangolo, non il percorso.** Un
+  itinerario in diagonale sta in un rettangolo che è per metà terreno che non si
+  attraversa. Ora si scarica un **corridoio** lungo il tracciato, con un anello di margine
+  (≈450 m allo zoom più fine), seguendo la geometria vera dei sentieri quando c'è. Misurato
+  sugli zoom 12-16: una diagonale di 8 km da 611 mattonelle a 219, un percorso a L da 843 a
+  240, una **traversata di 25 km da 5.372 a 558**. Su quest'ultima non era solo spreco: col
+  rettangolo il tetto di cinquecento si esauriva allo zoom 13 e si tornava con una mappa
+  sfocata; col corridoio ci sta tutto il percorso alla scala che serve per camminare.
+- **Una mattonella che il server non ha, ora si vede.** Con le risposte opache lo stato non
+  era leggibile e un 404 risultava «scaricata»: in quota si trovava un buco grigio senza
+  preavviso.
+
+### Changed
+- Il pannello **legge** il peso invece di stimarlo: `Content-Length` è fra le intestazioni
+  accessibili di una risposta CORS e coincide al byte col contenuto. Le due stime precedenti
+  erano entrambe sbagliate — «circa 15 kB» dette a naso, e poi il conteggio della quota che
+  riportava il riempimento delle risposte opache.
+- La stima *preventiva* usa 25 kB per mattonella, misurato su due scaricamenti veri (16,9 e
+  23,2 kB di media). Con i 60 kB dei campioni singoli il pannello annunciava «circa 9,8 MB»
+  per uno scaricamento da 2,7: un numero che non somiglia alla realtà, cioè il difetto da
+  cui questa faccenda è partita.
+
+### Added
+- Uno scenario che pretende **zero risposte opache** nelle cache delle mattonelle e un peso
+  medio nell'ordine delle decine di kilobyte. È l'invariante che costa gigabyte quando si
+  rompe, ed è invisibile: una risposta opaca funziona — la mappa si vede, offline compresa —
+  e intanto la quota si riempie. Verificato per mutazione: tornando a `no-cors`, cade.
+
 ## [0.19.0] — 2026-09-02 — Il percorso finisce con «quando partire»
 
 ### Fixed

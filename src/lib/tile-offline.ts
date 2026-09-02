@@ -128,6 +128,88 @@ export function quanteTessere(r: Rettangolo, z: number): number {
   return (basso.x - alto.x + 1) * (basso.y - alto.y + 1);
 }
 
+/**
+ * L'anello di mattonelle attorno al tracciato.
+ *
+ * Uno: allo zoom più fine è circa 450 metri per lato, che è quanto si può sbagliare un
+ * sentiero senza accorgersene, e agli zoom più larghi diventa naturalmente più generoso
+ * perché la mattonella copre più terreno. Due anelli quadruplicherebbero il contorno per
+ * un margine che a piedi non serve.
+ */
+export const ANELLO_TESSERE = 1;
+
+/**
+ * Le mattonelle **lungo il percorso**, invece di tutte quelle del rettangolo che lo
+ * contiene.
+ *
+ * Coprire il rettangolo significa scaricare anche ciò che il percorso non attraversa, e
+ * per una traversata è la maggior parte. Misurato sommando gli zoom da 12 a 16: una
+ * diagonale di 8 km passa da 611 mattonelle a 219, un percorso a L da 843 a 240, una
+ * **traversata di 25 km da 5.372 a 558**.
+ *
+ * Sull'ultima non è solo spreco: col rettangolo il tetto di cinquecento si esaurisce allo
+ * zoom 13 e si torna con una mappa sfocata; col corridoio ci sta tutto il percorso alla
+ * scala che serve per camminare. Il rettangolo trasformava un percorso lungo in una mappa
+ * inutile.
+ *
+ * `geometria`, quando c'è, è il tracciato **vero** calcolato sui sentieri: un percorso in
+ * montagna non va in linea d'aria, e seguire i tornanti copre quello che si cammina
+ * invece della corda fra due punti.
+ */
+export function tessereLungoIlPercorso(
+  punti: { lat: number | null; lon: number | null }[],
+  z: number,
+  opzioni: { geometria?: [number, number][]; anello?: number } = {},
+): Tessera[] {
+  const anello = opzioni.anello ?? ANELLO_TESSERE;
+  const linea: [number, number][] = opzioni.geometria != null && opzioni.geometria.length > 0
+    ? opzioni.geometria
+    : punti
+      .filter((p): p is { lat: number; lon: number } =>
+        p.lat != null && p.lon != null && Number.isFinite(p.lat) && Number.isFinite(p.lon))
+      .map((p) => [p.lat, p.lon]);
+  if (linea.length === 0) return [];
+
+  const viste = new Set<string>();
+  const fuori: Tessera[] = [];
+  const aggiungi = (lat: number, lon: number) => {
+    const c = tesseraDa(lat, lon, z);
+    for (let dx = -anello; dx <= anello; dx++) {
+      for (let dy = -anello; dy <= anello; dy++) {
+        const x = c.x + dx;
+        const y = c.y + dy;
+        const limite = 2 ** z - 1;
+        if (x < 0 || y < 0 || x > limite || y > limite) continue;
+        const chiave = `${x},${y}`;
+        if (viste.has(chiave)) continue;
+        viste.add(chiave);
+        fuori.push({ z, x, y });
+      }
+    }
+  };
+
+  aggiungi(linea[0][0], linea[0][1]);
+  for (let i = 0; i < linea.length - 1; i++) {
+    const [la1, lo1] = linea[i];
+    const [la2, lo2] = linea[i + 1];
+    /*
+      Si campiona la tratta abbastanza fitto da non **saltare** una mattonella: il passo
+      e' una frazione della larghezza di una mattonella in gradi, cosi' fra due campioni
+      non ci sta mai una mattonella intera. Campionare in modo grossolano lascerebbe buchi
+      lungo le diagonali, e un buco nel corridoio e' un pezzo di sentiero senza mappa.
+      Il tetto sui passi evita che una geometria degenere (due punti agli antipodi) faccia
+      girare un ciclo enorme.
+    */
+    const gradiPerTessera = 360 / 2 ** z;
+    const passo = gradiPerTessera / 3;
+    const passi = Math.min(4000, Math.max(1, Math.ceil(Math.hypot(la2 - la1, lo2 - lo1) / passo)));
+    for (let k = 1; k <= passi; k++) {
+      aggiungi(la1 + ((la2 - la1) * k) / passi, lo1 + ((lo2 - lo1) * k) / passi);
+    }
+  }
+  return fuori;
+}
+
 export interface Piano {
   tessere: Tessera[];
   /** Fino a quale zoom si arriva col tetto disponibile. */
@@ -145,7 +227,15 @@ export interface Piano {
  * invece di lasciarlo scoprire in quota.
  */
 export function pianifica(
-  r: Rettangolo,
+  /**
+   * **Come** si scelgono le mattonelle di un livello: il rettangolo che contiene tutto
+   * (`tessereNelRettangolo`) o il corridoio lungo il percorso (`tessereLungoIlPercorso`).
+   *
+   * È un parametro e non due funzioni separate perché la logica del tetto — quali zoom ci
+   * stanno, quello raggiunto, se il tetto ha morso — è la stessa in entrambi i casi, e due
+   * copie di quella logica sarebbero due copie che divergono. Qui cambia solo la scelta.
+   */
+  livelloDi: (z: number) => Tessera[],
   zoomMin = ZOOM_MINIMO,
   zoomMax = ZOOM_MASSIMO,
   tetto = TETTO_TESSERE,
@@ -154,7 +244,7 @@ export function pianifica(
   let zoomRaggiunto = zoomMin - 1;
   let limitato = false;
   for (let z = zoomMin; z <= zoomMax; z++) {
-    const livello = tessereNelRettangolo(r, z);
+    const livello = livelloDi(z);
     if (tessere.length + livello.length > tetto) {
       limitato = true;
       break;

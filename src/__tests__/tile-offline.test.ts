@@ -2,6 +2,7 @@ import {
   AREA_MASSIMA_KM2,
   SPAN_MINIMO_GRADI,
   areaLeggibile,
+  tessereLungoIlPercorso,
   urlDaScaricare,
   SOTTODOMINI,
   TETTO_TESSERE,
@@ -15,6 +16,7 @@ import {
   rettangoloDaPunti,
   tesseraDa,
   tessereNelRettangolo,
+  type Rettangolo,
   urlTessera,
 } from '@/lib/tile-offline';
 
@@ -25,6 +27,13 @@ import {
  */
 
 /** Un rettangolo attorno a Campo Imperatore, l'area di prova del progetto. */
+/**
+ * `pianifica` riceve **come** scegliere le mattonelle di un livello: la logica del tetto
+ * e' la stessa per il rettangolo e per il corridoio, e tenerla in un posto solo evita due
+ * copie che divergono. Questi casi parlano del tetto, quindi passano il rettangolo.
+ */
+const perRettangolo = (r: Rettangolo) => (z: number) => tessereNelRettangolo(r, z);
+
 const GRAN_SASSO = { south: 42.42, west: 13.53, north: 42.48, east: 13.58 };
 
 describe('dal punto alla mattonella', () => {
@@ -168,7 +177,7 @@ describe('il rettangolo dai waypoint', () => {
 
 describe('il piano di scaricamento', () => {
   test('parte dallo zoom largo e scende finche ci sta', () => {
-    const p = pianifica(GRAN_SASSO);
+    const p = pianifica(perRettangolo(GRAN_SASSO));
     expect(p.tessere.length).toBeLessThanOrEqual(TETTO_TESSERE);
     expect(p.zoomRaggiunto).toBeGreaterThanOrEqual(ZOOM_MINIMO);
     expect(p.zoomRaggiunto).toBeLessThanOrEqual(ZOOM_MASSIMO);
@@ -180,7 +189,7 @@ describe('il piano di scaricamento', () => {
    * ingrandimento, perché non si capisce se manca il dato o manca la rete.
    */
   test('non scarica mezzo livello', () => {
-    const p = pianifica(GRAN_SASSO, 12, 18, 300);
+    const p = pianifica(perRettangolo(GRAN_SASSO), 12, 18, 300);
     const perZoom = new Map<number, number>();
     for (const t of p.tessere) perZoom.set(t.z, (perZoom.get(t.z) ?? 0) + 1);
     perZoom.forEach((quante, z) => {
@@ -189,20 +198,20 @@ describe('il piano di scaricamento', () => {
   });
 
   test('col tetto strettissimo lo dice, invece di scaricare a meta', () => {
-    const p = pianifica(GRAN_SASSO, 12, 16, 1);
+    const p = pianifica(perRettangolo(GRAN_SASSO), 12, 16, 1);
     expect(p.tessere).toHaveLength(0);
     expect(p.limitatoDalTetto).toBe(true);
     expect(p.zoomRaggiunto).toBe(ZOOM_MINIMO - 1);
   });
 
   test('con un tetto larghissimo arriva in fondo e non si dichiara limitato', () => {
-    const p = pianifica(GRAN_SASSO, 12, 14, 100000);
+    const p = pianifica(perRettangolo(GRAN_SASSO), 12, 14, 100000);
     expect(p.limitatoDalTetto).toBe(false);
     expect(p.zoomRaggiunto).toBe(14);
   });
 
   test('gli zoom del piano sono consecutivi dal minimo', () => {
-    const p = pianifica(GRAN_SASSO);
+    const p = pianifica(perRettangolo(GRAN_SASSO));
     const zoom = p.tessere.map((t) => t.z).filter((z, i, a) => a.indexOf(z) === i).sort((a, b) => a - b);
     expect(zoom[0]).toBe(ZOOM_MINIMO);
     zoom.forEach((z, i) => expect(z).toBe(ZOOM_MINIMO + i));
@@ -421,5 +430,95 @@ describe('il rettangolo minimo', () => {
     // 0,2 di margine su 0,2 gradi: 0,04 per lato, molto oltre il minimo
     expect(r.north - r.south).toBeCloseTo(0.28, 6);
     expect(r.east - r.west).toBeCloseTo(0.28, 6);
+  });
+});
+
+/**
+ * **Il corridoio, non il rettangolo** (segnalato il 2026-09-02: «il numero di tile sembra
+ * eccessivo»).
+ *
+ * Coprire il rettangolo che *contiene* il percorso vuol dire scaricare anche tutto quello
+ * che il percorso non attraversa, e per una traversata e' la maggior parte. Misurato
+ * sommando gli zoom da 12 a 16:
+ *
+ * | percorso | rettangolo | corridoio | risparmio |
+ * |---|---|---|---|
+ * | diagonale 8 km | 611 | 219 | 64% |
+ * | a L, 10 km | 843 | 240 | 72% |
+ * | cresta a zigzag | 857 | 306 | 64% |
+ * | anello 12 km | 589 | 298 | 49% |
+ * | **traversata 25 km** | **5.372** | **558** | **90%** |
+ *
+ * Sulla traversata non e' solo spreco: col rettangolo il tetto di cinquecento mattonelle
+ * si esaurisce allo **zoom 13**, cioe' si torna con una mappa sfocata; col corridoio ci
+ * sta tutto il percorso alla scala che serve per camminare. Il rettangolo trasformava un
+ * percorso lungo in una mappa inutile.
+ */
+describe('le mattonelle lungo il percorso', () => {
+  const diagonale = [
+    { lat: 42.09, lon: 14.08 },
+    { lat: 42.15, lon: 14.16 },
+  ];
+
+  test('ne servono molte meno che a coprire tutto il rettangolo', () => {
+    const rett = rettangoloConMargine(rettangoloDaPunti(diagonale)!);
+    const conRettangolo = tessereNelRettangolo(rett, 15).length;
+    const conCorridoio = tessereLungoIlPercorso(diagonale, 15).length;
+    expect(conCorridoio).toBeLessThan(conRettangolo);
+    // Su una diagonale il guadagno e' sostanzioso, non marginale.
+    expect(conCorridoio).toBeLessThan(conRettangolo * 0.6);
+  });
+
+  /** Le mattonelle che il tracciato **attraversa** ci devono essere tutte. */
+  test('ogni punto del percorso e coperto', () => {
+    const tessere = tessereLungoIlPercorso(diagonale, 15);
+    const dentro = new Set(tessere.map((t) => `${t.x},${t.y}`));
+    // Si campiona la tratta e si pretende che ogni campione cada in una mattonella presa.
+    for (let k = 0; k <= 50; k++) {
+      const lat = 42.09 + (42.15 - 42.09) * (k / 50);
+      const lon = 14.08 + (14.16 - 14.08) * (k / 50);
+      const t = tesseraDa(lat, lon, 15);
+      expect(dentro.has(`${t.x},${t.y}`)).toBe(true);
+    }
+  });
+
+  /**
+   * Un anello di margine attorno al tracciato: allo zoom piu' fine e' circa 450 metri,
+   * che e' quanto si puo' sbagliare un sentiero senza accorgersene.
+   */
+  test('c e un anello di margine attorno al tracciato', () => {
+    const unPunto = [{ lat: 42.10, lon: 14.10 }];
+    const t = tessereLungoIlPercorso(unPunto, 15);
+    // Un punto solo: la sua mattonella piu' l'anello = 3x3.
+    expect(t).toHaveLength(9);
+  });
+
+  test('senza punti con coordinate non torna niente', () => {
+    expect(tessereLungoIlPercorso([], 15)).toEqual([]);
+    expect(tessereLungoIlPercorso([{ lat: null, lon: null }], 15)).toEqual([]);
+  });
+
+  test('nessuna mattonella e ripetuta', () => {
+    const t = tessereLungoIlPercorso(diagonale, 16);
+    expect(new Set(t.map((x) => `${x.x},${x.y}`)).size).toBe(t.length);
+  });
+
+  /**
+   * **La geometria vera del sentiero, quando c'e'.** Un percorso su sentiero non va in
+   * linea d'aria: seguire i tornanti calcolati da OpenRouteService copre quello che si
+   * cammina davvero, invece della corda fra due punti.
+   */
+  test('usa la geometria del sentiero invece della linea d aria', () => {
+    // Un tracciato che si allontana molto dalla corda fra i due estremi.
+    const geometria: [number, number][] = [
+      [42.09, 14.08], [42.09, 14.16], [42.15, 14.16],
+    ];
+    const conGeometria = tessereLungoIlPercorso(diagonale, 15, { geometria });
+    const soloEstremi = tessereLungoIlPercorso(diagonale, 15);
+    const insieme = new Set(conGeometria.map((t) => `${t.x},${t.y}`));
+    // L'angolo del tracciato — che la linea d'aria non attraversa — deve essere coperto.
+    const angolo = tesseraDa(42.09, 14.16, 15);
+    expect(insieme.has(`${angolo.x},${angolo.y}`)).toBe(true);
+    expect(conGeometria.length).toBeGreaterThan(soloEstremi.length * 0.8);
   });
 });
