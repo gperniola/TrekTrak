@@ -132,7 +132,28 @@ describe('ordine delle regole del service worker', () => {
    * La riga che ha reso reale tutta la cache: senza, le risposte opache — quelle che
    * tornano dalle immagini di altri siti — venivano rifiutate in silenzio.
    */
-  test('le risposte opache sono accettate, altrimenti la cache resta vuota', () => {
-    expect(sorgente).toMatch(/CacheableResponsePlugin\(\{\s*statuses:\s*\[0,\s*200\]/);
+  /**
+   * **Le mattonelle si chiedono in CORS, e le risposte opache NON si accettano.**
+   *
+   * Storia in due atti. Prima: la cache non funzionava affatto, perche' Workbox rifiutava
+   * le risposte opache — quelle dei tag `<img>` verso altri siti — e si e' aggiunto lo
+   * stato `0` per accettarle. Poi, il 2026-09-02, si e' misurato quanto costano: il
+   * browser addebita **7.688.466 byte di quota per mattonella opaca**, contro **1.907**
+   * per la stessa mattonella chiesta in CORS. Un fattore quattromila.
+   *
+   * La correzione giusta non era accettare l'opaco ma **non produrlo**: si riscrive la
+   * richiesta in CORS dentro il worker, cosi' anche le mattonelle conservate navigando
+   * costano il loro peso vero. E lo stato `0` torna a essere rifiutato, di proposito: se
+   * un giorno qualcosa tornasse opaco si preferisce che non venga conservato — il pannello
+   * dira' «nessuna mappa conservata» — piuttosto che scoprire i gigabyte a cose fatte.
+   */
+  test('le mattonelle si chiedono in CORS', () => {
+    expect(sorgente).toMatch(/requestWillFetch/);
+    expect(sorgente).toMatch(/mode:\s*'cors'/);
+  });
+
+  test('le risposte opache non si accettano piu: costano 7 MB di quota l una', () => {
+    expect(sorgente).toMatch(/CacheableResponsePlugin\(\{\s*statuses:\s*\[200\]/);
+    expect(sorgente).not.toMatch(/statuses:\s*\[0,/);
   });
 });

@@ -37,28 +37,73 @@ const TILE_EXPIRATION = {
 const hostOverpass = new Set(ENDPOINT_OVERPASS.map((e) => new URL(e).hostname));
 
 /**
- * La cache delle mattonelle.
+ * La cache delle mattonelle, e la storia in tre atti che l'ha portata a questa forma.
  *
- * **`statuses: [0, 200]` non e' un dettaglio: senza, questa cache non esiste.** Leaflet
- * chiede le mattonelle con dei tag `<img>`, cioe' richieste `no-cors`, e la risposta che
- * ne torna e' **opaca**: stato 0, contenuto illeggibile dal codice. La strategia, per
- * difetto, conserva solo le risposte con stato 200 — quindi rifiutava tutto, in silenzio.
+ * **Primo atto (v0.13.5).** Le cinque cache dei tile non esistevano nel browser, perche'
+ * le loro regole stavano DOPO l'acchiappatutto di `...defaultCache` ed erano codice morto.
+ * Sistemato l'ordine.
  *
- * Misurato il 2026-09-01 su build di produzione: ventiquattro mattonelle caricate a
- * schermo, `caches.keys()` senza nemmeno una delle cinque cache dei tile. La mappa
- * offline che il progetto credeva di avere **non e' mai esistita**: la correzione della
- * v0.13.5 aveva sistemato l'ORDINE delle regole, cioe' aveva reso la regola
- * raggiungibile, ma raggiunta rifiutava comunque.
+ * **Secondo atto (v0.18.0).** Le regole erano raggiungibili e non conservavano comunque
+ * nulla: Leaflet chiede le mattonelle con dei tag `<img>`, cioe' richieste `no-cors`, e la
+ * risposta che ne torna e' **opaca** — stato 0, contenuto illeggibile. La strategia, per
+ * difetto, accetta solo lo stato 200, quindi rifiutava tutto in silenzio. Misurato:
+ * ventiquattro mattonelle a schermo, `caches.keys()` senza una sola cache dei tile. Si e'
+ * aggiunto lo stato 0 fra quelli accettati, e la cache ha cominciato a riempirsi.
  *
- * Il prezzo di accettare le risposte opache va detto: non potendone leggere lo stato, una
- * pagina d'errore del server finisce in cache come se fosse una mattonella. E' il
- * compromesso obbligato per le immagini, e la scadenza a trenta giorni lo limita.
+ * **Terzo atto (v0.19.1), ed e' il motivo della forma attuale.** Accettare l'opaco
+ * funzionava, ma a un prezzo che nessuno aveva misurato: il browser conta le risposte
+ * opache in quota con un riempimento enorme, apposta, perche' il loro peso non trapeli.
+ * Misurato il 2026-09-02 su Chrome, venti mattonelle per volta:
+ *
+ * | modo | quota addebitata per mattonella |
+ * |---|---|
+ * | `no-cors` (opaca) | **7.688.466 byte** |
+ * | `cors` | **1.907 byte** |
+ *
+ * Quattromila volte tanto, per gli stessi byte sulla rete. Il pannello annunciava «giga
+ * scaricati in pochi secondi» e diceva la verita' sulla **quota**, non sul traffico: una
+ * mattonella vera pesa fra i 7 e i 53 kB.
+ *
+ * Da qui la forma attuale: non si accetta l'opaco, si evita di **produrlo** — la richiesta
+ * si riscrive in CORS qui sotto, e tutti e cinque i servizi che l'app usa lo permettono.
  */
 const tileHandler = (cacheName: string) =>
   new CacheFirst({
     cacheName,
     plugins: [
-      new CacheableResponsePlugin({ statuses: [0, 200] }),
+      {
+        /**
+         * **Le mattonelle si chiedono in CORS, anche quando arrivano da un `<img>`.**
+         *
+         * Leaflet le carica con dei tag `<img>` senza `crossorigin`, cioè richieste
+         * `no-cors`, e la risposta che ne torna è **opaca**. Il browser conta le risposte
+         * opache in quota con un riempimento enorme, apposta, perché il loro peso non
+         * trapeli. Misurato il 2026-09-02 su Chrome: **7.688.466 byte addebitati per
+         * mattonella** contro **1.907** per la stessa mattonella chiesta in CORS — un
+         * fattore quattromila, per gli stessi byte sulla rete.
+         *
+         * È il motivo per cui il pannello annunciava «giga scaricati in pochi secondi»: i
+         * giga erano veri come *quota trattenuta*, non come traffico. Una mattonella vera
+         * pesa fra i 7 e i 53 kB.
+         *
+         * Riscrivere qui la richiesta copre **anche** le mattonelle che si conservano
+         * navigando, non solo quelle pre-caricate: senza questo, ogni pezzo di mappa
+         * guardato una volta costerebbe 7 MB di quota.
+         *
+         * Verificato che si può: tutti e cinque i servizi che l'app usa rispondono
+         * `access-control-allow-origin: *`.
+         */
+        requestWillFetch: async ({ request }) =>
+          new Request(request.url, { mode: 'cors', credentials: 'omit' }),
+      },
+      /*
+        `statuses: [200]` e non `[0, 200]`. Lo zero e' lo stato di una risposta opaca:
+        accettarlo rimetterebbe in cache — in silenzio, e a 7 MB di quota l'una — proprio
+        le risposte che la riscrittura qui sopra esiste per evitare. Se un giorno qualcosa
+        tornasse opaco, si preferisce che NON venga conservato (e il pannello dica «nessuna
+        mappa conservata») piuttosto che scoprire i gigabyte a cose fatte.
+      */
+      new CacheableResponsePlugin({ statuses: [200] }),
       new ExpirationPlugin(TILE_EXPIRATION),
     ],
   });

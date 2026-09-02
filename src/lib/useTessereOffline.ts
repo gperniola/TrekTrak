@@ -9,6 +9,7 @@ import {
   pianifica,
   rettangoloConMargine,
   rettangoloDaPunti,
+  tessereLungoIlPercorso,
   urlDaScaricare,
   type Piano,
 } from '@/lib/tile-offline';
@@ -52,6 +53,7 @@ export interface TessereOffline {
 
 export function useTessereOffline(): TessereOffline {
   const waypoints = useItineraryStore((s) => s.waypoints);
+  const legs = useItineraryStore((s) => s.legs);
   const settings = useItineraryStore((s) => s.settings);
   const [avanzamento, setAvanzamento] = useState<Avanzamento | null>(null);
   const controllo = useRef<AbortController | null>(null);
@@ -71,15 +73,37 @@ export function useTessereOffline(): TessereOffline {
   */
   const { piano, area, daScaricare } = useMemo(() => {
     const rettangolo = rettangoloDaPunti(waypoints);
-    const conMargine = rettangolo ? rettangoloConMargine(rettangolo) : null;
-    if (conMargine == null || mappa == null) return { piano: null, area: 0, daScaricare: [] };
-    const p = pianifica(conMargine);
+    if (rettangolo == null || mappa == null) return { piano: null, area: 0, daScaricare: [] };
+
+    /*
+      **La geometria vera del sentiero, quando c'e'.** Le tratte calcolate su sentiero
+      portano il tracciato reale: seguirlo copre quello che si cammina, invece della corda
+      fra due waypoint. Su un percorso con tornanti la differenza e' tutta la valle
+      accanto.
+    */
+    const geometria = legs.flatMap((l) => l.routeGeometry ?? l.trackValues?.routeGeometry ?? []);
+
+    /*
+      **Il corridoio, non il rettangolo** (segnalato il 2026-09-02: «il numero di tile
+      sembra eccessivo»). Coprire il rettangolo che contiene il percorso vuol dire
+      scaricare anche cio' che il percorso non attraversa. Misurato sugli zoom 12-16: una
+      diagonale di 8 km passa da 611 mattonelle a 219, una traversata di 25 km da 5.372 a
+      558 — e su quest'ultima col rettangolo il tetto si esauriva allo zoom 13, cioe' si
+      tornava con una mappa sfocata.
+    */
+    const p = pianifica((z) => tessereLungoIlPercorso(waypoints, z, {
+      geometria: geometria.length > 1 ? geometria : undefined,
+    }));
+
     return {
       piano: p,
-      area: areaKm2(conMargine),
+      // L'area resta quella del rettangolo con margine: e' cio' che serve a dire «questo
+      // non e' piu' un'escursione», e per quel giudizio conta l'estensione, non il
+      // corridoio.
+      area: areaKm2(rettangoloConMargine(rettangolo)),
       daScaricare: urlDaScaricare(p.tessere, mappa.url, conSentieri ? HIKING_TRAILS_OVERLAY.url : null),
     };
-  }, [waypoints, mappa, conSentieri]);
+  }, [waypoints, legs, mappa, conSentieri]);
 
   const scarica = useCallback(async () => {
     if (piano == null || mappa == null || daScaricare.length === 0) return;

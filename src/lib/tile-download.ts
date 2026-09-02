@@ -31,14 +31,35 @@ export interface EsitoScaricamento {
 }
 
 /**
- * Chiede tutte le mattonelle, a gruppetti.
+ * Chiede tutte le mattonelle, a gruppetti, **in CORS**.
  *
- * **`mode: 'no-cors'`** di proposito: è lo stesso tipo di richiesta che fa Leaflet con i
- * suoi `<img>`, e la voce di cache che ne risulta deve essere indistinguibile da quella
- * che l'app userà poi. Il prezzo è che la risposta è opaca — non si può leggerne lo stato
- * — quindi «fatta» qui vuol dire «richiesta completata senza errore di rete», non
- * «il servizio ha risposto 200». È una distinzione che va detta e non nascosta: una
- * mattonella mancante sul server risulta scaricata e in quota apparirà vuota.
+ * ## Perché CORS, e perché è la differenza fra megabyte e gigabyte
+ *
+ * La prima versione usava `no-cors`, per somigliare alle richieste che Leaflet fa con i
+ * suoi `<img>`. Il prezzo era una risposta **opaca**, e le risposte opache le browser le
+ * conta in quota con un riempimento enorme, apposta, perché il loro peso non trapeli.
+ *
+ * Misurato il 2026-09-02 su Chrome, mettendo in cache venti mattonelle per volta e
+ * leggendo `navigator.storage.estimate()`:
+ *
+ * | modo | quota addebitata per mattonella | tipo risposta |
+ * |---|---|---|
+ * | `no-cors` | **7.688.466 byte** (7,3 MB) | `opaque` |
+ * | `cors` | **1.907 byte** | `cors` |
+ *
+ * Un fattore **quattromila**, per gli stessi byte scaricati. Con 164 mattonelle si passa
+ * da 1,2 GB di quota trattenuta a pochi megabyte — ed è il motivo per cui il pannello
+ * annunciava «giga scaricati in pochi secondi»: i giga erano veri come *quota*, non come
+ * traffico. Le mattonelle vere pesano fra 7 e 53 kB.
+ *
+ * **Si può fare perché tutti i servizi che l'app usa lo permettono.** Verificato lo stesso
+ * giorno, con `Origin` esplicito: `tile.openstreetmap.org`, `tile.opentopomap.org`,
+ * `tile.waymarkedtrails.org`, `tile-cyclosm.openstreetmap.fr` e `tile.thunderforest.com`
+ * rispondono tutti `access-control-allow-origin: *`.
+ *
+ * **In cambio si sa anche se sono arrivate.** Con una risposta opaca lo stato non era
+ * leggibile, quindi «fatta» voleva dire solo «nessun errore di rete»: una mattonella
+ * mancante sul server risultava scaricata e in quota appariva vuota. Ora un 404 si vede.
  */
 export async function scaricaTessere(
   url: string[],
@@ -54,8 +75,11 @@ export async function scaricaTessere(
       if (signal?.aborted) return;
       const mio = prossima++;
       try {
-        await fetch(url[mio], { mode: 'no-cors', cache: 'no-store', signal });
-        fatte++;
+        const res = await fetch(url[mio], { mode: 'cors', cache: 'no-store', signal });
+        // Ora lo stato si legge: una mattonella che il server non ha non va contata fra
+        // quelle prese, o si torna in quota convinti di avere una mappa che ha dei buchi.
+        if (res.ok) fatte++;
+        else fallite++;
       } catch {
         // Rete assente, host irraggiungibile, richiesta annullata: si prosegue. Una
         // mattonella in meno non deve fermare le altre quattrocentonovantanove.
@@ -70,33 +94,64 @@ export async function scaricaTessere(
 }
 
 /**
- * Quanto **spazio del limite** costa una mattonella. Misurato, non stimato.
+ * Il peso di una mattonella, misurato sui servizi che l'app usa davvero.
  *
- * Sul disco un PNG topografico a 256 px pesa una quindicina di kilobyte. Nel conteggio
- * del browser ne pesa **trecento volte tanto**: le risposte opache — quelle che tornano
- * dalle immagini di altri siti — vengono contate con un forte arrotondamento in eccesso,
- * apposta, perche' il loro peso reale non trapeli a chi le ha chieste.
+ * Su una singola richiesta per servizio, il 2026-09-02: OpenStreetMap 7,0 kB, Waymarked
+ * Trails 8,7 kB, Thunderforest 45,7 kB, OpenTopoMap 51,0 kB, CyclOSM 53,0 kB. Ma quei
+ * campioni erano mattonelle **diverse fra loro**, e le densissime non sono la norma: su
+ * due scaricamenti veri, misurando la media su 168 e su 78 mattonelle, sono venuti
+ * **16,9 kB** e **23,2 kB**.
  *
- * Misurato il 2026-09-01 su Chrome, build di produzione: dieci mattonelle nuove hanno
- * fatto salire il conteggio da 518 a 563 MB, **4,5 MB l'una**. Il riempimento e' casuale
- * per voce, quindi si tiene 5 come ordine di grandezza prudente.
+ * Si tiene **25 kB**: appena sopra la media misurata, perché serve a dire in anticipo
+ * quanto occuperà uno scaricamento e in quel giudizio è meglio sovrastimare — ma di poco.
+ * Con 60 kB il pannello annunciava «circa 9,8 MB» per uno scaricamento che ne occupava
+ * 2,7, cioè tornava a dire un numero che non somiglia alla realtà, che è proprio il
+ * difetto da cui questa faccenda è partita.
  *
- * Serve a una cosa sola: sapere in anticipo se lo scaricamento ci sta, invece di
- * scoprirlo a meta' con una scrittura rifiutata.
+ * ## Perché prima qui c'erano 5 MB
+ *
+ * Le mattonelle si chiedevano `no-cors`, la risposta era **opaca**, e il browser conta le
+ * risposte opache in quota con un riempimento enorme — apposta, perché il loro peso non
+ * trapeli. Misurato: **7.688.466 byte addebitati per mattonella opaca** contro **1.907**
+ * per la stessa in CORS. Il pannello annunciava gigabyte e diceva la verità sulla *quota*,
+ * non sul traffico. Passati a CORS, il costo è tornato a essere il peso vero.
  */
-export const COSTO_QUOTA_PER_TESSERA = 5 * 1024 * 1024;
+export const PESO_MEDIO_TESSERA = 25 * 1024;
 
-/** Quante mattonelle sono conservate. Il **peso** vero lo dice `spazioOrigine`. */
-export async function spazioTessere(): Promise<{ quante: number } | null> {
+/**
+ * Quante mattonelle sono conservate, e **quanto pesano davvero**.
+ *
+ * Il peso si legge dal `Content-Length` di ogni risposta in cache, non si stima: è fra le
+ * intestazioni accessibili di una risposta CORS, e verificato che coincide al byte con la
+ * dimensione del contenuto (28.719 su una mattonella OpenStreetMap).
+ *
+ * Due stime precedenti erano entrambe sbagliate — «circa 15 kB» dichiarati a naso, e poi
+ * il conteggio di `navigator.storage.estimate()` che riportava il riempimento delle
+ * risposte opache. Da quando le risposte sono leggibili non serve stimare più nulla.
+ */
+export async function spazioTessere(): Promise<{ quante: number; byte: number } | null> {
   if (typeof caches === 'undefined') return null;
   try {
     let quante = 0;
+    let byte = 0;
     for (const nome of CACHE_TESSERE) {
       if (!(await caches.has(nome))) continue;
       const cache = await caches.open(nome);
-      quante += (await cache.keys()).length;
+      const chiavi = await cache.keys();
+      quante += chiavi.length;
+      for (const k of chiavi) {
+        const r = await cache.match(k);
+        /*
+          Si legge l'intestazione e non il contenuto: leggere il corpo di cinquecento
+          mattonelle vorrebbe dire spostare venti megabyte per mostrare un numero. Se
+          l'intestazione mancasse, il peso di quella voce resta fuori dal totale — meglio
+          un totale un po' basso che un pannello che si blocca.
+        */
+        const dichiarato = Number(r?.headers.get('content-length') ?? 0);
+        if (Number.isFinite(dichiarato)) byte += dichiarato;
+      }
     }
-    return { quante };
+    return { quante, byte };
   } catch {
     return null;
   }

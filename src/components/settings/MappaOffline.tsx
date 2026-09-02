@@ -11,7 +11,7 @@ import {
   pesoLeggibile,
 } from '@/lib/tile-offline';
 import {
-  COSTO_QUOTA_PER_TESSERA,
+  PESO_MEDIO_TESSERA,
   spazioOrigine,
   spazioTessere,
   svuotaTessere,
@@ -36,7 +36,7 @@ export function MappaOffline() {
   */
   const { piano, area, daScaricare, nomeMappa, conSentieri, avanzamento, inCorso, scarica, interrompi } =
     useTessereOffline();
-  const [conservate, setConservate] = useState<{ quante: number } | null>(null);
+  const [conservate, setConservate] = useState<{ quante: number; byte: number } | null>(null);
   const [spazio, setSpazio] = useState<{ usato: number; disponibile: number } | null>(null);
 
   const aggiornaSpazio = useCallback(() => {
@@ -97,8 +97,14 @@ export function MappaOffline() {
             </p>
           )}
 
+          {daScaricare.length > 0 && (
+            /* Quanto occupera', detto PRIMA: il peso medio e' misurato sui servizi veri. */
+            <p className="text-[11px] text-gray-400">
+              Occuperanno circa {pesoLeggibile(daScaricare.length * PESO_MEDIO_TESSERA)}.
+            </p>
+          )}
           {daScaricare.length > 0 && spazio != null
-            && (spazio.disponibile - spazio.usato) < daScaricare.length * COSTO_QUOTA_PER_TESSERA && (
+            && (spazio.disponibile - spazio.usato) < daScaricare.length * PESO_MEDIO_TESSERA && (
             /*
               Il conto va fatto PRIMA: a meta' scaricata una scrittura rifiutata non si
               distingue da un problema di rete, e chi sta preparando la gita non ha modo
@@ -106,10 +112,8 @@ export function MappaOffline() {
             */
             <p className="text-[11px] text-amber-300">
               Potrebbe non starci: il browser concede ancora{' '}
-              {pesoLeggibile(spazio.disponibile - spazio.usato)} a questo sito, e le mappe di
-              altri siti vengono contate con un forte arrotondamento in eccesso — circa{' '}
-              {pesoLeggibile(COSTO_QUOTA_PER_TESSERA)} a mattonella, anche se sul disco ne
-              pesano una quindicina di kilobyte. Libera lo spazio o riduci l&rsquo;area.
+              {pesoLeggibile(spazio.disponibile - spazio.usato)} a questo sito. Libera lo
+              spazio o riduci l&rsquo;area.
             </p>
           )}
 
@@ -158,10 +162,7 @@ export function MappaOffline() {
                   {conservate.quante === 1
                     ? 'Una mattonella conservata'
                     : `${numero(conservate.quante)} mattonelle conservate`}
-                  {spazio != null && (
-                    <>. In tutto l&rsquo;app occupa {pesoLeggibile(spazio.usato)} dei{' '}
-                    {pesoLeggibile(spazio.disponibile)} concessi dal browser</>
-                  )}
+                  , {pesoLeggibile(conservate.byte)}
                 </>}
         </span>
         {conservate != null && conservate.quante > 0 && (
@@ -185,10 +186,9 @@ export function MappaOffline() {
         contrasto gia' corretto due volte in questo progetto, e sarebbe la terza.
       */}
       <p className="text-[10px] text-gray-400 leading-snug">
-        Si scaricano gli zoom da {ZOOM_MINIMO} a {ZOOM_MASSIMO}: più vicino di così la mappa
-        senza rete resterà sfocata. Le mattonelle scadono dopo trenta giorni. Sul disco pesano
-        pochi kilobyte l&rsquo;una, ma il browser le conta molto di più: è il modo in cui
-        nasconde la dimensione delle immagini che arrivano da altri siti.
+        Si scaricano gli zoom da {ZOOM_MINIMO} a {ZOOM_MASSIMO} lungo il percorso, non su
+        tutta l&rsquo;area che lo contiene: più vicino di così la mappa senza rete resterà
+        sfocata. Le mattonelle scadono dopo trenta giorni.
       </p>
     </div>
   );
