@@ -171,7 +171,7 @@ export function MyLocationButton({ hidden }: { hidden?: boolean }) {
 
       {/* Error message */}
       {error && (
-        <div ref={guardiaErrore} role="status" aria-live="polite" className="absolute bottom-40 right-3 z-[1000] bg-red-900/90 rounded-lg px-3 py-2 text-xs text-red-200 shadow-lg">
+        <div ref={guardiaErrore} role="status" aria-live="polite" className="absolute bottom-40 right-3 z-[1000] bg-red-900/90 rounded-lg px-3 py-2 text-xs text-[#fecaca] shadow-lg">
           {error}
         </div>
       )}

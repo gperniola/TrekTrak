@@ -6,7 +6,21 @@ import { useNotificationStore, type Toast as ToastType, type ToastVariant } from
 const VARIANT_STYLES: Record<ToastVariant, { bg: string; text: string; icon: string }> = {
   success: { bg: 'bg-green-900/95 border-green-600', text: 'text-green-100', icon: '✓' },
   info:    { bg: 'bg-gray-800/95 border-gray-600',  text: 'text-gray-100',  icon: 'ⓘ' },
-  warning: { bg: 'bg-amber-900/95 border-amber-600', text: 'text-amber-100', icon: '!' },
+  /*
+    `text-[#fef3c7]` e non `text-amber-100`, e non e' un capriccio.
+
+    `amber-100` in questo progetto e' il token `--ambra-100`, che **si rovescia col tema**:
+    nel chiaro diventa un ambra scuro (146 64 14). Il fondo `bg-amber-900/95` invece e'
+    un colore grezzo di Tailwind e resta scuro. Scuro su scuro: **1,13:1** nel tema
+    chiaro — un avviso che nessuno puo' leggere.
+
+    I fratelli qui sotto non hanno il problema solo per un caso: `green-100` e `red-100`
+    non sono fra i token, quindi restano grezzi come il loro fondo. `info` sta bene per la
+    ragione opposta, cioe' che sono token entrambi. Qui si allinea al primo dei due modi,
+    perche' tenere l'ambra e' cio' che rende un avviso riconoscibile a colpo d'occhio.
+    Misurato: 8,47:1 nei due temi.
+  */
+  warning: { bg: 'bg-amber-900/95 border-amber-600', text: 'text-[#fef3c7]', icon: '!' },
   error:   { bg: 'bg-red-900/95 border-red-600',    text: 'text-red-100',   icon: '✕' },
 };
 

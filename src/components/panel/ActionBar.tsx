@@ -417,7 +417,7 @@ export function ActionBar() {
         messaggio che parla di funzioni che il profilo ha tolto di mezzo.
       */}
       {(!canExportPdf || (datiVisibili && !canExportGpx)) && (
-        <p id="motivo-export" className="text-[11px] text-amber-300/90 bg-amber-950/40 border border-amber-800/60 rounded px-2 py-1.5">
+        <p id="motivo-export" className="text-[11px] text-amber-300 bg-gray-800 border border-amber-800/60 rounded px-2 py-1.5">
           {waypoints.length < 2
             ? 'Aggiungi almeno 2 waypoint per esportare o condividere.'
             : 'Per il GPX servono almeno 2 waypoint con coordinate.'}

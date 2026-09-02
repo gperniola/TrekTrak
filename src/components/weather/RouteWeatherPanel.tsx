@@ -278,7 +278,7 @@ export function RouteWeatherPanel() {
         {caricamento && <p className="text-sm text-gray-400">Sto chiedendo la previsione…</p>}
 
         {errore && (
-          <p role="alert" className="text-sm text-red-200 bg-red-900/40 border border-red-700 rounded-lg p-3">
+          <p role="alert" className="text-sm text-[#fecaca] bg-red-900/40 border border-red-700 rounded-lg p-3">
             {errore}
           </p>
         )}
@@ -345,7 +345,7 @@ export function RouteWeatherPanel() {
             </div>
 
             {report.rows.some((r) => r.arrival == null) && (
-              <p className="text-[11px] text-amber-300/90 bg-amber-950/40 border border-amber-800/60 rounded px-2 py-1.5 leading-snug">
+              <p className="text-[11px] text-amber-300 bg-gray-800 border border-amber-800/60 rounded px-2 py-1.5 leading-snug">
                 Gli orari di arrivo non sono stimabili: alle tratte mancano distanza o
                 dislivelli. Inseriscili nell&rsquo;Editor, oppure passa a{' '}
                 <strong className="font-medium">Track</strong> e li calcola l&rsquo;app.
