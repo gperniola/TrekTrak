@@ -30,14 +30,14 @@ function Row({ route, index }: { route: Itinerary; index: number }) {
       className={`flex items-center gap-2 px-2 py-2 rounded cursor-pointer ${selectedId === route.id ? 'bg-green-900/40 border border-green-600' : 'bg-gray-900 hover:bg-gray-800'}`}
       onClick={() => select(selectedId === route.id ? null : route.id)}
     >
-      <span className="text-xs text-gray-500 w-5 text-right tabular-nums">{index + 1}</span>
+      <span className="text-xs text-gray-400 w-5 text-right tabular-nums">{index + 1}</span>
       {sortMode === 'manual' && (
         <button {...attributes} {...listeners} onClick={(e) => e.stopPropagation()}
-          className="text-gray-600 hover:text-gray-300 cursor-grab touch-none max-lg:min-w-[44px] max-lg:min-h-[44px] flex items-center justify-center" aria-label="Trascina per riordinare">⠿</button>
+          className="text-gray-400 hover:text-gray-200 cursor-grab touch-none max-lg:min-w-[44px] max-lg:min-h-[44px] flex items-center justify-center" aria-label="Trascina per riordinare">⠿</button>
       )}
       <div className="flex-1 min-w-0">
         <div className="text-sm font-medium truncate">{route.name || 'Senza nome'}</div>
-        <div className="text-[11px] text-gray-500">
+        <div className="text-[11px] text-gray-400">
           {route.createdByUsername && <span className="text-green-500">@{route.createdByUsername} · </span>}
           {numero(km, 1)} km · +{numero(gain)} m · 🥾{completions}
         </div>
@@ -78,7 +78,7 @@ export function RouteList() {
         </select>
       </div>
       {routes.length === 0 ? (
-        <p className="text-gray-500 text-sm px-2 py-4">Nessun percorso salvato. Crea un itinerario e premi &ldquo;Salva&rdquo;.</p>
+        <p className="text-gray-400 text-sm px-2 py-4">Nessun percorso salvato. Crea un itinerario e premi &ldquo;Salva&rdquo;.</p>
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
           <SortableContext items={routes.map((r) => r.id)} strategy={verticalListSortingStrategy}>

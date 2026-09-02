@@ -92,11 +92,11 @@ export function TrackWaypointRow({
           <span className="text-xs text-gray-300 tabular-nums shrink-0">
             {val(waypoint.altitude, (n) => metri(n))}
           </span>
-          <span aria-hidden className="text-gray-500 text-[10px] shrink-0">{aperta ? '▲' : '▼'}</span>
+          <span aria-hidden className="text-gray-400 text-[10px] shrink-0">{aperta ? '▲' : '▼'}</span>
         </button>
         <span
           {...dragHandleProps}
-          className="cursor-grab text-gray-600 hover:text-gray-400 text-xs px-2 flex items-center min-w-[32px] justify-center"
+          className="cursor-grab text-gray-400 hover:text-gray-200 text-xs px-2 flex items-center min-w-[32px] justify-center"
           title="Trascina per riordinare"
           aria-label={`Trascina per riordinare ${nome}`}
         >
@@ -104,7 +104,7 @@ export function TrackWaypointRow({
         </span>
         <button
           onClick={rimuovi}
-          className="text-gray-500 hover:text-red-400 text-xs px-2 min-w-[32px] rounded-r-lg"
+          className="text-gray-400 hover:text-red-400 text-xs px-2 min-w-[32px] rounded-r-lg"
           title="Rimuovi"
           aria-label={`Rimuovi ${nome}`}
         >

@@ -11,7 +11,7 @@ export function ItineraryTable() {
 
   if (legs.length === 0) {
     return (
-      <div className="p-4 text-center text-gray-500 text-sm">
+      <div className="p-4 text-center text-gray-400 text-sm">
         Aggiungi almeno 2 waypoint per vedere la tabella
       </div>
     );

@@ -133,7 +133,7 @@ export function MyLocationButton({ hidden }: { hidden?: boolean }) {
             <span className="text-[10px] text-gray-400 font-medium">LA MIA POSIZIONE</span>
             <button
               onClick={() => setLocation(null)}
-              className="text-gray-500 hover:text-white text-xs leading-none ml-2"
+              className="text-gray-400 hover:text-white text-xs leading-none ml-2"
               aria-label="Chiudi"
             >
               ✕
@@ -141,21 +141,21 @@ export function MyLocationButton({ hidden }: { hidden?: boolean }) {
           </div>
           <div className="space-y-1 text-xs">
             <div>
-              <span className="text-gray-500">Lat: </span>
+              <span className="text-gray-400">Lat: </span>
               <span className="text-green-400 font-mono">{location.lat.toFixed(6)}</span>
             </div>
             <div>
-              <span className="text-gray-500">Lon: </span>
+              <span className="text-gray-400">Lon: </span>
               <span className="text-green-400 font-mono">{location.lon.toFixed(6)}</span>
             </div>
             {location.altitude != null && (
               <div>
-                <span className="text-gray-500">Alt: </span>
+                <span className="text-gray-400">Alt: </span>
                 <span className="text-green-400 font-mono">{location.altitude} m</span>
               </div>
             )}
             <div>
-              <span className="text-gray-500">Precisione: </span>
+              <span className="text-gray-400">Precisione: </span>
               <span className="text-gray-300">{location.accuracy} m</span>
             </div>
           </div>

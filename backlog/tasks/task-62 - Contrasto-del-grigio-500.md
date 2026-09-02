@@ -1,7 +1,7 @@
 ---
 id: TASK-62
 title: text-gray-500 è sotto il contrasto minimo, e sta in 34 file
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-09-01 19:30'
 labels:
@@ -41,16 +41,17 @@ no, ed è la taglia della maggior parte di quegli usi.
 
 ## Task
 
-- [ ] Passare in rassegna i 96 usi e separarli: testo grande (va bene) / testo piccolo
+- [x] Passare in rassegna i 96 usi e separarli: testo grande (va bene) / testo piccolo
       (da portare a `gray-400`) / decorazione non informativa (da valutare)
-- [ ] Verificare anche il **tema chiaro**: lì `--grigio-500` vale `90 99 114` su fondi
+- [x] Verificare anche il **tema chiaro**: lì `--grigio-500` vale `90 99 114` su fondi
       chiari, e il rapporto è un altro — va misurato, non dedotto
-- [ ] Estendere `tema.test.ts` con un controllo che ricavi le coppie **classe testo /
+- [x] Estendere `tema.test.ts` con un controllo che ricavi le coppie **classe testo /
       classe fondo** dai componenti, invece di elencarle a mano: un elenco scritto a mano
       invecchia (è già successo nella v0.17.x)
-- [ ] Se il controllo automatico è troppo fragile, in alternativa: ridefinire
-      `--grigio-500` a un valore che superi il 4,5:1 su `grigio-900` e `grigio-800`,
-      accettando che la scala si comprima
+- [x] **Scartata** la strada di ridefinire `--grigio-500`: `bg-gray-500` fa il fondo di
+      due pulsanti secondari, e il loro testo chiaro sta a 4,83:1. Portando il token al
+      valore che serve al testo su `grigio-800` (circa 141 148 161) quei pulsanti
+      scenderebbero a 3,05:1. Corrette le classi, 96 usi in 33 file
 
 ## Riferimenti
 
@@ -58,3 +59,57 @@ no, ed è la taglia della maggior parte di quegli usi.
 - `src/__tests__/tema.test.ts:16` (il commento che avverte del problema)
 - `src/components/settings/MappaOffline.tsx` (l'unica occorrenza già corretta)
 <!-- SECTION:DESCRIPTION:END -->
+
+## Com'è andata
+
+**Il tema chiaro non c'entrava**: `--grigio-500` là vale `90 99 114` e passa su tutti i
+fondi (4,92 – 6,07). Il difetto era solo nel tema scuro.
+
+**Zero dei 96 usi arrivava alla taglia del testo grande**, quindi la soglia era 4,5:1 per
+tutti, non 3:1 per qualcuno.
+
+### Quello che l'audit ha trovato oltre a ciò che cercavo
+
+Il controllo ricavato dal codice ha subito pescato due classi che non avevo considerato,
+e con esse difetti peggiori del 3,67:1 di partenza:
+
+- **`text-gray-600` a 1,94:1 in `ProgressOverlay`** — «Tendenza da 10 sessioni» e i segni
+  «—» che significano «nessun dato». Praticamente invisibili.
+- **`placeholder:text-gray-600` a 2,35:1** nel campo email dell'invito: il segnaposto
+  `nome@email.it` illeggibile in **entrambi** i temi.
+- **Tre maniglie di trascinamento a 2,35:1.** Sono componenti d'interfaccia, quindi la
+  soglia è 3:1 — e non la superavano.
+- **Il pulsante «Ricarica» dell'avviso di aggiornamento a 4,28:1**, cioè la parte meno
+  leggibile di un avviso che esiste per farsi leggere.
+
+### Due trappole in cui sono caduto
+
+1. **`bg-white/25` non è bianco.** Correggendo «Ricarica» ho schiarito il chip con
+   `bg-white/25`, ma `white` qui è il token `--bianco`, che nel tema chiaro diventa quasi
+   nero. Su un fondo `bg-green-600` **letterale**, che non si rovescia, il chip scuriva
+   invece di schiarire: 8,6:1 nello scuro e 4,20:1 nel chiaro. Serve un letterale sopra un
+   letterale — `bg-[#ffffff40]`.
+
+2. **Il service worker mi ha misurato la CSS di ieri.** Per un giro intero l'audit ha
+   riportato guasti stabili nel tema chiaro che non riuscivo a riprodurre a riposo. La
+   pagina caricava `6edd8519c5fb492b.css`, un file **non più presente nel build**: era la
+   cache del service worker. Le misure guardavano il vecchio design. La regola: prima di
+   misurare su una build di produzione, **disiscrivere il worker e svuotare le cache**, e
+   controllare che il nome del foglio caricato esista ancora in `.next/static/css/`.
+
+## Verifica
+
+Audit sul DOM, build di produzione, entrambi i temi, cinque viste: **zero guasti nel tema
+chiaro, e nello scuro resta solo l'emoji del cestino** — un glifo che si colora da sé, e
+che come componente d'interfaccia sta comunque sopra il 3:1.
+
+Due controlli nuovi in `tema.test.ts`, entrambi verificati per mutazione: le classi di
+testo si **contano nel codice** e vengono misurate sui tre fondi dell'app, e `grigio-500`
+è vietato per nome.
+
+## Lasciato fuori, di proposito
+
+I fondi **chiari fissi** (popup di Leaflet, campi `bg-gray-100`) sono un difetto di natura
+diversa e più grave: là nessuna classe grigia può funzionare nei due temi, perché il fondo
+non si rovescia e la scala sì. Misurato: 7,56:1 nello scuro e **1,54:1** nel chiaro. È il
+TASK-63.

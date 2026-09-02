@@ -58,7 +58,7 @@ export function TermineGlossario({ termine, classe }: { termine: Termine; classe
       <button
         type="button"
         onClick={(e) => { e.stopPropagation(); setAperto((p) => !p); }}
-        className="text-gray-500 hover:text-gray-300 text-xs leading-none"
+        className="text-gray-400 hover:text-gray-300 text-xs leading-none"
         aria-label={`Che cos'è: ${v.titolo}`}
         aria-expanded={aperto}
       >

@@ -43,21 +43,21 @@ function MenuMockup({ highlight }: { highlight?: 'fields' | 'verify' | 'badges' 
       <div className="bg-gray-900 rounded p-2 mb-1">
         <div className="text-green-400 font-bold mb-1">1. Partenza</div>
         <div className="grid grid-cols-3 gap-1">
-          <div className="bg-gray-800 rounded px-1 py-0.5 text-gray-500">Lat</div>
-          <div className="bg-gray-800 rounded px-1 py-0.5 text-gray-500">Lon</div>
-          <div className={`bg-gray-800 rounded px-1 py-0.5 ${highlight === 'badges' ? 'text-white' : 'text-gray-500'}`}>
+          <div className="bg-gray-800 rounded px-1 py-0.5 text-gray-400">Lat</div>
+          <div className="bg-gray-800 rounded px-1 py-0.5 text-gray-400">Lon</div>
+          <div className={`bg-gray-800 rounded px-1 py-0.5 ${highlight === 'badges' ? 'text-white' : 'text-gray-400'}`}>
             Alt {highlight === 'badges' && <span className="inline-block w-3 h-3 rounded-full bg-green-600 text-[8px] text-center leading-3 ml-0.5">✓</span>}
           </div>
         </div>
       </div>
       <div className={`bg-gray-900 rounded p-2 mb-1 border-l-2 border-green-400 ${highlight === 'fields' ? 'ring-1 ring-green-400/50' : ''}`}>
         <div className="grid grid-cols-4 gap-1">
-          <div className={`bg-gray-800 rounded px-1 py-0.5 ${highlight === 'fields' ? 'text-yellow-300' : 'text-gray-500'}`}>
+          <div className={`bg-gray-800 rounded px-1 py-0.5 ${highlight === 'fields' ? 'text-yellow-300' : 'text-gray-400'}`}>
             Dist {highlight === 'badges' && <span className="inline-block w-3 h-3 rounded-full bg-yellow-600 text-[8px] text-center leading-3 ml-0.5">~</span>}
           </div>
-          <div className={`bg-gray-800 rounded px-1 py-0.5 ${highlight === 'fields' ? 'text-yellow-300' : 'text-gray-500'}`}>D+</div>
-          <div className={`bg-gray-800 rounded px-1 py-0.5 ${highlight === 'fields' ? 'text-yellow-300' : 'text-gray-500'}`}>D-</div>
-          <div className={`bg-gray-800 rounded px-1 py-0.5 ${highlight === 'fields' ? 'text-yellow-300' : 'text-gray-500'}`}>
+          <div className={`bg-gray-800 rounded px-1 py-0.5 ${highlight === 'fields' ? 'text-yellow-300' : 'text-gray-400'}`}>D+</div>
+          <div className={`bg-gray-800 rounded px-1 py-0.5 ${highlight === 'fields' ? 'text-yellow-300' : 'text-gray-400'}`}>D-</div>
+          <div className={`bg-gray-800 rounded px-1 py-0.5 ${highlight === 'fields' ? 'text-yellow-300' : 'text-gray-400'}`}>
             Azim. {highlight === 'badges' && <span className="inline-block w-3 h-3 rounded-full bg-red-600 text-[8px] text-center leading-3 ml-0.5">✗</span>}
           </div>
         </div>
@@ -77,7 +77,7 @@ function SettingsMockup() {
       <div className="flex items-center justify-between">
         <div>
           <div className="text-gray-300 font-medium">Percorso su sentiero</div>
-          <div className="text-[9px] text-gray-500">Distanza e D+/D- lungo i sentieri reali</div>
+          <div className="text-[9px] text-gray-400">Distanza e D+/D- lungo i sentieri reali</div>
         </div>
         <div className="w-9 h-5 bg-green-600 rounded-full relative">
           <div className="absolute top-0.5 right-0.5 w-4 h-4 bg-white rounded-full" />
@@ -86,7 +86,7 @@ function SettingsMockup() {
       <div className="flex items-center justify-between">
         <div>
           <div className="text-gray-300 font-medium">Percorso colorato</div>
-          <div className="text-[9px] text-gray-500">Colora la linea per pendenza</div>
+          <div className="text-[9px] text-gray-400">Colora la linea per pendenza</div>
         </div>
         <div className="w-9 h-5 bg-green-600 rounded-full relative">
           <div className="absolute top-0.5 right-0.5 w-4 h-4 bg-white rounded-full" />
@@ -455,7 +455,7 @@ export function LearnTutorial() {
           <button
             onClick={handleClose}
             aria-label="Chiudi la guida"
-            className="text-gray-500 hover:text-white min-h-[32px] min-w-[32px] -mr-1 -mt-1"
+            className="text-gray-400 hover:text-white min-h-[32px] min-w-[32px] -mr-1 -mt-1"
           >
             ✕
           </button>

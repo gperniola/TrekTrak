@@ -197,19 +197,19 @@ export function CompassOverlay({ active, onDeactivate }: { active: boolean; onDe
       <div ref={guardiaPannello} className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000] bg-gray-900/90 rounded-lg px-4 py-2 flex gap-4 items-center text-sm max-w-[calc(100%-1rem)]">
         <div className="text-center">
           <div className="text-amber-400 font-bold text-base">{azimuth != null ? gradi(azimuth) : '--'}</div>
-          <div className="text-gray-500 text-[10px]">Azimuth</div>
+          <div className="text-gray-400 text-[10px]">Azimuth</div>
         </div>
         <div className="w-px h-8 bg-gray-700" />
         <div className="text-center">
           <div className="text-green-400 font-bold text-base">{distDisplay}</div>
-          <div className="text-gray-500 text-[10px]">Distanza</div>
+          <div className="text-gray-400 text-[10px]">Distanza</div>
         </div>
         <div className="w-px h-8 bg-gray-700" />
         <div className="text-center">
-          <div className={`font-bold text-base ${altDiff != null ? (altDiff >= 0 ? 'text-red-400' : 'text-blue-400') : 'text-gray-500'}`}>
+          <div className={`font-bold text-base ${altDiff != null ? (altDiff >= 0 ? 'text-red-400' : 'text-blue-400') : 'text-gray-400'}`}>
             {altDiff != null ? `${altDiff >= 0 ? '+' : ''}${altDiff} m` : '...'}
           </div>
-          <div className="text-gray-500 text-[10px]">Δ Quota</div>
+          <div className="text-gray-400 text-[10px]">Δ Quota</div>
         </div>
       </div>
     </>

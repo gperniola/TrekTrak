@@ -55,7 +55,22 @@ export function UpdateBanner() {
       <span className="font-medium">È disponibile una nuova versione di TrekTrak.</span>
       <button
         onClick={() => window.location.reload()}
-        className="shrink-0 bg-black/20 hover:bg-black/30 rounded px-3 min-h-[36px] font-bold"
+        /*
+          Il chip **schiarisce** invece di scurire, e con un bianco **letterale**.
+
+          Con `bg-black/20` il verde sotto il testo nero si spegneva e il contrasto
+          scendeva a 4,28:1, appena sotto la soglia: il pulsante era la parte meno
+          leggibile di un avviso che esiste per farsi leggere.
+
+          Ma non basta scrivere `bg-white/25`: `white` in questo progetto e' il token
+          `--bianco`, che nel tema chiaro diventa **quasi nero** (15 23 42) perche' la',
+          sul fondo della pagina, e' il colore del testo acceso. Questo banner invece ha
+          un fondo `bg-green-600` **letterale**, che non si rovescia col tema: mescolare
+          un fondo fisso con un colore che si rovescia dava 8,6:1 nello scuro e 4,20:1
+          nel chiaro. Un letterale sopra un letterale sta a 8,6:1 nei due temi.
+          (Stessa radice del TASK-63, dove il fondo fisso e' il bianco dei popup.)
+        */
+        className="shrink-0 bg-[#ffffff40] hover:bg-[#ffffff66] rounded px-3 min-h-[36px] font-bold"
       >
         Ricarica
       </button>

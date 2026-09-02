@@ -152,7 +152,7 @@ export function ItineraryHeader() {
               aria-describedby={!member ? 'motivo-salva' : undefined}
               className={member
                 ? 'px-2.5 py-1 bg-gradient-to-r from-green-500 to-emerald-600 text-black font-semibold rounded-lg text-xs shadow-sm transition-all active:scale-[0.97] hover:from-green-400 hover:to-emerald-500 max-lg:min-h-[44px]'
-                : 'px-2.5 py-1 bg-gray-700/60 text-gray-500 rounded-lg text-xs cursor-not-allowed max-lg:min-h-[44px]'}
+                : 'px-2.5 py-1 bg-gray-700/60 text-gray-400 rounded-lg text-xs cursor-not-allowed max-lg:min-h-[44px]'}
               aria-label="Salva itinerario"
             >
               Salva

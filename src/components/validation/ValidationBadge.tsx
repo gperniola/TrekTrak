@@ -189,7 +189,7 @@ export function ValidationBadge({ result, fieldType }: { result?: ValidationResu
                   )}
                   {termini.length > 0 && (
                     <div className="mt-1.5 flex flex-wrap items-center gap-1">
-                      <span className="text-gray-500">Che cos&rsquo;è:</span>
+                      <span className="text-gray-400">Che cos&rsquo;è:</span>
                       {termini.map((t) => (
                         <button
                           key={t}

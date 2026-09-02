@@ -76,14 +76,14 @@ export function ToleranceSettings({ onClose }: { onClose: () => void }) {
                   aria-label={`Tolleranza ${label} in ${unit}`}
                   className="w-20 bg-gray-900 border border-gray-600 rounded px-2 py-1 text-sm text-white text-right max-lg:min-h-[44px]"
                 />
-                <span className="text-xs text-gray-500 w-10">{unit}</span>
+                <span className="text-xs text-gray-400 w-10">{unit}</span>
               </div>
             </div>
           ))}
         </div>
         <div className="border-t border-gray-700 mt-5 pt-4">
           <div className="text-sm font-medium text-gray-300 mb-2">Passo personale (Munter)</div>
-          <p className="text-[10px] text-gray-500 mb-2">
+          <p className="text-[10px] text-gray-400 mb-2">
             Moltiplicatore del tempo di percorrenza standard (4 km/h orizzontale).
           </p>
           <input

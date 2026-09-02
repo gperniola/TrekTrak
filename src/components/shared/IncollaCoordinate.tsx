@@ -83,7 +83,7 @@ export function IncollaCoordinate({
           />
           <div role="status" className="text-[11px] leading-snug min-h-[16px]">
             {testo.trim() === '' ? (
-              <span className="text-gray-500">
+              <span className="text-gray-400">
                 Gradi decimali o gradi/primi/secondi, con la virgola o col punto.
               </span>
             ) : letta != null ? (

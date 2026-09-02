@@ -409,7 +409,7 @@ export default function Home() {
             {mainView === 'library'
               ? (previewRoute
                   ? <PreviewElevationProfile route={previewRoute} />
-                  : <div className="h-full flex items-center justify-center text-xs text-gray-500 px-3 text-center">Seleziona un percorso per vederne il profilo.</div>)
+                  : <div className="h-full flex items-center justify-center text-xs text-gray-400 px-3 text-center">Seleziona un percorso per vederne il profilo.</div>)
               : <ElevationProfile />}
           </div>
 

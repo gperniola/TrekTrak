@@ -177,7 +177,7 @@ export function LocationSearch({ mobileSearchOpen }: { mobileSearchOpen?: boolea
           aria-controls={open && results.length > 0 ? LISTBOX_ID : undefined}
           aria-activedescendant={activeIndex >= 0 ? `location-option-${activeIndex}` : undefined}
           autoComplete="off"
-          className="w-full bg-gray-800/95 border border-gray-600 rounded pl-8 pr-3 py-1.5 text-sm text-white placeholder-gray-500 focus:border-green-500 focus:outline-none"
+          className="w-full bg-gray-800/95 border border-gray-600 rounded pl-8 pr-3 py-1.5 text-sm text-white placeholder-gray-400 focus:border-green-500 focus:outline-none"
         />
         {loading && (
           <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs">...</span>

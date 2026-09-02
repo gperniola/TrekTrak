@@ -4,6 +4,28 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.18.2] — 2026-09-02 — Testo che si legge, in tutti e due i temi
+
+### Fixed
+- **Contrasto sotto il minimo in tutto il tema scuro** (TASK-62). `text-gray-500` su
+  `bg-gray-900` fa **3,67:1** dove ne servono 4,5, e stava in **96 punti su 33 file** —
+  nessuno dei quali abbastanza grande da poter usare la soglia più bassa. Lighthouse dava
+  100 perché guarda solo ciò che è a schermo durante l'esame, e quasi tutti quegli usi
+  stanno in pannelli chiusi. Il tema chiaro non era interessato.
+- Cercandoli sono venuti fuori difetti peggiori: **«Tendenza da 10 sessioni» e i segni di
+  «nessun dato» a 1,94:1** nel pannello Progresso, il **segnaposto del campo email a
+  2,35:1** (illeggibile in entrambi i temi), **tre maniglie di trascinamento a 2,35:1** —
+  che sono componenti d'interfaccia e non superavano nemmeno il 3:1 — e il pulsante
+  **«Ricarica» dell'avviso di aggiornamento a 4,28:1**, cioè la parte meno leggibile di un
+  avviso che esiste per farsi leggere.
+
+### Changed
+- `tema.test.ts` non si fida più di un elenco scritto a mano: le classi di testo si
+  **contano nel codice** e vengono misurate sui tre fondi su cui l'app scrive davvero
+  (rilevati sul DOM: 44 elementi su `grigio-900`, 4 su `grigio-800`, 1 su `grigio-950`,
+  **nessuno** su `grigio-700`). Un commento che avvertiva del problema c'era già, e non ha
+  impedito la terza ricaduta: un commento non è un controllo.
+
 ## [0.18.1] — 2026-09-01 — Aprire l'app e vedere il proprio percorso
 
 ### Fixed

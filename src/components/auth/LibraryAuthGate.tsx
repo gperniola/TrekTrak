@@ -10,7 +10,7 @@ export function LibraryAuthGate({ children }: { children: React.ReactNode }) {
   const session = useAuthStore((s) => s.session);
   const member = useAuthStore((s) => s.member);
 
-  if (loading) return <div className="p-4 text-xs text-gray-500">Caricamento…</div>;
+  if (loading) return <div className="p-4 text-xs text-gray-400">Caricamento…</div>;
   if (!session) return <RequestAccessForm />;
   if (!member) return <ChooseUsername />;
   return (

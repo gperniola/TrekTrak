@@ -68,7 +68,7 @@ export function CompletionList({ route }: { route: Itinerary }) {
               <div className="flex justify-between items-start">
                 <div>
                   <span className="font-medium">{c.personName}</span>
-                  <span className="text-gray-500"> · {fmtDate(c.date)}</span>
+                  <span className="text-gray-400"> · {fmtDate(c.date)}</span>
                   {c.durationMinutes != null && <span className="text-gray-400"> · {formatTime(c.durationMinutes)}</span>}
                   {w && <span className="text-gray-400" title={w.label}> · {w.icon} {w.label}</span>}
                 </div>
@@ -84,7 +84,7 @@ export function CompletionList({ route }: { route: Itinerary }) {
                   <DifficultyRating value={c.difficulty} readOnly />
                 </div>
               )}
-              {c.notes && <div className="text-gray-500 mt-0.5">{c.notes}</div>}
+              {c.notes && <div className="text-gray-400 mt-0.5">{c.notes}</div>}
             </div>
             );
           })()

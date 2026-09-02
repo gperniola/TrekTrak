@@ -73,7 +73,7 @@ export function RequestAccessForm({ hideHeader = false }: { hideHeader?: boolean
         id="ra-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
         onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
         placeholder="nome@email.it"
-        className="w-full bg-gray-900/80 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:border-green-500 focus:ring-1 focus:ring-green-500/40 focus:outline-none transition-colors"
+        className="w-full bg-gray-900/80 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-400 focus:border-green-500 focus:ring-1 focus:ring-green-500/40 focus:outline-none transition-colors"
         autoComplete="email"
       />
       {error && <p className="text-xs text-red-400">{error}</p>}

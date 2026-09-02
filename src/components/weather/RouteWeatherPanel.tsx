@@ -333,7 +333,7 @@ export function RouteWeatherPanel() {
                         )}
                       </td>
                       <td className="py-1.5 pr-2 text-gray-300 font-mono">
-                        {r.arrival != null ? ora(r.arrival) : <span className="text-gray-500 font-sans">n/d</span>}
+                        {r.arrival != null ? ora(r.arrival) : <span className="text-gray-400 font-sans">n/d</span>}
                       </td>
                       <td className="py-1.5 pr-2 text-gray-300">{numero(r.hour?.cape)}</td>
                       <td className="py-1.5 pr-2 text-gray-300">{numero(r.hour?.gusts, ' km/h')}</td>
@@ -351,7 +351,7 @@ export function RouteWeatherPanel() {
                 <strong className="font-medium">Track</strong> e li calcola l&rsquo;app.
               </p>
             )}
-            <p className="text-[11px] text-gray-500">
+            <p className="text-[11px] text-gray-400">
               Previsione campionata su {report.sampled} {report.sampled === 1 ? 'punto' : 'punti'} del
               percorso: i modelli hanno maglie di chilometri, quindi punti vicini danno lo stesso dato.
               Gli orari vengono dalla stima di Munter e <strong className="font-medium text-gray-400">non
@@ -414,7 +414,7 @@ export function RouteWeatherPanel() {
           )}
         </div>
 
-        <p className="text-[11px] text-gray-500 leading-snug">
+        <p className="text-[11px] text-gray-400 leading-snug">
           {ATTRIBUZIONE_METEO}. È una <strong className="font-medium text-gray-400">previsione</strong>,
           non una misura: può sbagliare, e non sostituisce i canali ufficiali di allerta. In caso di
           emergenza chiama il 112.

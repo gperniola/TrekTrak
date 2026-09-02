@@ -88,7 +88,7 @@ function WaypointQuickActions({ wpId }: { wpId: string }) {
         className="w-full px-2 py-1 mb-2 bg-gray-100 border border-gray-300 rounded text-sm text-gray-900"
       />
       {wp.lat != null && wp.lon != null && (
-        <div className="text-[10px] text-gray-500 mb-2 font-mono">
+        <div className="text-[10px] text-gray-400 mb-2 font-mono">
           {wp.lat.toFixed(5)}, {wp.lon.toFixed(5)}
         </div>
       )}
