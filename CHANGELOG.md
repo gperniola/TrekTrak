@@ -46,10 +46,35 @@ Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il p
   della mappa, che dopo il volo coincide con dove sei, e con il mirino sotto sembrava che
   accendere la bussola non avesse fatto niente.
 
+### Fixed — dalla review prima del rilascio
+
+Metodo di questo giro: **la vita della cosa nel tempo e in combinazione**, che è l'angolo
+che i giri precedenti non coprivano.
+
+- **Un punto vecchio diceva «sei qui».** Difetto mio, introdotto lo stesso giorno: il
+  campo `at` dello store esisteva dalla v0.11.5 ed era **scritto e letto da nessuno** — la
+  famiglia di `slim` e del livello utente — quindi il punto restava alle coordinate
+  dell'ultimo rilevamento per sempre. Chi concede la posizione all'imbocco del sentiero
+  alle 9 e cammina due ore si ritrovava disegnato al parcheggio, e un punto su una mappa
+  si legge «sei qui, **adesso**». Ora: pieno finché è attuale (sotto i 5 minuti, che a
+  passo d'uomo sono già 400-500 m), **vuoto** quando è vecchio, il nome accessibile dice
+  sempre da quanto, e il cerchio dell'incertezza sparisce — dichiarare una precisione su
+  un punto dove non sei più sono due affermazioni sbagliate invece di una. Non si
+  cancella: «eri lì» è un'informazione vera.
+- L'età si rivaluta da sola ogni minuto: senza un orologio, un punto rilevato adesso
+  sarebbe rimasto «attuale» per tutta la sessione, cioè il difetto sarebbe tornato per la
+  porta di servizio.
+
+Misurato in questo giro: trascinando la mappa con bussola e anelli accesi, su **1819
+fotogrammi** la mediana è **16,7 ms** (60 fps) e solo 2 fotogrammi passano i 33 ms — i nove
+tracciati in più non costano niente. E i tre strumenti restano mutuamente esclusivi,
+quindi i loro riquadri non si sovrappongono mai.
+
 ### Test
-- 1831 unità (+20), 32 end-to-end, 4 offline. Nuovi: `anelli-distanza` (la scala 1-2-5 e
-  le etichette all'italiana) e `StrumentiMappa` (bussola spenta che non disegna, punto
-  della posizione, anelli).
+- 1843 unità (+32), 32 end-to-end, 4 offline. Nuovi: `anelli-distanza` (la scala 1-2-5 e
+  le etichette all'italiana), `eta-posizione` (la soglia, il futuro che non diventa età
+  negativa) e `StrumentiMappa` (bussola spenta che non disegna, punto della posizione che
+  invecchia da solo, anelli).
 - **Il finto Leaflet ora modella tre cose che prima ignorava**: `Circle` (raggio in metri,
   non in pixel), `map.distance` calcolata per davvero — un valore finto avrebbe reso verdi
   i test sugli anelli qualunque cosa facesse il codice — e il **contenuto delle icone**

@@ -131,7 +131,7 @@ describe('il punto della propria posizione', () => {
       usePositionStore.getState().setLastKnown({ lat: 46.45, lon: 11.85, accuracy: 15 });
     });
     render(<PosizioneUtente />);
-    expect(screen.getByText('La tua posizione')).toBeInTheDocument();
+    expect(screen.getByText(/La tua posizione, rilevata adesso/)).toBeInTheDocument();
     // E il cerchio dell'incertezza, che dice quanto e' precisa.
     expect(screen.getAllByTestId('circle')).toHaveLength(1);
     expect(screen.getByTestId('circle').getAttribute('data-radius')).toBe('15');
@@ -203,5 +203,76 @@ describe('gli anelli sulla mappa', () => {
     render(<AnelliDistanza lat={46.45} lon={11.85} />);
     expect(screen.queryAllByTestId('circle')).toHaveLength(0);
     expect(screen.queryAllByTestId('marker')).toHaveLength(0);
+  });
+});
+
+/**
+ * **Un punto vecchio non dice «sei qui».**
+ *
+ * Il difetto l'ho introdotto io lo stesso giorno in cui ho aggiunto il punto: il campo
+ * `at` dello store era scritto e **letto da nessuno** — la solita famiglia — quindi il
+ * punto restava alle coordinate dell'ultimo fix per sempre. Chi concede la posizione
+ * all'imbocco del sentiero alle 9 e cammina due ore si ritrovava disegnato al parcheggio,
+ * e un punto su una mappa si legge «sei qui, adesso».
+ */
+describe('l eta della posizione disegnata', () => {
+  const minutiFa = (n: number) => Date.now() - n * 60_000;
+
+  test('appena rilevata: punto pieno, e lo dice', () => {
+    act(() => {
+      usePositionStore.getState().setLastKnown({ lat: 46.45, lon: 11.85, accuracy: 15, at: minutiFa(1) });
+    });
+    render(<PosizioneUtente />);
+    expect(screen.getByText(/La tua posizione/)).toBeInTheDocument();
+    // Il cerchio dell'incertezza c'e' solo quando la posizione e' attuale.
+    expect(screen.getAllByTestId('circle')).toHaveLength(1);
+  });
+
+  test('vecchia di mezz ora: non dice piu «la tua posizione», dice dov eri e da quanto', () => {
+    act(() => {
+      usePositionStore.getState().setLastKnown({ lat: 46.45, lon: 11.85, accuracy: 15, at: minutiFa(30) });
+    });
+    render(<PosizioneUtente />);
+    expect(screen.queryByText(/La tua posizione/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Dov'eri, rilevato 30 min fa/)).toBeInTheDocument();
+  });
+
+  /**
+   * Il cerchio dell'incertezza attorno a un rilevamento vecchio dichiarerebbe una
+   * precisione su un punto che non e' piu' dove sei: due affermazioni sbagliate invece
+   * di una.
+   */
+  test('e il cerchio dell incertezza sparisce', () => {
+    act(() => {
+      usePositionStore.getState().setLastKnown({ lat: 46.45, lon: 11.85, accuracy: 15, at: minutiFa(30) });
+    });
+    render(<PosizioneUtente />);
+    expect(screen.queryAllByTestId('circle')).toHaveLength(0);
+  });
+
+  test('il punto resta disegnato: «eri li» e un informazione vera', () => {
+    act(() => {
+      usePositionStore.getState().setLastKnown({ lat: 46.45, lon: 11.85, accuracy: 15, at: minutiFa(180) });
+    });
+    render(<PosizioneUtente />);
+    expect(screen.getAllByTestId('marker')).toHaveLength(1);
+    expect(screen.getByText(/Dov'eri, rilevato 3 h fa/)).toBeInTheDocument();
+  });
+
+  /**
+   * L'eta si rivaluta col passare del tempo, non solo quando cambia qualcos'altro: senza
+   * un orologio, un punto rilevato adesso resterebbe «attuale» per tutta la sessione — che
+   * e' esattamente il difetto da cui questo codice nasce.
+   */
+  test('invecchia da sola, senza che nessuno tocchi niente', () => {
+    jest.useFakeTimers();
+    act(() => {
+      usePositionStore.getState().setLastKnown({ lat: 46.45, lon: 11.85, accuracy: 15, at: Date.now() });
+    });
+    render(<PosizioneUtente />);
+    expect(screen.getByText(/La tua posizione/)).toBeInTheDocument();
+    act(() => { jest.advanceTimersByTime(11 * 60_000); });
+    expect(screen.getByText(/Dov'eri/)).toBeInTheDocument();
+    jest.useRealTimers();
   });
 });
