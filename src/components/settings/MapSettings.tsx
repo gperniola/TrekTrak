@@ -188,7 +188,7 @@ export function MapSettings({ onClose }: { onClose: () => void }) {
             </div>
             {appMode === 'learn' && coloredPath && (
               <div className="text-[10px] text-amber-400 mt-1">
-                Disponibile in modalità Track con profilo calcolato
+                Disponibile in modalità Pianificazione, con il profilo calcolato
               </div>
             )}
           </div>

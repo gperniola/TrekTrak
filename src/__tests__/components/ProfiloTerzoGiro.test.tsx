@@ -73,7 +73,12 @@ describe('review 3: quello che resta quando un area sparisce', () => {
     useUIStore.setState({ profilo: 'imparo' });
     const { container } = render(<ModeSwitch />);
     expect(container.firstElementChild?.className).not.toMatch(/max-lg:hidden/);
-    expect(screen.getByRole('tablist', { name: 'Modalità app' })).toBeInTheDocument();
+    /*
+      Il nome accessibile del gruppo non e' piu' "Modalità app": l'utente vede due
+      controlli che si chiamano entrambi "modalità" — il PROFILO («Modalità: Imparo») e
+      questo — e a voce erano indistinguibili. Ora questo dice cosa decide davvero.
+    */
+    expect(screen.getByRole('tablist', { name: /come si compilano i valori/i })).toBeInTheDocument();
   });
 
   /**

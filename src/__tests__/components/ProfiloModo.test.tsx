@@ -7,15 +7,15 @@ describe('l interruttore Learn/Track per profilo', () => {
   test('in Imparo c e', () => {
     useUIStore.setState({ profilo: 'imparo' });
     render(<ModeSwitch />);
-    expect(screen.getByRole('tab', { name: 'Learn' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Track' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Impara' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Pianificazione' })).toBeInTheDocument();
   });
 
   test('in Montagna non c e', () => {
     useUIStore.setState({ profilo: 'montagna' });
     render(<ModeSwitch />);
-    expect(screen.queryByRole('tab', { name: 'Learn' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: 'Track' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Impara' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Pianificazione' })).not.toBeInTheDocument();
   });
 
   /** Gli strumenti restano anche senza l'interruttore: la toolbar non si svuota. */

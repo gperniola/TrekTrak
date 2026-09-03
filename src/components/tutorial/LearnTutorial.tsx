@@ -37,8 +37,8 @@ function MenuMockup({ highlight }: { highlight?: 'fields' | 'verify' | 'badges' 
   return (
     <div className="mt-3 bg-gray-800 rounded-lg border border-gray-600 p-2 text-xs">
       <div className="flex gap-1 mb-2">
-        <span className="flex-1 py-1 text-center bg-purple-600 rounded-l text-su-colore font-bold">Learn</span>
-        <span className="flex-1 py-1 text-center bg-gray-700 rounded-r text-gray-400">Track</span>
+        <span className="flex-1 py-1 text-center bg-purple-600 rounded-l text-su-colore font-bold">Impara</span>
+        <span className="flex-1 py-1 text-center bg-gray-700 rounded-r text-gray-400">Pianificazione</span>
       </div>
       <div className="bg-gray-900 rounded p-2 mb-1">
         <div className="text-green-400 font-bold mb-1">1. Partenza</div>
@@ -113,8 +113,8 @@ function ToolbarMockup() {
       )}
       {mostra('switchLearnTrack', profilo) && (
         <>
-          <span className="flex-1 py-1 text-center bg-purple-600 text-su-colore rounded font-bold">Learn</span>
-          <span className="flex-1 py-1 text-center bg-gray-700 text-gray-400 rounded">Track</span>
+          <span className="flex-1 py-1 text-center bg-purple-600 text-su-colore rounded font-bold">Impara</span>
+          <span className="flex-1 py-1 text-center bg-gray-700 text-gray-400 rounded">Pianificazione</span>
         </>
       )}
     </div>
@@ -141,9 +141,9 @@ const STEPS: TutorialStep[] = [
     essenziale: true,
   },
   {
-    title: 'Learn e Track',
+    title: 'Impara e Pianificazione',
     evidenzia: 'modi',
-    text: 'In modalità Learn inserisci manualmente distanza, dislivello e azimuth, poi usa "Verifica" per confrontare con i dati reali. In modalità Track i valori vengono calcolati automaticamente. Puoi passare da una all\'altra liberamente: i tuoi dati di entrambe le modalità restano salvati separatamente.',
+    text: 'In «Impara» scrivi tu distanza, dislivello e azimuth, poi con "Verifica" li confronti con i dati reali. In «Pianificazione» li calcola l\'app. Puoi passare da una all\'altra quando vuoi: i valori delle due modalità restano salvati separatamente, quindi non perdi niente.',
     icon: '✏️',
     mockup: <MenuMockup highlight="fields" />,
     area: 'switchLearnTrack',
@@ -262,7 +262,7 @@ function LevelChooser({ scelto, onChoose }: {
           📚 Sto imparando {scelto === 'beginner' && <span aria-hidden>✓</span>}
         </div>
         <div className="text-[11px] text-gray-300 mt-1">
-          Default modalità Learn: inserisco io i valori e li confronto con quelli reali.
+          Default modalità Impara: inserisco io i valori e li confronto con quelli reali.
         </div>
       </button>
       <button
@@ -276,15 +276,15 @@ function LevelChooser({ scelto, onChoose }: {
           🥾 Sono esperto {scelto === 'expert' && <span aria-hidden>✓</span>}
         </div>
         <div className="text-[11px] text-gray-300 mt-1">
-          Default modalità Track: l&apos;app calcola tutto, io rivedo e perfeziono.
+          Default modalità Pianificazione: l&apos;app calcola tutto, io rivedo e perfeziono.
         </div>
       </button>
       {scelto != null && (
         <p className="text-[11px] text-gray-300 bg-gray-800/70 rounded px-2 py-1.5">
           {scelto === 'beginner'
-            ? 'Modalità Learn attiva: i valori li scrivi tu, poi «Verifica» li confronta con i reali.'
-            : 'Modalità Track attiva: l’app calcola distanza, dislivelli e azimut.'}
-          {' '}La cambi quando vuoi con l’interruttore Learn/Track.
+            ? 'Modalità «Impara» attiva: i valori li scrivi tu, poi «Verifica» li confronta con i reali.'
+            : 'Modalità «Pianificazione» attiva: l’app calcola distanza, dislivelli e azimut.'}
+          {' '}La cambi quando vuoi con l’interruttore in cima all’Editor.
         </p>
       )}
     </div>

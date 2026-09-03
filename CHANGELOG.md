@@ -4,6 +4,34 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.21.1] — 2026-09-03 — I due modi si chiamano «Impara» e «Pianificazione»
+
+### Changed
+- **I due modi dell'itinerario si chiamano «Impara» e «Pianificazione»**, non più «Learn»
+  e «Track». Cambiato in tutti gli otto punti dove arrivano all'utente: l'interruttore
+  nell'Editor, l'illustrazione e il testo della guida, il riscontro dopo la scelta del
+  livello, le impostazioni mappa e il pannello meteo.
+- **Gli identificatori interni restano `learn` e `track`.** Sono scritti dentro ogni
+  itinerario salvato (`appMode`) e nei campi paralleli `learnValues`/`trackValues`:
+  cambiarli vorrebbe dire una migrazione dei dati per un'etichetta. Quello che l'utente
+  legge e il nome che il dato porta con sé sono due cose separate, di proposito.
+- **Il gruppo dell'interruttore ha un nome accessibile nuovo**: «Come si compilano i valori
+  dell'itinerario» al posto di «Modalità app». L'utente vede due controlli che si chiamano
+  entrambi *modalità* — il profilo («Modalità: Imparo») e questo — e a voce erano
+  indistinguibili.
+
+### Test
+- 1811 unità (+5), 32 end-to-end, 4 offline. Nuovo `NomiDeiModi`: il rischio di una
+  rinomina non è sbagliare i nomi, è **dimenticarne un pezzo**. Due testi su otto mi erano
+  sfuggiti al primo giro e li hanno trovati per caso i test di altri componenti; ora il
+  controllo è esplicito e scorre tutti i passi della guida.
+- La prima versione di quel guardiano **non funzionava**: cercava `Track` col confine di
+  parola, ma `textContent` incolla i testi adiacenti (`ImparaTrack`), quindi il confine fra
+  `a` e `T` non esiste e la parola vecchia non veniva trovata — un test che certificava
+  esattamente il difetto che esiste per impedire. Trovato rimettendo il nome vecchio su un
+  bottone: passava. Ora la ricerca è senza confini, e con la stessa prova falliscono due
+  test su cinque.
+
 ## [0.21.0] — 2026-09-03 — Neve, valanghe e terremoti (layer di emergenza, fase 2)
 
 I tre layer stagionali che mancavano, più la decisione di non fare il quarto. Le fonti

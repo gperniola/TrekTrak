@@ -4,6 +4,17 @@ import { useItineraryStore } from '@/stores/itineraryStore';
 import { useUIStore } from '@/stores/uiStore';
 import type { AppMode } from '@/lib/types';
 import { mostra } from '@/lib/profilo';
+/*
+  **I nomi a schermo sono «Impara» e «Pianificazione»; nel codice restano `learn` e
+  `track`.**
+
+  Rinominati su richiesta il 2026-09-03. Gli identificatori interni non si toccano: sono
+  scritti dentro ogni itinerario salvato (`appMode`) e nei campi paralleli
+  `learnValues`/`trackValues`, quindi cambiarli vorrebbe dire una migrazione dei dati per
+  un'etichetta. Le due cose sono separate di proposito — quello che l'utente legge e il
+  nome che il dato porta con se'.
+*/
+
 
 export function ModeSwitch() {
   const appMode = useItineraryStore((s) => s.appMode);
@@ -98,7 +109,7 @@ export function ModeSwitch() {
         inseriti a mano NON si perdono: `learnValues` e `trackValues` stanno in parallelo
         dalla v0.7.0, e tornando in Imparo si rivedono.
       */}
-      {mostra('switchLearnTrack', profilo) && <div data-guida="modi" role="tablist" aria-label="Modalità app" className="flex items-center gap-1 flex-1 p-0.5 rounded-lg bg-gray-800/60">
+      {mostra('switchLearnTrack', profilo) && <div data-guida="modi" role="tablist" aria-label="Come si compilano i valori dell’itinerario" className="flex items-center gap-1 flex-1 p-0.5 rounded-lg bg-gray-800/60">
         <button
           role="tab"
           aria-selected={!isTrack}
@@ -109,7 +120,7 @@ export function ModeSwitch() {
               : 'text-gray-400 hover:text-white'
           }`}
         >
-          Learn
+          Impara
         </button>
         <button
           role="tab"
@@ -121,7 +132,7 @@ export function ModeSwitch() {
               : 'text-gray-400 hover:text-white'
           }`}
         >
-          Track
+          Pianificazione
         </button>
       </div>}
     </div>

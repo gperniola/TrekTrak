@@ -82,7 +82,7 @@ test.describe('imparare', () => {
     await tocca(page, 90, 70);
     await expect.poll(() => contaWaypoint(page)).toBe(2);
 
-    await page.getByRole('tab', { name: 'Learn' }).click();
+    await page.getByRole('tab', { name: 'Impara' }).click();
 
     // In Learn i campi si compilano a mano: qui compaiono, in Track non c'erano.
     const distanza = page.getByLabel('Dist (km)').first();
@@ -103,7 +103,7 @@ test.describe('imparare', () => {
     await tocca(page, 90, 70);
     await expect.poll(() => contaWaypoint(page)).toBe(2);
 
-    await page.getByRole('tab', { name: 'Learn' }).click();
+    await page.getByRole('tab', { name: 'Impara' }).click();
     const distanza = page.getByLabel('Dist (km)').first();
     await distanza.fill('2,5');
     await expect(distanza).toHaveValue('2,5');
