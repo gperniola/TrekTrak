@@ -4,6 +4,113 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.22.0] — 2026-09-03 — Il punto «dove sono», gli anelli di distanza, e i simboli che si vedono
+
+### Added
+- **Il punto della propria posizione sulla mappa.** Mancava: lo store della posizione
+  esisteva dalla v0.11.5 e lo alimentavano già l'avvio e il tasto «La mia posizione», ma
+  nessuno lo **disegnava** — si concedeva il permesso, la mappa volava lì, e sul posto non
+  c'era niente. Ora c'è il punto (anello bianco, cuore blu) e il cerchio dell'incertezza,
+  che si tace quando l'incertezza supera i 2 km: un cerchio da chilometri copre mezza
+  mappa e non dice niente, mentre il punto continua a dire «più o meno qui».
+  **Non chiede mai la posizione**: legge dallo store, che è la stessa garanzia strutturale
+  dell'avviso allerte.
+- **Gli anelli di distanza** attorno a dove sei, con la bussola accesa: tre cerchi
+  concentrici con la loro etichetta. La bussola dà **una** distanza, quella del bersaglio;
+  gli anelli la danno per tutto quello che si vede — «quella cima è appena oltre il
+  secondo anello» diventa un numero senza misurare niente, ed è il mestiere che questa app
+  insegna. I raggi vengono da una scala **1-2-5** (100, 200, 500 m, 1, 2, 5 km…) scelta in
+  modo che tre anelli stiano nella vista: un anello a 337 m non si ricorda, e uno fuori
+  schermo non si vede.
+
+### Fixed
+- **I punti della bussola restavano sulla mappa dopo averla spenta.** Segnalato, e vero:
+  i due marker erano creati *imperativamente* (`L.marker(...).addTo(map)`) dentro un hook
+  che gira a ogni render — anche a strumento spento, perché gli hook stanno **prima**
+  dell'uscita anticipata. Misurato nel browser: le due croci erano attaccate alla mappa
+  **già prima** di accendere la bussola, e spegnendola non venivano rimosse ma spostate a
+  (0,0). Ora si dichiarano nel render, come fa il righello: escono di scena col
+  componente, senza che nessuno debba ricordarsene.
+- **I simboli si vedevano poco.** Segnalato. La croce di prima era due linee da 2 px sopra
+  una mappa escursionistica piena di sentieri arancioni e rossi. Ora ogni simbolo ha il
+  **contorno bianco** e l'ombra — il modo in cui i simboli delle carte restano leggibili su
+  qualunque fondo, non un vezzo: mirino della bussola 28 px (da 20), capi del righello
+  18 px (da 14) con la lettera che ora si legge, e le due linee tracciate due volte,
+  bianca sotto e colorata sopra.
+- **«Dove sono» era disegnato in due modi diversi.** La bussola aveva un suo marker verde,
+  e passando da uno strumento all'altro lo stesso posto cambiava simbolo. Ora la bussola
+  **pubblica** ogni fix nello store e il punto lo disegna un solo componente: un posto, un
+  simbolo — e la posizione resta anche dopo aver spento lo strumento, perché è la tua, non
+  un dettaglio della bussola.
+- Il mirino sta **sopra** il punto della posizione: all'accensione il bersaglio è il centro
+  della mappa, che dopo il volo coincide con dove sei, e con il mirino sotto sembrava che
+  accendere la bussola non avesse fatto niente.
+
+### Fixed — dalla review prima del rilascio
+
+Metodo di questo giro: **la vita della cosa nel tempo e in combinazione**, che è l'angolo
+che i giri precedenti non coprivano.
+
+- **Un punto vecchio diceva «sei qui».** Difetto mio, introdotto lo stesso giorno: il
+  campo `at` dello store esisteva dalla v0.11.5 ed era **scritto e letto da nessuno** — la
+  famiglia di `slim` e del livello utente — quindi il punto restava alle coordinate
+  dell'ultimo rilevamento per sempre. Chi concede la posizione all'imbocco del sentiero
+  alle 9 e cammina due ore si ritrovava disegnato al parcheggio, e un punto su una mappa
+  si legge «sei qui, **adesso**». Ora: pieno finché è attuale (sotto i 5 minuti, che a
+  passo d'uomo sono già 400-500 m), **vuoto** quando è vecchio, il nome accessibile dice
+  sempre da quanto, e il cerchio dell'incertezza sparisce — dichiarare una precisione su
+  un punto dove non sei più sono due affermazioni sbagliate invece di una. Non si
+  cancella: «eri lì» è un'informazione vera.
+- L'età si rivaluta da sola ogni minuto: senza un orologio, un punto rilevato adesso
+  sarebbe rimasto «attuale» per tutta la sessione, cioè il difetto sarebbe tornato per la
+  porta di servizio.
+
+Misurato in questo giro: trascinando la mappa con bussola e anelli accesi, su **1819
+fotogrammi** la mediana è **16,7 ms** (60 fps) e solo 2 fotogrammi passano i 33 ms — i nove
+tracciati in più non costano niente. E i tre strumenti restano mutuamente esclusivi,
+quindi i loro riquadri non si sovrappongono mai.
+
+### Test
+- 1843 unità (+32), 32 end-to-end, 4 offline. Nuovi: `anelli-distanza` (la scala 1-2-5 e
+  le etichette all'italiana), `eta-posizione` (la soglia, il futuro che non diventa età
+  negativa) e `StrumentiMappa` (bussola spenta che non disegna, punto della posizione che
+  invecchia da solo, anelli).
+- **Il finto Leaflet ora modella tre cose che prima ignorava**: `Circle` (raggio in metri,
+  non in pixel), `map.distance` calcolata per davvero — un valore finto avrebbe reso verdi
+  i test sugli anelli qualunque cosa facesse il codice — e il **contenuto delle icone**
+  `DivIcon`. Quest'ultima è venuta da un controllo per mutazione: togliendo il mirino della
+  bussola i test restavano verdi, perché contavano «almeno un marker» e i marker c'erano
+  comunque — erano le etichette degli anelli. Ora ogni simbolo si riconosce dal suo nome
+  accessibile.
+
+## [0.21.1] — 2026-09-03 — I due modi si chiamano «Impara» e «Pianificazione»
+
+### Changed
+- **I due modi dell'itinerario si chiamano «Impara» e «Pianificazione»**, non più «Learn»
+  e «Track». Cambiato in tutti gli otto punti dove arrivano all'utente: l'interruttore
+  nell'Editor, l'illustrazione e il testo della guida, il riscontro dopo la scelta del
+  livello, le impostazioni mappa e il pannello meteo.
+- **Gli identificatori interni restano `learn` e `track`.** Sono scritti dentro ogni
+  itinerario salvato (`appMode`) e nei campi paralleli `learnValues`/`trackValues`:
+  cambiarli vorrebbe dire una migrazione dei dati per un'etichetta. Quello che l'utente
+  legge e il nome che il dato porta con sé sono due cose separate, di proposito.
+- **Il gruppo dell'interruttore ha un nome accessibile nuovo**: «Come si compilano i valori
+  dell'itinerario» al posto di «Modalità app». L'utente vede due controlli che si chiamano
+  entrambi *modalità* — il profilo («Modalità: Imparo») e questo — e a voce erano
+  indistinguibili.
+
+### Test
+- 1811 unità (+5), 32 end-to-end, 4 offline. Nuovo `NomiDeiModi`: il rischio di una
+  rinomina non è sbagliare i nomi, è **dimenticarne un pezzo**. Due testi su otto mi erano
+  sfuggiti al primo giro e li hanno trovati per caso i test di altri componenti; ora il
+  controllo è esplicito e scorre tutti i passi della guida.
+- La prima versione di quel guardiano **non funzionava**: cercava `Track` col confine di
+  parola, ma `textContent` incolla i testi adiacenti (`ImparaTrack`), quindi il confine fra
+  `a` e `T` non esiste e la parola vecchia non veniva trovata — un test che certificava
+  esattamente il difetto che esiste per impedire. Trovato rimettendo il nome vecchio su un
+  bottone: passava. Ora la ricerca è senza confini, e con la stessa prova falliscono due
+  test su cinque.
+
 ## [0.21.0] — 2026-09-03 — Neve, valanghe e terremoti (layer di emergenza, fase 2)
 
 I tre layer stagionali che mancavano, più la decisione di non fare il quarto. Le fonti

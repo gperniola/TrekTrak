@@ -403,7 +403,7 @@ export function RouteWeatherPanel() {
               <p className="text-[11px] text-amber-300 bg-gray-800 border border-amber-800/60 rounded px-2 py-1.5 leading-snug">
                 Gli orari di arrivo non sono stimabili: alle tratte mancano distanza o
                 dislivelli. Inseriscili nell&rsquo;Editor, oppure passa a{' '}
-                <strong className="font-medium">Track</strong> e li calcola l&rsquo;app.
+                <strong className="font-medium">Pianificazione</strong> e li calcola l&rsquo;app.
               </p>
             )}
             <p className="text-[11px] text-gray-400">

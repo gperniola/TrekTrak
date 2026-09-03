@@ -57,7 +57,7 @@ describe('review 3: la guida segue il profilo', () => {
     expect(testo).not.toMatch(/Copia link/);
     expect(testo).not.toMatch(/Pronto per la gita/);
     // e le sue funzioni ci sono tutte
-    expect(testo).toMatch(/Learn e Track/);
+    expect(testo).toMatch(/Impara e Pianificazione/);
     expect(testo).toMatch(/Verifica e feedback/);
     expect(testo).toMatch(/Il Quiz/);
   });
@@ -93,7 +93,7 @@ describe('review 3: la guida segue il profilo', () => {
     fireEvent.click(screen.getByText('Avanti'));
     fireEvent.click(screen.getByText(/Altre funzionalità/));
     expect(screen.getByText('Strumenti mappa')).toBeInTheDocument();
-    expect(screen.queryByText('Learn')).not.toBeInTheDocument();
-    expect(screen.queryByText('Track')).not.toBeInTheDocument();
+    expect(screen.queryByText('Impara')).not.toBeInTheDocument();
+    expect(screen.queryByText('Pianificazione')).not.toBeInTheDocument();
   });
 });

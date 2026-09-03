@@ -104,12 +104,30 @@ TileLayer.displayName = 'TileLayer';
 export const Marker = ({ children, ...props }: { children?: React.ReactNode } & Record<string, unknown>) => (
   <div
     data-testid="marker"
+    /*
+      **Il contenuto dell'icona si rende**, come fa Leaflet con un `DivIcon`.
+
+      Prima il mock lo buttava, e la conseguenza e' che un test non poteva distinguere un
+      marker da un altro: verificato per mutazione il 2026-09-03 — togliendo il mirino
+      della bussola i test restavano verdi, perche' contavano i marker delle etichette
+      degli anelli. Rendendo l'html si distinguono dal loro contenuto, e i nomi
+      accessibili nascosti dentro le icone diventano verificabili.
+    */
+
     // Leaflet mette role="button" e tabIndex=0 sull'icona quando `keyboard` è true, che
     // è il default e NON dipende da `interactive`: i test devono poter distinguere un
     // marker decorativo da uno operabile.
     data-keyboard={String(props.keyboard !== false)}
     data-interactive={String(props.interactive !== false)}
   >
+    {/*
+      L'icona E il popup, come in Leaflet: l'icona e' il DOM del marker, il popup vive
+      in un pane a parte. Dropparne uno dei due rompeva i test dei ripari, che leggono
+      il popup di un marker che ha anche un'icona.
+    */}
+    {typeof (props.icon as { options?: { html?: unknown } } | undefined)?.options?.html === 'string' && (
+      <span dangerouslySetInnerHTML={{ __html: (props.icon as { options: { html: string } }).options.html }} />
+    )}
     {children}
   </div>
 );
@@ -118,7 +136,27 @@ export const Popup = ({ children }: { children?: React.ReactNode }) => (
   <div data-testid="popup">{children}</div>
 );
 
-export const Polyline = () => <div data-testid="polyline" />;
+export const Polyline = (props: Record<string, unknown>) => (
+  <div
+    data-testid="polyline"
+    data-color={String(props.color ?? '')}
+    data-weight={String(props.weight ?? '')}
+    data-dash={String(props.dashArray ?? '')}
+  />
+);
+
+/**
+ * Cerchio geografico: il raggio e' in METRI, non in pixel — e' la differenza fra
+ * `Circle` e `CircleMarker`, e confonderli fa disegnare un cerchio di 15 pixel dove
+ * doveva esserci l'incertezza del GPS (o un cerchio di 15 km al posto di un puntino).
+ */
+export const Circle = (props: Record<string, unknown>) => (
+  <div
+    data-testid="circle"
+    data-radius={String(props.radius ?? '')}
+    data-pathoptions={JSON.stringify(props.pathOptions ?? {})}
+  />
+);
 
 export const WMSTileLayer = (props: Record<string, unknown>) => {
   React.useEffect(() => {
@@ -226,7 +264,28 @@ const mapInstance = {
     getWest: () => boundsCorrenti.west,
     getSouthWest: () => ({ lat: boundsCorrenti.south, lng: boundsCorrenti.west }),
     getNorthEast: () => ({ lat: boundsCorrenti.north, lng: boundsCorrenti.east }),
+    // Anche gli altri due angoli: Leaflet li ha, e chi calcola larghezza e altezza
+    // della vista usa proprio quelli. Senza, il componente cadeva con
+    // "getNorthWest is not a function" — un mock incompleto che si presenta come mappa.
+    getNorthWest: () => ({ lat: boundsCorrenti.north, lng: boundsCorrenti.west }),
+    getSouthEast: () => ({ lat: boundsCorrenti.south, lng: boundsCorrenti.east }),
   }),
+  /**
+   * `map.distance(a, b)` in **metri**, come Leaflet.
+   *
+   * Calcolata per davvero (emisenoverso): un valore finto renderebbe verdi i test sugli
+   * anelli di distanza qualunque cosa faccia il codice, ed e' proprio la scala che quei
+   * test devono verificare.
+   */
+  distance: (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+    const R = 6_371_008.8;
+    const g = Math.PI / 180;
+    const dLat = (b.lat - a.lat) * g;
+    const dLon = (b.lng - a.lng) * g;
+    const h = Math.sin(dLat / 2) ** 2
+      + Math.cos(a.lat * g) * Math.cos(b.lat * g) * Math.sin(dLon / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(h));
+  },
   getSize: () => ({ x: 500, y: 635 }),
   latLngToContainerPoint: () => ({ x: 250, y: 318 }),
   // Proiezione Web Mercator, come il CRS di default: serve al GetFeatureInfo, che

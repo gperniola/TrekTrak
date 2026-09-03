@@ -33,7 +33,7 @@ describe('ModeSwitch (TASK-40)', () => {
     expect(screen.getByRole('button', { name: /bussola/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /righello/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /quiz/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Learn' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Track' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Impara' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Pianificazione' })).toBeInTheDocument();
   });
 });

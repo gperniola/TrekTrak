@@ -519,7 +519,7 @@ export function buildRouteWeather(input: {
      */
     message = windows.length > 0
       ? `Ore instabili nella giornata: ${windows.map(fascia).join(', ')}. Per sapere se ti prendono `
-        + 'servono i tempi di percorrenza: inserisci distanza e dislivelli, oppure passa a Track.'
+        + 'servono i tempi di percorrenza: inserisci distanza e dislivelli, oppure passa a Pianificazione.'
       : 'Nessuna criticità nella giornata. Gli orari di arrivo non sono stimabili finché mancano '
         + 'distanza e dislivelli delle tratte.';
     return {

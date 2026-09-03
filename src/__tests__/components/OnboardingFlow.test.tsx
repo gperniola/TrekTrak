@@ -57,7 +57,7 @@ describe('scelta del livello: riscontro e ripensamento', () => {
     expect(screen.getByRole('button', { name: /sono esperto/i })).toHaveAttribute('aria-pressed', 'false');
     // e lo dice anche a parole, non solo col colore: la riga di conferma nomina la
     // modalità attiva e ricorda che si può cambiare
-    expect(screen.getByText(/Modalità Learn attiva/)).toBeInTheDocument();
+    expect(screen.getByText(/Modalità «Impara» attiva/)).toBeInTheDocument();
     expect(screen.getByText(/cambi quando vuoi/)).toBeInTheDocument();
   });
 
