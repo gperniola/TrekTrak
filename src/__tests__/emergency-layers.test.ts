@@ -1,13 +1,14 @@
 import { EMERGENCY_LAYERS, getEmergencyLayer, isEmergencyLayerId } from '@/lib/emergency-layers';
 
 describe('EMERGENCY_LAYERS registry', () => {
-  test('contiene 7 layer con id univoci', () => {
+  test('contiene i layer attesi, con id univoci e nell ordine del pannello', () => {
     const ids = EMERGENCY_LAYERS.map((l) => l.id);
     expect(ids).toEqual([
       'fires-hotspots', 'fires-burned', 'fires-fwi', 'dpc-alerts',
       'rain-radar', 'shelters', 'storm-instability',
+      'avalanche-danger', 'snow-cover', 'earthquakes',
     ]);
-    expect(new Set(ids).size).toBe(7);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 
   test('i layer wms hanno config wms, gli altri no', () => {
@@ -27,11 +28,24 @@ describe('EMERGENCY_LAYERS registry', () => {
         } else {
           expect(l.refreshMinutes).toBeNull();
         }
-      } else if (l.kind === 'viewport') {
+      } else if (l.kind === 'viewport' || l.kind === 'avalanche') {
         // Si interroga sull'area inquadrata: un refresh a tempo tempesterebbe un
         // servizio pubblico condiviso, quindi `refreshMinutes` deve restare nullo.
+        // Vale anche per le valanghe, che passano dalla nostra route ma sono comandate
+        // dalla vista allo stesso modo.
         expect(l.wms).toBeUndefined();
         expect(l.refreshMinutes).toBeNull();
+      } else if (l.kind === 'xyz') {
+        /*
+          Mattonelle con la data nell'URL: serve la configurazione, e serve
+          `refreshMinutes` — non per un timer (le mattonelle non si richiedono da sole) ma
+          perche' `isStale` possa dichiarare vecchio un layer che ha smesso di aggiornarsi.
+        */
+        expect(l.wms).toBeUndefined();
+        expect(l.xyz).toBeDefined();
+        expect(l.xyz!.zoomNativoMassimo).toBeGreaterThan(0);
+        expect(l.xyz!.template('2026-02-15')).toMatch(/2026-02-15/);
+        expect(l.refreshMinutes).toBeGreaterThan(0);
       } else {
         expect(l.wms).toBeUndefined();
         expect(l.refreshMinutes).toBeGreaterThan(0);

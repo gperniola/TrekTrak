@@ -35,6 +35,23 @@ export const MapContainer = ({ children }: { children?: React.ReactNode }) => (
 export const RITARDO_CARICO_MS = 50;
 
 /**
+ * I gestori di eventi dei layer di mattonelle montati, in ordine di montaggio.
+ *
+ * Leaflet emette `tileerror` quando una mattonella non arriva: e' cosi' che un layer
+ * scopre che per quel giorno non ci sono immagini. Senza poterlo far scattare, il ripiego
+ * al giorno prima non sarebbe verificabile.
+ */
+const gestoriTile: Array<Record<string, (e?: unknown) => void>> = [];
+
+export function __tileHandlers(): Array<Record<string, (e?: unknown) => void>> {
+  return gestoriTile;
+}
+
+export function __resetTileHandlers(): void {
+  gestoriTile.length = 0;
+}
+
+/**
  * Il layer dei tile, con le due cose che l'animazione del radar usa davvero: l'opacita'
  * cambiata **a mano** sull'oggetto Leaflet e l'evento `load`.
  *
@@ -52,8 +69,17 @@ export const TileLayer = React.forwardRef((props: Record<string, unknown>, ref: 
     setOpacity: (o: number) => setOpacita((precedente) => (precedente === o ? precedente : o)),
   }), []);
 
-  const handlers = props.eventHandlers as { load?: () => void } | undefined;
+  const handlers = props.eventHandlers as Record<string, (e?: unknown) => void> | undefined;
   const url = String(props.url ?? '');
+  React.useEffect(() => {
+    if (handlers == null) return;
+    gestoriTile.push(handlers);
+    return () => {
+      const i = gestoriTile.indexOf(handlers);
+      if (i >= 0) gestoriTile.splice(i, 1);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   React.useEffect(() => {
     if (!handlers?.load) return;
     const t = setTimeout(() => handlers.load?.(), RITARDO_CARICO_MS);
@@ -131,8 +157,20 @@ export const GeoJSON = (props: Record<string, unknown>) => {
   React.useEffect(() => {
     recordPaneAtMount(props.pane);
   }, [props.pane]);
+  /*
+    **`data` si congela alla creazione, come in Leaflet.**
+
+    `react-leaflet` passa `data` al costruttore di `L.GeoJSON` e la sua funzione di
+    aggiornamento tocca **solo** `style`: cambiare la prop `data` a layer montato non
+    ridisegna niente. Il mock prima la rileggeva a ogni render, quindi era piu' indulgente
+    di Leaflet e certificava codice che nel browser mostra i poligoni di prima — con lo
+    stile nuovo sopra, cioe' il livello sbagliato sull'area sbagliata.
+
+    Chi cambia i dati deve cambiare la `key`. Questo mock lo pretende.
+  */
+  const primaData = React.useRef(props.data);
   // Leaflet reale invoca onEachFeature una volta PER feature, non sulla collection.
-  const data = props.data as { type?: string; features?: Array<Record<string, unknown>> } | undefined;
+  const data = primaData.current as { type?: string; features?: Array<Record<string, unknown>> } | undefined;
   const features = data?.type === 'FeatureCollection' ? (data.features ?? []) : data ? [data] : [];
   const popups: string[] = [];
   const onEach = props.onEachFeature as

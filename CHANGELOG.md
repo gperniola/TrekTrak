@@ -4,6 +4,157 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.21.0] — 2026-09-03 — Neve, valanghe e terremoti (layer di emergenza, fase 2)
+
+I tre layer stagionali che mancavano, più la decisione di non fare il quarto. Le fonti
+erano già validate nell'appendice del progetto, ma **otto verifiche su otto hanno cambiato
+l'implementazione**: il dettaglio in `backlog/tasks/task-51`.
+
+### Added
+- **Pericolo valanghe**, scala europea 1-5 per micro-regione, da EAWS (Alpi per regione più
+  Meteomont per gli Appennini). I colori sono **letti dal CSS dell'app che pubblica i
+  bollettini**, non ricordati; il popup dice il nome italiano della zona, il pericolo, la
+  differenza fra alta e bassa quota, il giorno del bollettino e che **vale per la zona, non
+  per il singolo pendio**. Si interroga sull'area inquadrata, come i ripari.
+- **Copertura nevosa** da NASA GIBS (indice MODIS NDSI), un passaggio al giorno. Il
+  pannello dichiara **di che giorno** è l'immagine, e la descrizione dice la cosa
+  controintuitiva: dove non c'è colore può esserci una nuvola, perché il satellite non vede
+  sotto le nubi.
+- **Terremoti delle ultime 48 ore** dall'INGV, da magnitudo 2. Colore per magnitudo, popup
+  con profondità e orario in ora italiana. Una zona che si muove è una zona dove i sentieri
+  possono essere interrotti.
+- Due categorie nuove nel pannello (**Neve e valanghe**, **Terremoti**), che il registro
+  della fase 1 ha assorbito senza modifiche strutturali.
+
+### Fixed
+- **`/api/avalanche`, e il motivo per cui esiste.** Le geometrie delle micro-regioni
+  italiane pesano **4,85 MB** e il server che le pubblica non comprime (verificato
+  chiedendo con `--compressed`): dal telefono non si scaricano. Non basta nemmeno prendere
+  "solo la regione che serve", perché il rettangolo di `IT-MeteoMont` copre l'Italia
+  intera, isole comprese. La route le tiene in memoria, **ritaglia sulla vista** e
+  semplifica in base allo zoom: al client arrivano **31-106 KB** invece di 4,85 MB,
+  misurati contro il servizio vero con una data in stagione.
+- **Fuori stagione l'app diceva che c'era un bollettino.** Misurato il 03/09: le otto
+  regioni alpine rispondono 404, ma Meteomont pubblica ogni giorno le sue 39 zone **tutte a
+  `0`** — che nell'aggregato EAWS vuol dire *nessuna valutazione*, non *nessun pericolo*.
+  La prima versione dipingeva 39 poligoni grigi sull'Appennino annunciando «Bollettino del
+  03/09/2026». Ora le zone a zero non si disegnano e un bollettino di soli zeri non è un
+  bollettino.
+- **Un guasto non è "fuori stagione".** Il primo `catch` trattava allo stesso modo un 404 e
+  una rete interrotta, quindi senza connessione il pannello avrebbe dichiarato «nessun
+  bollettino: fuori stagione» **a gennaio** — un guasto travestito da buona notizia, e chi
+  legge "fuori stagione" non riprova. Ora: 404 = assenza, tutto il resto = errore; e se una
+  regione su nove cade, il resto si mostra **dichiarando** che è incompleto.
+- **Gli orari INGV non hanno il fuso** (`"2026-09-02T23:46:59.485000"`): sono UTC per
+  standard, ma letti come ora locale sarebbero due ore di errore in estate, sempre nella
+  direzione di far sembrare la scossa più recente. E il servizio è **mondiale**: la prima
+  risposta conteneva un evento nelle Isole Sandwich Australi, quindi si chiede l'Italia.
+- **GIBS vuole `{y}` prima di `{x}`**: con l'ordine scambiato le mattonelle arrivano tutte,
+  200 e PNG validi, ma di un altro posto. Il tile di oggi risponde **404** finché il
+  satellite non passa: il ripiego al giorno prima è servito il primo giorno, e il pannello
+  dice quale giorno sta mostrando.
+- Il tocco su un terremoto **non crea un waypoint**: `bubblingMouseEvents: false` dall'inizio,
+  verificato sulla mappa vera (marker prima 4, dopo 4). È il difetto della v0.11.1, che
+  allora finì in produzione.
+
+### Changed
+- **GDACS scartato, con misura**: 12 eventi in tutto il mondo in 30 giorni, **zero in
+  Italia**. La soglia è globale, e per l'Italia FIRMS, DPC e INGV sono più sensibili di tre
+  ordini di grandezza. Un layer che non mostra mai nulla insegna solo a diffidere del
+  pannello.
+- Le nuove voci del registro portano `kind` propri (`avalanche`, `xyz`, `quakes`): il
+  `kind` dice **quale renderer** montare, e infilare i terremoti sotto `points` avrebbe
+  richiesto un secondo criterio dentro il dispatch.
+- Il guardiano della Data Cache copre anche il proxy valanghe, e il marcatore
+  `cache-immutabile-ok:` distingue i confini amministrativi (statici) dal bollettino
+  (vivo).
+
+### Fixed — dai tre giri di review prima del rilascio
+
+Quattro giri con quattro metodi diversi (il codice contro il catalogo dei difetti già
+ripetuti; lo schermo; gli invarianti con ingressi ostili; il diff riletto da estraneo, col
+costo misurato e le giunzioni provate), perché più giri con lo stesso metodo guardano più
+volte la stessa cosa. **Dodici difetti**, tutti miei, tutti in codice non ancora
+rilasciato.
+
+- **Le zone valanghe restavano quelle di prima, ricolorate coi pericoli nuove.** Il più
+  grave. `react-leaflet` passa `data` a Leaflet **solo quando crea** il layer (la sua
+  funzione di aggiornamento tocca soltanto `style`), quindi tutto dipende dalla `key` — e
+  la mia era `data-numeroZone-primoId`, che fra due viste diverse con lo stesso numero di
+  zone e lo stesso primo id **coincide**: cosa normale pannando dentro la stessa regione.
+  Risultato: poligoni vecchi con lo stile nuovo, cioè un livello di pericolo sbagliato su
+  un'area sbagliata. Ora la chiave è un'**impronta del contenuto** (`improntaZone`), e il
+  finto `GeoJSON` dei test congela `data` alla creazione **come fa Leaflet**, così questa
+  classe di difetti non è più perdonata dai test.
+- **«Riprova» sulla copertura nevosa restava in «Caricamento…» per sempre**: il componente
+  non si rimontava, nessun effetto ripartiva, lo stato non tornava mai da `loading`. È
+  identico al difetto dei layer WMS, corretto allora con `retryTick`, che non avevo
+  previsto per il kind nuovo.
+- **Il flag `ultimoTentativo` era scritto e riletto da nessuno** — la classe di `slim` e
+  del livello utente. La conseguenza vera: esaurito l'elenco dei giorni, il layer restava
+  `ready` con la mappa vuota, cioè assenza di dati indistinguibile da «niente neve». Ora
+  dichiara «Nessuna immagine disponibile negli ultimi giorni».
+- **Il messaggio «dati parziali» diceva il falso** su due layer: per i terremoti significa
+  elenco tagliato al tetto di 300, per le valanghe una regione su nove che non ha
+  risposto. Tre cause, tre frasi.
+- **`maxDangerRatings` come array produceva zone finte**: `typeof [] === 'object'`, quindi
+  un formato cambiato diventava tre zone con id "0", "1", "2" e il pannello dichiarava
+  tre zone valutate. Ora è un errore.
+- **Chiavi vuote diventavano zone** senza id, non disegnabili né spiegabili.
+- **Un vertice `Infinity` rendeva infinito il rettangolo** di una zona, e un rettangolo
+  infinito si sovrappone a tutto: una geometria rotta avrebbe fatto disegnare la sua zona
+  su qualunque vista. Ora si accettano solo coordinate finite e dentro il mondo.
+- **Epicentri fuori dal mondo** (lat 200, lon 400) venivano disegnati da qualche parte:
+  un epicentro inventato è peggio di un epicentro mancante.
+- **Due eventi con lo stesso `eventId`** producevano due chiavi React identiche — il
+  difetto che i focolai hanno già pagato con `pointKey`. Ora l'id resta quello dell'INGV
+  (non lo falsifichiamo) e la chiave per disegnare la costruisce chi disegna.
+- **Due richieste contemporanee scaricavano due volte i confini** (2,5 MB a testa per
+  l'Appennino, da un servizio gratuito): il client fa da tampone, ma due schede aperte lo
+  scavalcano. Ora le richieste in volo si condividono.
+- Più due irrigidimenti: un **tetto sull'area** che la route accetta di servire (5 gradi
+  di lato; il client non chiede mai tanto, quindi una richiesta più grande è un errore
+  nostro da far vedere) e l'**etichetta del giorno buttata col layer**, come gli altri
+  payload.
+
+#### Quarto giro: il diff letto da estraneo, il costo misurato, le giunzioni provate
+
+- **«Butta l'etichetta di questo layer» buttava quella di tutti.** `xyzGiorno: {}` azzerava
+  la mappa intera invece della sola chiave, e la condizione era agganciata a un id scritto
+  a mano invece che al kind: oggi non si vedeva (di layer a mattonelle con data ce n'è uno)
+  ma il campo è indicizzato per layer proprio perché ce ne saranno altri, e il secondo si
+  sarebbe spento insieme al primo. Il commento diceva una cosa, il codice un'altra.
+- **«Il bollettino c'è ma non riusciamo a disegnarlo» era indistinguibile da «qui non ci
+  sono aree valanghive».** Sono la stessa immagine — una mappa senza colori — e
+  significano l'opposto. I servizi valanghe ridisegnano le micro-regioni fra una stagione
+  e l'altra: se gli id smettono di combaciare, un inverno intero di bollettini resta
+  invisibile mentre il pannello dice che non c'è niente da vedere. Ora il caso si
+  riconosce (`joinBroken`) e si dichiara come errore, col «Riprova» accanto — e tre test
+  coprono i casi legittimi che **non** devono suonare l'allarme.
+- **Il costo in memoria era dichiarato «accettabile» senza un numero.** Misurato:
+  **+12,5 MB** di heap per una vista dolomitica (che carica anche l'Appennino, il file
+  grosso), **+13,7 MB** con tutte e nove le regioni in cache. Ora il commento dice il
+  numero.
+- Ripulita una doppia chiamata a `regioniPerBbox` per la stessa vista.
+
+Misurato sulla mappa vera in questo giro: **cinque spostamenti consecutivi, due
+richieste** — la guardia dell'area già coperta funziona come progettata, e non era mai
+stata osservata.
+
+Verificato a schermo nel terzo giro: la soglia di zoom che parla («avvicinati per vedere
+le zone valanghe»), i dieci layer accesi insieme senza errori in console, la neve a zoom
+13 che chiede mattonelle z8 e le stira (8192 px da 256 nativi), le attribuzioni che vanno
+e vengono coi layer, l'aspetto **in stagione** con i colori 1/3/5 e il bordo nero del
+livello 5, il popup completo, e il contrasto delle righe nuove: 9,85:1 nel tema chiaro,
+12,04:1 nello scuro.
+
+### Test
+- 1806 unità (+130), 32 end-to-end, 4 offline. Nuovi: `valanghe`, `valanghe-proxy`,
+  `terremoti`, `neve`, `fase2-invarianti`, `LayerFase2`. I due finti di Leaflet ora
+  modellano quello che Leaflet fa davvero: il `TileLayer` espone i gestori degli eventi
+  (così il ripiego al giorno prima è verificabile facendo scattare `tileerror`) e il
+  `GeoJSON` congela `data` alla creazione.
+
 ## [0.20.0] — 2026-09-02 — Radar che non lampeggia, cielo per ogni waypoint
 
 Tre segnalazioni, e due difetti trovati per strada mentre le verificavo — uno dei quali

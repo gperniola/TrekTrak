@@ -11,6 +11,9 @@ import { EmergencyPointsLayer } from './EmergencyPointsLayer';
 import { EmergencyZonesLayer } from './EmergencyZonesLayer';
 import { EmergencyRadarLayer } from './EmergencyRadarLayer';
 import { EmergencyShelterLayer } from './EmergencyShelterLayer';
+import { EmergencyQuakeLayer } from './EmergencyQuakeLayer';
+import { EmergencyXyzLayer } from './EmergencyXyzLayer';
+import { EmergencyAvalancheLayer } from './EmergencyAvalancheLayer';
 import { EmergencyFeatureInfo } from './EmergencyFeatureInfo';
 
 export function EmergencyLayers() {
@@ -22,6 +25,8 @@ export function EmergencyLayers() {
   const dpc = useEmergencyStore((s) => s.dpc);
   const radar = useEmergencyStore((s) => s.radar);
   const shelters = useEmergencyStore((s) => s.shelters);
+  const quakes = useEmergencyStore((s) => s.quakes);
+  const avalanche = useEmergencyStore((s) => s.avalanche);
   const dpcSelectedDate = useEmergencyStore((s) => s.dpcSelectedDate);
 
   // Pane dedicato: sopra i tile (200), sotto i tracciati (overlayPane 400).
@@ -72,6 +77,11 @@ export function EmergencyLayers() {
         if (def.kind === 'points' && fires) return <EmergencyPointsLayer key={id} points={fires.points} />;
         if (def.kind === 'tiles' && radar) return <EmergencyRadarLayer key={id} radar={radar} />;
         if (def.kind === 'viewport') return <EmergencyShelterLayer key={id} shelters={shelters} />;
+        if (def.kind === 'xyz') return <EmergencyXyzLayer key={id} def={def} />;
+        if (def.kind === 'quakes' && quakes) return <EmergencyQuakeLayer key={id} quakes={quakes} />;
+        // Il layer valanghe si monta SEMPRE, anche senza dati: e' lui che interroga la
+        // vista, quindi senza montarlo non arriverebbe mai niente da mostrare.
+        if (def.kind === 'avalanche') return <EmergencyAvalancheLayer key={id} bollettino={avalanche} />;
         if (def.kind === 'zones' && dpc && dpcDay) {
           return <EmergencyZonesLayer key={id} zones={dpcDay.zones} dayLabel={dpcLabel} issuedLabel={dpc.issuedLabel} />;
         }

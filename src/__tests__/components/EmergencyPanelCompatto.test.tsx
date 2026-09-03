@@ -52,9 +52,9 @@ describe('pannello layer compatto', () => {
     TUTTI.forEach((id) => useEmergencyStore.getState().stopLayer(id));
   });
 
-  test('sette righe e nessuna intestazione di categoria come riga a se', () => {
+  test('una riga per layer e nessuna intestazione di categoria come riga a se', () => {
     render(<EmergencyLayersPanel />);
-    expect(screen.getAllByRole('switch')).toHaveLength(7);
+    expect(screen.getAllByRole('switch')).toHaveLength(EMERGENCY_LAYERS.length);
     // le categorie non occupano piu' una riga ciascuna: l'emoji sta sulla riga
     expect(screen.queryByText(/^🔥 Incendi$/)).not.toBeInTheDocument();
     expect(screen.queryByText(/^🏠 Dove ripararsi$/)).not.toBeInTheDocument();

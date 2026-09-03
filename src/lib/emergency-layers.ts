@@ -1,14 +1,28 @@
 import { ATTRIBUZIONE_RADAR } from './radar-api';
 import { ATTRIBUZIONE_RIPARI } from './shelters-api';
+import { ATTRIBUZIONE_VALANGHE } from './avalanche-api';
+import { SCALA_EAWS } from './avalanche';
+import { ATTRIBUZIONE_NEVE, LEGENDA_NEVE, ZOOM_NATIVO_MASSIMO_NEVE, giorniDaProvare as giorniNeve, templateNeve } from './snow-cover';
+import { ATTRIBUZIONE_SISMI } from './quakes-api';
 
 export type EmergencyLayerId = 'fires-hotspots' | 'fires-burned' | 'fires-fwi' | 'dpc-alerts'
-  | 'rain-radar' | 'shelters' | 'storm-instability';
+  | 'rain-radar' | 'shelters' | 'storm-instability'
+  | 'avalanche-danger' | 'snow-cover' | 'earthquakes';
 /**
  * `viewport` = layer che si interroga sull'area inquadrata, non una volta per tutte:
  * comanda il componente, quindi `startLayer` non fa partire nessun refresh periodico.
  */
-export type EmergencyLayerKind = 'wms' | 'points' | 'zones' | 'tiles' | 'viewport';
-export type EmergencyCategory = 'incendi' | 'alluvioni' | 'temporali' | 'ripari';
+/*
+  Il `kind` dice **quale renderer** monta l'orchestratore, non solo la forma del dato:
+  focolai e terremoti sono entrambi punti, ma vengono da fonti diverse e si disegnano in
+  modo diverso, quindi hanno due kind. Tenerli sotto `points` avrebbe richiesto un
+  secondo criterio (l'id) dentro il dispatch, cioe' il modo classico di far divergere
+  due verita' sulla stessa cosa.
+*/
+export type EmergencyLayerKind = 'wms' | 'points' | 'zones' | 'tiles' | 'viewport'
+  | 'xyz' | 'quakes' | 'avalanche';
+export type EmergencyCategory = 'incendi' | 'alluvioni' | 'temporali' | 'ripari'
+  | 'neve' | 'sismi';
 
 /**
  * Un'icona per categoria, da mettere sulla riga del layer.
@@ -24,6 +38,8 @@ export const CATEGORY_ICONS: Record<EmergencyCategory, string> = {
   alluvioni: '\u{1F30A}',
   temporali: '\u26C8\uFE0F',
   ripari: '\u{1F3E0}',
+  neve: '\u2744\uFE0F',
+  sismi: '\u{1F30D}',
 };
 
 /** Nome della categoria, per chi non vede l'icona. */
@@ -32,6 +48,8 @@ export const CATEGORY_NAMES: Record<EmergencyCategory, string> = {
   alluvioni: 'Alluvioni e frane',
   temporali: 'Pioggia e temporali',
   ripari: 'Dove ripararsi',
+  neve: 'Neve e valanghe',
+  sismi: 'Terremoti',
 };
 
 export interface LegendEntry { color: string; label: string; }
@@ -70,6 +88,22 @@ export interface WmsConfig {
   queryable?: boolean;
 }
 
+/**
+ * Mattonelle XYZ statiche con una **data** nel percorso (e' il caso di GIBS).
+ *
+ * Diverso da `wms`: non c'e' nessun `GetMap`, e la data non e' un parametro ma un pezzo
+ * dell'URL. `zoomNativoMassimo` qui non e' prudenza — il set di mattonelle si chiama
+ * `GoogleMapsCompatible_Level8`, e sopra l'8 le mattonelle non esistono affatto.
+ */
+export interface XyzConfig {
+  /** Da costruire col giorno: vedi `templateNeve`. */
+  template: (giorno: string) => string;
+  /** I giorni da provare, dal piu' recente. */
+  giorni: (adesso: Date) => string[];
+  opacity: number;
+  zoomNativoMassimo: number;
+}
+
 export interface EmergencyLayerDef {
   id: EmergencyLayerId;
   category: EmergencyCategory;
@@ -80,6 +114,7 @@ export interface EmergencyLayerDef {
   refreshMinutes: number | null;
   legend: LegendEntry[];
   wms?: WmsConfig;
+  xyz?: XyzConfig;
 }
 
 /** Pane Leaflet dedicato: sopra i tile (200), sotto overlayPane dei tracciati (400). */
@@ -271,6 +306,83 @@ export const EMERGENCY_LAYERS: EmergencyLayerDef[] = [
        */
       queryable: false,
     },
+  },
+  {
+    id: 'avalanche-danger',
+    category: 'neve',
+    label: 'Pericolo valanghe',
+    /*
+      La descrizione dice le due cose che cambiano una decisione: che e' un bollettino
+      **per zona** (non per pendio: la scelta del pendio resta a chi cammina) e che fuori
+      stagione non esiste. Senza la seconda, un layer che d'estate non disegna niente si
+      legge come "nessun pericolo".
+    */
+    description: 'Scala europea 1-5 per micro-regione, dai servizi valanghe (EAWS). '
+      + 'Vale per la zona, non per il singolo pendio. Fuori stagione non c\u2019\u00e8 bollettino',
+    kind: 'avalanche',
+    attribution: ATTRIBUZIONE_VALANGHE,
+    // Si interroga sulla vista, come i ripari: nessun timer. Il bollettino esce una volta
+    // al giorno, quindi non c'e' niente da rinfrescare a intervalli.
+    refreshMinutes: null,
+    /*
+      Colori LETTI dal CSS dell'app che pubblica i bollettini, non ricordati: vedi
+      `SCALA_EAWS`. Il livello 5 sul sito ufficiale e' rosso a tratteggio, e qui lo dice
+      l'etichetta invece di inventargli una tinta sua.
+    */
+    legend: [
+      { color: SCALA_EAWS[1].colore, label: '1 \u2014 Debole' },
+      { color: SCALA_EAWS[2].colore, label: '2 \u2014 Moderato' },
+      { color: SCALA_EAWS[3].colore, label: '3 \u2014 Marcato' },
+      { color: SCALA_EAWS[4].colore, label: '4 \u2014 Forte' },
+      { color: SCALA_EAWS[5].colore, label: '5 \u2014 Molto forte (bordo nero)' },
+    ],
+  },
+  {
+    id: 'snow-cover',
+    category: 'neve',
+    label: 'Copertura nevosa (satellite)',
+    /*
+      La riga che conta e' l'ultima: **dove non c'e' colore puo' esserci una nuvola**.
+      Misurato su un tile vero il 2026-09-03: il 59,8% dei pixel era classe "nube", ed e'
+      trasparente. Senza dirlo, un versante nevoso sotto un fronte si legge come spoglio.
+    */
+    description: 'Indice di neve MODIS, un passaggio al giorno. Dettaglio ~500 m, '
+      + 'oltre lo zoom 8 l\u2019immagine \u00e8 stirata. Dove non c\u2019\u00e8 colore pu\u00f2 esserci una nuvola: '
+      + 'il satellite non vede sotto le nubi',
+    kind: 'xyz',
+    attribution: ATTRIBUZIONE_NEVE,
+    // Un passaggio al giorno: chiedere piu' spesso non cambia l'immagine. Serve pero' a
+    // `isStale`, come per gli altri layer a mattonelle.
+    refreshMinutes: 180,
+    legend: LEGENDA_NEVE.map((v) => ({ color: v.color, label: v.label })),
+    xyz: {
+      template: templateNeve,
+      giorni: giorniNeve,
+      opacity: 0.6,
+      zoomNativoMassimo: ZOOM_NATIVO_MASSIMO_NEVE,
+    },
+  },
+  {
+    id: 'earthquakes',
+    category: 'sismi',
+    label: 'Terremoti (48 h)',
+    description: 'Eventi da magnitudo 2 in Italia, dall\u2019INGV. Il colore \u00e8 la magnitudo, '
+      + 'il popup dice profondit\u00e0 e orario',
+    kind: 'quakes',
+    attribution: ATTRIBUZIONE_SISMI,
+    // Un quarto d'ora: le revisioni di magnitudo arrivano poco dopo l'evento, e durante
+    // uno sciame l'elenco cambia davvero.
+    refreshMinutes: 15,
+    /*
+      Le soglie sono quelle degli effetti, non decimali per fare scala: sotto 3 la
+      sentono pochi, da 4 muove gli oggetti, da 5 puo' far danni.
+    */
+    legend: [
+      { color: '#60a5fa', label: 'Magnitudo < 3' },
+      { color: '#eab308', label: '3 \u2013 4' },
+      { color: '#f97316', label: '4 \u2013 5' },
+      { color: '#dc2626', label: '5 e oltre' },
+    ],
   },
 ];
 
