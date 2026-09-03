@@ -3,6 +3,7 @@ import { EmergencyLayersPanel } from '@/components/map/emergency/EmergencyLayers
 import { useUIStore } from '@/stores/uiStore';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { useEmergencyStore } from '@/stores/emergencyStore';
+import { EMERGENCY_LAYERS } from '@/lib/emergency-layers';
 
 jest.mock('@/stores/notificationStore', () => ({
   ...jest.requireActual('@/stores/notificationStore'),
@@ -45,14 +46,22 @@ describe('EmergencyLayersPanel', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  test('mostra i 7 layer con switch spenti', () => {
+  test('mostra tutti i layer del registro, con switch spenti', () => {
     render(<EmergencyLayersPanel />);
     expect(screen.getByText('Focolai attivi (24h)')).toBeInTheDocument();
     expect(screen.getByText('Allerte meteo-idro (DPC)')).toBeInTheDocument();
     expect(screen.getByText(/Radar pioggia/)).toBeInTheDocument();
     expect(screen.getByText(/Rifugi e ricoveri/)).toBeInTheDocument();
     expect(screen.getByText(/Instabilit. osservata/)).toBeInTheDocument();
-    expect(screen.getAllByRole('switch')).toHaveLength(7);
+    expect(screen.getByText(/Pericolo valanghe/)).toBeInTheDocument();
+    expect(screen.getByText(/Copertura nevosa/)).toBeInTheDocument();
+    expect(screen.getByText(/Terremoti/)).toBeInTheDocument();
+    /*
+      Il numero si legge dal registro invece di essere scritto a mano: l'invariante e'
+      "una riga per layer registrato, nessuno nascosto", e un numero fisso costringeva a
+      modificare il test a ogni layer nuovo senza verificare niente di piu'.
+    */
+    expect(screen.getAllByRole('switch')).toHaveLength(EMERGENCY_LAYERS.length);
     screen.getAllByRole('switch').forEach((s) => expect(s).toHaveAttribute('aria-checked', 'false'));
   });
 

@@ -23,6 +23,7 @@ const GIUSTIFICAZIONE = 'cache-immutabile-ok:';
 const SORGENTI_LIVE = [
   'src/lib/fires-proxy.ts',
   'src/lib/dpc-discovery.ts',
+  'src/lib/avalanche-proxy.ts',
 ];
 
 function fetchDichiarateSenzaNoStore(testo: string): number[] {
@@ -60,7 +61,7 @@ describe('i dati di emergenza non passano dalla Data Cache', () => {
    * La seconda cintura: se una `fetch` sfuggisse al controllo sopra, la direttiva di
    * route eviterebbe comunque il disastro.
    */
-  test.each(['fires', 'dpc-alerts'])('la route %s dichiara fetchCache force-no-store', (nome) => {
+  test.each(['fires', 'dpc-alerts', 'avalanche'])('la route %s dichiara fetchCache force-no-store', (nome) => {
     const testo = readFileSync(join(process.cwd(), 'src', 'app', 'api', nome, 'route.ts'), 'utf8');
     expect(testo).toMatch(/export const fetchCache = 'force-no-store'/);
     expect(testo).toMatch(/export const dynamic = 'force-dynamic'/);
@@ -72,6 +73,6 @@ describe('i dati di emergenza non passano dalla Data Cache', () => {
     const nomi = readdirSync(dir, { withFileTypes: true })
       .filter((v) => v.isDirectory())
       .map((v) => v.name);
-    expect(nomi.sort()).toEqual(['dpc-alerts', 'elevation', 'fires', 'shared']);
+    expect(nomi.sort()).toEqual(['avalanche', 'dpc-alerts', 'elevation', 'fires', 'shared']);
   });
 });

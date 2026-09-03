@@ -14,6 +14,7 @@ import {
 import { dayOptions } from '@/lib/dpc';
 import { useOnline } from '@/lib/useOnline';
 import { oraItaliana } from '@/lib/formato';
+import { dataBollettino } from '@/lib/avalanche-api';
 import { finestraRilevazioni, descriviFinestra, descriviEta, datoVecchio } from '@/lib/eta-focolai';
 import type { AppSettings } from '@/lib/types';
 
@@ -74,6 +75,8 @@ export function EmergencyLayerRow({ def, aperta, onApri }: Props) {
   const radarPlaying = useEmergencyStore((s) => s.radarPlaying);
   const setRadarFrame = useEmergencyStore((s) => s.setRadarFrame);
   const toggleRadarPlay = useEmergencyStore((s) => s.toggleRadarPlay);
+  const avalanche = useEmergencyStore((s) => s.avalanche);
+  const xyzGiorno = useEmergencyStore((s) => s.xyzGiorno);
   const dpcSelectedDate = useEmergencyStore((s) => s.dpcSelectedDate);
   const setDpcSelectedDate = useEmergencyStore((s) => s.setDpcSelectedDate);
 
@@ -170,11 +173,19 @@ export function EmergencyLayerRow({ def, aperta, onApri }: Props) {
       )}
       {runtime.partial && runtime.status === 'ready' && (
         <div className="text-[10px] text-amber-400">
+          {/*
+            "Parziale" vuol dire cose diverse a seconda del layer, e un messaggio riusato
+            dice il falso: per i ripari e i terremoti l'elenco e' stato TAGLIATO da un
+            tetto nostro, per le valanghe una regione su nove non ha risposto, per i
+            focolai qualche sensore. Tre cause, tre frasi.
+          */}
           {def.id === 'shelters'
-            // Per i ripari "parziale" significa che l'elenco è stato tagliato dal
-            // servizio: riusare il messaggio delle fonti direbbe una cosa falsa.
             ? '⚠ troppi ripari in quest’area: ne vedi solo una parte, avvicinati per l’elenco completo'
-            : '⚠ dati parziali: alcune fonti non hanno risposto'}
+            : def.id === 'earthquakes'
+              ? '⚠ molti eventi in corso: ne vedi solo i primi 300'
+              : def.id === 'avalanche-danger'
+                ? '⚠ bollettino incompleto: qualche servizio regionale non ha risposto'
+                : '⚠ dati parziali: alcune fonti non hanno risposto'}
         </div>
       )}
       {/* Prima questo avviso stava attaccato all'orario; ora che l'orario è materiale di
@@ -190,6 +201,27 @@ export function EmergencyLayerRow({ def, aperta, onApri }: Props) {
       {focolaiVecchi && finestraFocolai && (
         <div className="text-[10px] text-amber-400">
           ⚠ ultimo passaggio del satellite {descriviEta(finestraFocolai.etaMinuti)}
+        </div>
+      )}
+      {/*
+        DI CHE GIORNO e' il dato.
+
+        Vale per i due layer nuovi che mostrano una giornata precisa e non "adesso": il
+        bollettino valanghe (uno al giorno, e in stagione quello del pomeriggio vale per
+        il giorno dopo) e l'immagine satellitare della neve (un passaggio al giorno, e col
+        ripiego puo' essere di ieri). L'orario in cui li abbiamo CHIESTI non dice niente
+        su quale giornata stiano descrivendo: e' la distinzione che in questo progetto e'
+        gia' costata due rilasci.
+      */}
+      {def.id === 'avalanche-danger' && avalanche?.bulletinDate != null && runtime.status === 'ready' && (
+        <div className="text-[10px] text-gray-300">
+          Bollettino del {dataBollettino(avalanche.bulletinDate)} · {avalanche.zones.length}
+          {avalanche.zones.length === 1 ? ' zona' : ' zone'} in questa vista
+        </div>
+      )}
+      {def.id === 'snow-cover' && xyzGiorno['snow-cover'] != null && runtime.status === 'ready' && (
+        <div className="text-[10px] text-gray-300">
+          Immagine del {dataBollettino(xyzGiorno['snow-cover'] as string)}
         </div>
       )}
       {/* Giornata calma: senza questa riga un layer acceso su una mappa vuota è

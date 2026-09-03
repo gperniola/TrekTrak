@@ -3,6 +3,8 @@ import { EMERGENCY_LAYERS, getEmergencyLayer, type EmergencyLayerId } from '@/li
 import { fetchFiresClient, fetchDpcClient, type DpcData } from '@/lib/emergency-api';
 import { fetchRadarIndex, type RadarIndex } from '@/lib/radar-api';
 import type { Riparo } from '@/lib/shelters-api';
+import { fetchQuakes, type Quake } from '@/lib/quakes-api';
+import type { BollettinoValanghe } from '@/lib/avalanche-api';
 import { NoDataError } from '@/lib/no-data-error';
 import { defaultDpcDate, toYmd } from '@/lib/dpc';
 import { toast } from '@/stores/notificationStore';
@@ -35,6 +37,12 @@ interface EmergencyState {
   radarPlaying: boolean;
   /** Ripari dell'area inquadrata: li aggiorna il componente, non un timer. */
   shelters: Riparo[] | null;
+  /** Terremoti delle ultime 48 ore. */
+  quakes: Quake[] | null;
+  /** Bollettino valanghe della vista: come i ripari, lo chiede il componente. */
+  avalanche: BollettinoValanghe | null;
+  /** Giorno effettivamente usato dai layer a mattonelle con data (neve). */
+  xyzGiorno: Partial<Record<EmergencyLayerId, string>>;
   /**
    * Contatore di tentativi per layer. Entra nella chiave dei layer WMS: senza, il
    * "Riprova" non li rimontava, nessun tile veniva richiesto e il layer restava in
@@ -59,10 +67,34 @@ interface EmergencyState {
   reportShelters: (
     esito: { shelters: Riparo[]; troncato?: boolean } | { error: string } | { nodata: string }
   ) => void;
+  /**
+   * Esito di un'interrogazione delle valanghe sull'area inquadrata. Come per i ripari, la
+   * bbox la conosce solo il componente sulla mappa.
+   */
+  reportAvalanche: (
+    esito: { bollettino: BollettinoValanghe } | { error: string } | { nodata: string }
+  ) => void;
+  /**
+   * Quale giorno stanno mostrando le mattonelle con data.
+   *
+   * Serve a dichiararlo nel pannello: un'immagine di ieri presentata come di oggi e' la
+   * classe di difetto piu' ripetuta di questo progetto.
+   */
+  reportXyzTile: (
+    id: EmergencyLayerId,
+    esito: { giorno: string } | { esaurito: true },
+  ) => void;
   isStale: (id: EmergencyLayerId) => boolean;
 }
 
 const IDLE: LayerRuntime = { status: 'idle', error: null, lastFetch: null };
+
+/** Una copia senza quella chiave: `delete` su una copia, per non mutare lo stato. */
+function senza<T>(mappa: Partial<Record<EmergencyLayerId, T>>, id: EmergencyLayerId): Partial<Record<EmergencyLayerId, T>> {
+  const fuori = { ...mappa };
+  delete fuori[id];
+  return fuori;
+}
 
 const initialLayers = Object.fromEntries(
   EMERGENCY_LAYERS.map((l) => [l.id, { ...IDLE }])
@@ -112,6 +144,9 @@ export const useEmergencyStore = create<EmergencyState>((set, get) => {
     radarFrame: -1,
     radarPlaying: false,
     shelters: null,
+    quakes: null,
+    avalanche: null,
+    xyzGiorno: {},
     retryTick: Object.fromEntries(EMERGENCY_LAYERS.map((l) => [l.id, 0])) as Record<EmergencyLayerId, number>,
     nowTick: Date.now(),
 
@@ -119,7 +154,12 @@ export const useEmergencyStore = create<EmergencyState>((set, get) => {
       const def = getEmergencyLayer(id);
       if (get().layers[id].status !== 'idle') return; // idempotente
 
-      if (def.kind === 'wms') {
+      /*
+        Le mattonelle con data (neve) si comportano come il WMS: non c'e' niente da
+        chiedere via fetch, il layer e' pronto quando le mattonelle arrivano. Lo stato lo
+        dichiara il componente con `reportXyzTile`.
+      */
+      if (def.kind === 'wms' || def.kind === 'xyz') {
         // Non più 'ready' a scatola chiusa: lo stato lo decidono i tile, via
         // reportWmsTile. Prima un'interruzione EFFIS dava tile bianchi con il
         // pannello che dichiarava il layer funzionante.
@@ -132,7 +172,7 @@ export const useEmergencyStore = create<EmergencyState>((set, get) => {
       syncTick();
       // I layer legati alla vista li interroga il componente, che e' l'unico a
       // conoscere l'area inquadrata: qui non si fa partire nulla.
-      if (def.kind === 'viewport') return;
+      if (def.kind === 'viewport' || def.kind === 'avalanche') return;
       void get().refreshLayer(id);
       if (def.refreshMinutes != null && !timers.has(id)) {
         timers.set(id, setInterval(() => { void get().refreshLayer(id); }, def.refreshMinutes * 60 * 1000));
@@ -154,6 +194,19 @@ export const useEmergencyStore = create<EmergencyState>((set, get) => {
         ...(id === 'dpc-alerts' ? { dpc: null, dpcSelectedDate: null } : {}),
         ...(id === 'rain-radar' ? { radar: null, radarFrame: -1, radarPlaying: false } : {}),
         ...(id === 'shelters' ? { shelters: null } : {}),
+        ...(id === 'earthquakes' ? { quakes: null } : {}),
+        ...(id === 'avalanche-danger' ? { avalanche: null } : {}),
+        /*
+          Anche l'etichetta del giorno se ne va col layer: e' un pezzo del payload, e
+          tenerla vorrebbe dire lasciare in giro una data che non descrive piu' niente.
+
+          Si toglie **solo la sua**, e la condizione guarda il KIND e non un id scritto a
+          mano: `xyzGiorno: {}` azzerava la mappa intera — oggi non si vede perche' di
+          layer a mattonelle con data ce n'e' uno, ma il campo e' indicizzato per layer
+          proprio perche' ce ne saranno altri, e un secondo layer si sarebbe spento
+          insieme al primo. Il commento diceva "questo layer", il codice diceva "tutti".
+        */
+        ...(getEmergencyLayer(id).kind === 'xyz' ? { xyzGiorno: senza(get().xyzGiorno, id) } : {}),
       }));
       syncTick();
     },
@@ -182,6 +235,23 @@ export const useEmergencyStore = create<EmergencyState>((set, get) => {
             // rispetta la scelta dell'utente.
             radarFrame: s.radarFrame < 0 ? -1 : Math.min(s.radarFrame, radar.frames.length - 1),
             layers: { ...s.layers, [id]: { status: 'ready', error: null, lastFetch: Date.now() } },
+          }));
+        } else if (id === 'earthquakes') {
+          const { quakes, troncato } = await fetchQuakes(new Date());
+          if (get().layers[id].status === 'idle') return; // stopLayer during flight
+          set((s) => ({
+            quakes,
+            layers: {
+              ...s.layers,
+              /*
+                Zero eventi non e' un errore ed e' la condizione NORMALE: in Italia due
+                giorni senza scosse sopra magnitudo 2 sono frequenti. Va detto come
+                "nessun evento", non lasciato a una mappa vuota che si legge come guasto.
+              */
+              [id]: quakes.length === 0
+                ? { status: 'nodata', error: 'Nessun terremoto sopra magnitudo 2 nelle ultime 48 ore', lastFetch: Date.now() }
+                : { status: 'ready', error: null, lastFetch: Date.now(), partial: troncato },
+            },
           }));
         } else if (id === 'dpc-alerts') {
           const dpc = await fetchDpcClient();
@@ -270,6 +340,81 @@ export const useEmergencyStore = create<EmergencyState>((set, get) => {
       get().stopLayer(id);
       set((s) => ({ retryTick: { ...s.retryTick, [id]: (s.retryTick[id] ?? 0) + 1 } }));
       get().startLayer(id);
+    },
+
+    reportAvalanche: (esito) => {
+      if (get().layers['avalanche-danger'].status === 'idle') return; // layer spento nel frattempo
+      if ('bollettino' in esito) {
+        const b = esito.bollettino;
+        set((s) => ({
+          avalanche: b,
+          layers: {
+            ...s.layers,
+            'avalanche-danger': b.bulletinDate == null
+              /*
+                Nessuna valutazione pubblicata: e' un'informazione, non un guasto.
+                Verificato il 2026-09-03: fuori stagione otto regioni su nove rispondono
+                404 e Meteomont pubblica tutte le zone a zero.
+
+                Il messaggio NON dice "fuori stagione": sarebbe una deduzione nostra, e in
+                gennaio una giornata senza valutazioni la renderebbe falsa. Dice quello
+                che si sa.
+              */
+              ? { status: 'nodata', error: 'Nessuna valutazione pubblicata per questi giorni', lastFetch: Date.now() }
+              : b.joinBroken === true
+                /*
+                  Il bollettino esiste ma non si riesce a disegnare: e' un guasto nostro
+                  (gli id delle micro-regioni sono cambiati), e va detto come errore —
+                  con il "Riprova" accanto — non come "nessun dato". A schermo le due
+                  cose sono identiche: una mappa senza colori.
+                */
+                ? { status: 'error', error: 'Bollettino ricevuto ma non disegnabile: le zone sono cambiate', lastFetch: Date.now() }
+                : b.zones.length === 0
+                // C'e' il bollettino ma non su questa vista: succede fuori dalle zone
+                // montane. Dirlo evita di far credere che il layer sia rotto.
+                ? { status: 'nodata', error: 'Nessuna zona valanghe in questa area', lastFetch: Date.now() }
+                // `partial` = qualche regione non ha risposto: la riga del pannello lo
+                // dichiara, perche' una zona senza colore si legge come senza pericolo.
+                : { status: 'ready', error: null, lastFetch: Date.now(), partial: b.partial === true },
+          },
+        }));
+      } else if ('nodata' in esito) {
+        set((s) => ({
+          avalanche: null,
+          layers: { ...s.layers, 'avalanche-danger': { status: 'nodata', error: esito.nodata, lastFetch: null } },
+        }));
+      } else {
+        set((s) => ({
+          layers: { ...s.layers, 'avalanche-danger': { status: 'error', error: esito.error, lastFetch: null } },
+        }));
+      }
+    },
+
+    reportXyzTile: (id, esito) => {
+      if (get().layers[id].status === 'idle') return;
+      if ('esaurito' in esito) {
+        /*
+          Nessuno dei giorni provati ha immagini. Prima questo caso non esisteva: il
+          componente passava un flag `ultimoTentativo` che lo store **ignorava**, quindi
+          il layer restava 'ready' con una mappa vuota — assenza di dati indistinguibile
+          da "niente neve". E' la stessa classe di difetto di `slim` e del livello utente,
+          valori scritti e riletti da nessuno.
+        */
+        set((s) => ({
+          // La chiave si toglie, non si mette a `undefined`: una chiave presente col
+          // valore vuoto e' la stessa cosa per chi legge, ma non per `Object.keys`.
+          xyzGiorno: senza(s.xyzGiorno, id),
+          layers: {
+            ...s.layers,
+            [id]: { status: 'nodata', error: 'Nessuna immagine disponibile negli ultimi giorni', lastFetch: Date.now() },
+          },
+        }));
+        return;
+      }
+      set((s) => ({
+        xyzGiorno: { ...s.xyzGiorno, [id]: esito.giorno },
+        layers: { ...s.layers, [id]: { status: 'ready', error: null, lastFetch: Date.now() } },
+      }));
     },
 
     reportShelters: (esito) => {

@@ -214,3 +214,16 @@ Da NON perdere — tutte verificate con fetch reali, tutte client-side (CORS `*`
   `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_NDSI_Snow_Cover/default/{YYYY-MM-DD}/GoogleMapsCompatible_Level8/{z}/{y}/{x}.png` (maxNativeZoom 8, daily, latenza ~1 giorno; attribution "NASA GIBS/Worldview")
 - **Terremoti INGV** (GeoJSON, CC-BY 4.0): `https://webservices.ingv.it/fdsnws/event/1/query?format=geojson&starttime=…&minmag=…&limit=…`
 - **GDACS multi-hazard** (GeoJSON): `https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventlist=FL;WF;EQ&fromdate=…&todate=…` — max 100/pagina, soglia di rilevanza globale (eventi italiani minori assenti), dati "indicativi" per ToU
+
+### Esito della fase 2 (2026-09-03)
+
+Le fonti erano validate, ma **otto verifiche su otto hanno cambiato l'implementazione** —
+il dettaglio sta in [[task-51]]. La più importante per l'architettura: le geometrie delle
+micro-regioni valanghe sono **4,85 MB non compressi** e il server non fa gzip, quindi il
+layer non poteva essere client-side come previsto. Si è aggiunta una route
+(`/api/avalanche`) che tiene le geometrie in memoria, **ritaglia sulla vista** e
+semplifica in base allo zoom: al client arrivano 31-106 KB invece di 4,85 MB, misurati.
+
+La lezione per la fase 3, se ci sarà: «la fonte è validata» vuol dire che risponde e che i
+campi ci sono. Non dice quanto pesa, che cosa pubblica fuori stagione, in che fuso sono i
+suoi orari, né se il suo rettangolo copre mezzo Paese.
