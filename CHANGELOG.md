@@ -4,6 +4,60 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.22.0] — 2026-09-03 — Il punto «dove sono», gli anelli di distanza, e i simboli che si vedono
+
+### Added
+- **Il punto della propria posizione sulla mappa.** Mancava: lo store della posizione
+  esisteva dalla v0.11.5 e lo alimentavano già l'avvio e il tasto «La mia posizione», ma
+  nessuno lo **disegnava** — si concedeva il permesso, la mappa volava lì, e sul posto non
+  c'era niente. Ora c'è il punto (anello bianco, cuore blu) e il cerchio dell'incertezza,
+  che si tace quando l'incertezza supera i 2 km: un cerchio da chilometri copre mezza
+  mappa e non dice niente, mentre il punto continua a dire «più o meno qui».
+  **Non chiede mai la posizione**: legge dallo store, che è la stessa garanzia strutturale
+  dell'avviso allerte.
+- **Gli anelli di distanza** attorno a dove sei, con la bussola accesa: tre cerchi
+  concentrici con la loro etichetta. La bussola dà **una** distanza, quella del bersaglio;
+  gli anelli la danno per tutto quello che si vede — «quella cima è appena oltre il
+  secondo anello» diventa un numero senza misurare niente, ed è il mestiere che questa app
+  insegna. I raggi vengono da una scala **1-2-5** (100, 200, 500 m, 1, 2, 5 km…) scelta in
+  modo che tre anelli stiano nella vista: un anello a 337 m non si ricorda, e uno fuori
+  schermo non si vede.
+
+### Fixed
+- **I punti della bussola restavano sulla mappa dopo averla spenta.** Segnalato, e vero:
+  i due marker erano creati *imperativamente* (`L.marker(...).addTo(map)`) dentro un hook
+  che gira a ogni render — anche a strumento spento, perché gli hook stanno **prima**
+  dell'uscita anticipata. Misurato nel browser: le due croci erano attaccate alla mappa
+  **già prima** di accendere la bussola, e spegnendola non venivano rimosse ma spostate a
+  (0,0). Ora si dichiarano nel render, come fa il righello: escono di scena col
+  componente, senza che nessuno debba ricordarsene.
+- **I simboli si vedevano poco.** Segnalato. La croce di prima era due linee da 2 px sopra
+  una mappa escursionistica piena di sentieri arancioni e rossi. Ora ogni simbolo ha il
+  **contorno bianco** e l'ombra — il modo in cui i simboli delle carte restano leggibili su
+  qualunque fondo, non un vezzo: mirino della bussola 28 px (da 20), capi del righello
+  18 px (da 14) con la lettera che ora si legge, e le due linee tracciate due volte,
+  bianca sotto e colorata sopra.
+- **«Dove sono» era disegnato in due modi diversi.** La bussola aveva un suo marker verde,
+  e passando da uno strumento all'altro lo stesso posto cambiava simbolo. Ora la bussola
+  **pubblica** ogni fix nello store e il punto lo disegna un solo componente: un posto, un
+  simbolo — e la posizione resta anche dopo aver spento lo strumento, perché è la tua, non
+  un dettaglio della bussola.
+- Il mirino sta **sopra** il punto della posizione: all'accensione il bersaglio è il centro
+  della mappa, che dopo il volo coincide con dove sei, e con il mirino sotto sembrava che
+  accendere la bussola non avesse fatto niente.
+
+### Test
+- 1831 unità (+20), 32 end-to-end, 4 offline. Nuovi: `anelli-distanza` (la scala 1-2-5 e
+  le etichette all'italiana) e `StrumentiMappa` (bussola spenta che non disegna, punto
+  della posizione, anelli).
+- **Il finto Leaflet ora modella tre cose che prima ignorava**: `Circle` (raggio in metri,
+  non in pixel), `map.distance` calcolata per davvero — un valore finto avrebbe reso verdi
+  i test sugli anelli qualunque cosa facesse il codice — e il **contenuto delle icone**
+  `DivIcon`. Quest'ultima è venuta da un controllo per mutazione: togliendo il mirino della
+  bussola i test restavano verdi, perché contavano «almeno un marker» e i marker c'erano
+  comunque — erano le etichette degli anelli. Ora ogni simbolo si riconosce dal suo nome
+  accessibile.
+
 ## [0.21.1] — 2026-09-03 — I due modi si chiamano «Impara» e «Pianificazione»
 
 ### Changed

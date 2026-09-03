@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { useMap, useMapEvents, Polyline } from 'react-leaflet';
+import { useMap, useMapEvents, Marker, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import { haversineDistance, forwardAzimuth } from '@/lib/calculations';
 import { fetchElevation } from '@/lib/elevation-api';
 import { useMapOverlayGuard } from './useMapOverlayGuard';
+import { AnelliDistanza } from './AnelliDistanza';
+import { usePositionStore } from '@/stores/positionStore';
 import { distanza, gradi } from '@/lib/formato';
 
 interface CompassData {
@@ -19,24 +21,40 @@ interface CompassData {
 
 const AZIMUTH_MIN_DISTANCE_KM = 0.01; // 10m — below this, azimuth is unstable
 
-/** Fixed-size cross marker using Leaflet DivIcon (always same pixel size regardless of zoom) */
-function useCrossMarker(lat: number, lon: number, color: string, map: L.Map) {
-  const markerRef = useRef<L.Marker | null>(null);
-
-  useEffect(() => {
-    const icon = L.divIcon({
-      className: '',
-      html: `<svg width="20" height="20" viewBox="0 0 20 20"><line x1="10" y1="2" x2="10" y2="18" stroke="${color}" stroke-width="2"/><line x1="2" y1="10" x2="18" y2="10" stroke="${color}" stroke-width="2"/><circle cx="10" cy="10" r="3" fill="${color}"/></svg>`,
-      iconSize: [20, 20],
-      iconAnchor: [10, 10],
-    });
-    const marker = L.marker([lat, lon], { icon, interactive: false, keyboard: false }).addTo(map);
-    markerRef.current = marker;
-    return () => { marker.remove(); };
-  }, [lat, lon, color, map]);
-
-  return markerRef;
-}
+/**
+ * Il mirino del bersaglio.
+ *
+ * **Contorno bianco sotto, colore sopra.** Segnalato il 2026-09-03: «i punti sono poco
+ * visibili». La croce di prima era due linee da 2 px di verde o rosso, senza contorno,
+ * sopra una mappa escursionistica piena di sentieri arancioni e rossi: si perdeva nel
+ * disegno. Ogni linea qui è tracciata due volte — bianca e spessa, poi colorata e
+ * sottile — che è il modo in cui i simboli delle carte restano leggibili su qualunque
+ * fondo, e non un vezzo grafico.
+ *
+ * Più grande di prima (28 px contro 20) e con l'ombra: al dito serve un bersaglio, non
+ * un dettaglio.
+ */
+const MIRINO_BERSAGLIO = L.divIcon({
+  className: '',
+  html: '<svg width="28" height="28" viewBox="0 0 28 28" style="filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))">'
+    + '<line x1="14" y1="1" x2="14" y2="9" stroke="#fff" stroke-width="4.5" stroke-linecap="round"/>'
+    + '<line x1="14" y1="19" x2="14" y2="27" stroke="#fff" stroke-width="4.5" stroke-linecap="round"/>'
+    + '<line x1="1" y1="14" x2="9" y2="14" stroke="#fff" stroke-width="4.5" stroke-linecap="round"/>'
+    + '<line x1="19" y1="14" x2="27" y2="14" stroke="#fff" stroke-width="4.5" stroke-linecap="round"/>'
+    + '<circle cx="14" cy="14" r="6.5" fill="none" stroke="#fff" stroke-width="4.5"/>'
+    + '<line x1="14" y1="1" x2="14" y2="9" stroke="#dc2626" stroke-width="2" stroke-linecap="round"/>'
+    + '<line x1="14" y1="19" x2="14" y2="27" stroke="#dc2626" stroke-width="2" stroke-linecap="round"/>'
+    + '<line x1="1" y1="14" x2="9" y2="14" stroke="#dc2626" stroke-width="2" stroke-linecap="round"/>'
+    + '<line x1="19" y1="14" x2="27" y2="14" stroke="#dc2626" stroke-width="2" stroke-linecap="round"/>'
+    + '<circle cx="14" cy="14" r="6.5" fill="none" stroke="#dc2626" stroke-width="2"/>'
+    + '<circle cx="14" cy="14" r="1.8" fill="#dc2626"/>'
+    + '</svg>'
+    // Il nome accessibile si calcola dal contenuto del marker.
+    + '<span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);'
+    + 'white-space:nowrap">Punto mirato</span>',
+  iconSize: [28, 28],
+  iconAnchor: [14, 14],
+});
 
 export function CompassOverlay({ active, onDeactivate }: { active: boolean; onDeactivate: () => void }) {
   const map = useMap();
@@ -74,6 +92,14 @@ export function CompassOverlay({ active, onDeactivate }: { active: boolean; onDe
     watchIdRef.current = navigator.geolocation.watchPosition(
       async (pos) => {
         const { latitude, longitude } = pos.coords;
+        /*
+          Pubblicata nello store: il punto sulla mappa lo disegna `PosizioneUtente`, che
+          legge da li'. Cosi' "dove sono" e' una cosa sola — e la posizione resta anche
+          dopo che la bussola si spegne, che e' quello che serve.
+        */
+        usePositionStore.getState().setLastKnown({
+          lat: latitude, lon: longitude, accuracy: pos.coords.accuracy ?? null,
+        });
         if (firstFix) {
           map.flyTo([latitude, longitude], Math.max(map.getZoom(), 15), { duration: 1 });
           firstFix = false;
@@ -138,16 +164,6 @@ export function CompassOverlay({ active, onDeactivate }: { active: boolean; onDe
     },
   });
 
-  // Render cross markers via Leaflet DivIcon (fixed pixel size)
-  useCrossMarker(
-    data?.userLat ?? 0, data?.userLon ?? 0,
-    '#4ade80', map
-  );
-  useCrossMarker(
-    data?.targetLat ?? 0, data?.targetLon ?? 0,
-    '#ef4444', map
-  );
-
   // Il pannello copre una fetta di mappa: senza guardia, toccarlo piazza un punto
   // sotto di esso. I tre riquadri sono mutuamente esclusivi, quindi una guardia sola
   // basta: passando da uno all'altro scollega il nodo precedente.
@@ -185,12 +201,52 @@ export function CompassOverlay({ active, onDeactivate }: { active: boolean; onDe
 
   return (
     <>
-      {/* Line between user and target */}
+      {/*
+        **Gli anelli di distanza attorno a dove sei.**
+
+        La bussola dice una distanza, quella del bersaglio; gli anelli la dicono per tutto
+        quello che si vede. I raggi li scegle `lib/anelli-distanza.ts` da una scala 1-2-5,
+        in modo che ce ne stiano tre nella vista.
+      */}
+      <AnelliDistanza lat={data.userLat} lon={data.userLon} />
+
+      {/*
+        La linea, bianca sotto e gialla sopra: da sola, sopra una mappa coi sentieri
+        arancioni, la tratteggiata gialla si confondeva col resto.
+      */}
+      <Polyline
+        positions={[[data.userLat, data.userLon], [data.targetLat, data.targetLon]]}
+        color="#ffffff"
+        weight={5}
+        opacity={0.8}
+        interactive={false}
+      />
       <Polyline
         positions={[[data.userLat, data.userLon], [data.targetLat, data.targetLon]]}
         color="#facc15"
-        weight={2}
+        weight={2.5}
         dashArray="6 4"
+        interactive={false}
+      />
+
+      {/*
+        Il mirino del bersaglio. Il punto in cui SEI lo disegna `PosizioneUtente`, che
+        legge la posizione dallo store: una cosa sola, un disegno solo — prima la bussola
+        ne aveva uno suo, e passando da uno strumento all'altro ci si ritrovava con due
+        simboli diversi per lo stesso posto.
+      */}
+      <Marker
+        position={[data.targetLat, data.targetLon]}
+        icon={MIRINO_BERSAGLIO}
+        interactive={false}
+        keyboard={false}
+        /*
+          Sopra il punto della posizione (che sta a 500): all'accensione il bersaglio E'
+          il centro della mappa, che dopo il volo coincide con dove sei — i due simboli
+          finiscono uno sull'altro, e se sotto c'e' il mirino sembra che accendere la
+          bussola non abbia fatto niente. Appena si sposta la mappa si separano.
+        */
+        zIndexOffset={600}
       />
 
       {/* Overlay with compass data */}

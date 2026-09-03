@@ -14,19 +14,32 @@ interface RulerPoint {
   alt: number | null;
 }
 
-const markerA = L.divIcon({
-  className: '',
-  html: '<div style="width:14px;height:14px;background:#4ade80;border-radius:50%;border:2px solid #fff;font-size:9px;display:flex;align-items:center;justify-content:center;color:#000;font-weight:bold;">A</div>',
-  iconSize: [14, 14],
-  iconAnchor: [7, 7],
-});
+/**
+ * I due capi della misura.
+ *
+ * Più grandi di prima (18 px contro 14) e con l'ombra: il contorno bianco c'era già ed è
+ * la cosa che li rende leggibili su una mappa piena di sentieri colorati, ma a 14 px la
+ * lettera dentro era illeggibile e il pallino si confondeva coi simboli dei sentieri.
+ * Stessa lingua visiva del mirino della bussola — contorno chiaro, ombra, un simbolo che
+ * si vede col dito sopra.
+ */
+function capoMisura(lettera: 'A' | 'B', colore: string, testo: string): L.DivIcon {
+  return L.divIcon({
+    className: '',
+    html: `<div style="width:18px;height:18px;background:${colore};border-radius:50%;`
+      + 'border:2.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.55);font-size:10px;'
+      + `display:flex;align-items:center;justify-content:center;color:${testo};font-weight:700;`
+      + `line-height:1">${lettera}`
+      // Il nome accessibile si calcola dal contenuto del marker.
+      + '<span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);'
+      + `white-space:nowrap">Punto ${lettera} della misura</span></div>`,
+    iconSize: [18, 18],
+    iconAnchor: [9, 9],
+  });
+}
 
-const markerB = L.divIcon({
-  className: '',
-  html: '<div style="width:14px;height:14px;background:#ef4444;border-radius:50%;border:2px solid #fff;font-size:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;">B</div>',
-  iconSize: [14, 14],
-  iconAnchor: [7, 7],
-});
+const markerA = capoMisura('A', '#16a34a', '#fff');
+const markerB = capoMisura('B', '#dc2626', '#fff');
 
 export function RulerTool({ active, onDeactivate }: { active: boolean; onDeactivate: () => void }) {
   const [pointA, setPointA] = useState<RulerPoint | null>(null);
@@ -116,12 +129,26 @@ export function RulerTool({ active, onDeactivate }: { active: boolean; onDeactiv
       {pointB && (
         <Marker position={[pointB.lat, pointB.lon]} icon={markerB} interactive={false} keyboard={false} />
       )}
+      {/*
+        La linea, bianca sotto e gialla sopra: la tratteggiata gialla da sola si
+        confondeva coi sentieri arancioni della mappa escursionistica.
+      */}
+      {pointA && pointB && (
+        <Polyline
+          positions={[[pointA.lat, pointA.lon], [pointB.lat, pointB.lon]]}
+          color="#ffffff"
+          weight={5}
+          opacity={0.8}
+          interactive={false}
+        />
+      )}
       {pointA && pointB && (
         <Polyline
           positions={[[pointA.lat, pointA.lon], [pointB.lat, pointB.lon]]}
           color="#facc15"
-          weight={2}
+          weight={2.5}
           dashArray="6 4"
+          interactive={false}
         />
       )}
       {pointA && pointB && (

@@ -15,6 +15,7 @@ import { CompassOverlay } from './CompassTool';
 import { RulerTool } from './RulerTool';
 import { CoordinateGrid } from './CoordinateGrid';
 import { MyLocationButton } from './MyLocationButton';
+import { PosizioneUtente } from './PosizioneUtente';
 import { ClearWaypointsButton } from './ClearWaypointsButton';
 import { EmergencyLayersButton } from './emergency/EmergencyLayersButton';
 import { EmergencyLayersPanel } from './emergency/EmergencyLayersPanel';
@@ -204,6 +205,12 @@ export function InteractiveMap() {
       */}
       {mostra('layerEmergenza', profiloAttivo) && <EmergencyLayers />}
       <GeolocateOnMount />
+      {/*
+        Il punto "dove sono", appena una posizione e' nota: non la chiede mai, la legge
+        dallo store. Prima non lo disegnava nessuno — si concedeva il permesso, la mappa
+        volava li', e sul posto non c'era niente.
+      */}
+      <PosizioneUtente />
       <LocationSearch mobileSearchOpen={searchOpen} />
       {/*
         Le quattro mappe hanno limiti di dettaglio diversi (22, 20, 19, 17): oltre il
