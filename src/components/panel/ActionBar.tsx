@@ -44,6 +44,7 @@ import { toast } from '@/stores/notificationStore';
 import { mostra } from '@/lib/profilo';
 import { useTessereOffline } from '@/lib/useTessereOffline';
 import { numero } from '@/lib/formato';
+import { useChiudiFuori } from '@/lib/useChiudiFuori';
 
 
 export function ActionBar() {
@@ -60,24 +61,8 @@ export function ActionBar() {
   const [verifying, setVerifying] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [formatiAperti, setFormatiAperti] = useState(false);
+  const refFormati = useChiudiFuori<HTMLDivElement>(formatiAperti, () => setFormatiAperti(false));
   const offline = useTessereOffline();
-  const refFormati = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!formatiAperti) return;
-    const fuori = (e: MouseEvent | TouchEvent) => {
-      if (refFormati.current && !refFormati.current.contains(e.target as Node)) setFormatiAperti(false);
-    };
-    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setFormatiAperti(false); };
-    document.addEventListener('mousedown', fuori);
-    document.addEventListener('touchstart', fuori);
-    document.addEventListener('keydown', esc);
-    return () => {
-      document.removeEventListener('mousedown', fuori);
-      document.removeEventListener('touchstart', fuori);
-      document.removeEventListener('keydown', esc);
-    };
-  }, [formatiAperti]);
   const verifyingRef = useRef(false);
   const mountedRef = useRef(true);
   const verifyGenerationRef = useRef(0);

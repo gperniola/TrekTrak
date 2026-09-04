@@ -6,6 +6,7 @@ import { useItineraryStore } from '@/stores/itineraryStore';
 import { buildGradientStops } from '@/lib/calculations';
 import type { Leg } from '@/lib/types';
 import { km, metri } from '@/lib/formato';
+import { useChiudiFuori } from '@/lib/useChiudiFuori';
 
 const ESTIMATED_TOOLTIP = 'Profilo basato solo sulle quote ai waypoint: non riflette salite e discese intermedie.';
 
@@ -24,24 +25,8 @@ export function ElevationProfile() {
 
   // Tooltip state for "stimato" label
   const [tipOpen, setTipOpen] = useState(false);
-  const tipRef = useRef<HTMLSpanElement>(null);
+  const tipRef = useChiudiFuori<HTMLSpanElement>(tipOpen, () => setTipOpen(false));
   const lastHoverTime = useRef(0);
-
-  useEffect(() => {
-    if (!tipOpen) return;
-    const close = (e: MouseEvent | TouchEvent) => {
-      if (tipRef.current && !tipRef.current.contains(e.target as Node)) setTipOpen(false);
-    };
-    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setTipOpen(false); };
-    document.addEventListener('mousedown', close);
-    document.addEventListener('touchstart', close);
-    document.addEventListener('keydown', esc);
-    return () => {
-      document.removeEventListener('mousedown', close);
-      document.removeEventListener('touchstart', close);
-      document.removeEventListener('keydown', esc);
-    };
-  }, [tipOpen]);
 
   const handleChartMouseMove = useCallback((state: { activeLabel?: string | number }) => {
     const now = Date.now();

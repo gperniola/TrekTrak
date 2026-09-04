@@ -11,19 +11,9 @@ import {
   addCompletion, updateCompletion, deleteCompletion, getKnownPeople,
 } from '../lib/storage';
 import type { Itinerary, AppSettings } from '../lib/types';
+import { installaLocalStorage } from './fixtures/finto-localstorage';
 
-const localStorageMock = (() => {
-  let store: Record<string, string> = {};
-  return {
-    getItem: (key: string) => store[key] ?? null,
-    setItem: (key: string, value: string) => { store[key] = value; },
-    removeItem: (key: string) => { delete store[key]; },
-    clear: () => { store = {}; },
-    get length() { return Object.keys(store).length; },
-    key: (i: number) => Object.keys(store)[i] ?? null,
-  };
-})();
-Object.defineProperty(global, 'localStorage', { value: localStorageMock });
+const deposito = installaLocalStorage();
 
 const makeItinerary = (id: string, name: string): Itinerary => ({
   id,
@@ -35,7 +25,7 @@ const makeItinerary = (id: string, name: string): Itinerary => ({
 });
 
 beforeEach(() => {
-  localStorageMock.clear();
+  deposito.clear();
 });
 
 describe('saveItinerary and loadItineraries', () => {
@@ -135,12 +125,12 @@ describe('isStorageNearLimit', () => {
 
 describe('saveItinerary quota exceeded', () => {
   test('throws user-friendly error when localStorage is full', () => {
-    const originalSetItem = localStorageMock.setItem;
-    localStorageMock.setItem = () => { throw new DOMException('quota exceeded'); };
+    const originalSetItem = deposito.setItem;
+    deposito.setItem = () => { throw new DOMException('quota exceeded'); };
     try {
       expect(() => saveItinerary(makeItinerary('1', 'Big'))).toThrow('Spazio di archiviazione esaurito');
     } finally {
-      localStorageMock.setItem = originalSetItem;
+      deposito.setItem = originalSetItem;
     }
   });
 });

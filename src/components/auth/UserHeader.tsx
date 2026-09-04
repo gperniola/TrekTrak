@@ -2,34 +2,19 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
+import { useChiudiFuori } from '@/lib/useChiudiFuori';
 
 export function UserHeader() {
   const member = useAuthStore((s) => s.member);
   const signOut = useAuthStore((s) => s.signOut);
   const updateUsername = useAuthStore((s) => s.updateUsername);
   const [open, setOpen] = useState(false);
+  const ref = useChiudiFuori<HTMLDivElement>(open, () => { setOpen(false); setEditing(false); });
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
 
-  // Chiudi il menu su click fuori / Escape (coerente con gli altri menu del repo).
-  useEffect(() => {
-    if (!open) return;
-    const close = (e: MouseEvent | TouchEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) { setOpen(false); setEditing(false); }
-    };
-    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') { setOpen(false); setEditing(false); } };
-    document.addEventListener('mousedown', close);
-    document.addEventListener('touchstart', close);
-    document.addEventListener('keydown', esc);
-    return () => {
-      document.removeEventListener('mousedown', close);
-      document.removeEventListener('touchstart', close);
-      document.removeEventListener('keydown', esc);
-    };
-  }, [open]);
 
   if (!member) return null;
 
