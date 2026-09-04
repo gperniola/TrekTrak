@@ -18,7 +18,7 @@ export const CATEGORIE = Object.keys(ETICHETTE_CATEGORIA) as CategoryField[];
  * chilometri — e sono tre cose diverse. La distanza si scrive in metri perche' e' un
  * ERRORE: "Δ 761 m" si capisce, "Δ 0,8 km" no.
  */
-export function scartoMedio(cat: CategoryField, valore: number): string {
+function scartoMedio(cat: CategoryField, valore: number): string {
   if (cat === 'azimuth') return gradi(valore);
   if (cat === 'distance') return metri(Math.round(valore * 1000));
   return metri(Math.round(valore));

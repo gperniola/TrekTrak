@@ -390,7 +390,7 @@ export { oraItaliana };
  * contrario ("15:00-00:00"). A fine giornata si scrive 24:00, come gli orari di
  * chiusura.
  */
-export function oraFineItaliana(iso: string): string {
+function oraFineItaliana(iso: string): string {
   const scritto = oraItaliana(iso);
   return scritto === '00:00' ? '24:00' : scritto;
 }

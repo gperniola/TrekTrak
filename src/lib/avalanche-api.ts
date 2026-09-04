@@ -36,7 +36,7 @@ export interface BollettinoValanghe {
 export const ATTRIBUZIONE_VALANGHE = 'Valanghe: <a href="https://www.avalanches.org/">EAWS</a>'
   + ' / servizi valanghe regionali e Meteomont';
 
-export function buildAvalancheUrl(vista: BBoxGeo, zoom: number): string {
+function buildAvalancheUrl(vista: BBoxGeo, zoom: number): string {
   const p = new URLSearchParams({
     south: vista.south.toFixed(4),
     west: vista.west.toFixed(4),

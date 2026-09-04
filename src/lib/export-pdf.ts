@@ -19,7 +19,7 @@ interface PdfData {
   difficulty: DifficultyGrade;
 }
 
-export function generateSummaryPDF(data: PdfData): jsPDF {
+function generateSummaryPDF(data: PdfData): jsPDF {
   const doc = new jsPDF();
   const { name, waypoints, legs, totalDistance, totalElevGain, totalElevLoss, totalTime, difficulty } = data;
 
@@ -89,7 +89,7 @@ export function generateSummaryPDF(data: PdfData): jsPDF {
   return doc;
 }
 
-export function generateRoadbookPDF(data: PdfData): jsPDF {
+function generateRoadbookPDF(data: PdfData): jsPDF {
   const doc = generateSummaryPDF(data);
   const { waypoints, legs } = data;
 
