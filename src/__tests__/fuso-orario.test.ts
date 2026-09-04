@@ -1,6 +1,6 @@
 import { readFileSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
-import { dataItaliana, oraItaliana } from '@/lib/formato';
+import { dataItaliana, giornoItalianoDi, giornoMese, oraItaliana } from '@/lib/formato';
 
 /**
  * **Ogni data e ogni ora che l'utente legge sono in ora italiana.**
@@ -18,7 +18,13 @@ import { dataItaliana, oraItaliana } from '@/lib/formato';
  *   partiva dalle 07:00;
  * - **2026-09-04** (questo guardiano) — `CompletionList` e `QuizSummary` formattavano una
  *   **data** senza fuso: una registrazione dell'una di notte cadeva nel giorno prima. Ed è
- *   il caso peggiore della famiglia, perché un'ora sbagliata si vede e un giorno no.
+ *   il caso peggiore della famiglia, perché un'ora sbagliata si vede e un giorno no;
+ * - **2026-09-04, poche ore dopo** — e il guardiano appena scritto **non ha visto** la
+ *   metà del problema: guardava solo `toLocale*`, mentre la stessa famiglia vive nei
+ *   getter locali di `Date`. `toYmd` in `lib/dpc.ts` (i giorni del bollettino di allerta e
+ *   il parametro TIME dei WMS) e l'asse del grafico dei progressi passavano da
+ *   `getFullYear`/`getMonth`/`getDate`, cioè dal fuso del **dispositivo**. Trovato leggendo
+ *   `ProgressOverlay` per spacchettarlo, non da un test.
  *
  * Un commento non è un controllo: le prime tre volte il file di `formato.ts` conteneva già
  * l'avvertimento. Questo è il controllo.
@@ -78,6 +84,37 @@ export function senzaFuso(testo: string): number[] {
   return colpevoli;
 }
 
+/**
+ * **I getter locali di `Date`.**
+ *
+ * `getDate()`, `getMonth()`, `getHours()` e compagnia rispondono nel fuso del dispositivo.
+ * Per l'aritmetica sul tempo si usano gli istanti (`getTime()`) e per il fuso italiano
+ * `lib/formato`: in tutto il prodotto non ce n'è **nessuno** legittimo, quindi la regola
+ * qui è semplice, e una regola semplice non si aggira per sbaglio.
+ *
+ * `getUTC*` non conta: dichiara il fuso che usa, e in questo progetto serve dove il dato
+ * arriva in UTC (le fasce critiche del meteo, le acquisizioni dei satelliti).
+ */
+export function getterLocali(testo: string): number[] {
+  const righe = testo.split('\n');
+  const colpevoli: number[] = [];
+  let inCommento = false;
+  righe.forEach((riga, i) => {
+    const nudo = riga.trim();
+    if (inCommento) {
+      if (nudo.includes('*/')) inCommento = false;
+      return;
+    }
+    if (nudo.startsWith('/*')) {
+      if (!nudo.includes('*/')) inCommento = true;
+      return;
+    }
+    if (nudo.startsWith('//') || nudo.startsWith('*')) return;
+    if (/\.get(Date|Month|FullYear|Hours|Minutes|Seconds|Day)\(\)/.test(riga)) colpevoli.push(i + 1);
+  });
+  return colpevoli;
+}
+
 describe('il fuso non si dimentica', () => {
   const file = sorgenti(join(RADICE, 'src')).filter((f) => !f.endsWith(CASA_DEI_FORMATI));
 
@@ -122,6 +159,32 @@ describe('il fuso non si dimentica', () => {
     expect(file.some((f) => f.endsWith('QuizSummary.tsx'))).toBe(true);
   });
 
+  test('il controllo riconosce un getter locale', () => {
+    expect(getterLocali('const g = d.getDate();')).toEqual([1]);
+    expect(getterLocali('const g = d.getFullYear();')).toEqual([1]);
+    expect(getterLocali('const g = d.getUTCDate();')).toEqual([]);
+    expect(getterLocali('const t = d.getTime();')).toEqual([]);
+    expect(getterLocali('// usava d.getDate() col fuso del dispositivo')).toEqual([]);
+    expect(getterLocali('  * usava d.getDate() col fuso del dispositivo')).toEqual([]);
+  });
+
+  /**
+   * **Nessun getter locale di `Date` in tutto il prodotto.**
+   *
+   * Era la metà del problema che il guardiano non vedeva: `toYmd` decideva «che giorno è»
+   * col fuso del dispositivo, e da lì passavano i giorni del bollettino di allerta e il
+   * parametro TIME dei WMS.
+   */
+  test('nessun file legge un pezzo di data col fuso del dispositivo', () => {
+    const colpevoli: string[] = [];
+    for (const f of file) {
+      for (const riga of getterLocali(readFileSync(f, 'utf8'))) {
+        colpevoli.push(`${f.slice(RADICE.length + 1)}:${riga}`);
+      }
+    }
+    expect(colpevoli).toEqual([]);
+  });
+
   /**
    * `formato.ts` è l'unica casa in cui il fuso si scrive: se domani qualcuno ne facesse un
    * secondo posto, questo test non lo vedrebbe. Quindi si controlla che la casa sia una.
@@ -157,5 +220,29 @@ describe('le funzioni di casa', () => {
     const d = new Date(unaDiNotteItaliana);
     expect(dataItaliana(d)).toBe('04/09/2026');
     expect(dataItaliana(d.getTime())).toBe('04/09/2026');
+  });
+
+  test('giornoMese scrive giorno e mese, in ora italiana', () => {
+    expect(giornoMese(unaDiNotteItaliana)).toBe('04/09');
+    expect(giornoMese('ieri')).toBe('—');
+    expect(giornoMese(null)).toBe('—');
+  });
+
+  /**
+   * `giornoItalianoDi` non e' una formattazione da leggere: e' la CHIAVE con cui l'app
+   * confronta i giorni. Il formato `YYYY-MM-DD` e' anche l'unico in cui due giorni si
+   * possono confrontare con `<` fra stringhe, che e' come `dayOptions` decide quali
+   * pulsanti spegnere.
+   */
+  test('giornoItalianoDi da la chiave del giorno italiano', () => {
+    expect(giornoItalianoDi(new Date(unaDiNotteItaliana))).toBe('2026-09-04');
+    // Mezzanotte e mezza italiana e' ancora il 3 a Londra: la chiave dice 4 comunque.
+    expect(giornoItalianoDi(new Date('2026-09-03T23:30:00Z'))).toBe('2026-09-04');
+    expect(giornoItalianoDi(new Date('2026-09-03T21:30:00Z'))).toBe('2026-09-03');
+  });
+
+  test('e i giorni cosi scritti si confrontano con il minore', () => {
+    expect(giornoItalianoDi(new Date('2026-09-03T10:00:00Z'))
+      < giornoItalianoDi(new Date('2026-09-04T10:00:00Z'))).toBe(true);
   });
 });

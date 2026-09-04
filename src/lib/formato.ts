@@ -120,3 +120,34 @@ export function dataItaliana(quando: string | number | Date | null | undefined):
       day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Rome',
     });
 }
+
+/**
+ * Giorno e mese in ora italiana: `giornoMese('2026-09-04T…')` -> `"04/09"`.
+ *
+ * Per le etichette compatte — l'asse di un grafico, un elenco di giorni — dove l'anno
+ * sarebbe rumore. Stesso fuso di [[dataItaliana]], per la stessa ragione: un giorno
+ * sbagliato non si vede.
+ */
+export function giornoMese(quando: string | number | Date | null | undefined): string {
+  if (quando == null) return '—';
+  const d = quando instanceof Date ? quando : new Date(quando);
+  return Number.isNaN(d.getTime())
+    ? '—'
+    : d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', timeZone: 'Europe/Rome' });
+}
+
+/**
+ * **Il giorno civile italiano di un istante, in `YYYY-MM-DD`.**
+ *
+ * Non e' una formattazione da leggere: e' la CHIAVE con cui l'app confronta i giorni —
+ * quale giornata copre un bollettino, quale data chiedere a un servizio WMS, quale
+ * pulsante si chiama «Oggi». Sta qui perche' e' la stessa domanda di `dataItaliana` con
+ * un'altra uscita, e perche' avere due posti che decidono «che giorno e'» significa
+ * averne due che possono rispondere in modo diverso.
+ *
+ * `en-CA` da' esattamente `YYYY-MM-DD`, che e' anche l'unico formato in cui il confronto
+ * fra due giorni si puo' fare con `<` fra stringhe.
+ */
+export function giornoItalianoDi(quando: Date): string {
+  return quando.toLocaleDateString('en-CA', { timeZone: 'Europe/Rome' });
+}

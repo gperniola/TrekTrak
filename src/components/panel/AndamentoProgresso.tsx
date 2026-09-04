@@ -1,20 +1,12 @@
 'use client';
 
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { giornoMese } from '@/lib/formato';
 import type { CategoryField, TrendDataPoint } from '@/lib/learning-stats';
 import { CATEGORIE, ETICHETTE_CATEGORIA } from './SchedaCategoria';
 
-function formatDate(iso: string): string {
-  try {
-    const d = new Date(iso);
-    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
-  } catch {
-    return '—';
-  }
-}
-
 function etichettaGiorno(label: unknown): string {
-  return typeof label === 'string' ? formatDate(label) : '—';
+  return typeof label === 'string' ? giornoMese(label) : '—';
 }
 
 /**
@@ -47,7 +39,7 @@ export function AndamentoProgresso(
       <div className="text-xs text-gray-400 font-medium mb-2">Andamento nel tempo</div>
       <ResponsiveContainer width="100%" height={160} minWidth={0}>
         <LineChart data={punti}>
-          <XAxis dataKey="date" tickFormatter={formatDate} tick={{ fontSize: 10, fill: '#9ca3af' }} />
+          <XAxis dataKey="date" tickFormatter={giornoMese} tick={{ fontSize: 10, fill: '#9ca3af' }} />
           <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: '#9ca3af' }} width={30} />
           <Tooltip
             contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px', fontSize: '11px' }}
