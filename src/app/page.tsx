@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { LeftPanel } from '@/components/panel/LeftPanel';
 import { MapWrapper } from '@/components/map/MapWrapper';
 import { ElevationProfile } from '@/components/map/ElevationProfile';
@@ -18,16 +18,19 @@ const ProgressOverlay = dynamic(() => import('@/components/panel/ProgressOverlay
 // Trascinerebbe `lib/dpc` (e con esso topojson-client) più emergencyStore nel First
 // Load di `/`: è un controllo d'avvio, non serve al primo paint.
 const DpcPositionWarning = dynamic(() => import('@/components/shared/DpcPositionWarning').then((m) => ({ default: m.DpcPositionWarning })), { ssr: false });
-import { loadSettings, KEYS } from '@/lib/storage';
-import { profiloIniziale, profiloPerInvito } from '@/lib/startup-profilo';
-import { loadCurrent } from '@/lib/current-itinerary';
 import { useItineraryAutosave } from '@/lib/useItineraryAutosave';
-import { startupAction } from '@/lib/startup-itinerary';
-import { useItineraryStore } from '@/stores/itineraryStore';
+import {
+  useAvvioAuth,
+  useImpostazioniSalvate,
+  useItinerarioDaLink,
+  useOnboardingMobile,
+  useProfiloDiAvvio,
+  useRipristinoItinerario,
+} from '@/lib/useAvvio';
+import { useTastoIndietro } from '@/lib/useTastoIndietro';
 import { useUIStore } from '@/stores/uiStore';
 import { useRouteLibraryStore } from '@/stores/routeLibraryStore';
 import { useAuthStore } from '@/stores/authStore';
-import { decodeItinerary } from '@/lib/share-url';
 import { OfflineBanner } from '@/components/shared/OfflineBanner';
 import { UpdateBanner } from '@/components/shared/UpdateBanner';
 import { ToastContainer } from '@/components/shared/Toast';
@@ -38,8 +41,6 @@ import { MapToolsFab } from '@/components/map/MapToolsFab';
 import { MoreMenu } from '@/components/panel/MoreMenu';
 // Il pannello trascina il client Open-Meteo e i calcoli: si carica quando lo si apre.
 const RouteWeatherPanel = dynamic(() => import('@/components/weather/RouteWeatherPanel').then((m) => ({ default: m.RouteWeatherPanel })), { ssr: false });
-import { nextBackAction } from '@/lib/back-nav';
-import { confirm as appConfirm, toast } from '@/stores/notificationStore';
 import { useTema } from '@/lib/useTema';
 
 export default function Home() {
@@ -50,8 +51,6 @@ export default function Home() {
 
   const mainView = useUIStore((s) => s.mainView);
   const mobileTab = useUIStore((s) => s.mobileTab);
-  const profiloCorrente = useUIStore((s) => s.profilo);
-  const appModeCorrente = useItineraryStore((s) => s.appMode);
   const searchOpen = useUIStore((s) => s.searchOpen);
   const quizActive = useUIStore((s) => s.quizActive);
   const progressOpen = useUIStore((s) => s.progressOpen);
@@ -59,14 +58,6 @@ export default function Home() {
   const setSearchOpen = useUIStore((s) => s.setSearchOpen);
   const deactivateQuiz = useUIStore((s) => s.deactivateQuiz);
   const closeProgress = useUIStore((s) => s.closeProgress);
-  const moreMenuOpen = useUIStore((s) => s.moreMenuOpen);
-  const setMoreMenuOpen = useUIStore((s) => s.setMoreMenuOpen);
-  const emergencyPanelOpen = useUIStore((s) => s.emergencyPanelOpen);
-  const setEmergencyPanelOpen = useUIStore((s) => s.setEmergencyPanelOpen);
-  const toolsFabOpen = useUIStore((s) => s.toolsFabOpen);
-  const setToolsFabOpen = useUIStore((s) => s.setToolsFabOpen);
-  const weatherOpen = useUIStore((s) => s.weatherOpen);
-  const setWeatherOpen = useUIStore((s) => s.setWeatherOpen);
 
   const previewRoute = useRouteLibraryStore((s) => s.routes.find((r) => r.id === s.selectedRouteId));
   const clearRouteSelection = useRouteLibraryStore((s) => s.select);
@@ -82,245 +73,25 @@ export default function Home() {
   const inInviteFlow = invited && !isMember;
 
   /*
-   * Un invito alla libreria condivisa ha la precedenza sul profilo: la libreria e' area
-   * di Montagna, e chi apre un link di invito non deve trovare l'app che gli nasconde
-   * proprio la cosa per cui e' stato invitato.
-   */
-  useEffect(() => {
-    if (!inInviteFlow) return;
-    const voluto = profiloPerInvito(useUIStore.getState().profilo, true);
-    if (voluto !== useUIStore.getState().profilo) useUIStore.getState().setProfilo(voluto);
-  }, [inInviteFlow]);
-
-  // Initialize auth store once on mount (session, invite, member).
-  useEffect(() => { void useAuthStore.getState().init(); }, []);
-
-  // Hydrate settings from localStorage on mount
-  useEffect(() => {
-    const persisted = loadSettings();
-    useItineraryStore.getState().updateSettings(persisted);
-  }, []);
-
-  /*
-   * Profilo d'uso all'avvio. Qui c'e' solo la lettura dello storage: la decisione sta
-   * in `profiloIniziale`, funzione pura, cosi' si verifica senza DOM.
-   */
-  useEffect(() => {
-    let salvato: string | null = null;
-    let livello: string | null = null;
-    try {
-      salvato = localStorage.getItem(KEYS.profilo);
-      livello = localStorage.getItem(KEYS.userLevel);
-    } catch { /* storage bloccato */ }
-    useUIStore.getState().setProfilo(profiloIniziale({ salvato, livello }));
-  }, []);
-
-  /*
-   * In Montagna i valori li calcola l'app: il modo si allinea al profilo.
-   *
-   * I valori inseriti a mano non si perdono — `learnValues` e `trackValues` vivono in
-   * parallelo dalla v0.7.0 — quindi tornando in Imparo si rivedono. Il profilo cambia la
-   * vista, non i dati.
-   */
-  useEffect(() => {
-    if (profiloCorrente === 'montagna' && appModeCorrente !== 'track') {
-      useItineraryStore.getState().setAppMode('track');
-    }
-  }, [profiloCorrente, appModeCorrente]);
-
-  // Rimette in piedi l'itinerario su cui si stava lavorando. Deve stare PRIMA
-  // dell'import da hash: se arriva un link condiviso, quello ha l'ultima parola.
-  useEffect(() => {
-    let livello: string | null = null;
-    try { livello = localStorage.getItem(KEYS.userLevel); } catch { /* storage bloccato */ }
-    const azione = startupAction(loadCurrent(), livello);
-    if (azione.kind === 'restore') {
-      useItineraryStore.getState().hydrateCurrent(azione.saved);
-      // Il salvataggio di ripiego (spazio esaurito) butta geometrie e profili: senza
-      // dirlo, l'itinerario ricompare con linee rette al posto dei sentieri e sembra
-      // che i dati si siano corrotti. `slim` esisteva ed era letto da nessuno — lo
-      // stesso difetto del livello utente, corretto poche ore prima.
-      if (azione.saved.slim) {
-        toast.info(
-          'Itinerario ripristinato. Il tracciato dettagliato sui sentieri non era stato '
-          + 'salvato per mancanza di spazio: i tuoi valori ci sono tutti.',
-          8000
-        );
-      }
-    } else if (azione.kind === 'appMode') {
-      useItineraryStore.getState().setAppMode(azione.mode);
-    }
-  }, []);
-
+    Gli effetti d'avvio e il tasto Indietro stanno in `lib/useAvvio` e
+    `lib/useTastoIndietro`: erano centosettanta righe in mezzo al JSX, e nessuna si poteva
+    provare senza montare tutta la pagina.
+  */
+  useAvvioAuth();
+  useImpostazioniSalvate();
+  useProfiloDiAvvio(inInviteFlow);
+  useRipristinoItinerario();
   // Tiene su disco l'itinerario in lavorazione, a ogni modifica.
   useItineraryAutosave();
+  useItinerarioDaLink();
+  useOnboardingMobile();
+  useTastoIndietro({
+    mapSettingsOpen: showMapSettings,
+    settingsOpen: showSettings,
+    chiudiMapSettings: () => setShowMapSettings(false),
+    chiudiSettings: () => setShowSettings(false),
+  });
 
-  // Load itinerary from URL hash if present
-  useEffect(() => {
-    const hash = window.location.hash;
-    if (!hash.startsWith('#data=')) return;
-    const decoded = decodeItinerary(hash);
-    // Preserviamo lo stato del router di Next (history.state) mentre ripuliamo l'hash:
-    // passare null lo azzererebbe e farebbe ricaricare la pagina al primo popstate.
-    const pulisciHash = () => history.replaceState(window.history.state, '', window.location.pathname);
-    if (!decoded) { pulisciHash(); return; }
-
-    void (async () => {
-      const store = useItineraryStore.getState();
-      // Da quando il lavoro in corso sopravvive alla chiusura, aprire un link
-      // condiviso può cancellare giorni di lavoro: si chiede, come già fa l'import
-      // da file JSON.
-      if (store.waypoints.length > 0) {
-        const ok = await appConfirm({
-          title: 'Aprire l’itinerario condiviso?',
-          message: 'L’itinerario su cui stai lavorando verrà sostituito.',
-          confirmText: 'Apri condiviso',
-        });
-        if (!ok) { pulisciHash(); return; }
-      }
-      const id = Math.random().toString(36).substring(2, 11);
-      store.loadItinerary(id, decoded.name, decoded.waypoints, decoded.legs);
-      pulisciHash();
-    })();
-  }, []);
-
-  // Primo accesso da mobile: appena l'utente è autenticato ma non ha ancora uno username
-  // (sessione presente, nessuna riga member), seleziona la tab Libreria — così la prima cosa
-  // che vede è la scelta dello username, invece di restare sulla mappa.
-  // Scatta una sola volta (ref guard) e solo sotto il breakpoint lg (desktop ha il pannello fisso).
-  const onboardingShown = useRef(false);
-  useEffect(() => {
-    if (onboardingShown.current || authLoading) return;
-    if (authSession && !isMember) {
-      onboardingShown.current = true;
-      if (typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches) {
-        useUIStore.getState().setMobileTab('library');
-      }
-    }
-  }, [authLoading, authSession, isMember]);
-
-  // Tasto Indietro (mobile): chiude prima eventuali overlay/menu, poi torna alla Mappa
-  // da un'altra scheda, infine chiede conferma d'uscita dalla Mappa. Implementato con la
-  // History API spingendo una entry per ogni livello aperto AL MOMENTO della navigazione
-  // (vedi l'effetto di sync più sotto), così il tasto Indietro consuma entry reali del
-  // browser. backRef.current() chiude UN livello secondo la priorità di nextBackAction
-  // (lib/back-nav); è riassegnato a ogni render per leggere lo stato fresco.
-  const backRef = useRef<() => boolean>(() => false);
-  backRef.current = () => {
-    const action = nextBackAction({
-      moreMenuOpen,
-      mapSettingsOpen: showMapSettings,
-      settingsOpen: showSettings,
-      progressOpen,
-      quizActive,
-      searchOpen,
-      mobileTab,
-      emergencyPanelOpen,
-      toolsFabOpen,
-      weatherOpen,
-    });
-    switch (action) {
-      case 'closeMore': setMoreMenuOpen(false); return true;
-      case 'closeToolsFab': setToolsFabOpen(false); return true;
-      case 'closeWeather': setWeatherOpen(false); return true;
-      case 'closeEmergencyPanel': setEmergencyPanelOpen(false); return true;
-      case 'closeMapSettings': setShowMapSettings(false); return true;
-      case 'closeSettings': setShowSettings(false); return true;
-      case 'closeProgress': closeProgress(); return true;
-      case 'closeQuiz': deactivateQuiz(); return true;
-      case 'closeSearch': setSearchOpen(false); return true;
-      case 'toMap': setMobileTab('map'); return true;
-      default: return false; // 'exit'
-    }
-  };
-  // Profondità "annullabile col tasto Indietro": quanti livelli sono aperti sopra la
-  // Mappa. Deve combaciare col numero di passi che nextBackAction impiega a tornare alla
-  // base: ogni overlay/menu = +1, e trovarsi su una scheda diversa dalla Mappa = +1.
-  const backDepth =
-    (moreMenuOpen ? 1 : 0) +
-    (toolsFabOpen ? 1 : 0) +
-    (weatherOpen ? 1 : 0) +
-    (emergencyPanelOpen ? 1 : 0) +
-    (showMapSettings ? 1 : 0) +
-    (showSettings ? 1 : 0) +
-    (progressOpen ? 1 : 0) +
-    (quizActive ? 1 : 0) +
-    (searchOpen ? 1 : 0) +
-    (mobileTab !== 'map' ? 1 : 0);
-
-  const exitingRef = useRef(false);
-  const pushedDepth = useRef(0); // # di entry "di livello" spinte in cronologia sopra la guardia base
-  const skipPop = useRef(0);     // popstate auto-inflitti (da history.go) da ignorare
-
-  // Mount (mobile): guardia base + gestione popstate. CHIAVE: non ri-pushiamo MAI dentro
-  // popstate per navigare (sul mobile pushState dentro popstate è inaffidabile → era la
-  // causa del bug). Le entry "di livello" sono spinte AL MOMENTO della navigazione
-  // dall'effetto di sync qui sotto (dove pushState è affidabile); qui popstate si limita a
-  // CHIUDERE un livello leggendo lo stato. La guardia base serve solo alla conferma d'uscita.
-  useEffect(() => {
-    if (typeof window === 'undefined' || !window.matchMedia('(max-width: 1023px)').matches) return;
-    // IMPORTANTE: preserviamo lo stato interno del router di Next (App Router lo tiene in
-    // history.state). Sovrascriverlo con un oggetto nostro fa sì che, al popstate, il router
-    // non riesca a riconciliare la rotta e forzi un HARD RELOAD (mappa+posizione si
-    // "refreshano"). Spreadando lo stato esistente, Next vede la stessa rotta e non ricarica.
-    // La logica del back usa i ref pushedDepth/skipPop, non legge history.state.
-    const pushGuard = () => {
-      // Idempotente: se la guardia è già in cima NON ne accumuliamo un'altra. Senza questo,
-      // più chiamate (React StrictMode in dev, o un eventuale remount) impilano più guardie e
-      // l'uscita non funziona più (un solo history.back() non basta a superarle tutte).
-      if (window.history.state && (window.history.state as { ttGuard?: boolean }).ttGuard) return;
-      window.history.pushState({ ...window.history.state, ttGuard: true }, '');
-    };
-    pushGuard(); // guardia base (per la conferma d'uscita)
-    const onPop = () => {
-      if (skipPop.current > 0) { skipPop.current--; return; } // popstate auto-inflitto (da history.go)
-      if (exitingRef.current) return;
-      if (pushedDepth.current > 0) {
-        // Una entry di livello è stata consumata dal tasto Indietro → chiudi UN livello.
-        // Decrementiamo PRIMA, così l'effetto di sync (reagendo al calo di backDepth) vede
-        // cronologia e UI già allineate e non tocca la history (niente doppia rimozione).
-        pushedDepth.current--;
-        backRef.current();
-        return;
-      }
-      // Guardia base consumata → conferma uscita dalla Mappa
-      void appConfirm({
-        title: 'Uscire da TrekTrak?',
-        message: 'Vuoi lasciare la pagina? Le modifiche non salvate andranno perse.',
-        confirmText: 'Esci',
-        variant: 'error',
-      }).then((ok) => {
-        if (!ok) { pushGuard(); return; } // resta nell'app → ripristina la guardia base
-        exitingRef.current = true;
-        window.removeEventListener('popstate', onPop);
-        window.history.back(); // esci dall'app
-      });
-    };
-    window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Sync cronologia ↔ profondità UI. Gira FUORI da popstate (a ogni cambio di backDepth),
-  // dove pushState è affidabile: spinge una entry per ogni livello aperto in più, e rimuove
-  // le entry in eccesso (history.go) quando un livello viene chiuso programmaticamente
-  // (es. tap su ✕, selezione percorso). I popstate generati da history.go sono marcati
-  // come "auto-inflitti" (skipPop) e ignorati dall'handler.
-  useEffect(() => {
-    if (typeof window === 'undefined' || !window.matchMedia('(max-width: 1023px)').matches) return;
-    if (backDepth > pushedDepth.current) {
-      const n = backDepth - pushedDepth.current;
-      // Spread di history.state: preserva lo stato del router di Next (vedi nota sopra)
-      // così il popstate non innesca un hard reload.
-      for (let i = 0; i < n; i++) window.history.pushState({ ...window.history.state, ttDepth: pushedDepth.current + i + 1 }, '');
-      pushedDepth.current = backDepth;
-    } else if (backDepth < pushedDepth.current) {
-      const diff = pushedDepth.current - backDepth;
-      pushedDepth.current = backDepth;
-      skipPop.current += diff;
-      window.history.go(-diff);
-    }
-  }, [backDepth]);
 
   return (
     <main className="h-dvh flex flex-col lg:flex-row overflow-hidden">
