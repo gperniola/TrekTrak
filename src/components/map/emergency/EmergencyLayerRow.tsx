@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { useEmergencyStore } from '@/stores/emergencyStore';
 import {
@@ -45,6 +46,11 @@ interface Props {
   def: EmergencyLayerDef;
   aperta: boolean;
   onApri: () => void;
+  /**
+   * Il layer si e' appena acceso o spento. Serve al pannello per aprire il dettaglio
+   * all'accensione e chiuderlo allo spegnimento (vedi `lib/riga-aperta`).
+   */
+  onInterruttore: (acceso: boolean) => void;
 }
 
 /**
@@ -57,7 +63,7 @@ interface Props {
  * Gli avvisi e il dettaglio stanno nei loro file, e il gesto di accensione — con le sue
  * due guardie — in `lib/useAccendiLayer`.
  */
-export function EmergencyLayerRow({ def, aperta, onApri }: Props) {
+export function EmergencyLayerRow({ def, aperta, onApri, onInterruttore }: Props) {
   const settings = useItineraryStore((s) => s.settings);
   const runtime = useEmergencyStore((s) => s.layers[def.id]);
   const isStale = useEmergencyStore((s) => s.isStale);
@@ -87,6 +93,26 @@ export function EmergencyLayerRow({ def, aperta, onApri }: Props) {
 
   const giornoScelto = dpc?.days.find((d) => d.date === dpcSelectedDate);
   const giornataCalma = giornoScelto != null && giornoScelto.zones.every((z) => z.maxLevel === 0);
+
+  /*
+    **Il dettaglio segue l'interruttore**, e si reagisce ad `active` invece che al tocco.
+
+    Il tocco dichiara un'intenzione, `active` dichiara un fatto: fra i due c'e' il
+    disclaimer al primo uso, che e' un dialogo e si puo' annullare. Ascoltando il tocco si
+    aprirebbe la legenda di un layer che poi non si accende.
+
+    Il confronto col valore precedente serve a non far niente al montaggio: aprendo il
+    pannello con tre layer gia' accesi, tre righe proverebbero ad aprirsi e vincerebbe
+    l'ultima — che non e' quella che l'utente ha guardato per ultima.
+  */
+  const precedente = useRef(active);
+  const avvisa = useRef(onInterruttore);
+  avvisa.current = onInterruttore;
+  useEffect(() => {
+    if (precedente.current === active) return;
+    precedente.current = active;
+    avvisa.current(active);
+  }, [active]);
 
   const idDettaglio = `dettaglio-${def.id}`;
 

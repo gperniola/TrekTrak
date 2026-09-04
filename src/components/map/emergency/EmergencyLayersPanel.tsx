@@ -5,6 +5,7 @@ import { useUIStore } from '@/stores/uiStore';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { EMERGENCY_LAYERS, stripAttributionMarkup, type EmergencyLayerId } from '@/lib/emergency-layers';
 import { useMapOverlayGuard } from '../useMapOverlayGuard';
+import { rigaApertaDopo } from '@/lib/riga-aperta';
 import { EmergencyLayerRow, DISCLAIMER } from './EmergencyLayerRow';
 import { SheetHandle } from '@/components/shared/SheetHandle';
 import { useSheetDrag } from '@/lib/useSheetDrag';
@@ -123,6 +124,7 @@ export function EmergencyLayersPanel() {
             def={def}
             aperta={apertaId === def.id}
             onApri={() => setApertaId((corrente) => (corrente === def.id ? null : def.id))}
+            onInterruttore={(acceso) => setApertaId((corrente) => rigaApertaDopo(corrente, def.id, acceso))}
           />
         ))}
 
