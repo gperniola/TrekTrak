@@ -8,7 +8,7 @@ import { buildMeteoUrl } from '@/lib/meteo';
 import { sunTimes } from '@/lib/sun';
 import { ATTRIBUZIONE_METEO, fetchRouteForecast } from '@/lib/weather-api';
 import { cielo, cieliPresenti } from '@/lib/cielo';
-import { metri } from '@/lib/formato';
+import { metri, oraItaliana } from '@/lib/formato';
 import {
   buildRouteWeather, defaultDeparture, samplePoints,
   type Livello, type RouteWeatherReport,
@@ -61,15 +61,13 @@ const COLORE_MOTIVO: Record<string, string> = {
 
 function chiave(l: Livello): string { return l == null ? 'null' : String(l); }
 
-const ORA_FMT: Intl.DateTimeFormatOptions = {
-  hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome',
-};
-
-function ora(iso: string | null | undefined): string {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleTimeString('it-IT', ORA_FMT);
-}
+/*
+  L'orario lo scrive `oraItaliana`, la casa dei formati: questo file aveva la sua copia —
+  una costante col fuso piu' una funzioncina — identica a quella di casa. Due copie della
+  stessa regola sono due posti in cui dimenticarsi il fuso, ed e' successo tre volte in
+  questo progetto.
+*/
+const ora = oraItaliana;
 
 function numero(v: number | undefined, unita = ''): string {
   return v == null || !Number.isFinite(v) ? '—' : `${Math.round(v)}${unita}`;

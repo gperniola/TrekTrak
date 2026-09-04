@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { QuizAnswer, QuestionType } from '@/lib/quiz';
 import { loadQuizHistory } from '@/lib/quiz';
 import { useUIStore } from '@/stores/uiStore';
+import { dataItaliana } from '@/lib/formato';
 
 const TYPE_LABELS: Record<QuestionType, string> = {
   altitude: 'Altitudine',
@@ -83,7 +84,7 @@ function HistoryView() {
       <div className="space-y-1 max-h-[120px] overflow-y-auto">
         {recent.map((s, i) => (
           <div key={i} className="flex justify-between text-xs text-gray-400">
-            <span>{new Date(s.date).toLocaleDateString('it-IT')}</span>
+            <span>{dataItaliana(s.date)}</span>
             <span className="font-bold text-white">{s.average}/100</span>
           </div>
         ))}

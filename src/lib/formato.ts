@@ -89,9 +89,34 @@ export function distanza(valoreKm: number, decimaliKm = 1): string {
  * un dispositivo non italiano scriveva l'ora del telefono mentre tutto il resto
  * scriveva quella delle montagne.
  */
-export function oraItaliana(quando: string | number | Date): string {
+export function oraItaliana(quando: string | number | Date | null | undefined): string {
+  // Il nulla vale come illeggibile: ogni chiamante vuole il trattino, e chiedergli di
+  // controllare prima significa lo stesso controllo copiato in cinque posti.
+  if (quando == null) return '—';
   const d = quando instanceof Date ? quando : new Date(quando);
   return Number.isNaN(d.getTime())
     ? '—'
     : d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' });
+}
+
+/**
+ * Una data in **ora italiana**, sempre: `03/09/2026`.
+ *
+ * Il fuso conta anche per una data, e in modo più insidioso che per un orario: un'ora
+ * sbagliata si vede, un **giorno** sbagliato no. Una registrazione fatta all'una di notte
+ * italiana, letta su un dispositivo a Londra, cade nel giorno prima — e nel diario dei
+ * completamenti quel giorno è il dato.
+ *
+ * Aggiunta il 2026-09-04, misurando: `CompletionList` e `QuizSummary` chiamavano
+ * `toLocaleDateString('it-IT')` senza `timeZone`, gli unici due punti su sette. Il
+ * guardiano in `fuso-orario.test.ts` impedisce che ne nascano altri.
+ */
+export function dataItaliana(quando: string | number | Date | null | undefined): string {
+  if (quando == null) return '—';
+  const d = quando instanceof Date ? quando : new Date(quando);
+  return Number.isNaN(d.getTime())
+    ? '—'
+    : d.toLocaleDateString('it-IT', {
+      day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Rome',
+    });
 }
