@@ -116,3 +116,92 @@ li copre l'occhio, non un test. Quelli con logica dentro e senza rete di protezi
 - **Aggiungere strumenti** (`knip`, `ts-prune`, `jscpd`): le misure qui sono state fatte con
   tre script di venti righe. Una dipendenza in più va giustificata dal fatto che serva ogni
   giorno, e questa analisi serve una volta l'anno.
+
+
+---
+
+# Esito, misurato il 2026-09-04 a lavoro finito
+
+Rimisurato con gli stessi script, alla fine di [[task-64]].
+
+## Inventario
+
+| | file | righe di codice | prima |
+|---|---|---|---|
+| Prodotto | 206 | 17.570 | 188 / 17.310 |
+| Prove | 177 | 17.872 | 166 / 16.488 |
+| | | rapporto **1,02** | 0,95 |
+
+Il prodotto e' cresciuto di 260 righe: sono i commenti che spiegano i pezzi nuovi, non
+codice nuovo — le funzioni sono le stesse, spostate. Le prove sono cresciute di 1.384
+righe, cioe' di **295 test** (1.682 -> 1.977), tutti su codice che prima non si poteva
+interrogare.
+
+## I cinque componenti grossi
+
+| cosa | prima | dopo |
+|---|---|---|
+| `ActionBar` | 518 | **fuori dalla lista** (sotto le 60) |
+| `RouteWeatherPanel` | 336 | 188 |
+| `Home` (`app/page.tsx`) | 304 | 149 |
+| `ElevationProfile` | 281 | 157 |
+| `EmergencyLayerRow` | 273 | **fuori dalla lista** |
+| `ProgressOverlay` (annidamento) | 11 | **fuori dalla lista** |
+
+L'unico annidamento sopra 8 che resta e' `emergencyStore` (9).
+
+## Quello che il lavoro ha trovato per strada
+
+Il punto piu' importante di tutta questa faccenda, e non era nel piano: **spacchettare ha
+trovato sei difetti veri**, tutti in codice che nessun test copriva perche' non si poteva
+coprire.
+
+1. **Il profilo reale perdeva il punto di giunzione** quando la tratta precedente non aveva
+   valori di Pianificazione — e se cosi' gli restavano meno di due punti spariva del tutto.
+   Colpiva la funzione didattica «stimato vs reale» della v0.7.0.
+2. **Due quote senza distanze disegnavano un grafico** con l'asse orizzontale da zero a
+   zero, invece di dire che mancano le distanze.
+3. **E il messaggio che compariva al suo posto era sbagliato**: «servono waypoint con quota
+   e coordinate» detto a chi aveva quota e coordinate.
+4. **`toYmd` decideva «che giorno e'» col fuso del dispositivo** — da li' passano i giorni
+   del bollettino di allerta DPC e il parametro TIME dei WMS. Il guardiano del fuso,
+   scritto quella stessa mattina, non lo vedeva: guardava solo `toLocale*`.
+5. **L'asse del grafico dei progressi** e **l'anno dell'intervallo WMS**, stesso difetto.
+6. **I punti cardinali erano in inglese** (`W` per l'ovest) in sei posti visibili, in
+   un'app che insegna la cartografia italiana. Il test esistente **fissava** l'inglese.
+
+Piu' una differenza di comportamento dichiarata: `ProgressOverlay` non tratteneva il fuoco
+pur dichiarando `aria-modal="true"`.
+
+## Lo schema ripetuto: erano due, non uno
+
+L'analisi aveva trovato «chiudi al clic fuori» in cinque copie. Spacchettando ne e' venuto
+fuori un secondo, che la ricerca dei blocchi identici **non poteva vedere**: la trappola del
+fuoco dei modali, in due copie con nomi diversi per le stesse variabili. E' il limite
+documentato dello script: cerca blocchi uguali, non blocchi che fanno la stessa cosa.
+
+## Il guardiano a cricchetto sulle dimensioni: NO
+
+Era da decidere. La decisione e' **non farlo**, e vale la pena scrivere perche'.
+
+Un cricchetto conta righe, e le righe non sono la cosa che conta: nessuno dei sei difetti
+sopra sarebbe stato impedito da un tetto sulle dimensioni, e nessuno dei sei file
+spacchettati era **difficile** perche' lungo — era difficile perche' faceva cinque cose.
+
+Peggio: in questo repository i file sono lunghi in buona parte per i commenti, che sono
+deliberati e valgono piu' del codice che spiegano. Un guardiano sulle righe rende la
+documentazione un costo, e il modo piu' facile di farlo tornare verde e' **cancellare un
+commento**. E' esattamente l'errore che il guardiano del fuso ha fatto nella sua prima
+stesura, quando contava i commenti e puniva chi documentava il difetto: un controllo che
+insegna la cosa sbagliata e' peggio di nessun controllo.
+
+Quello che ha funzionato, e che conviene ripetere, e' misurare a mano una volta l'anno con
+tre script di venti righe, e leggere i numeri con la testa.
+
+## Cosa resta, se un domani serve
+
+I file di prodotto piu' grossi sono ora `LearnTutorial` (382), `storage.ts` (374),
+`WhatsNew` (365), `calculations.ts` (344) e `route-weather.ts` (333) — ma i primi tre sono
+in gran parte **testo**: i passi del tutorial e le novita' di ogni versione, cioe' dati
+scritti in italiano dentro un componente. Le funzioni piu' lunghe che restano sono
+`MapSettings` (191) e `ItineraryHeader` (190). Nessuna di queste e' urgente.
