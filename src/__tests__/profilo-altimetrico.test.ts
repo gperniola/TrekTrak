@@ -97,10 +97,10 @@ describe('la curva', () => {
    * mancano le distanze. E' la classe di difetto piu' ripetuta di questo progetto:
    * mostrare qualcosa di sbagliato invece di dire che non si sa.
    *
-   * Marcato `failing` perche' descrive il comportamento **giusto**, che il codice non ha
-   * ancora: la correzione arriva nel commit dopo lo spacchettamento.
+   * Corretto: senza almeno due distanze **distinte** non si disegna niente, e il
+   * componente mostra la frase che dice cosa manca.
    */
-  test.failing('due quote senza distanze non sono un profilo', () => {
+  test('due quote senza distanze non sono un profilo', () => {
     const p = costruisciProfilo(
       [wp(0, 1000), wp(1, 1500)],
       [tratta(0, 1)],
@@ -200,7 +200,7 @@ describe('il profilo reale sovrapposto (solo in Imparo)', () => {
    * avanzare comunque, altrimenti la seconda meta' della curva reale scivolerebbe
    * indietro e finirebbe sopra la prima.
    */
-  test.failing('una tratta senza reale in mezzo non fa perdere la giunzione', () => {
+  test('una tratta senza reale in mezzo non fa perdere la giunzione', () => {
     const p = costruisciProfilo(
       [wp(0, 1000), wp(1, 1200), wp(2, 1400)],
       [
@@ -326,7 +326,7 @@ describe('il dominio verticale', () => {
 
 describe('il messaggio quando il profilo non si puo disegnare', () => {
   /**
-   * Tre casi distinti: «aggiungi almeno 2 waypoint» detto a chi ne ha tre e' una frase
+   * Quattro casi distinti: «aggiungi almeno 2 waypoint» detto a chi ne ha tre e' una frase
    * che non dice cosa fare.
    */
   test('senza waypoint dice di toccare la mappa', () => {
@@ -338,10 +338,32 @@ describe('il messaggio quando il profilo non si puo disegnare', () => {
       .toContain('Inserisci la quota');
   });
 
-  test('con waypoint e quote dice che serve altro', () => {
-    const m = messaggioProfiloVuoto([wp(0, 1000), wp(1, 1200)]);
+  /**
+   * **Con quote e senza distanze, dice che mancano le distanze.**
+   *
+   * E' il caso piu' comune, e per un attimo e' stato quello con la frase peggiore: appena
+   * il profilo ha smesso di disegnare la riga verticale a zero chilometri, il messaggio
+   * che compariva era «servono waypoint con quota e coordinate» — detto a chi aveva quota
+   * e coordinate. Una correzione che scopre la frase sbagliata dietro.
+   */
+  test('con le quote ma senza distanze dice che mancano le distanze', () => {
+    const m = messaggioProfiloVuoto([wp(0, 1000), wp(1, 1200)], [tratta(0, 1)]);
+    expect(m).toContain('distanze');
+    expect(m).not.toContain('quota e coordinate');
+  });
+
+  test('la distanza reale di una sessione di Pianificazione conta come distanza', () => {
+    const m = messaggioProfiloVuoto([wp(0, 1000), wp(1, 1200)], [tratta(0, 1, {
+      trackValues: { distance: 4, elevationGain: 0, elevationLoss: 0, azimuth: 0 },
+    })]);
+    expect(m).not.toContain('distanze delle tratte');
+  });
+
+  test('con tutto a posto dice che serve altro', () => {
+    const m = messaggioProfiloVuoto([wp(0, 1000), wp(1, 1200)], [tratta(0, 1, { distance: 2 })]);
     expect(m).not.toContain('Tocca la mappa');
     expect(m).not.toContain('Inserisci la quota');
+    expect(m).not.toContain('distanze delle tratte');
   });
 
   /** L'accento e' un accento vero, non una sequenza di caratteri letta a schermo. */

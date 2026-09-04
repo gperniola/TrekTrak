@@ -69,7 +69,7 @@ export function ElevationProfile() {
   if (profileData.length < 2) {
     return (
       <div className="h-full flex items-center justify-center text-gray-400 text-sm text-center px-4">
-        {messaggioProfiloVuoto(waypoints)}
+        {messaggioProfiloVuoto(waypoints, legs)}
       </div>
     );
   }

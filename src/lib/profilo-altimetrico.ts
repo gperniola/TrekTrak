@@ -121,9 +121,19 @@ export function costruisciProfilo(
     }
   });
 
-  // If no legs have profile data, fall back to waypoint-only data
+  /*
+    Se nessuna tratta porta un profilo, si ripiega sulle sole quote ai waypoint.
+    Ma **due punti allo stesso chilometro non sono un profilo**: succede quando le
+    distanze non sono ancora state scritte, cioe' nello stato normale di Imparo appena
+    si compilano le quote. Il ripiego li metteva tutti a 0 km, il componente li contava
+    (sono due) e disegnava un grafico con l'asse orizzontale da zero a zero: una riga
+    verticale sotto la scritta «Profilo altimetrico», invece della frase che dice che
+    mancano le distanze. Meglio non disegnare niente e dirlo.
+  */
   if (data.length < 2) {
-    data = dots.map(({ name, ...rest }) => rest);
+    const soloQuote = dots.map(({ name, ...rest }) => rest);
+    const distinte = new Set(soloQuote.map((d) => d.distance));
+    data = distinte.size >= 2 ? soloQuote : [];
   }
 
   // TASK-29: build the "real" profile from trackValues.elevationProfile when
@@ -133,13 +143,21 @@ export function costruisciProfilo(
   if (appMode === 'learn') {
     let realCum = 0;
     let anyReal = false;
+    /*
+      Il primo punto di una tratta si salta perche' e' l'ultimo della precedente — ma solo
+      se la precedente ne ha davvero messo uno. Quando la tratta prima non ha valori di
+      Pianificazione, quel punto NON esiste, e saltarlo lo perde: la curva reale
+      cominciava a mezza salita, e se cosi' le restavano meno di due punti spariva del
+      tutto senza dirlo. Colpiva proprio la funzione didattica «stimato vs reale».
+    */
+    let laPrecedenteHaChiuso = false;
     for (let i = 0; i < legs.length; i++) {
       const leg = legs[i];
       const realProfile = leg.trackValues?.elevationProfile;
       if (realProfile && realProfile.length >= 2) {
         anyReal = true;
         for (let j = 0; j < realProfile.length; j++) {
-          if (i > 0 && j === 0) continue;
+          if (j === 0 && laPrecedenteHaChiuso) continue;
           const p = realProfile[j];
           realData.push({
             distance: parseFloat((realCum + p.distance).toFixed(4)),
@@ -147,9 +165,14 @@ export function costruisciProfilo(
           });
         }
         realCum += realProfile[realProfile.length - 1].distance;
+        laPrecedenteHaChiuso = true;
       } else if (leg.distance != null) {
-        // No real profile for this leg — advance the cumulative anyway so distances stay aligned
+        // Nessun profilo reale per questa tratta: la distanza cumulata avanza comunque,
+        // cosi' il tratto reale successivo resta allineato con la curva dell'utente.
         realCum += leg.trackValues?.distance ?? leg.distance;
+        laPrecedenteHaChiuso = false;
+      } else {
+        laPrecedenteHaChiuso = false;
       }
     }
     if (!anyReal) realData = [];
@@ -222,16 +245,26 @@ const yMax = Math.ceil((maxAltCombined + padding) / roundTo) * roundTo;
 /**
  * **Cosa dire quando il profilo non si puo' disegnare.**
  *
- * Tre casi distinti, perche' «aggiungi almeno 2 waypoint» detto a chi ne ha tre e' una
- * frase che non dice cosa fare: i waypoint ci sono, mancano le quote.
+ * Quattro casi distinti, perche' «aggiungi almeno 2 waypoint» detto a chi ne ha tre e' una
+ * frase che non dice cosa fare: i waypoint ci sono, manca altro. Ogni frase nomina la cosa
+ * che manca **e** dove si scrive.
+ *
+ * Il caso delle distanze e' arrivato per ultimo, ed e' quello piu' comune: prima di
+ * correggere il ripiego a zero chilometri, con le quote scritte e le distanze no si
+ * disegnava una riga verticale invece di dire niente. Appena ha smesso di disegnarla, la
+ * frase che compariva era «servono waypoint con quota e coordinate» — a chi aveva quota e
+ * coordinate. Una correzione che scopre la frase sbagliata dietro.
  */
-export function messaggioProfiloVuoto(waypoints: Waypoint[]): string {
+export function messaggioProfiloVuoto(waypoints: Waypoint[], legs: Leg[] = []): string {
   const conQuota = waypoints.filter((wp) => wp.altitude != null).length;
   if (waypoints.length < 2) {
     return 'Tocca la mappa per aggiungere almeno 2 waypoint: qui comparirà il profilo altimetrico';
   }
   if (conQuota < 2) {
     return 'Inserisci la quota di almeno 2 waypoint nell’Editor: qui comparirà il profilo altimetrico';
+  }
+  if (legs.some((l) => l.distance == null && l.trackValues?.distance == null)) {
+    return 'Inserisci le distanze delle tratte nell’Editor: senza, le quote non hanno un posto sull’asse dei chilometri';
   }
   return 'Servono almeno 2 waypoint con quota e coordinate per il profilo altimetrico';
 }
