@@ -1,8 +1,9 @@
 import { render, screen, act } from '@testing-library/react';
 import { CompassOverlay } from '@/components/map/CompassTool';
 import { PosizioneUtente } from '@/components/map/PosizioneUtente';
-import { AnelliDistanza } from '@/components/map/AnelliDistanza';
+import { AnelloBussola, RAGGIO_MINIMO_M } from '@/components/map/AnelloBussola';
 import { usePositionStore } from '@/stores/positionStore';
+import { haversineDistance } from '@/lib/calculations';
 import { __setMapBounds } from './__mocks__/react-leaflet';
 
 jest.mock('react-leaflet');
@@ -73,8 +74,20 @@ describe('la bussola', () => {
     expect(screen.getByText('Punto mirato')).toBeInTheDocument();
     // La linea, due volte: alone bianco e tratteggiata sopra.
     expect(screen.getAllByTestId('polyline')).toHaveLength(2);
-    // Tre anelli, ognuno disegnato due volte (alone + tratto).
-    expect(screen.getAllByTestId('circle')).toHaveLength(6);
+    /*
+      L'anello del compasso, disegnato due volte (alone + tratto), col raggio **uguale
+      alla distanza misurata**: e' l'accoppiamento che conta, ed e' quello che rende
+      l'anello un compasso invece di una decorazione.
+
+      Nel finto Leaflet il centro della mappa resta dove lo mette il mock (45 / 10) —
+      `flyTo` non lo sposta — quindi qui il bersaglio e' lontano dalla posizione finta e
+      l'anello e' grande. Nell'app, appena accesa, bersaglio e posizione coincidono e
+      l'anello nasce chiuso: si apre spostando la mappa.
+    */
+    const attesoMetri = haversineDistance(46.45, 11.85, 45, 10) * 1000;
+    const raggi = screen.getAllByTestId('circle').map((c) => Number(c.getAttribute('data-radius')));
+    expect(raggi).toHaveLength(2);
+    for (const r of raggi) expect(r).toBeCloseTo(attesoMetri, 0);
   });
 
   /**
@@ -173,106 +186,56 @@ describe('il punto della propria posizione', () => {
   });
 });
 
-describe('gli anelli sulla mappa', () => {
-  test('tre anelli, ognuno con alone ed etichetta leggibile', () => {
-    render(<AnelliDistanza lat={46.45} lon={11.85} />);
-    // Sei cerchi: tre anelli, ognuno tracciato due volte per essere leggibile.
-    expect(screen.getAllByTestId('circle')).toHaveLength(6);
-    /*
-      E le etichette dicono distanze tonde, all'italiana.
-
-      La vista di prova misura circa 10,8 km per 11,1 km, quindi il raggio che ci sta e'
-      5,4 km: il passo piu' grande che tiene tre anelli e' **1 km** (3 km entrano, 6 no).
-      La prima stesura di questo test si aspettava 2 km — un mio errore di aritmetica, non
-      del codice, e vale ricordarlo: qui il numero atteso va calcolato, non intuito.
-    */
-    const raggi = screen.getAllByTestId('circle')
-      .map((c) => Number(c.getAttribute('data-radius')));
-    expect(Array.from(new Set(raggi)).sort((a, b) => a - b)).toEqual([1000, 2000, 3000]);
-    expect(screen.getByText('1 km')).toBeInTheDocument();
-    expect(screen.getByText('2 km')).toBeInTheDocument();
-    expect(screen.getByText('3 km')).toBeInTheDocument();
-  });
-
-  /**
-   * In una vista minuscola nessun anello della scala ci sta: non se ne disegna nessuno,
-   * invece di disegnarne uno che esce dallo schermo.
-   */
-  test('in una vista minuscola non disegna niente', () => {
-    __setMapBounds({ south: 46.4500, west: 11.8500, north: 46.4501, east: 11.8501 });
-    render(<AnelliDistanza lat={46.45} lon={11.85} />);
-    expect(screen.queryAllByTestId('circle')).toHaveLength(0);
-    expect(screen.queryAllByTestId('marker')).toHaveLength(0);
-  });
-});
-
 /**
- * **Un punto vecchio non dice «sei qui».**
+ * **L'anello del compasso**: uno solo, di raggio pari alla distanza del punto mirato.
  *
- * Il difetto l'ho introdotto io lo stesso giorno in cui ho aggiunto il punto: il campo
- * `at` dello store era scritto e **letto da nessuno** — la solita famiglia — quindi il
- * punto restava alle coordinate dell'ultimo fix per sempre. Chi concede la posizione
- * all'imbocco del sentiero alle 9 e cammina due ore si ritrovava disegnato al parcheggio,
- * e un punto su una mappa si legge «sei qui, adesso».
+ * Segnalato il 2026-09-04: «ci dev'essere un solo anello che corrisponde al raggio del
+ * punto che stiamo puntando, quindi muovendo il punto di puntamento l'anello si allarga o
+ * restringe, come se fosse un compasso». La prima stesura disegnava tre anelli fissi a
+ * distanze tonde: utile in astratto, ma arredamento — questo e' uno strumento che si
+ * muove con la mano.
  */
-describe('l eta della posizione disegnata', () => {
-  const minutiFa = (n: number) => Date.now() - n * 60_000;
-
-  test('appena rilevata: punto pieno, e lo dice', () => {
-    act(() => {
-      usePositionStore.getState().setLastKnown({ lat: 46.45, lon: 11.85, accuracy: 15, at: minutiFa(1) });
-    });
-    render(<PosizioneUtente />);
-    expect(screen.getByText(/La tua posizione/)).toBeInTheDocument();
-    // Il cerchio dell'incertezza c'e' solo quando la posizione e' attuale.
-    expect(screen.getAllByTestId('circle')).toHaveLength(1);
+describe('l anello del compasso', () => {
+  test('il raggio e la distanza chiesta, in metri', () => {
+    render(<AnelloBussola lat={46.45} lon={11.85} raggioMetri={372} />);
+    const raggi = screen.getAllByTestId('circle').map((c) => c.getAttribute('data-radius'));
+    // Due tratti, stesso raggio: alone bianco sotto, tratteggiato sopra.
+    expect(raggi).toEqual(['372', '372']);
   });
 
-  test('vecchia di mezz ora: non dice piu «la tua posizione», dice dov eri e da quanto', () => {
-    act(() => {
-      usePositionStore.getState().setLastKnown({ lat: 46.45, lon: 11.85, accuracy: 15, at: minutiFa(30) });
-    });
-    render(<PosizioneUtente />);
-    expect(screen.queryByText(/La tua posizione/)).not.toBeInTheDocument();
-    expect(screen.getByText(/Dov'eri, rilevato 30 min fa/)).toBeInTheDocument();
+  test('cambiando la distanza, l anello si allarga', () => {
+    const { rerender } = render(<AnelloBussola lat={46.45} lon={11.85} raggioMetri={200} />);
+    expect(screen.getAllByTestId('circle')[0].getAttribute('data-radius')).toBe('200');
+    rerender(<AnelloBussola lat={46.45} lon={11.85} raggioMetri={1400} />);
+    expect(screen.getAllByTestId('circle')[0].getAttribute('data-radius')).toBe('1400');
   });
 
   /**
-   * Il cerchio dell'incertezza attorno a un rilevamento vecchio dichiarerebbe una
-   * precisione su un punto che non e' piu' dove sei: due affermazioni sbagliate invece
-   * di una.
+   * All'accensione il bersaglio e' il centro della mappa, che dopo il volo coincide con
+   * dove sei: un cerchio di raggio zero sarebbe un punto sporco sotto il mirino.
    */
-  test('e il cerchio dell incertezza sparisce', () => {
-    act(() => {
-      usePositionStore.getState().setLastKnown({ lat: 46.45, lon: 11.85, accuracy: 15, at: minutiFa(30) });
-    });
-    render(<PosizioneUtente />);
+  test('a distanza nulla non si disegna niente', () => {
+    render(<AnelloBussola lat={46.45} lon={11.85} raggioMetri={0} />);
     expect(screen.queryAllByTestId('circle')).toHaveLength(0);
   });
 
-  test('il punto resta disegnato: «eri li» e un informazione vera', () => {
-    act(() => {
-      usePositionStore.getState().setLastKnown({ lat: 46.45, lon: 11.85, accuracy: 15, at: minutiFa(180) });
-    });
-    render(<PosizioneUtente />);
-    expect(screen.getAllByTestId('marker')).toHaveLength(1);
-    expect(screen.getByText(/Dov'eri, rilevato 3 h fa/)).toBeInTheDocument();
+  test('sotto il raggio minimo resta invisibile', () => {
+    render(<AnelloBussola lat={46.45} lon={11.85} raggioMetri={RAGGIO_MINIMO_M - 1} />);
+    expect(screen.queryAllByTestId('circle')).toHaveLength(0);
+  });
+
+  test('un raggio che non e un numero non fa disegnare niente', () => {
+    render(<AnelloBussola lat={46.45} lon={11.85} raggioMetri={Number.NaN} />);
+    expect(screen.queryAllByTestId('circle')).toHaveLength(0);
   });
 
   /**
-   * L'eta si rivaluta col passare del tempo, non solo quando cambia qualcos'altro: senza
-   * un orologio, un punto rilevato adesso resterebbe «attuale» per tutta la sessione — che
-   * e' esattamente il difetto da cui questo codice nasce.
+   * Nessuna etichetta sull'anello: la distanza sta gia' nel pannello in basso, sempre a
+   * schermo. Due copie dello stesso numero sono due occasioni di scriverlo in modi
+   * diversi — e in questo progetto e' successo.
    */
-  test('invecchia da sola, senza che nessuno tocchi niente', () => {
-    jest.useFakeTimers();
-    act(() => {
-      usePositionStore.getState().setLastKnown({ lat: 46.45, lon: 11.85, accuracy: 15, at: Date.now() });
-    });
-    render(<PosizioneUtente />);
-    expect(screen.getByText(/La tua posizione/)).toBeInTheDocument();
-    act(() => { jest.advanceTimersByTime(11 * 60_000); });
-    expect(screen.getByText(/Dov'eri/)).toBeInTheDocument();
-    jest.useRealTimers();
+  test('non porta etichette: il numero sta nel pannello', () => {
+    render(<AnelloBussola lat={46.45} lon={11.85} raggioMetri={372} />);
+    expect(screen.queryAllByTestId('marker')).toHaveLength(0);
   });
 });

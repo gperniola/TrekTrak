@@ -4,6 +4,35 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.22.1] — 2026-09-04 — L'anello della bussola è un compasso
+
+### Changed
+- **Un anello solo, di raggio pari alla distanza del punto mirato.** La v0.22.0 ne
+  disegnava tre, fissi, a distanze tonde (500 m, 1 km, 1,5 km): non era la cosa chiesta e
+  nemmeno la più utile. Ora il raggio **è** la distanza misurata, quindi spostando la mappa
+  l'anello si apre e si chiude insieme al mirino — come un compasso che si allarga fino al
+  bersaglio. Il cerchio passa esattamente per il mirino, e dice quello che nessun numero
+  dice da solo: *tutto ciò che sta su questo cerchio è lontano quanto ciò che stai
+  puntando*. Quella cima è dentro o fuori? Si guarda, non si calcola.
+- **Nessuna etichetta sull'anello**: la distanza sta già nel pannello in basso, sempre a
+  schermo. Due copie dello stesso numero sono due occasioni di scriverlo in modi diversi —
+  ed è successo, in questo progetto, cinquantacinque volte.
+- A distanza nulla l'anello non si disegna: all'accensione bersaglio e posizione
+  coincidono, e un cerchio di raggio zero sarebbe un punto sporco sotto il mirino. Nasce
+  chiuso e si apre spostando la mappa.
+
+### Removed
+- `lib/anelli-distanza.ts` (la scala 1-2-5), `AnelliDistanza` e i loro test: con un anello
+  che segue il bersaglio non serve scegliere raggi tondi. Codice morto con i suoi test è
+  peggio che non averlo scritto.
+
+### Test
+- 1834 unità, 32 end-to-end, 4 offline. Il test dell'anello verifica **l'accoppiamento**
+  (il raggio disegnato è la distanza misurata), non la presenza di un cerchio: verificato
+  per mutazione — con un raggio fisso al posto della distanza, diventa rosso.
+- Misurato a schermo su build di produzione: 262 m dopo uno spostamento, 587 m dopo tre,
+  con l'anello che passa per il mirino.
+
 ## [0.22.0] — 2026-09-03 — Il punto «dove sono», gli anelli di distanza, e i simboli che si vedono
 
 ### Added
