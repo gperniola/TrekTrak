@@ -157,9 +157,9 @@ describe('LegCard: in Pianificazione i valori li calcola l app', () => {
    * sulla carta italiana l'ovest e' segnato **O**. Compare in sei posti: la scheda della
    * tratta, la tabella, il righello, la riga di Pianificazione e i due PDF.
    *
-   * Marcato `failing`: descrive il comportamento giusto, che arriva nel commit dopo.
+   * Corretto: `lib/calculations.ts` ha una sola rosa dei venti, in italiano.
    */
-  test.failing('la direzione e in italiano', () => {
+  test('la direzione e in italiano', () => {
     render(<LegCard leg={tratta} />);
     expect(screen.getByText(/Dir: O/)).toBeInTheDocument();
   });

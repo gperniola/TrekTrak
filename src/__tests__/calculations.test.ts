@@ -157,24 +157,46 @@ describe('calculateDifficulty', () => {
   });
 });
 
+/**
+ * **La rosa dei venti e' italiana.**
+ *
+ * Era `SW`, `W`, `NW` — e questo test lo fissava, cioe' certificava il difetto. In un'app
+ * che insegna la cartografia a mano i punti cardinali **sono** il vocabolario che si sta
+ * imparando: sulla bussola e sulla carta italiana l'ovest e' segnato O.
+ */
 describe('azimuthToCardinal', () => {
-  test('0 degrees = N', () => {
+  test('gli otto settori, in italiano', () => {
     expect(azimuthToCardinal(0)).toBe('N');
-  });
-  test('45 degrees = NE', () => {
     expect(azimuthToCardinal(45)).toBe('NE');
-  });
-  test('90 degrees = E', () => {
     expect(azimuthToCardinal(90)).toBe('E');
-  });
-  test('180 degrees = S', () => {
+    expect(azimuthToCardinal(135)).toBe('SE');
     expect(azimuthToCardinal(180)).toBe('S');
+    expect(azimuthToCardinal(225)).toBe('SO');
+    expect(azimuthToCardinal(270)).toBe('O');
+    expect(azimuthToCardinal(315)).toBe('NO');
   });
-  test('270 degrees = W', () => {
-    expect(azimuthToCardinal(270)).toBe('W');
+
+  test('nessun settore resta in inglese', () => {
+    const usciti = new Set<string>();
+    for (let a = 0; a < 360; a += 1) usciti.add(azimuthToCardinal(a));
+    expect(Array.from(usciti).sort()).toEqual(['E', 'N', 'NE', 'NO', 'O', 'S', 'SE', 'SO']);
   });
-  test('350 degrees = N', () => {
+
+  /** Il giro chiude: 350 gradi tornano a N, non escono dall'elenco. */
+  test('oltre i 337 gradi e mezzo si torna a N', () => {
     expect(azimuthToCardinal(350)).toBe('N');
+    expect(azimuthToCardinal(360)).toBe('N');
+  });
+
+  test('meta settore arrotonda al successivo', () => {
+    expect(azimuthToCardinal(22.5)).toBe('NE');
+    expect(azimuthToCardinal(22.4)).toBe('N');
+  });
+
+  /** Un azimut fuori giro, o negativo, resta dentro la rosa. */
+  test('gli azimut fuori giro si normalizzano', () => {
+    expect(azimuthToCardinal(-90)).toBe('O');
+    expect(azimuthToCardinal(450)).toBe('E');
   });
 });
 
