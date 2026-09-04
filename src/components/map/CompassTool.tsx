@@ -6,7 +6,7 @@ import L from 'leaflet';
 import { haversineDistance, forwardAzimuth } from '@/lib/calculations';
 import { fetchElevation } from '@/lib/elevation-api';
 import { useMapOverlayGuard } from './useMapOverlayGuard';
-import { AnelliDistanza } from './AnelliDistanza';
+import { AnelloBussola } from './AnelloBussola';
 import { usePositionStore } from '@/stores/positionStore';
 import { distanza, gradi } from '@/lib/formato';
 
@@ -202,13 +202,18 @@ export function CompassOverlay({ active, onDeactivate }: { active: boolean; onDe
   return (
     <>
       {/*
-        **Gli anelli di distanza attorno a dove sei.**
+        **L'anello del compasso**: un cerchio che passa per il punto mirato.
 
-        La bussola dice una distanza, quella del bersaglio; gli anelli la dicono per tutto
-        quello che si vede. I raggi li scegle `lib/anelli-distanza.ts` da una scala 1-2-5,
-        in modo che ce ne stiano tre nella vista.
+        Il raggio è la distanza misurata, quindi spostando la mappa si apre e si chiude
+        insieme al mirino — come un compasso che si allarga fino al bersaglio. Dice una
+        cosa che il numero da solo non dice: tutto quello che sta sul cerchio è lontano
+        quanto ciò che stai puntando.
+
+        `distance` è in chilometri (viene da `haversineDistance`), il raggio di Leaflet è
+        in **metri**: la conversione sta qui e non dentro il componente, perché è
+        un'unità di questo modulo, non di quello.
       */}
-      <AnelliDistanza lat={data.userLat} lon={data.userLon} />
+      <AnelloBussola lat={data.userLat} lon={data.userLon} raggioMetri={distance * 1000} />
 
       {/*
         La linea, bianca sotto e gialla sopra: da sola, sopra una mappa coi sentieri
