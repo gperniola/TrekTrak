@@ -18,7 +18,7 @@ import type { FirePoint } from '@/lib/firms';
  */
 export type LayerStatus = 'idle' | 'loading' | 'ready' | 'nodata' | 'error';
 
-interface LayerRuntime {
+export interface LayerRuntime {
   status: LayerStatus;
   error: string | null;
   lastFetch: number | null;
