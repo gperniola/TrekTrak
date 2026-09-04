@@ -4,8 +4,13 @@ import { useId, useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceDot, ReferenceLine } from 'recharts';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { buildGradientStops } from '@/lib/calculations';
-import type { Leg } from '@/lib/types';
 import { km, metri } from '@/lib/formato';
+import {
+  costruisciProfilo,
+  dominioY,
+  messaggioProfiloVuoto,
+  uniscoProfili,
+} from '@/lib/profilo-altimetrico';
 import { useChiudiFuori } from '@/lib/useChiudiFuori';
 
 const ESTIMATED_TOOLTIP = 'Profilo basato solo sulle quote ai waypoint: non riflette salite e discese intermedie.';
@@ -46,167 +51,30 @@ export function ElevationProfile() {
   }, [setProfileFlyTo]);
 
   // Try to build detailed profile from leg elevation data
-  const { profileData, waypointDots, realProfileData } = useMemo(() => {
-    let data: { distance: number; altitude: number }[] = [];
-    let globalDist = 0;
+  const { profileData, waypointDots, realProfileData } = useMemo(
+    () => costruisciProfilo(waypoints, legs, appMode),
+    [waypoints, legs, appMode],
+  );
 
-    // TASK-29 / R2 review fix: when overlaying real-vs-estimated in Learn mode,
-    // both profiles must share the same X-axis to be didactically meaningful.
-    // If trackValues.distance is available per leg, use those for spacing the
-    // user's waypoint altitudes; otherwise fall back to the user's own distance.
-    const hasRealReference = appMode === 'learn' && legs.some((l) => l.trackValues?.distance != null);
-    const spacingFor = (leg: Leg): number | null => {
-      if (hasRealReference) {
-        const td = leg.trackValues?.distance;
-        if (td != null) return td;
-      }
-      return leg.distance;
-    };
-
-    for (let i = 0; i < legs.length; i++) {
-      const leg = legs[i];
-      if (leg.elevationProfile && leg.elevationProfile.length >= 2) {
-        for (let j = 0; j < leg.elevationProfile.length; j++) {
-          // Skip first point of subsequent legs (same as last point of previous)
-          if (i > 0 && j === 0) continue;
-          const p = leg.elevationProfile[j];
-          data.push({
-            distance: parseFloat((globalDist + p.distance).toFixed(4)),
-            altitude: p.altitude,
-          });
-        }
-        // Use the profile's own last distance for continuity (may differ slightly from leg.distance)
-        const profileEnd = leg.elevationProfile[leg.elevationProfile.length - 1].distance;
-        globalDist += profileEnd;
-      } else {
-        // Fallback: use waypoint altitudes only, spaced by the chosen distance source
-        const spacing = spacingFor(leg);
-        if (spacing == null) continue;
-        const fromWp = waypoints.find((w) => w.id === leg.fromWaypointId);
-        const toWp = waypoints.find((w) => w.id === leg.toWaypointId);
-        if (i === 0 && fromWp?.altitude != null) {
-          data.push({ distance: parseFloat(globalDist.toFixed(4)), altitude: fromWp.altitude });
-        }
-        globalDist += spacing;
-        if (toWp?.altitude != null) {
-          data.push({ distance: parseFloat(globalDist.toFixed(4)), altitude: toWp.altitude });
-        }
-      }
-    }
-
-    // Build waypoint positions with cumulative distance (used for fallback + dots).
-    // Use the same spacing source as the profile (real distance when overlaying).
-    const dots: { distance: number; altitude: number; name: string }[] = [];
-    let wpCumulDist = 0;
-    waypoints.forEach((wp, i) => {
-      if (i > 0) {
-        const prevWp = waypoints[i - 1];
-        const leg = legs.find(
-          (l) => l.fromWaypointId === prevWp.id && l.toWaypointId === wp.id
-        );
-        if (leg) {
-          const spacing = spacingFor(leg);
-          if (spacing != null) wpCumulDist += spacing;
-        }
-      }
-      if (wp.altitude != null) {
-        dots.push({
-          distance: parseFloat(wpCumulDist.toFixed(4)),
-          altitude: wp.altitude,
-          name: wp.name || `WP${i + 1}`,
-        });
-      }
-    });
-
-    // If no legs have profile data, fall back to waypoint-only data
-    if (data.length < 2) {
-      data = dots.map(({ name, ...rest }) => rest);
-    }
-
-    // TASK-29: build the "real" profile from trackValues.elevationProfile when
-    // available — used to overlay reality on top of the user's "flat" estimate
-    // in Learn mode after a previous Track session.
-    let realData: { distance: number; altitude: number }[] = [];
-    if (appMode === 'learn') {
-      let realCum = 0;
-      let anyReal = false;
-      for (let i = 0; i < legs.length; i++) {
-        const leg = legs[i];
-        const realProfile = leg.trackValues?.elevationProfile;
-        if (realProfile && realProfile.length >= 2) {
-          anyReal = true;
-          for (let j = 0; j < realProfile.length; j++) {
-            if (i > 0 && j === 0) continue;
-            const p = realProfile[j];
-            realData.push({
-              distance: parseFloat((realCum + p.distance).toFixed(4)),
-              altitude: p.altitude,
-            });
-          }
-          realCum += realProfile[realProfile.length - 1].distance;
-        } else if (leg.distance != null) {
-          // No real profile for this leg — advance the cumulative anyway so distances stay aligned
-          realCum += leg.trackValues?.distance ?? leg.distance;
-        }
-      }
-      if (!anyReal) realData = [];
-    }
-    return { profileData: data, waypointDots: dots, realProfileData: realData };
-  }, [waypoints, legs, appMode]);
-
-  // CRITICAL: all hooks must be called BEFORE any early return (Rules of Hooks).
-  // Merge user + real profiles into one dataset so Recharts can render both Areas
-  // on the same x-axis. Gaps are OK (Area with `connectNulls`).
+  // CRITICO: tutti gli hook vanno chiamati PRIMA di ogni ritorno anticipato
+  // (regole degli hook), quindi il merge sta qui e non dopo il caso vuoto.
   const hasReal = realProfileData.length >= 2;
-  const mergedData = useMemo(() => {
-    if (!hasReal) return profileData.map((p) => ({ distance: p.distance, altitude: p.altitude, realAltitude: undefined as number | undefined }));
-    const byDist = new Map<number, { distance: number; altitude?: number; realAltitude?: number }>();
-    for (const p of profileData) {
-      byDist.set(p.distance, { distance: p.distance, altitude: p.altitude });
-    }
-    for (const p of realProfileData) {
-      const existing = byDist.get(p.distance);
-      if (existing) existing.realAltitude = p.altitude;
-      else byDist.set(p.distance, { distance: p.distance, realAltitude: p.altitude });
-    }
-    return Array.from(byDist.values()).sort((a, b) => a.distance - b.distance);
-  }, [profileData, realProfileData, hasReal]);
+  const mergedData = useMemo(
+    () => uniscoProfili(profileData, realProfileData),
+    [profileData, realProfileData],
+  );
 
   // (In vista Libreria il pannello profilo è gestito da page.tsx con
   // PreviewElevationProfile: questo componente è montato solo in vista Editor.)
   if (profileData.length < 2) {
-    // Distinguere i due casi: con 3 waypoint senza quota, "aggiungi almeno 2 waypoint"
-    // e' una frase che non dice cosa fare — i waypoint ci sono, mancano le quote.
-    const conQuota = waypoints.filter((wp) => wp.altitude != null).length;
-    const messaggio = waypoints.length < 2
-      ? 'Tocca la mappa per aggiungere almeno 2 waypoint: qui comparir\u00e0 il profilo altimetrico'
-      : conQuota < 2
-        ? 'Inserisci la quota di almeno 2 waypoint nell\u2019Editor: qui comparir\u00e0 il profilo altimetrico'
-        : 'Servono almeno 2 waypoint con quota e coordinate per il profilo altimetrico';
     return (
       <div className="h-full flex items-center justify-center text-gray-400 text-sm text-center px-4">
-        {messaggio}
+        {messaggioProfiloVuoto(waypoints)}
       </div>
     );
   }
 
-  const minAlt = profileData.reduce((min, d) => Math.min(min, d.altitude), Infinity);
-  const maxAlt = profileData.reduce((max, d) => Math.max(max, d.altitude), -Infinity);
-  // Extend Y domain to include real altitudes if present
-  const realMin = hasReal ? realProfileData.reduce((min, d) => Math.min(min, d.altitude), Infinity) : Infinity;
-  const realMax = hasReal ? realProfileData.reduce((max, d) => Math.max(max, d.altitude), -Infinity) : -Infinity;
-  const minAltCombined = Math.min(minAlt, realMin);
-  const maxAltCombined = Math.max(maxAlt, realMax);
-  // Adaptive padding: keep the curve visually expressive even for small altitude ranges.
-  // - Range < 50m → 5m padding (tight)
-  // - 50m ≤ range < 200m → linearly interpolate 5m → 10m
-  // - Range ≥ 200m → 10% of range
-  // Also round to 5m for small ranges (vs 10m) to avoid wasting visual space.
-  const range = maxAltCombined - minAltCombined;
-  const padding = range < 50 ? 5 : range < 200 ? 5 + (range - 50) / 30 : range * 0.1;
-  const roundTo = range < 50 ? 5 : 10;
-  const yMin = Math.floor((minAltCombined - padding) / roundTo) * roundTo;
-  const yMax = Math.ceil((maxAltCombined + padding) / roundTo) * roundTo;
+  const { yMin, yMax } = dominioY(profileData, realProfileData);
   const totalDistance = profileData[profileData.length - 1].distance;
 
   const stops = buildGradientStops(profileData, totalDistance);
