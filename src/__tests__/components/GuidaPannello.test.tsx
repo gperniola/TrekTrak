@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { LearnTutorial } from '@/components/tutorial/LearnTutorial';
 import { useUIStore } from '@/stores/uiStore';
 
@@ -83,5 +83,43 @@ describe('si chiude in quattro modi, e resta chiusa', () => {
     unmount();
     render(<LearnTutorial />);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * **Il popup parla col resto dell'app attraverso `uiStore.guidaAperta`**: il tasto
+ * Indietro lo spegne per chiudere la guida invece di proporre l'uscita, e «Rivedi il
+ * tutorial» nelle impostazioni lo accende per aprirla SUBITO — non «al prossimo avvio»,
+ * che era la scusa di quando la guida era legata al montaggio della pagina.
+ */
+describe('la guida e il flag guidaAperta', () => {
+  test('aprendosi al primo avvio, dichiara il flag', () => {
+    render(<LearnTutorial />);
+    expect(useUIStore.getState().guidaAperta).toBe(true);
+  });
+
+  test('spegnendo il flag da fuori (tasto Indietro), la guida si chiude e non torna', () => {
+    const { unmount } = render(<LearnTutorial />);
+    act(() => { useUIStore.getState().setGuidaAperta(false); });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    // e vale come vista: al prossimo avvio non si ripresenta
+    unmount();
+    render(<LearnTutorial />);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  test('accendendo il flag da fuori (Rivedi il tutorial), la guida si apre subito', () => {
+    localStorage.setItem('trektrak_tutorial_seen', '1');
+    render(<LearnTutorial />);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    act(() => { useUIStore.getState().setGuidaAperta(true); });
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText('Benvenuto in TrekTrak!')).toBeInTheDocument();
+  });
+
+  test('chiudendo con la ✕, il flag si spegne', () => {
+    render(<LearnTutorial />);
+    fireEvent.click(screen.getByRole('button', { name: 'Chiudi la guida' }));
+    expect(useUIStore.getState().guidaAperta).toBe(false);
   });
 });

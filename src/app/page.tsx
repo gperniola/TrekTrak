@@ -46,9 +46,10 @@ import { useTema } from '@/lib/useTema';
 export default function Home() {
   // L'aspetto va applicato sempre, non solo quando il pannello e' aperto (task-35).
   useTema();
-  const [showSettings, setShowSettings] = useState(false);
   const [showMapSettings, setShowMapSettings] = useState(false);
 
+  const showSettings = useUIStore((s) => s.settingsOpen);
+  const setShowSettings = useUIStore((s) => s.setSettingsOpen);
   const mainView = useUIStore((s) => s.mainView);
   const mobileTab = useUIStore((s) => s.mobileTab);
   const searchOpen = useUIStore((s) => s.searchOpen);
@@ -87,9 +88,7 @@ export default function Home() {
   useOnboardingMobile();
   useTastoIndietro({
     mapSettingsOpen: showMapSettings,
-    settingsOpen: showSettings,
     chiudiMapSettings: () => setShowMapSettings(false),
-    chiudiSettings: () => setShowSettings(false),
   });
 
 

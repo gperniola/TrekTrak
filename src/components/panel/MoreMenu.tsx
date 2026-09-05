@@ -25,6 +25,7 @@ export function MoreMenu() {
   const open = useUIStore((s) => s.moreMenuOpen);
   const setOpen = useUIStore((s) => s.setMoreMenuOpen);
   const setWeatherOpen = useUIStore((s) => s.setWeatherOpen);
+  const setSettingsOpen = useUIStore((s) => s.setSettingsOpen);
   const itineraryName = useItineraryStore((s) => s.itineraryName);
   const waypoints = useItineraryStore((s) => s.waypoints);
   const legs = useItineraryStore((s) => s.legs);
@@ -102,6 +103,19 @@ export function MoreMenu() {
           questo menu. Ognuno dichiara il proprio impedimento, quindi la voce si spegne
           per la sua ragione e non per una condizione riscritta qui.
         */}
+        {/*
+          Le Impostazioni (tolleranze, tema, rivedi tutorial) erano raggiungibili SOLO
+          dal pulsante desktop sopra la mappa: su telefono tema e tolleranze non
+          esistevano. La voce sta qui e non in «Impostazioni mappa» perche' quel pannello
+          parla della mappa, e il tema e le tolleranze parlano dell'app.
+        */}
+        <button
+          role="menuitem"
+          onClick={() => { close(); setSettingsOpen(true); }}
+          className={itemCls}
+        >
+          ⚙️ Impostazioni e tema
+        </button>
         {mostra('exportDati', profilo) && FORMATI.map((f) => (
           <button
             key={f.id}

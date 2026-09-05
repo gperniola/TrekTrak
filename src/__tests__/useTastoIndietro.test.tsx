@@ -17,12 +17,12 @@ import { useTastoIndietro } from '@/lib/useTastoIndietro';
  */
 
 function Pagina() {
+  // «Impostazioni mappa» e' l'unico modale rimasto come stato locale della pagina:
+  // le Impostazioni (tolleranze/tema) sono passate nello store per il menu «Altro».
   const [impostazioni, setImpostazioni] = useState(false);
   useTastoIndietro({
-    mapSettingsOpen: false,
-    settingsOpen: impostazioni,
-    chiudiMapSettings: () => {},
-    chiudiSettings: () => setImpostazioni(false),
+    mapSettingsOpen: impostazioni,
+    chiudiMapSettings: () => setImpostazioni(false),
   });
   return (
     <button data-testid="apri" onClick={() => setImpostazioni(true)}>
@@ -54,6 +54,7 @@ beforeEach(() => {
   useUIStore.setState({
     mobileTab: 'map', searchOpen: false, quizActive: false, progressOpen: false,
     moreMenuOpen: false, emergencyPanelOpen: false, toolsFabOpen: false, weatherOpen: false,
+    settingsOpen: false, guidaAperta: false,
   });
   history.replaceState(null, '', '/');
   spingi = jest.spyOn(window.history, 'pushState');

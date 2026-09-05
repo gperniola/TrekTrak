@@ -11,10 +11,7 @@ const SOLO_SCHERMO_PICCOLO = '(max-width: 1023px)';
 export interface ModaliLocali {
   /** «Impostazioni mappa», che vive come stato locale della pagina. */
   mapSettingsOpen: boolean;
-  /** «Impostazioni» (tolleranze), anch'esso stato locale della pagina. */
-  settingsOpen: boolean;
   chiudiMapSettings: () => void;
-  chiudiSettings: () => void;
 }
 
 /**
@@ -48,6 +45,7 @@ export interface ModaliLocali {
  */
 export function useTastoIndietro(modali: ModaliLocali) {
   const mobileTab = useUIStore((s) => s.mobileTab);
+  const guidaAperta = useUIStore((s) => s.guidaAperta);
   const searchOpen = useUIStore((s) => s.searchOpen);
   const quizActive = useUIStore((s) => s.quizActive);
   const progressOpen = useUIStore((s) => s.progressOpen);
@@ -55,7 +53,8 @@ export function useTastoIndietro(modali: ModaliLocali) {
   const emergencyPanelOpen = useUIStore((s) => s.emergencyPanelOpen);
   const toolsFabOpen = useUIStore((s) => s.toolsFabOpen);
   const weatherOpen = useUIStore((s) => s.weatherOpen);
-  const { mapSettingsOpen, settingsOpen, chiudiMapSettings, chiudiSettings } = modali;
+  const settingsOpen = useUIStore((s) => s.settingsOpen);
+  const { mapSettingsOpen, chiudiMapSettings } = modali;
 
   /*
     `chiudiUnLivello` chiude UN livello secondo la priorità di `nextBackAction`
@@ -67,6 +66,7 @@ export function useTastoIndietro(modali: ModaliLocali) {
   chiudiUnLivello.current = () => {
     const ui = useUIStore.getState();
     const action = nextBackAction({
+      guidaAperta,
       moreMenuOpen,
       mapSettingsOpen,
       settingsOpen,
@@ -79,12 +79,14 @@ export function useTastoIndietro(modali: ModaliLocali) {
       weatherOpen,
     });
     switch (action) {
+      // La guida ascolta questo flag e si chiude da se' (LearnTutorial).
+      case 'closeGuida': ui.setGuidaAperta(false); return true;
       case 'closeMore': ui.setMoreMenuOpen(false); return true;
       case 'closeToolsFab': ui.setToolsFabOpen(false); return true;
       case 'closeWeather': ui.setWeatherOpen(false); return true;
       case 'closeEmergencyPanel': ui.setEmergencyPanelOpen(false); return true;
       case 'closeMapSettings': chiudiMapSettings(); return true;
-      case 'closeSettings': chiudiSettings(); return true;
+      case 'closeSettings': ui.setSettingsOpen(false); return true;
       case 'closeProgress': ui.closeProgress(); return true;
       case 'closeQuiz': ui.deactivateQuiz(); return true;
       case 'closeSearch': ui.setSearchOpen(false); return true;
@@ -99,6 +101,7 @@ export function useTastoIndietro(modali: ModaliLocali) {
     base: ogni overlay o menu vale 1, e trovarsi su una scheda diversa dalla Mappa vale 1.
   */
   const profondita =
+    (guidaAperta ? 1 : 0) +
     (moreMenuOpen ? 1 : 0) +
     (toolsFabOpen ? 1 : 0) +
     (weatherOpen ? 1 : 0) +

@@ -2,6 +2,7 @@ import { useUIStore } from '@/stores/uiStore';
 import { nextBackAction } from '@/lib/back-nav';
 
 const base = {
+  guidaAperta: false,
   moreMenuOpen: false, mapSettingsOpen: false, settingsOpen: false, progressOpen: false,
   quizActive: false, searchOpen: false, mobileTab: 'map' as const,
   emergencyPanelOpen: false, toolsFabOpen: false, weatherOpen: false,
