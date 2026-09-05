@@ -4,6 +4,33 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.25.0] — 2026-09-05 — La guida è un popup, e l'app parte da trekking
+
+### Changed
+- **La guida di primo avvio è un popup centrale** (segnalato dall'utente: «i messaggi allo
+  startup compaiono in un tiretto scorrevole, ed è sbagliatissimo»). Prima era un pannello
+  ancorato — stretto e scorrevole, tagliava testo e animazione proprio al primo avvio; ora
+  è un popup col velo, come le «Novità», con tutto il contenuto visibile. Da modale vera ha
+  trappola del fuoco e blocco dello scorrimento; si chiude con ✕, Esc, «Salta» o un clic
+  sul velo. Il contorno verde sugli elementi indicati, che sotto un velo non indicava più
+  niente, è stato rimosso.
+- **Niente più «Sto imparando / Sono esperto» all'ingresso**: era un bivio prima ancora di
+  aver visto la mappa. L'app parte da trekking — profilo Montagna, modalità Pianificazione,
+  che era già il default di avvio — e la palestra di cartografia è il primo passo delle
+  «Altre funzionalità»: la carta «Attiva la modalità Impara» fa tutto il mestiere della
+  vecchia scelta, resta a schermo marcata con il riscontro a parole, e la si può sempre
+  cambiare da «Modalità» in cima all'Editor. Attivandola, la guida resta sul passo che si
+  sta leggendo anche se l'elenco dei passi cambia sotto i piedi (riaggancio per titolo).
+- **I testi del benvenuto non si ripetono più**: tocco-sulla-mappa e meteo erano detti tre
+  volte. Ora a strati — il benvenuto fa la promessa, il passo waypoint dice solo il nuovo
+  (trascinare, nomi automatici, cestino e ritorno ↩️), «Pronto per la gita» dà il
+  dettaglio di «Quando partire» e del pulsante ⚠️.
+
+### Test
+- 2012 unità, 39 end-to-end, 4 offline. Verificato in browser: popup intero al primo
+  avvio, attivazione di Impara con l'editor che cambia live dietro il velo e la guida che
+  non salta di passo.
+
 ## [0.24.0] — 2026-09-05 — Il ritorno in un tocco, e il benvenuto che mostra il ciclo dell'app
 
 ### Added
