@@ -4,6 +4,72 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.23.0] — 2026-09-05 — La legenda segue l'interruttore, e la pulizia che ha trovato sette difetti
+
+### Added
+- **La legenda segue l'interruttore** (segnalato dall'utente). Accendendo un layer di
+  emergenza il suo dettaglio — descrizione, legenda, comandi — si apre da sé; spegnendolo
+  si richiude. I colori di questi layer non si spiegano da soli (quattro classi di recenza
+  per le aree bruciate, cinque di pericolo per il FWI, e per l'instabilità satellitare una
+  scala che va al contrario del CAPE): il momento in cui la legenda serve è esattamente
+  quello in cui il layer compare. Si reagisce allo **stato** del layer e non al tocco — fra
+  i due c'è il disclaimer al primo uso, che si può annullare — e al **cambio** e non allo
+  stato, o riaprendo il pannello con tre layer accesi si aprirebbe la riga sbagliata.
+  Spegnere un layer chiude solo il **suo** dettaglio: quello che si stava leggendo di un
+  altro resta dov'era. Toccare il nome continua a funzionare come prima, e resta
+  asimmetrico: espandere non accende.
+
+### Fixed
+Sette difetti, tutti trovati spacchettando componenti che non si potevano testare (sotto):
+
+- **Il profilo «stimato vs reale» perdeva il punto di giunzione** quando la tratta
+  precedente non aveva valori di Pianificazione: la curva reale partiva a mezza salita, e
+  se le restavano meno di due punti **spariva del tutto** senza dirlo. Colpiva la funzione
+  didattica della v0.7.0.
+- **Due quote senza distanze disegnavano un grafico** con l'asse orizzontale da zero a
+  zero — una riga verticale sotto «Profilo altimetrico» — invece di dire cosa manca. È lo
+  stato normale di Imparo appena si scrivono le quote.
+- **E il messaggio che compariva al suo posto era sbagliato**: «servono waypoint con quota
+  e coordinate», detto a chi aveva quota e coordinate. Nuovo quarto caso: «Inserisci le
+  distanze delle tratte nell'Editor».
+- **Tre punti decidevano «che giorno è» col fuso del dispositivo**: `toYmd` — da cui
+  passano i giorni del bollettino di allerta DPC e il parametro TIME dei WMS — l'asse del
+  grafico dei progressi, e l'anno dell'intervallo delle aree bruciate. Su una macchina
+  fuori dall'Italia il pulsante «Oggi» puntava al giorno sbagliato del bollettino.
+- **Due date erano formattate senza fuso** (diario dei completamenti, sessioni di quiz):
+  una registrazione dell'una di notte si leggeva del giorno prima.
+- **I punti cardinali erano in inglese** — `W`, `SW`, `NW` — in sei posti visibili: scheda
+  della tratta, tabella, righello, riga di Pianificazione e i due PDF. In un'app che
+  insegna la cartografia italiana i punti cardinali sono il vocabolario che si sta
+  imparando: ora la rosa si legge N, NE, E, SE, S, SO, O, NO. Il test esistente **fissava**
+  l'inglese, ed è il motivo per cui nessuno l'aveva visto.
+- `ProgressOverlay` dichiarava `aria-modal="true"` senza trattenere il fuoco: ora ha la
+  trappola come gli altri modali.
+
+### Changed (TASK-64 — pulizia del codice guidata dalle misure)
+- **I sei componenti più grossi spacchettati**, uno per commit, senza cambi di
+  comportamento: `ActionBar` 518→140 righe (la verifica dell'itinerario — il cuore di
+  Imparo, che non aveva **nessun test** — ora vive in `lib/verifica-itinerario` e se ne
+  hanno 26), `RouteWeatherPanel` 336→188, `Home` 304→149 (gli effetti d'avvio e il tasto
+  Indietro — la macchina costata sei rilasci, mai testata — ora sono hook con nome e 11
+  test), `ElevationProfile` 281→157 (il calcolo è puro in `lib/profilo-altimetrico`, 30
+  test), `EmergencyLayerRow` e `ProgressOverlay` (annidamento 11 → sparito).
+- **Gli schemi ripetuti sono uno**: «chiudi al tocco fuori» (5 copie → `useChiudiFuori`),
+  la trappola del fuoco dei modali (2 copie con nomi diversi → `useModaleTastiera`), le
+  impalcature di test (fixture condivise per l'itinerario di prova e il finto
+  `localStorage`).
+- **Due guardiani nuovi**: nessuna data o ora senza fuso dichiarato (`toLocale*` **e**
+  getter locali di `Date`, verificato per mutazione sui difetti veri) — e niente cricchetto
+  sulle dimensioni dei file, deciso e motivato in `backlog/docs/pulizia-codice-analisi.md`:
+  conta righe, e qui i file sono lunghi per i commenti.
+- Cancellata l'unica riga morta del repository (`LivelloSac`), tolti sei `export` interni.
+
+### Test
+- **1989 unità (+155), 36 end-to-end (+4), 4 offline**, rapporto prove/prodotto da 0,95 a
+  1,02. Otto mutazioni provate sulle correzioni: due sono sopravvissute e hanno prodotto
+  due test nuovi. I quattro e2e nuovi guardano lo schermo: la legenda dev'essere visibile
+  e dentro il riquadro, non solo presente nel DOM.
+
 ## [0.22.1] — 2026-09-04 — L'anello della bussola è un compasso
 
 ### Changed
