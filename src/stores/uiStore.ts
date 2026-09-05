@@ -42,12 +42,31 @@ interface UIState {
   setMobileTab: (tab: 'map' | 'editor' | 'library') => void;
   setMoreMenuOpen: (open: boolean) => void;
   setProfilo: (p: Profilo) => void;
+  /**
+   * La guida di primo avvio e' aperta. Lo stato dei passi resta dentro `LearnTutorial`;
+   * qui sta solo il fatto che il popup c'e', perche' serve a due estranei alla guida:
+   * il tasto Indietro (che deve chiuderla, non uscire dall'app) e «Rivedi il tutorial»
+   * nelle impostazioni (che deve aprirla subito, non al prossimo avvio).
+   */
+  guidaAperta: boolean;
+  setGuidaAperta: (aperta: boolean) => void;
+  /**
+   * «Impostazioni» (tolleranze, tema, rivedi tutorial). Era stato locale della Home e il
+   * pannello era raggiungibile SOLO dal pulsante desktop: su telefono tema e tolleranze
+   * non esistevano. Nello store, cosi' lo apre anche il menu «Altro».
+   */
+  settingsOpen: boolean;
+  setSettingsOpen: (open: boolean) => void;
   setEmergencyPanelOpen: (open: boolean) => void;
   setToolsFabOpen: (open: boolean) => void;
   setWeatherOpen: (open: boolean) => void;
 }
 
 export const useUIStore = create<UIState>((set, get) => ({
+  guidaAperta: false,
+  setGuidaAperta: (aperta) => set({ guidaAperta: aperta }),
+  settingsOpen: false,
+  setSettingsOpen: (open) => set({ settingsOpen: open }),
   compassActive: false,
   rulerActive: false,
   quizActive: false,

@@ -43,6 +43,20 @@ jest.mock('@/lib/export-json', () => ({
 import { LeftPanel } from '@/components/panel/LeftPanel';
 import { statoItinerario, statoUI } from '../fixtures/itinerario';
 
+/*
+  Questi test documentano la libreria ACCESA: l'interruttore temporaneo (vedi
+  `lib/funzioni-spente.ts`) si alza qui, cosi' quando la funzione tornera' non ci sara'
+  niente da riscrivere. Lo stato SPENTO ha i suoi test in `libreria-spenta.test.tsx`.
+*/
+import * as funzioniSpente from '@/lib/funzioni-spente';
+beforeEach(() => {
+  jest.replaceProperty(funzioniSpente, 'LIBRERIA_DISPONIBILE', true);
+});
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
+
 
 beforeEach(() => {
   useItineraryStore.setState(statoItinerario({ itineraryName: '' }));

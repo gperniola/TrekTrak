@@ -4,6 +4,38 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.26.0] — 2026-09-05 — Pronta per il pubblico: impostazioni da telefono, back sistemato, libreria a riposo
+
+Rilascio nato da una **campagna di review pre-pubblico in cinque giri** (diff, schermo,
+avversaria, misure, analisi — il dettaglio in `backlog/docs/rilascio-pubblico-analisi.md`).
+Lighthouse mobile su build di produzione: **accessibilità 100, SEO 100, best practices 96**.
+
+### Fixed
+- **Su telefono non esisteva nessun accesso a tolleranze, tema e tutorial**: il pannello
+  si apriva solo dal pulsante desktop. Ora «⚙️ Impostazioni e tema» sta nel menu Altro,
+  e il tasto Indietro lo chiude come gli altri modali.
+- **Il tasto Indietro con la guida di primo avvio aperta proponeva «Uscire da TrekTrak?»**
+  sotto il popup ancora aperto — ed è la prima cosa che un utente Android preme. La guida
+  ora è in cima alla priorità del back: Indietro la chiude.
+- **«Rivedi tutorial al prossimo avvio» apre la guida subito**: il rinvio era la scusa di
+  quando la guida era legata al montaggio della pagina.
+- La carta «Attiva Impara» indicava solo «Modalità in cima all'Editor»: su telefono sta
+  nel menu Altro, e ora il testo dice entrambi i posti.
+- **Pacchetti**: chiuso un avviso critico su jsPDF (PDF object injection → 4.2.1), più
+  nanoid e brace-expansion. Restano avvisi legati a Next 14, pianificati col major.
+
+### Changed
+- **La libreria condivisa è temporaneamente spenta** (`LIBRERIA_DISPONIBILE` in
+  `lib/funzioni-spente.ts`): il flusso di accesso non funziona, e un pulsante che porta a
+  una funzione rotta è peggio di nessun pulsante. Spariscono la scheda Libreria, lo
+  switch Editor/Libreria, Salva/Carica e la loro nota; l'app resta locale +
+  autosalvataggio + export JSON/GPX/link. Per riaccenderla basta rimettere `true`: ogni
+  ingresso passa da `mostra('libreria', …)`, e i test di entrambi gli stati restano validi.
+
+### Test
+- **2021 unità, 39 end-to-end, 4 offline.** Verificato a schermo su build di produzione,
+  telefono e desktop, tema chiaro e scuro.
+
 ## [0.25.0] — 2026-09-05 — La guida è un popup, e l'app parte da trekking
 
 ### Changed

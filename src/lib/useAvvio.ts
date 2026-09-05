@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { loadSettings, KEYS } from '@/lib/storage';
 import { profiloIniziale, profiloPerInvito } from '@/lib/startup-profilo';
+import { mostra } from '@/lib/profilo';
 import { loadCurrent } from '@/lib/current-itinerary';
 import { startupAction } from '@/lib/startup-itinerary';
 import { decodeItinerary } from '@/lib/share-url';
@@ -154,6 +155,11 @@ export function useOnboardingMobile() {
     if (fatto.current || inCorso) return;
     if (sessione && !membro) {
       fatto.current = true;
+      /*
+        Con la libreria spenta (vedi `LIBRERIA_DISPONIBILE`) la scheda non esiste:
+        aprirla lascerebbe un foglio Editor con `mobileTab` fuori posto.
+      */
+      if (!mostra('libreria', useUIStore.getState().profilo)) return;
       if (typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches) {
         useUIStore.getState().setMobileTab('library');
       }

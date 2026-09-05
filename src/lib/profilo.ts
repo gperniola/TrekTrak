@@ -1,3 +1,5 @@
+import * as funzioniSpente from './funzioni-spente';
+
 /**
  * Quali aree dell'app esistono, per profilo d'uso.
  *
@@ -50,5 +52,11 @@ export const AREE = {
 export type Area = keyof typeof AREE;
 
 export function mostra(area: Area, profilo: Profilo): boolean {
+  /*
+    La libreria condivisa e' temporaneamente spenta (vedi `lib/funzioni-spente.ts`, che
+    spiega anche il perche'): questa riga e' l'UNICO punto in cui l'interruttore agisce,
+    perche' ogni ingresso della libreria passa da qui.
+  */
+  if (area === 'libreria' && !funzioniSpente.LIBRERIA_DISPONIBILE) return false;
   return (AREE[area] as readonly Profilo[]).includes(profilo);
 }

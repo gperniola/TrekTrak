@@ -8,6 +8,20 @@ jest.mock('@/lib/sync', () => ({ fetchRoutes: jest.fn(() => Promise.resolve([]))
 import { BottomNav } from '@/components/panel/BottomNav';
 import { useUIStore } from '@/stores/uiStore';
 
+/*
+  Questi test documentano la libreria ACCESA: l'interruttore temporaneo (vedi
+  `lib/funzioni-spente.ts`) si alza qui, cosi' quando la funzione tornera' non ci sara'
+  niente da riscrivere. Lo stato SPENTO ha i suoi test in `libreria-spenta.test.tsx`.
+*/
+import * as funzioniSpente from '@/lib/funzioni-spente';
+beforeEach(() => {
+  jest.replaceProperty(funzioniSpente, 'LIBRERIA_DISPONIBILE', true);
+});
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
+
 beforeEach(() => {
   useUIStore.setState({ mobileTab: 'map', mainView: 'editor', moreMenuOpen: false });
 });

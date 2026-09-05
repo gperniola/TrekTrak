@@ -184,7 +184,7 @@ const STEPS: TutorialStep[] = [
      * una scelta fatta deve restare leggibile, non sparire.
      */
     title: 'Impara la cartografia',
-    text: 'TrekTrak è anche una palestra: in modalità «Impara» distanze, dislivelli e azimut li calcoli tu su carta, e «Verifica» li confronta coi valori veri del terreno — con quiz e registro dei progressi. Si attiva qui sotto, o quando vuoi da «Modalità» in cima all’Editor.',
+    text: 'TrekTrak è anche una palestra: in modalità «Impara» distanze, dislivelli e azimut li calcoli tu su carta, e «Verifica» li confronta coi valori veri del terreno — con quiz e registro dei progressi. Si attiva qui sotto, o quando vuoi da «Modalità» — in cima all’Editor, o nel menu Altro su telefono.',
     icon: '🎓',
     mockup: <AttivaImpara />,
   },
@@ -290,7 +290,8 @@ function AttivaImpara() {
       {attiva && (
         <p className="text-[11px] text-gray-300 bg-gray-800/70 rounded px-2 py-1.5">
           Modalità «Impara» attiva: i valori li scrivi tu, poi «Verifica» li confronta con i
-          reali. La cambi quando vuoi da «Modalità», in cima all&rsquo;Editor.
+          reali. La cambi quando vuoi da «Modalità» — in cima all&rsquo;Editor, o nel menu
+          Altro su telefono.
         </p>
       )}
     </div>
@@ -332,6 +333,30 @@ export function LearnTutorial() {
     }
     setStep(0);
   }, []);
+
+  /*
+    **Il fatto che il popup sia aperto sta anche nello store** (`guidaAperta`), e la
+    sincronia e' a due vie:
+
+    - da qui verso lo store, perche' il tasto Indietro deve sapere che c'e' un popup da
+      chiudere prima di proporre l'uscita dall'app;
+    - dallo store verso qui, perche' sia il tasto Indietro sia «Rivedi il tutorial»
+      nelle impostazioni parlano solo col flag: spegnerlo chiude, accenderlo apre subito
+      — non «al prossimo avvio», che era la scusa di quando la guida non era un popup.
+
+    I passi (`step`) restano di casa qui: fuori serve solo aperto/chiuso.
+  */
+  const guidaAperta = useUIStore((s) => s.guidaAperta);
+  const setGuidaAperta = useUIStore((s) => s.setGuidaAperta);
+  useEffect(() => {
+    setGuidaAperta(step !== null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
+  useEffect(() => {
+    if (guidaAperta && step === null) setStep(0);
+    if (!guidaAperta && step !== null) { markSeen(); setStep(null); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [guidaAperta]);
 
   /*
    * Cambiando profilo dalla carta, l'elenco dei passi cambia sotto i piedi: senza questo

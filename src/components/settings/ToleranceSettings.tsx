@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useItineraryStore } from '@/stores/itineraryStore';
-import { saveSettings, KEYS } from '@/lib/storage';
-import { toast } from '@/stores/notificationStore';
+import { saveSettings } from '@/lib/storage';
+import { useUIStore } from '@/stores/uiStore';
 import { parseDecimale } from '@/components/shared/NumberInput';
 import { DEFAULT_PACE } from '@/lib/types';
 import type { ToleranceSettings as TolSettings } from '@/lib/types';
@@ -109,18 +109,20 @@ export function ToleranceSettings({ onClose }: { onClose: () => void }) {
           <SceltaTema />
         </div>
         <div className="border-t border-gray-700 mt-5 pt-4">
+          {/*
+            La guida ora e' un popup autonomo: si apre SUBITO, non «al prossimo avvio» —
+            quella era la scusa di quando era legata al montaggio della pagina. Le
+            impostazioni si chiudono prima, cosi' il popup non nasce sotto un altro
+            modale.
+          */}
           <button
             onClick={() => {
-              try {
-                localStorage.removeItem(KEYS.tutorialSeen);
-                toast.info('Tutorial verrà mostrato al prossimo riavvio dell\'app');
-              } catch {
-                toast.error('Impossibile resettare il tutorial');
-              }
+              onClose();
+              useUIStore.getState().setGuidaAperta(true);
             }}
             className="w-full py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 text-xs rounded"
           >
-            Rivedi tutorial al prossimo avvio
+            Rivedi il tutorial
           </button>
         </div>
         <div className="flex gap-2 mt-4">

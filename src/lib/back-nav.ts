@@ -1,5 +1,7 @@
 /** Stato rilevante per decidere l'azione del tasto Indietro su mobile. */
 export interface BackNavState {
+  /** La guida di primo avvio: un popup modale, quindi sta sopra a tutto. */
+  guidaAperta: boolean;
   moreMenuOpen: boolean;
   mapSettingsOpen: boolean;
   settingsOpen: boolean;
@@ -13,6 +15,7 @@ export interface BackNavState {
 }
 
 export type BackNavAction =
+  | 'closeGuida'
   | 'closeMore' | 'closeMapSettings' | 'closeSettings' | 'closeProgress'
   | 'closeQuiz' | 'closeSearch' | 'toMap' | 'exit' | 'closeEmergencyPanel'
   | 'closeToolsFab' | 'closeWeather';
@@ -22,7 +25,14 @@ export type BackNavAction =
  * poi torna alla Mappa se si è su un'altra scheda, infine (mappa + nulla aperto) esce.
  */
 export function nextBackAction(s: BackNavState): BackNavAction {
-  // Il meteo e' l'overlay piu' "sopra" di tutti: se e' aperto, Indietro chiude quello.
+  /*
+    La guida per prima: e' un popup MODALE col velo, quindi visivamente sta sopra a
+    qualunque altra cosa — e su Android il tasto Indietro con un popup davanti significa
+    «chiudi il popup», non «esci dall'app». Al primo avvio in assoluto e' esattamente la
+    prima cosa che un utente nuovo preme.
+  */
+  if (s.guidaAperta) return 'closeGuida';
+  // Il meteo e' l'overlay piu' "sopra" degli altri: se e' aperto, Indietro chiude quello.
   if (s.weatherOpen) return 'closeWeather';
   if (s.moreMenuOpen) return 'closeMore';
   if (s.toolsFabOpen) return 'closeToolsFab';
