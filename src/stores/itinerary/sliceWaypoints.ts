@@ -10,6 +10,7 @@ export type SliceWaypoints = Pick<
   ItineraryState,
   | 'waypoints'
   | 'addWaypoint'
+  | 'aggiungiRitorno'
   | 'addWaypointAtPosition'
   | 'removeWaypoint'
   | 'clearWaypoints'
@@ -63,6 +64,48 @@ export const creaSliceWaypoints: StateCreator<ItineraryState, [], [], SliceWaypo
     }
     set({ waypoints: [...waypoints, nuovo], legs: tratte });
     get().registraGesto('aggiunta del waypoint');
+  },
+
+  aggiungiRitorno: () => {
+    const { waypoints, legs } = get();
+    /*
+      Con meno di due punti non c'e' un'andata da specchiare, e sopra il tetto dei 50
+      l'aggiunta non parte affatto: aggiungerne "quanti ce ne stanno" produrrebbe un
+      ritorno che si ferma a meta' strada senza dirlo, cioe' un percorso che MENTE.
+      Chi chiama controlla prima e spiega; qui la guardia e' solo difesa.
+    */
+    const daAggiungere = waypoints.length - 1;
+    if (daAggiungere < 1 || waypoints.length + daAggiungere > MASSIMO_WAYPOINT) return;
+
+    /*
+      Gli stessi punti dell'andata, in ordine inverso, escluso l'ultimo (dove ci si
+      gira). Ogni copia e' un waypoint NUOVO — id suo, nessun giudizio di validazione —
+      perche' nel percorso ci si passa una seconda volta: rinominarne uno o spostarlo al
+      ritorno non deve toccare l'andata. Nome, coordinate e quote invece si copiano:
+      sono proprieta' del luogo, non del passaggio.
+    */
+    const ritorno: Waypoint[] = waypoints
+      .slice(0, -1)
+      .reverse()
+      .map((wp, i) => ({
+        id: generateId(),
+        name: wp.name,
+        lat: wp.lat,
+        lon: wp.lon,
+        altitude: wp.altitude,
+        trackAltitude: wp.trackAltitude,
+        learnAltitude: wp.learnAltitude,
+        order: waypoints.length + i,
+      }));
+
+    const tutti = [...waypoints, ...ritorno];
+    const tratte = [...legs];
+    for (let i = waypoints.length - 1; i < tutti.length - 1; i++) {
+      tratte.push(createEmptyLeg(tutti[i].id, tutti[i + 1].id));
+    }
+    set({ waypoints: tutti, legs: tratte });
+    // Un gesto solo: «Annulla» toglie tutto il ritorno in un colpo, non un punto a volta.
+    get().registraGesto('aggiunta del ritorno');
   },
 
   removeWaypoint: (id) => {

@@ -73,6 +73,52 @@ test.describe('costruire un itinerario', () => {
   });
 });
 
+test.describe('il ritorno in un tocco', () => {
+  /**
+   * **La maggior parte delle escursioni torna per la stessa strada** (chiesto il
+   * 2026-09-05): il pulsantino accanto al cestino specchia l'andata, previa conferma.
+   * Il test guarda lo schermo perche' la meccanica e' gia' provata altrove: qui conta
+   * che il pulsante ci sia, che il dialogo spieghi, e che i marker raddoppino davvero.
+   */
+  test('il pulsante aggiunge il ritorno dopo la conferma', async ({ page }) => {
+    await apriApp(page);
+    await tocca(page, -80, -60);
+    await tocca(page, 0, 40);
+    await tocca(page, 80, -20);
+    await expect.poll(() => contaWaypoint(page)).toBe(3);
+
+    const ritorno = page.getByRole('button', { name: 'Aggiungi il percorso di ritorno' });
+    await expect(ritorno).toBeVisible();
+    await ritorno.click();
+
+    // Il dialogo spiega prima di fare: quanti punti e in che ordine.
+    await expect(page.getByText(/2 waypoint.*ordine inverso/)).toBeVisible();
+    await page.getByRole('button', { name: 'Aggiungi il ritorno' }).click();
+
+    await expect.poll(() => contaWaypoint(page)).toBe(5);
+  });
+
+  test('annullando il dialogo il percorso resta com era', async ({ page }) => {
+    await apriApp(page);
+    await tocca(page, -80, -60);
+    await tocca(page, 80, -20);
+    await expect.poll(() => contaWaypoint(page)).toBe(2);
+
+    await page.getByRole('button', { name: 'Aggiungi il percorso di ritorno' }).click();
+    // 'exact': in alto c'e' anche il pulsante di undo, che si chiama «Annulla: ...».
+    await page.getByRole('button', { name: 'Annulla', exact: true }).click();
+    await expect.poll(() => contaWaypoint(page)).toBe(2);
+  });
+
+  /** Con un punto solo non c'e' un'andata da specchiare: il pulsante non c'e'. */
+  test('con un solo waypoint il pulsante non compare', async ({ page }) => {
+    await apriApp(page);
+    await tocca(page, -80, -60);
+    await expect.poll(() => contaWaypoint(page)).toBe(1);
+    await expect(page.getByRole('button', { name: 'Aggiungi il percorso di ritorno' })).toHaveCount(0);
+  });
+});
+
 test.describe('imparare', () => {
   /** E2E-04 */
   test('in Learn si scrivono i valori e la verifica li giudica', async ({ page }) => {

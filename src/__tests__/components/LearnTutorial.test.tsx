@@ -17,6 +17,38 @@ describe('LearnTutorial (TASK-43)', () => {
     expect(screen.getByText(/Passo 1 di 4/)).toBeInTheDocument();
   });
 
+  /**
+   * **Il benvenuto dice il ciclo dell'app**: tocca la mappa, completa nell'Editor, guarda
+   * il meteo. E' la prima frase letta in assoluto, e deve rispondere a «cosa ci faccio,
+   * qui?» prima di ogni altra cosa (chiesto dall'utente il 2026-09-05).
+   */
+  test('il benvenuto spiega il ciclo: tocca, completa, meteo', () => {
+    render(<LearnTutorial />);
+    const testo = screen.getByRole('dialog').textContent ?? '';
+    expect(testo).toContain('Tocca la mappa');
+    expect(testo).toContain('Editor');
+    expect(testo).toContain('Quando partire');
+  });
+
+  /**
+   * L'animazione dei primi passi e' **decorativa** (`aria-hidden`): la spiegazione vera
+   * e' il testo, e per un lettore di schermo un SVG muto in mezzo al benvenuto sarebbe
+   * solo rumore. La regola e' la stessa dei pallini di stato e delle iconcine del cielo.
+   */
+  test('l animazione del benvenuto c e, ed e decorativa', () => {
+    const { container } = render(<LearnTutorial />);
+    const animazione = container.querySelector('.ppp-linea');
+    expect(animazione).not.toBeNull();
+    expect(animazione!.closest('[aria-hidden="true"]')).not.toBeNull();
+  });
+
+  /** L'animazione appartiene al benvenuto: al passo dopo non c'e' piu'. */
+  test('al secondo passo l animazione non c e', () => {
+    const { container } = render(<LearnTutorial />);
+    fireEvent.click(screen.getByText('Avanti'));
+    expect(container.querySelector('.ppp-linea')).toBeNull();
+  });
+
   test('le funzionalità avanzate restano accessibili dalla continuazione', () => {
     render(<LearnTutorial />);
     // Avanza fino all'ultimo passo essenziale (0 -> 3)

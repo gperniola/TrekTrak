@@ -9,6 +9,7 @@ import { useItineraryStore } from '@/stores/itineraryStore';
 import { useSheetDrag } from '@/lib/useSheetDrag';
 import { useSchermoPiccolo } from '@/lib/useSchermoPiccolo';
 import { SheetHandle } from '@/components/shared/SheetHandle';
+import { AnimazionePrimiPassi } from './AnimazionePrimiPassi';
 
 interface TutorialStep {
   title: string;
@@ -125,12 +126,17 @@ const STEPS: TutorialStep[] = [
   {
     title: 'Benvenuto in TrekTrak!',
     /*
-     * Il benvenuto nomina entrambi gli usi, perche' la scelta sta subito sotto: dire solo
-     * «impara la cartografia manuale» era la prima frase letta anche da chi sta per
-     * rispondere «sono esperto», e gli descriveva l'app che non avrebbe visto.
+     * Il benvenuto dice il CICLO dell'app in una frase — tocca la mappa, completa
+     * nell'Editor, guarda il meteo — perche' e' la prima cosa letta in assoluto e deve
+     * rispondere a «cosa ci faccio, qui?» prima di ogni altra. Poi nomina entrambi gli
+     * usi, perche' la scelta sta subito sotto: dire solo «impara la cartografia manuale»
+     * era la prima frase letta anche da chi sta per rispondere «sono esperto», e gli
+     * descriveva l'app che non avrebbe visto. L'animazione mostra lo stesso ciclo senza
+     * parole.
      */
-    text: 'Costruisci itinerari escursionistici: puoi inserire tu distanze, dislivelli e azimuth e farli verificare dall\'app per imparare la cartografia manuale, oppure lasciare che li calcoli lei e usarla per preparare la gita. Questa guida ti mostra le funzioni principali.',
+    text: 'Tocca la mappa per mettere i punti del percorso, completali nell\'Editor con quote e distanze, e «Quando partire» incrocia la previsione meteo con i tuoi orari di marcia. I valori puoi scriverli tu e farli verificare — per imparare la cartografia manuale — oppure lasciarli calcolare all\'app per preparare la gita.',
     icon: '🗺️',
+    mockup: <AnimazionePrimiPassi />,
     essenziale: true,
   },
   {
