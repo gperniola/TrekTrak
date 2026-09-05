@@ -1,5 +1,19 @@
 import { AREE, mostra, PROFILI, ETICHETTE_PROFILO, type Area } from '@/lib/profilo';
 
+/*
+  Questi test documentano la libreria ACCESA: l'interruttore temporaneo (vedi
+  `lib/funzioni-spente.ts`) si alza qui, cosi' quando la funzione tornera' non ci sara'
+  niente da riscrivere. Lo stato SPENTO ha i suoi test in `libreria-spenta.test.tsx`.
+*/
+import * as funzioniSpente from '@/lib/funzioni-spente';
+beforeEach(() => {
+  jest.replaceProperty(funzioniSpente, 'LIBRERIA_DISPONIBILE', true);
+});
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
+
 /**
  * Con quindici aree sparse in una dozzina di componenti, la domanda «questo pulsante in
  * quale profilo si vede?» deve avere UNA sola risposta in UN solo posto. Questa e' la

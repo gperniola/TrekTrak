@@ -2,6 +2,20 @@ import { render, screen } from '@testing-library/react';
 import { BottomNav } from '@/components/panel/BottomNav';
 import { useUIStore } from '@/stores/uiStore';
 
+/*
+  Questi test documentano la libreria ACCESA: l'interruttore temporaneo (vedi
+  `lib/funzioni-spente.ts`) si alza qui, cosi' quando la funzione tornera' non ci sara'
+  niente da riscrivere. Lo stato SPENTO ha i suoi test in `libreria-spenta.test.tsx`.
+*/
+import * as funzioniSpente from '@/lib/funzioni-spente';
+beforeEach(() => {
+  jest.replaceProperty(funzioniSpente, 'LIBRERIA_DISPONIBILE', true);
+});
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
+
 /** La Libreria e' la libreria CONDIVISA dei percorsi: roba da gita vera. */
 describe('la libreria per profilo', () => {
   test('in Montagna la Libreria e una destinazione', () => {

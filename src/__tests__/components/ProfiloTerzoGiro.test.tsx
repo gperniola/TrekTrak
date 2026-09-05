@@ -15,6 +15,20 @@ import { useAuthStore } from '@/stores/authStore';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import type { Waypoint } from '@/lib/types';
 
+/*
+  Questi test documentano la libreria ACCESA: l'interruttore temporaneo (vedi
+  `lib/funzioni-spente.ts`) si alza qui, cosi' quando la funzione tornera' non ci sara'
+  niente da riscrivere. Lo stato SPENTO ha i suoi test in `libreria-spenta.test.tsx`.
+*/
+import * as funzioniSpente from '@/lib/funzioni-spente';
+beforeEach(() => {
+  jest.replaceProperty(funzioniSpente, 'LIBRERIA_DISPONIBILE', true);
+});
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
+
 const due: Waypoint[] = [
   { id: 'a', name: 'A', lat: 45, lon: 7, altitude: 1200, order: 0 },
   { id: 'b', name: 'B', lat: 45.01, lon: 7.01, altitude: 1400, order: 1 },
