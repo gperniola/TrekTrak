@@ -21,6 +21,11 @@ export interface ItineraryState {
   setItineraryName: (name: string) => void;
   setItineraryId: (id: string) => void;
   addWaypoint: () => void;
+  /**
+   * Aggiunge il percorso di ritorno: un waypoint per ogni punto dell'andata, in ordine
+   * inverso, escluso l'ultimo (dove ci si gira). Un solo passo di annulla.
+   */
+  aggiungiRitorno: () => void;
   addWaypointAtPosition: (lat: number, lon: number) => void;
   removeWaypoint: (id: string) => void;
   /**

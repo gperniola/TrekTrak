@@ -15,6 +15,7 @@ export const MASSIMO_PASSI = 50;
  */
 export type AzioneStoria =
   | 'aggiunta del waypoint'
+  | 'aggiunta del ritorno'
   | 'rimozione del waypoint'
   | 'spostamento del waypoint'
   | 'modifica del waypoint'
