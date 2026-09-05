@@ -2,11 +2,14 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { LearnTutorial } from '@/components/tutorial/LearnTutorial';
 import { WhatsNew, CURRENT_WHATSNEW_VERSION } from '@/components/tutorial/WhatsNew';
 import { useItineraryStore } from '@/stores/itineraryStore';
+import { useUIStore } from '@/stores/uiStore';
 import { KEYS } from '@/lib/storage';
 
 beforeEach(() => {
   localStorage.clear();
   useItineraryStore.setState({ appMode: 'track' });
+  // La navigazione fino alla carta conta i passi di Montagna, che e' il default vero.
+  useUIStore.setState({ profilo: 'montagna' });
 });
 
 /**
@@ -38,41 +41,28 @@ describe('primo avvio: il tutorial spegne le note di rilascio', () => {
 });
 
 /**
- * La scelta iniziale del livello decideva la modalità e poi spariva senza dire nulla:
- * le due carte si toglievano dallo schermo e restava il testo di benvenuto, quindi non
- * si sapeva cosa fosse stato scelto né come cambiarlo.
+ * La scelta iniziale del livello non esiste più (2026-09-05): l'app parte da
+ * Montagna/Pianificazione e la palestra si accende dalla carta nelle «Altre
+ * funzionalità». Qui si verifica che quel percorso faccia tutto il mestiere della
+ * vecchia scelta: modalità, persistenza, e il riscontro visibile.
  */
-describe('scelta del livello: riscontro e ripensamento', () => {
-  test('la scelta imposta la modalità', () => {
+describe('la carta «Attiva Impara» nelle altre funzionalita', () => {
+  function vaiAllaCarta() {
     render(<LearnTutorial />);
-    fireEvent.click(screen.getByRole('button', { name: /sto imparando/i }));
+    fireEvent.click(screen.getByText('Avanti'));
+    fireEvent.click(screen.getByText('Avanti'));
+    fireEvent.click(screen.getByText(/Altre funzionalità/));
+  }
+
+  test('attivandola si passa alla modalita Learn', () => {
+    vaiAllaCarta();
+    fireEvent.click(screen.getByRole('button', { name: /Attiva la modalità «Impara»/ }));
     expect(useItineraryStore.getState().appMode).toBe('learn');
   });
 
-  test('dopo la scelta si vede quale è stata scelta', () => {
-    render(<LearnTutorial />);
-    fireEvent.click(screen.getByRole('button', { name: /sto imparando/i }));
-    const scelta = screen.getByRole('button', { name: /sto imparando/i });
-    expect(scelta).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: /sono esperto/i })).toHaveAttribute('aria-pressed', 'false');
-    // e lo dice anche a parole, non solo col colore: la riga di conferma nomina la
-    // modalità attiva e ricorda che si può cambiare
-    expect(screen.getByText(/Modalità «Impara» attiva/)).toBeInTheDocument();
-    expect(screen.getByText(/cambi quando vuoi/)).toBeInTheDocument();
-  });
-
-  test('si può cambiare idea senza ricominciare', () => {
-    render(<LearnTutorial />);
-    fireEvent.click(screen.getByRole('button', { name: /sto imparando/i }));
-    fireEvent.click(screen.getByRole('button', { name: /sono esperto/i }));
-    expect(useItineraryStore.getState().appMode).toBe('track');
-    expect(screen.getByRole('button', { name: /sono esperto/i })).toHaveAttribute('aria-pressed', 'true');
-    expect(localStorage.getItem(KEYS.userLevel)).toBe('expert');
-  });
-
   test('la scelta viene ricordata per i prossimi avvii', () => {
-    render(<LearnTutorial />);
-    fireEvent.click(screen.getByRole('button', { name: /sto imparando/i }));
+    vaiAllaCarta();
+    fireEvent.click(screen.getByRole('button', { name: /Attiva la modalità «Impara»/ }));
     expect(localStorage.getItem(KEYS.userLevel)).toBe('beginner');
   });
 });

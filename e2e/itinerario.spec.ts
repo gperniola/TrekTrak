@@ -15,8 +15,8 @@ test.describe('primo contatto', () => {
     const guida = page.getByRole('dialog', { name: /Guida iniziale/ });
     await expect(guida).toBeVisible();
 
-    // La mappa e' visibile GIA' mentre la guida parla: dalla v0.16.x non e' piu' una
-    // finestra modale col velo nero sopra tutto.
+    // Popup centrale col velo (richiesta 2026-09-05, ribalta il task-38): la mappa
+    // resta montata sotto — la si usa appena la guida si chiude.
     await expect(page.locator('.leaflet-container')).toBeVisible();
 
     await page.getByText('Salta').click();

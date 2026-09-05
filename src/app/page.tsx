@@ -140,8 +140,7 @@ export default function Home() {
             (map + elevation strip) and be fully scrollable on its own. */}
         <div className="relative flex-1 flex flex-col min-h-0">
           {/* Map */}
-          {/* `data-guida`: la guida puo' indicare questo riquadro (task-38). */}
-          <div data-guida="mappa" className="flex-1 relative min-h-0 overflow-hidden">
+          <div className="flex-1 relative min-h-0 overflow-hidden">
             <MapWrapper />
             <MapToolsFab />
 
@@ -176,7 +175,7 @@ export default function Home() {
           </div>
 
           {/* Elevation Profile — in library mode mostra il profilo del percorso selezionato */}
-          <div data-guida="profilo" className="h-[100px] lg:h-[120px] bg-gray-900 border-t border-gray-700 shrink-0">
+          <div className="h-[100px] lg:h-[120px] bg-gray-900 border-t border-gray-700 shrink-0">
             {mainView === 'library'
               ? (previewRoute
                   ? <PreviewElevationProfile route={previewRoute} />

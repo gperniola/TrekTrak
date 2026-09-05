@@ -25,9 +25,9 @@ describe('LearnTutorial (TASK-43)', () => {
   test('il benvenuto spiega il ciclo: tocca, completa, meteo', () => {
     render(<LearnTutorial />);
     const testo = screen.getByRole('dialog').textContent ?? '';
-    expect(testo).toContain('Tocca la mappa');
+    expect(testo).toContain('toccando la mappa');
     expect(testo).toContain('Editor');
-    expect(testo).toContain('Quando partire');
+    expect(testo).toContain('meteo');
   });
 
   /**
@@ -57,9 +57,9 @@ describe('LearnTutorial (TASK-43)', () => {
     fireEvent.click(screen.getByText('Avanti'));
     // Sull'ultimo essenziale appare la continuazione opzionale
     fireEvent.click(screen.getByText(/Altre funzionalità/));
-    // 9 passi in Imparo: i 4 essenziali piu' strumenti, quiz, impostazioni, profilo e
-    // offline. Restano fuori «Pronto per la gita» (layer di emergenza) e «Condividi»
-    // (export), che sono di Montagna.
-    expect(screen.getByText(/di 9/)).toBeInTheDocument();
+    // 10 passi in Imparo: i 4 essenziali piu' la carta della palestra (che mostra lo
+    // stato anche qui), strumenti, quiz, impostazioni, profilo e offline. Restano fuori
+    // «Pronto per la gita» (layer di emergenza) e «Condividi» (export), di Montagna.
+    expect(screen.getByText(/di 10/)).toBeInTheDocument();
   });
 });
