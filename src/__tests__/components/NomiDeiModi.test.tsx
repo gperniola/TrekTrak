@@ -55,16 +55,20 @@ describe('i nomi dei due modi', () => {
   });
 
   /**
-   * Il riscontro dopo la scelta del livello nomina la modalità attiva: era il testo che
+   * Il riscontro dopo l'attivazione nomina la modalità col nome nuovo: era il testo che
    * mi era sfuggito, e diceva «Modalità Learn attiva» sotto un interruttore che intanto
-   * si chiamava «Impara».
+   * si chiamava «Impara». (La scelta all'ingresso non esiste più: la carta sta nelle
+   * «Altre funzionalità».)
    */
-  test('la conferma della scelta nomina il modo col nome nuovo', () => {
+  test('la conferma dell attivazione nomina il modo col nome nuovo', () => {
+    // La carta sta nelle «Altre funzionalità» di Montagna, il profilo di partenza.
+    useUIStore.setState({ profilo: 'montagna' });
     render(<LearnTutorial />);
-    fireEvent.click(screen.getByRole('button', { name: /sto imparando/i }));
+    fireEvent.click(screen.getByText('Avanti'));
+    fireEvent.click(screen.getByText('Avanti'));
+    fireEvent.click(screen.getByText(/Altre funzionalità/));
+    fireEvent.click(screen.getByRole('button', { name: /Attiva la modalità «Impara»/ }));
     expect(screen.getByText(/Modalità «Impara» attiva/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /sono esperto/i }));
-    expect(screen.getByText(/Modalità «Pianificazione» attiva/)).toBeInTheDocument();
   });
 
   /**

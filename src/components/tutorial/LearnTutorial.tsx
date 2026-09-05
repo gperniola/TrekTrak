@@ -6,9 +6,8 @@ import { useState, useEffect, useRef } from 'react';
 import { KEYS } from '@/lib/storage';
 import { markWhatsNewSeen } from './WhatsNew';
 import { useItineraryStore } from '@/stores/itineraryStore';
-import { useSheetDrag } from '@/lib/useSheetDrag';
-import { useSchermoPiccolo } from '@/lib/useSchermoPiccolo';
-import { SheetHandle } from '@/components/shared/SheetHandle';
+import { useModaleTastiera } from '@/lib/useModaleTastiera';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { AnimazionePrimiPassi } from './AnimazionePrimiPassi';
 
 interface TutorialStep {
@@ -18,20 +17,13 @@ interface TutorialStep {
   mockup?: React.ReactNode;
   /**
    * Area del profilo d'uso a cui il passo appartiene. Senza campo, il passo vale per
-   * tutti. La guida non deve raccontare funzioni che il profilo appena scelto ha
-   * nascosto: la scelta del livello sta al passo 0 di questa stessa guida, quindi chi
-   * rispondeva «sono esperto» si vedeva subito spiegare l'interruttore Learn/Track e il
-   * pulsante «Verifica», che l'app gli aveva appena tolto.
+   * tutti. La guida non deve raccontare funzioni che il profilo ha nascosto: in Montagna
+   * — il default — spiegare l'interruttore Learn/Track o il pulsante «Verifica» sarebbe
+   * descrivere un'app che chi guarda non ha davanti.
    */
   area?: Area;
   /** Fa parte del primo contatto (vedi `quantiEssenziali`). */
   essenziale?: boolean;
-  /**
-   * Elemento dell'interfaccia di cui il passo parla, per `[data-guida="..."]`. La guida
-   * gli mette un contorno verde intorno: leggere «tocca la mappa» mentre la mappa e'
-   * coperta dalla guida stessa era il difetto che questo task esiste per togliere.
-   */
-  evidenzia?: string;
 }
 
 function MenuMockup({ highlight }: { highlight?: 'fields' | 'verify' | 'badges' }) {
@@ -126,29 +118,30 @@ const STEPS: TutorialStep[] = [
   {
     title: 'Benvenuto in TrekTrak!',
     /*
-     * Il benvenuto dice il CICLO dell'app in una frase — tocca la mappa, completa
+     * Il benvenuto dice il CICLO dell'app in una frase — tocca la mappa, rifinisci
      * nell'Editor, guarda il meteo — perche' e' la prima cosa letta in assoluto e deve
-     * rispondere a «cosa ci faccio, qui?» prima di ogni altra. Poi nomina entrambi gli
-     * usi, perche' la scelta sta subito sotto: dire solo «impara la cartografia manuale»
-     * era la prima frase letta anche da chi sta per rispondere «sono esperto», e gli
-     * descriveva l'app che non avrebbe visto. L'animazione mostra lo stesso ciclo senza
-     * parole.
+     * rispondere a «cosa ci faccio, qui?». Solo la promessa: le meccaniche stanno nei
+     * passi loro, e ripeterle qui era dire tre volte le stesse cose (rilievo utente,
+     * 2026-09-05). La frase sui due usi e' andata via con la scelta del livello: l'app
+     * parte da trekking, e la palestra di cartografia sta nelle «Altre funzionalita'».
      */
-    text: 'Tocca la mappa per mettere i punti del percorso, completali nell\'Editor con quote e distanze, e «Quando partire» incrocia la previsione meteo con i tuoi orari di marcia. I valori puoi scriverli tu e farli verificare — per imparare la cartografia manuale — oppure lasciarli calcolare all\'app per preparare la gita.',
+    text: 'Prepara l’escursione: metti i punti del percorso toccando la mappa, rifiniscili nell’Editor, e prima di partire sai che meteo troverai lungo il cammino. Il giro completo, in sette secondi:',
     icon: '🗺️',
     mockup: <AnimazionePrimiPassi />,
     essenziale: true,
   },
   {
-    title: 'Aggiungi waypoint',
-    evidenzia: 'mappa',
-    text: 'Clicca o tocca la mappa per posizionare i waypoint del tuo itinerario. Ogni waypoint rappresenta un punto di passaggio. Puoi trascinare i marker per riposizionarli.',
+    title: 'I waypoint',
+    /*
+     * Il «tocca la mappa» sta gia' nel benvenuto: qui solo quello che il benvenuto non
+     * dice — spostare, dare nome e quota, togliere, e il ritorno in un tocco.
+     */
+    text: 'Trascina un marker per spostarlo; il nome arriva da solo dal luogo più vicino, e nell’Editor scrivi quota e note. Sulla mappa, il cestino 🗑️ toglie l’ultimo punto o tutti, e ↩️ aggiunge il ritorno per la stessa strada.',
     icon: '📍',
     essenziale: true,
   },
   {
     title: 'Impara e Pianificazione',
-    evidenzia: 'modi',
     text: 'In «Impara» scrivi tu distanza, dislivello e azimuth, poi con "Verifica" li confronti con i dati reali. In «Pianificazione» li calcola l\'app. Puoi passare da una all\'altra quando vuoi: i valori delle due modalità restano salvati separatamente, quindi non perdi niente.',
     icon: '✏️',
     mockup: <MenuMockup highlight="fields" />,
@@ -171,14 +164,32 @@ const STEPS: TutorialStep[] = [
      * cui l'app serve davvero in quota.
      */
     title: 'Pronto per la gita',
-    text: 'Con almeno due waypoint l\'app calcola distanza, dislivelli e tempi di percorrenza. Il pulsante Meteo incrocia la previsione con gli orari stimati e ti dice a che ora arrivi e cosa trovi; il pulsante ⚠️ sulla mappa accende radar della pioggia, incendi, allerte e rifugi.',
+    /*
+     * Niente ripetizioni del benvenuto («l'app calcola», «il meteo c'e'»): qui il
+     * DETTAGLIO che il benvenuto promette — cosa dice davvero «Quando partire», e cosa
+     * accende ⚠️.
+     */
+    text: '«Quando partire» ti dice a che ora sei in ogni punto e che tempo trovi lì a quell’ora, col verdetto sulla fascia critica della giornata. Il pulsante ⚠️ sulla mappa accende radar della pioggia, focolai, allerte e rifugi.',
     icon: '🥾',
     area: 'layerEmergenza',
     essenziale: true,
   },
   {
+    /*
+     * La palestra di cartografia sta QUI, fra le altre funzionalita', e non piu' come
+     * domanda d'ingresso (richiesta utente, 2026-09-05): l'app e' prima di tutto da
+     * trekking, e chiedere «sto imparando o sono esperto» a chi vuole solo preparare una
+     * gita era un bivio prima ancora di aver visto la mappa. Il passo resta visibile
+     * anche in Imparo, con la carta che mostra lo stato: e' il riscontro della v0.11.8 —
+     * una scelta fatta deve restare leggibile, non sparire.
+     */
+    title: 'Impara la cartografia',
+    text: 'TrekTrak è anche una palestra: in modalità «Impara» distanze, dislivelli e azimut li calcoli tu su carta, e «Verifica» li confronta coi valori veri del terreno — con quiz e registro dei progressi. Si attiva qui sotto, o quando vuoi da «Modalità» in cima all’Editor.',
+    icon: '🎓',
+    mockup: <AttivaImpara />,
+  },
+  {
     title: 'Strumenti mappa',
-    evidenzia: 'strumenti',
     text: 'Sulla mappa trovi la Bussola (◎) per l\'azimuth in tempo reale col GPS e il Righello (↕) per misurare distanza e quota tra due punti.',
     icon: '🧭',
     mockup: <ToolbarMockup />,
@@ -197,7 +208,6 @@ const STEPS: TutorialStep[] = [
   },
   {
     title: 'Profilo interattivo',
-    evidenzia: 'profilo',
     text: 'Il grafico in basso mostra il profilo altimetrico colorato per pendenza. Passa il dito sul grafico per vedere il punto sulla mappa, e viceversa. Clicca sul grafico per centrare la mappa.',
     icon: '📊',
   },
@@ -238,59 +248,49 @@ function quantiEssenziali(passi: TutorialStep[]): number {
   return n;
 }
 
-/** Pseudo-step shown before step 0: user picks their level so the app sets sensible defaults. */
 /**
- * Le due carte restano a schermo anche dopo la scelta, con quella scelta marcata.
+ * La carta che accende la modalità «Impara».
  *
- * Prima sparivano appena si toccava una delle due e il dialogo tornava al testo di
- * benvenuto: non si sapeva cosa fosse stato scelto, ne' come cambiarlo. Il riscontro
- * e' doppio — `aria-pressed` con la cornice per chi guarda, e una riga di testo che
- * nomina la modalita' — perche' il colore da solo non e' un messaggio.
+ * Legge lo stato dallo store, non da uno `useState`: la si può premere dalla guida, ma la
+ * modalità si cambia anche da «Modalità» in cima all'Editor, e la carta deve dire il vero
+ * in ogni caso. Il riscontro è doppio — `aria-pressed` con la cornice per chi guarda, e
+ * una riga di testo che nomina la modalità — perché il colore da solo non è un messaggio.
  */
-function LevelChooser({ scelto, onChoose }: {
-  scelto: 'beginner' | 'expert' | null;
-  onChoose: (level: 'beginner' | 'expert') => void;
-}) {
-  const carta = (livello: 'beginner' | 'expert', attivo: string, spento: string) =>
-    `w-full text-left border rounded-lg p-3 max-lg:min-h-[44px] transition-colors ${
-      scelto === livello ? attivo : spento
-    }`;
+function AttivaImpara() {
+  const profilo = useUIStore((s) => s.profilo);
+  const setProfilo = useUIStore((s) => s.setProfilo);
+  const setAppMode = useItineraryStore((s) => s.setAppMode);
+  const attiva = profilo === 'imparo';
+
+  const accendi = () => {
+    setAppMode('learn');
+    setProfilo('imparo');
+    // La chiave storica del livello: la migrazione e il ripristino la leggono ancora.
+    try { localStorage.setItem(KEYS.userLevel, 'beginner'); } catch { /* storage bloccato */ }
+  };
+
   return (
     <div className="space-y-2 mt-3">
       <button
-        onClick={() => onChoose('beginner')}
-        aria-pressed={scelto === 'beginner'}
-        className={carta('beginner',
-          'bg-purple-900/70 border-purple-400 ring-2 ring-purple-400/60',
-          'bg-purple-900/40 hover:bg-purple-900/60 border-purple-600')}
+        onClick={accendi}
+        aria-pressed={attiva}
+        className={`w-full text-left border rounded-lg p-3 max-lg:min-h-[44px] transition-colors ${
+          attiva
+            ? 'bg-purple-900/70 border-purple-400 ring-2 ring-purple-400/60'
+            : 'bg-purple-900/40 hover:bg-purple-900/60 border-purple-600'
+        }`}
       >
         <div className="text-sm font-bold text-purple-300">
-          📚 Sto imparando {scelto === 'beginner' && <span aria-hidden>✓</span>}
+          📚 Attiva la modalità «Impara» {attiva && <span aria-hidden>✓</span>}
         </div>
         <div className="text-[11px] text-gray-300 mt-1">
-          Default modalità Impara: inserisco io i valori e li confronto con quelli reali.
+          I valori li inserisci tu e li confronti con quelli reali.
         </div>
       </button>
-      <button
-        onClick={() => onChoose('expert')}
-        aria-pressed={scelto === 'expert'}
-        className={carta('expert',
-          'bg-green-900/70 border-green-400 ring-2 ring-green-400/60',
-          'bg-green-900/40 hover:bg-green-900/60 border-green-600')}
-      >
-        <div className="text-sm font-bold text-green-300">
-          🥾 Sono esperto {scelto === 'expert' && <span aria-hidden>✓</span>}
-        </div>
-        <div className="text-[11px] text-gray-300 mt-1">
-          Default modalità Pianificazione: l&apos;app calcola tutto, io rivedo e perfeziono.
-        </div>
-      </button>
-      {scelto != null && (
+      {attiva && (
         <p className="text-[11px] text-gray-300 bg-gray-800/70 rounded px-2 py-1.5">
-          {scelto === 'beginner'
-            ? 'Modalità «Impara» attiva: i valori li scrivi tu, poi «Verifica» li confronta con i reali.'
-            : 'Modalità «Pianificazione» attiva: l’app calcola distanza, dislivelli e azimut.'}
-          {' '}La cambi quando vuoi con l’interruttore in cima all’Editor.
+          Modalità «Impara» attiva: i valori li scrivi tu, poi «Verifica» li confronta con i
+          reali. La cambi quando vuoi da «Modalità», in cima all&rsquo;Editor.
         </p>
       )}
     </div>
@@ -299,95 +299,66 @@ function LevelChooser({ scelto, onChoose }: {
 
 export function LearnTutorial() {
   const [step, setStep] = useState<number | null>(null);
-  const [showLevelChooser, setShowLevelChooser] = useState(false);
-  const [livelloScelto, setLivelloScelto] = useState<'beginner' | 'expert' | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const setAppMode = useItineraryStore((s) => s.setAppMode);
-  const setProfilo = useUIStore((s) => s.setProfilo);
   /*
-   * La guida si ridisegna quando il profilo cambia, e il profilo si sceglie al passo 0 di
-   * questa stessa guida: appena si tocca «Sto imparando» o «Sono esperto», i passi
-   * successivi diventano quelli di quel profilo.
+   * La guida si ridisegna quando il profilo cambia: la carta «Attiva la modalità Impara»
+   * sta in un passo della guida stessa, e appena la si preme i passi diventano quelli del
+   * profilo nuovo.
    */
   const profilo = useUIStore((s) => s.profilo);
-  // Mutabile: la riempie la callback del gesto, che e' l'unica `ref` sul nodo.
-  const dialogRef = useRef<HTMLDivElement | null>(null);
+
   /*
-   * Su telefono la guida e' un foglio come gli altri tre, quindi si manda via col dito
-   * verso il basso. `refEsterna` perche' il pannello ha gia' una ref sua, quella che
-   * riceve il fuoco all'apertura.
+   * **Popup centrale, di nuovo** (richiesta utente, 2026-09-05: «i messaggi allo startup
+   * compaiono in un tiretto scorrevole, ed è sbagliatissimo: devono essere un popup
+   * centrale»). È il ribaltamento del task-38, che l'aveva resa un pannello ancorato per
+   * lasciare la mappa toccabile — ma il pannello, stretto e scorrevole, tagliava il
+   * contenuto proprio al primo avvio. Ora la guida si legge e si chiude, poi si tocca:
+   * quindi trappola del fuoco e blocco dello scorrimento, come ogni modale dell'app. Con
+   * il velo sopra la pagina, anche il contorno verde sugli elementi (`evidenzia`) non
+   * aveva più niente da indicare: rimosso.
    */
-  const piccolo = useSchermoPiccolo();
-  const { refFoglio, propsFoglio, propsManiglia } = useSheetDrag<HTMLDivElement>({
-    onDismiss: () => { markSeen(); setStep(null); },
-    refEsterna: (n) => { dialogRef.current = n; },
-    attivo: piccolo,
+  const dialogRef = useModaleTastiera<HTMLDivElement>(step !== null, () => {
+    markSeen();
+    setStep(null);
   });
-  /*
-   * Niente blocco dello scorrimento e niente trappola del fuoco: dal task-38 la guida NON
-   * e' piu' una finestra modale. La mappa dietro deve restare toccabile, altrimenti il
-   * passo «tocca la mappa per aggiungere un waypoint» chiede una cosa che la guida stessa
-   * impedisce.
-   */
+  useBodyScrollLock(step !== null);
 
-  /*
-   * Il contorno verde sull'elemento di cui parla il passo. Si cerca il bersaglio quando
-   * serve invece di tenerne un riferimento: i pezzi indicati compaiono e spariscono da
-   * soli (il FAB e' solo su telefono, l'interruttore dei modi solo in Imparo).
-   */
-  const chiaveEvidenza = step == null ? undefined : passiVisibili(profilo)[step]?.evidenzia;
-  useEffect(() => {
-    if (chiaveEvidenza == null) return;
-    const bersaglio = document.querySelector(`[data-guida="${chiaveEvidenza}"]`);
-    if (bersaglio == null) return;
-    bersaglio.classList.add('guida-evidenziata');
-    return () => bersaglio.classList.remove('guida-evidenziata');
-  }, [chiaveEvidenza]);
-
-  // Check localStorage on mount
+  // Al primo avvio in assoluto la guida si apre da sola; poi mai piu'.
   useEffect(() => {
     try {
       if (localStorage.getItem(KEYS.tutorialSeen)) return;
     } catch {
-      // localStorage unavailable — show tutorial anyway
+      // localStorage non disponibile: la guida si mostra comunque
     }
     setStep(0);
-    setShowLevelChooser(true);
   }, []);
 
-  const handleChooseLevel = (level: 'beginner' | 'expert') => {
-    setAppMode(level === 'beginner' ? 'learn' : 'track');
-    /*
-     * La stessa risposta decide anche QUALI AREE esistono a schermo. Prima impostava
-     * solo il modo di compilare i valori, e restava a meta' del suo mestiere: chi
-     * dichiarava di stare imparando si trovava comunque davanti radar della pioggia,
-     * instabilita' satellitare e libreria condivisa.
-     */
-    setProfilo(level === 'beginner' ? 'imparo' : 'montagna');
-    try {
-      localStorage.setItem(KEYS.userLevel, level);
-    } catch {
-      // localStorage unavailable
-    }
-    setLivelloScelto(level);
-    // Le carte NON si nascondono: restano visibili con quella scelta marcata, cosi'
-    // si vede cosa e' stato scelto e si puo' cambiare idea.
-  };
-
   /*
-   * Escape chiude, e basta. La trappola del fuoco e' stata tolta insieme al velo nero: un
-   * pannello che lascia usare l'app non deve trattenere il Tab, altrimenti si puo' vedere
-   * la mappa ma non raggiungerla da tastiera.
+   * Cambiando profilo dalla carta, l'elenco dei passi cambia sotto i piedi: senza questo
+   * aggancio l'indice corrente finirebbe su un ALTRO passo (in Imparo entrano «Impara e
+   * Pianificazione» e «Verifica» prima della carta). Si resta sul passo con lo stesso
+   * titolo, che e' quello che si stava leggendo.
    */
+  const titoloCorrente = useRef<string | null>(null);
+  /*
+    Il titolo si annota in un effetto su [step], NON durante il render: il cambio di
+    profilo ridisegna prima che l'effetto qui sotto legga, e un'annotazione fatta nel
+    render verrebbe sovrascritta col titolo del passo SBAGLIATO (quello su cui l'indice
+    e' scivolato) — visto coi test, non a occhio.
+  */
   useEffect(() => {
-    if (step === null) return;
-    const tasto = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { markSeen(); setStep(null); }
-    };
-    window.addEventListener('keydown', tasto);
-    dialogRef.current?.focus();
-    return () => window.removeEventListener('keydown', tasto);
+    if (step == null) return;
+    const lista = passiVisibili(profilo);
+    titoloCorrente.current = lista[Math.min(step, lista.length - 1)]?.title ?? null;
+    // Il profilo qui e' solo il contesto di lettura: la reazione al suo cambio sta sotto.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
+  useEffect(() => {
+    if (step == null || titoloCorrente.current == null) return;
+    const indice = passiVisibili(profilo).findIndex((s) => s.title === titoloCorrente.current);
+    if (indice >= 0 && indice !== step) setStep(indice);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profilo]);
 
   function markSeen() {
     try {
@@ -425,9 +396,9 @@ export function LearnTutorial() {
   if (step === null) return null;
 
   /*
-   * `step` e' un indice nella lista FILTRATA, che si accorcia se il profilo cambia
-   * mentre la guida e' aperta (si puo' tornare al passo 0 e cambiare idea sul livello):
-   * senza questo taglio si finirebbe fuori dall'array.
+   * `step` e' un indice nella lista FILTRATA, che cambia se il profilo cambia con la
+   * guida aperta (la carta «Attiva Impara» sta in un passo della guida): il taglio e'
+   * l'ultima rete se l'aggancio per titolo qui sopra non trova niente.
    */
   const current = passi[Math.min(step, passi.length - 1)];
   const visibleCount = showAdvanced ? passi.length : essenziali;
@@ -436,26 +407,22 @@ export function LearnTutorial() {
 
   return (
     /*
-     * **Pannello, non finestra modale** (task-38). Niente velo nero e niente contenitore a
-     * tutto schermo: la mappa resta visibile e si puo' toccare mentre la guida spiega come
-     * si tocca. Su schermo grande sta a destra sotto la barra di ricerca; su telefono e' un
-     * foglio in basso, sopra la barra di navigazione, alto un terzo dello schermo.
+     * Popup centrale col velo, come le Novita': si legge, si chiude, si tocca la mappa.
+     * Il clic sul velo vale come «Salta»: chiude e non ripresenta.
      */
     <div
-      // Senza questa `ref` il gesto non ha un nodo su cui lavorare: il trascinamento non
-      // parte e il pannello non riceve il fuoco all'apertura. Era il difetto trovato
-      // nella review — i test non lo vedevano perche' jsdom non ha i Pointer Events.
-      ref={refFoglio}
-      role="dialog"
-      aria-label="Guida iniziale TrekTrak"
-      tabIndex={-1}
-      {...propsFoglio}
-      className="fixed z-[1400] bg-gray-900 border border-gray-700 shadow-2xl outline-none overflow-y-auto
-        max-lg:inset-x-2 max-lg:bottom-[68px] max-lg:max-h-[42vh] max-lg:rounded-xl
-        lg:top-20 lg:right-4 lg:w-80 lg:max-h-[calc(100vh-8rem)] lg:rounded-xl"
+      className="fixed inset-0 z-[1400] flex items-center justify-center p-4 bg-black/60"
+      onClick={handleClose}
     >
-      <SheetHandle gesto={propsManiglia} />
-      <div className="p-5 pt-2 lg:pt-5">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Guida iniziale TrekTrak"
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+        className="bg-gray-900 border border-gray-700 rounded-xl max-w-sm w-full p-5 shadow-2xl outline-none overflow-y-auto max-h-[calc(100vh-2rem)]"
+      >
         <div className="flex items-start justify-between gap-2 mb-3">
           <div className="text-3xl">{current.icon}</div>
           <button
@@ -469,7 +436,6 @@ export function LearnTutorial() {
         <h2 className="text-base font-bold text-green-400 mb-2">{current.title}</h2>
         <p className="text-sm text-gray-300 leading-relaxed">{current.text}</p>
 
-        {step === 0 && showLevelChooser && <LevelChooser scelto={livelloScelto} onChoose={handleChooseLevel} />}
         {current.mockup}
 
         {/* Step indicator */}

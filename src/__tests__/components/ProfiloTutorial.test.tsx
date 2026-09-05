@@ -39,9 +39,12 @@ describe('review 3: la guida segue il profilo', () => {
     }
   }
 
-  test('scegliendo «sono esperto» la guida non parla di Verifica, Learn/Track e Quiz', () => {
+  /*
+    Il profilo si fissa nello store: la scelta all'ingresso non esiste piu' (2026-09-05),
+    il default e' Montagna e la palestra si attiva dalla carta nelle altre funzionalita'.
+  */
+  test('in Montagna la guida non parla di Verifica, Learn/Track e Quiz', () => {
     render(<LearnTutorial />);
-    fireEvent.click(screen.getByText(/Sono esperto/));
     const testo = tuttoIlTesto();
     expect(testo).not.toMatch(/Verifica e feedback/);
     expect(testo).not.toMatch(/Learn e Track/);
@@ -50,9 +53,10 @@ describe('review 3: la guida segue il profilo', () => {
     expect(testo).toMatch(/Pronto per la gita/);
   });
 
-  test('scegliendo «sto imparando» la guida non promette Copia link', () => {
+  test('in Imparo la guida non promette Copia link', () => {
+    useUIStore.setState({ profilo: 'imparo' });
+    useItineraryStore.setState({ appMode: 'learn' });
     render(<LearnTutorial />);
-    fireEvent.click(screen.getByText(/Sto imparando/));
     const testo = tuttoIlTesto();
     expect(testo).not.toMatch(/Copia link/);
     expect(testo).not.toMatch(/Pronto per la gita/);
@@ -92,6 +96,8 @@ describe('review 3: la guida segue il profilo', () => {
     fireEvent.click(screen.getByText('Avanti'));
     fireEvent.click(screen.getByText('Avanti'));
     fireEvent.click(screen.getByText(/Altre funzionalità/));
+    // Il primo passo avanzato ora e' la palestra: gli strumenti sono quello dopo.
+    fireEvent.click(screen.getByText('Avanti'));
     expect(screen.getByText('Strumenti mappa')).toBeInTheDocument();
     expect(screen.queryByText('Impara')).not.toBeInTheDocument();
     expect(screen.queryByText('Pianificazione')).not.toBeInTheDocument();

@@ -3,41 +3,48 @@ import { LearnTutorial } from '@/components/tutorial/LearnTutorial';
 import { useUIStore } from '@/stores/uiStore';
 
 /**
- * TASK-38. La guida era una finestra modale al centro, con un velo nero sopra tutto: al
- * secondo passo diceva «tocca la mappa per posizionare i waypoint» **coprendo la mappa e
- * impedendo di toccarla**. Ora è un pannello — a destra su schermo grande, un foglio in
- * basso su telefono — e la mappa dietro resta visibile e utilizzabile.
+ * **La guida di primo avvio è un popup centrale.**
+ *
+ * La storia ha fatto un giro completo. Nasce modale; il task-38 la trasforma in un
+ * pannello ancorato perché al passo «tocca la mappa» copriva la mappa; e il 2026-09-05
+ * l'utente la riporta al centro: «i messaggi allo startup compaiono in un tiretto
+ * scorrevole, ed è sbagliatissimo: devono essere un popup centrale». Il pannello, stretto
+ * e scorrevole, tagliava il contenuto proprio al primo avvio — l'animazione e metà dei
+ * testi stavano sotto la piega.
+ *
+ * Ora la guida si legge e si chiude, poi si tocca: da modale vera ha la trappola del
+ * fuoco e il velo, e il contorno verde sugli elementi (`evidenzia`) è stato rimosso —
+ * sotto un velo non aveva più niente da indicare.
  */
 
 beforeEach(() => {
   localStorage.clear();
-  useUIStore.setState({ profilo: 'imparo' });
+  useUIStore.setState({ profilo: 'montagna' });
 });
 
-const pannello = () => screen.getByRole('dialog');
+const dialogo = () => screen.getByRole('dialog');
 
-describe('la guida non e piu una finestra modale', () => {
-  test('non dichiara di essere modale', () => {
+describe('la guida e un popup centrale', () => {
+  test('dichiara di essere modale', () => {
     render(<LearnTutorial />);
-    expect(pannello().getAttribute('aria-modal')).toBeNull();
+    expect(dialogo().getAttribute('aria-modal')).toBe('true');
   });
 
-  /** Il velo nero copriva tutto e intercettava i clic diretti alla mappa. */
-  test('non c e nessun velo sopra la pagina', () => {
+  test('ha il velo sopra la pagina, centrato', () => {
     const { container } = render(<LearnTutorial />);
-    const veli = container.querySelectorAll('.fixed.inset-0');
-    expect(veli).toHaveLength(0);
+    const velo = container.querySelector('.fixed.inset-0');
+    expect(velo).not.toBeNull();
+    expect(velo!.className).toMatch(/items-center/);
+    expect(velo!.className).toMatch(/justify-center/);
   });
 
-  test('il pannello e ancorato, non centrato a tutto schermo', () => {
+  test('all apertura il fuoco sta sul dialogo', () => {
     render(<LearnTutorial />);
-    const classi = pannello().className;
-    expect(classi).toMatch(/lg:right-4/);      // a destra su schermo grande
-    expect(classi).toMatch(/max-lg:bottom-/);  // foglio in basso su telefono
+    expect(document.activeElement).toBe(dialogo());
   });
 });
 
-describe('si chiude in tre modi', () => {
+describe('si chiude in quattro modi, e resta chiusa', () => {
   test('con la ✕', () => {
     render(<LearnTutorial />);
     fireEvent.click(screen.getByRole('button', { name: 'Chiudi la guida' }));
@@ -56,90 +63,25 @@ describe('si chiude in tre modi', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
+  /** Il clic sul velo vale come «Salta»: e' il gesto naturale per mandar via un popup. */
+  test('col clic sul velo', () => {
+    const { container } = render(<LearnTutorial />);
+    fireEvent.click(container.querySelector('.fixed.inset-0')!);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  /** E un clic DENTRO il dialogo non la chiude: il velo non deve rubare i tocchi al contenuto. */
+  test('un clic dentro il dialogo non chiude', () => {
+    render(<LearnTutorial />);
+    fireEvent.click(dialogo());
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
   test('chiudendo, non si riapre al prossimo avvio', () => {
     const { unmount } = render(<LearnTutorial />);
     fireEvent.keyDown(window, { key: 'Escape' });
     unmount();
     render(<LearnTutorial />);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-  });
-});
-
-/**
- * Il passo indica l'elemento di cui parla mettendogli un contorno verde: e' il pezzo che
- * rende utile avere la mappa visibile.
- */
-describe('i passi indicano l elemento di cui parlano', () => {
-  test('il passo sui waypoint evidenzia la mappa', () => {
-    const mappa = document.createElement('div');
-    mappa.setAttribute('data-guida', 'mappa');
-    document.body.appendChild(mappa);
-
-    render(<LearnTutorial />);
-    expect(mappa.classList.contains('guida-evidenziata')).toBe(false);  // passo 0: benvenuto
-    fireEvent.click(screen.getByText('Avanti'));
-    expect(mappa.classList.contains('guida-evidenziata')).toBe(true);
-
-    mappa.remove();
-  });
-
-  test('passando oltre, il contorno si sposta e non resta appiccicato', () => {
-    const mappa = document.createElement('div');
-    mappa.setAttribute('data-guida', 'mappa');
-    const modi = document.createElement('div');
-    modi.setAttribute('data-guida', 'modi');
-    document.body.append(mappa, modi);
-
-    render(<LearnTutorial />);
-    fireEvent.click(screen.getByText('Avanti'));   // waypoint -> evidenzia mappa
-    expect(mappa.classList.contains('guida-evidenziata')).toBe(true);
-    fireEvent.click(screen.getByText('Avanti'));   // Learn/Track -> evidenzia i modi
-    expect(mappa.classList.contains('guida-evidenziata')).toBe(false);
-    expect(modi.classList.contains('guida-evidenziata')).toBe(true);
-
-    mappa.remove();
-    modi.remove();
-  });
-
-  test('chiudendo la guida non resta niente di evidenziato', () => {
-    const mappa = document.createElement('div');
-    mappa.setAttribute('data-guida', 'mappa');
-    document.body.appendChild(mappa);
-
-    render(<LearnTutorial />);
-    fireEvent.click(screen.getByText('Avanti'));
-    expect(mappa.classList.contains('guida-evidenziata')).toBe(true);
-    fireEvent.keyDown(window, { key: 'Escape' });
-    expect(mappa.classList.contains('guida-evidenziata')).toBe(false);
-
-    mappa.remove();
-  });
-
-  /** Un bersaglio che in questo momento non esiste non deve far esplodere niente. */
-  test('se l elemento indicato non c e, la guida prosegue lo stesso', () => {
-    render(<LearnTutorial />);
-    expect(() => fireEvent.click(screen.getByText('Avanti'))).not.toThrow();
-    expect(screen.getByText('Aggiungi waypoint')).toBeInTheDocument();
-  });
-});
-
-/**
- * Trovato in review: il pannello dichiarava il gesto di trascinamento ma **non agganciava
- * la ref al nodo**, quindi il gesto non aveva niente su cui lavorare e il pannello non
- * riceveva nemmeno il fuoco all'apertura. I test non potevano vederlo — jsdom non ha i
- * Pointer Events — quindi qui si verifica il collegamento, che è la cosa che mancava.
- */
-describe('il pannello e collegato al gesto e al fuoco', () => {
-  test('il nodo del dialogo esiste ed e raggiungibile da tastiera', () => {
-    render(<LearnTutorial />);
-    const p = pannello();
-    expect(p).toHaveAttribute('tabindex', '-1');
-    // Il fuoco all'apertura: senza la ref agganciata restava sul body.
-    expect(document.activeElement).toBe(p);
-  });
-
-  test('la maniglia del trascinamento c e', () => {
-    const { container } = render(<LearnTutorial />);
-    expect(container.querySelector('.touch-none')).not.toBeNull();
   });
 });
