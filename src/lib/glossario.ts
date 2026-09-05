@@ -32,8 +32,6 @@ export const LIVELLI_SAC = {
   T6: 'Alpinismo difficile',
 } as const;
 
-export type LivelloSac = keyof typeof LIVELLI_SAC;
-
 export type Termine =
   | 'azimut'
   | 'declinazione-magnetica'

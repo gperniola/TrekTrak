@@ -54,7 +54,7 @@ export function pointInPolygon(lon: number, lat: number, rings: Position[][]): b
  * `GeometryCollection`: una zona così sarebbe colorata sulla mappa sotto la posizione
  * dell'utente senza produrre alcun avviso.
  */
-export function geometryContainsPoint(
+function geometryContainsPoint(
   geometry: Geometry | null | undefined, lon: number, lat: number
 ): boolean | null {
   if (!geometry) return null;

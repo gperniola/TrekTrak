@@ -41,42 +41,12 @@ jest.mock('@/lib/export-json', () => ({
 }));
 
 import { LeftPanel } from '@/components/panel/LeftPanel';
+import { statoItinerario, statoUI } from '../fixtures/itinerario';
 
-/**
- * Annotato: senza il tipo, `sampleInterval: 50` si allarga a `number` e la fixture
- * non viene confrontata con lo stato reale dello store — è così che campi aggiunti
- * dopo (es. `emergencyLayers`) restavano assenti senza che nulla lo segnalasse.
- */
-const BASE_ITINERARY_STATE: Partial<ItineraryState> = {
-  itineraryId: 'test-id',
-  itineraryName: '',
-  waypoints: [],
-  legs: [],
-  settings: {
-    tolerances: { altitude: 50, coordinates: 0.001, distance: 10, azimuth: 5, elevationDelta: 15 },
-    mapDisplay: {
-      coloredPath: false,
-      trailRouting: false,
-      sampleInterval: 50,
-      baseMap: 'osm',
-      showHikingTrails: false,
-      showCoordinateGrid: false,
-      emergencyLayers: [],
-    },
-  },
-  appMode: 'learn' as AppMode,
-};
 
 beforeEach(() => {
-  useItineraryStore.setState(BASE_ITINERARY_STATE);
-  useUIStore.setState({
-    compassActive: false,
-    rulerActive: false,
-    quizActive: false,
-    progressOpen: false,
-    searchOpen: false,
-    mainView: 'editor',
-  });
+  useItineraryStore.setState(statoItinerario({ itineraryName: '' }));
+  useUIStore.setState(statoUI({ mainView: 'editor' }));
 });
 
 /*

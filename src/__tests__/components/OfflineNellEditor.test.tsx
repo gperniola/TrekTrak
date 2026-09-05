@@ -2,9 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, expect, test, beforeEach, afterEach, jest } from '@jest/globals';
 import { useItineraryStore } from '@/stores/itineraryStore';
-import type { ItineraryState } from '@/stores/itineraryStore';
 import { useUIStore } from '@/stores/uiStore';
-import type { AppMode, Waypoint } from '@/lib/types';
 
 jest.mock('@/lib/export-pdf', () => ({ downloadPDF: jest.fn() }));
 jest.mock('@/lib/export-gpx', () => ({ downloadGPX: jest.fn() }));
@@ -20,6 +18,7 @@ jest.mock('@/lib/storage', () => ({
 
 import { ActionBar } from '@/components/panel/ActionBar';
 import { useTessereOffline } from '@/lib/useTessereOffline';
+import { statoItinerario, wp } from '../fixtures/itinerario';
 
 /**
  * **Le mattonelle si scaricano dall'editor, e solo quando lo si chiede.**
@@ -34,30 +33,6 @@ import { useTessereOffline } from '@/lib/useTessereOffline';
  * cortesia di qualcun altro senza che nessuno lo abbia chiesto.
  */
 
-const wp = (i: number): Waypoint => ({
-  id: `w${i}`, name: `P${i}`, lat: 42.1 + i / 100, lon: 14.1 + i / 100,
-  altitude: 2000 + i * 100, order: i,
-});
-
-const BASE: Partial<ItineraryState> = {
-  itineraryId: 'test-id',
-  itineraryName: 'Test',
-  waypoints: [],
-  legs: [],
-  settings: {
-    tolerances: { altitude: 50, coordinates: 0.001, distance: 10, azimuth: 5, elevationDelta: 15 },
-    mapDisplay: {
-      coloredPath: false,
-      trailRouting: false,
-      sampleInterval: 50,
-      baseMap: 'osm',
-      showHikingTrails: false,
-      showCoordinateGrid: false,
-      emergencyLayers: [],
-    },
-  },
-  appMode: 'track' as AppMode,
-};
 
 const fetchOriginale = global.fetch;
 
@@ -71,7 +46,7 @@ beforeEach(() => {
     if (/tile/.test(u)) richiesteTessere.push(u);
     return Promise.resolve({ ok: true, status: 0, type: 'opaque' });
   }) as unknown as typeof fetch;
-  useItineraryStore.setState(BASE);
+  useItineraryStore.setState(statoItinerario({ appMode: 'track' }));
   useUIStore.setState({ profilo: 'montagna' });
 });
 
@@ -79,7 +54,7 @@ afterEach(() => { global.fetch = fetchOriginale; });
 
 describe('il pulsante della mappa offline nell editor', () => {
   test('c e, e dice quante mattonelle prendera', () => {
-    useItineraryStore.setState({ ...BASE, waypoints: [wp(0), wp(1)] });
+    useItineraryStore.setState({ ...statoItinerario({ appMode: 'track' }), waypoints: [wp(0), wp(1)] });
     render(<ActionBar />);
     const b = screen.getByRole('button', { name: /Mappa offline/i });
     expect(b).not.toBeDisabled();
@@ -97,7 +72,7 @@ describe('il pulsante della mappa offline nell editor', () => {
    * partire nulla: nessun effetto, nessun timer, nessuna soglia «tanto sono poche».
    */
   test('montare l editor NON scarica niente da se', async () => {
-    useItineraryStore.setState({ ...BASE, waypoints: [wp(0), wp(1), wp(2)] });
+    useItineraryStore.setState({ ...statoItinerario({ appMode: 'track' }), waypoints: [wp(0), wp(1), wp(2)] });
     render(<ActionBar />);
     // Si concede tempo a qualunque effetto di scattare, poi si conta.
     await waitFor(() => expect(screen.getByRole('button', { name: /Mappa offline/i })).toBeInTheDocument());
@@ -105,7 +80,7 @@ describe('il pulsante della mappa offline nell editor', () => {
   });
 
   test('premendolo, le mattonelle del percorso vengono chieste', async () => {
-    useItineraryStore.setState({ ...BASE, waypoints: [wp(0), wp(1)] });
+    useItineraryStore.setState({ ...statoItinerario({ appMode: 'track' }), waypoints: [wp(0), wp(1)] });
     render(<ActionBar />);
     fireEvent.click(screen.getByRole('button', { name: /Mappa offline/i }));
     await waitFor(() => expect(richiesteTessere.length).toBeGreaterThan(0), { timeout: 5000 });
@@ -119,7 +94,7 @@ describe('il pulsante della mappa offline nell editor', () => {
    * presente diventa arredamento e nessuno lo legge più.
    */
   test('il promemoria compare quando c e un percorso', () => {
-    useItineraryStore.setState({ ...BASE, waypoints: [wp(0), wp(1)] });
+    useItineraryStore.setState({ ...statoItinerario({ appMode: 'track' }), waypoints: [wp(0), wp(1)] });
     render(<ActionBar />);
     expect(screen.getByText(/Prima di partire/i)).toBeInTheDocument();
   });
@@ -132,7 +107,7 @@ describe('il pulsante della mappa offline nell editor', () => {
   /** In Imparo non si va in montagna: il pulsante e il promemoria non c'entrano. */
   test('in Imparo non compare', () => {
     useUIStore.setState({ profilo: 'imparo' });
-    useItineraryStore.setState({ ...BASE, waypoints: [wp(0), wp(1)] });
+    useItineraryStore.setState({ ...statoItinerario({ appMode: 'track' }), waypoints: [wp(0), wp(1)] });
     render(<ActionBar />);
     expect(screen.queryByRole('button', { name: /Mappa offline/i })).not.toBeInTheDocument();
     expect(screen.queryByText(/Prima di partire/i)).not.toBeInTheDocument();
@@ -172,7 +147,7 @@ describe('lo scaricamento e uno solo, condiviso', () => {
   }
 
   test('avviandolo da un pannello, anche l altro lo sa', async () => {
-    useItineraryStore.setState({ ...BASE, waypoints: [wp(0), wp(1)] });
+    useItineraryStore.setState({ ...statoItinerario({ appMode: 'track' }), waypoints: [wp(0), wp(1)] });
     // Una risposta che non si risolve subito: cosi' si osserva lo stato "in corso".
     /*
       Un contenitore e non una variabile: TypeScript non sa che la callback gira, quindi

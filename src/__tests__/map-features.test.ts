@@ -13,23 +13,12 @@ import {
 } from '../lib/storage';
 import type { AppSettings } from '../lib/types';
 import { DEFAULT_MAP_DISPLAY, DEFAULT_TOLERANCES } from '../lib/types';
+import { installaLocalStorage } from './fixtures/finto-localstorage';
 
-// --- Mock localStorage ---
-const localStorageMock = (() => {
-  let store: Record<string, string> = {};
-  return {
-    getItem: (key: string) => store[key] ?? null,
-    setItem: (key: string, value: string) => { store[key] = value; },
-    removeItem: (key: string) => { delete store[key]; },
-    clear: () => { store = {}; },
-    get length() { return Object.keys(store).length; },
-    key: (i: number) => Object.keys(store)[i] ?? null,
-  };
-})();
-Object.defineProperty(global, 'localStorage', { value: localStorageMock });
+const deposito = installaLocalStorage();
 
 beforeEach(() => {
-  localStorageMock.clear();
+  deposito.clear();
 });
 
 // ============================================================

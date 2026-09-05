@@ -20,41 +20,12 @@ jest.mock('@/lib/storage', () => ({
 }));
 
 import { ActionBar } from '@/components/panel/ActionBar';
+import { statoItinerario, statoUI } from '../fixtures/itinerario';
 
-/**
- * Annotato: senza il tipo, `sampleInterval: 50` si allarga a `number` e la fixture
- * non viene confrontata con lo stato reale dello store — è così che campi aggiunti
- * dopo (es. `emergencyLayers`) restavano assenti senza che nulla lo segnalasse.
- */
-const BASE_ITINERARY_STATE: Partial<ItineraryState> = {
-  itineraryId: 'test-id',
-  itineraryName: 'Test',
-  waypoints: [],
-  legs: [],
-  settings: {
-    tolerances: { altitude: 50, coordinates: 0.001, distance: 10, azimuth: 5, elevationDelta: 15 },
-    mapDisplay: {
-      coloredPath: false,
-      trailRouting: false,
-      sampleInterval: 50,
-      baseMap: 'osm',
-      showHikingTrails: false,
-      showCoordinateGrid: false,
-      emergencyLayers: [],
-    },
-  },
-  appMode: 'learn' as AppMode,
-};
 
 beforeEach(() => {
-  useItineraryStore.setState(BASE_ITINERARY_STATE);
-  useUIStore.setState({
-    compassActive: false,
-    rulerActive: false,
-    quizActive: false,
-    progressOpen: false,
-    searchOpen: false,
-  });
+  useItineraryStore.setState(statoItinerario());
+  useUIStore.setState(statoUI());
 });
 
 /*
@@ -79,7 +50,7 @@ describe('ActionBar', () => {
     // Export e libreria vivono nel profilo Montagna: qui si parla di quelli.
     useUIStore.setState({ profilo: 'montagna' });
     useItineraryStore.setState({
-      ...BASE_ITINERARY_STATE,
+      ...statoItinerario(),
       waypoints: [
         { id: 'a', name: 'A', lat: 42, lon: 14 },
         { id: 'b', name: 'B', lat: 42.1, lon: 14.1 },
@@ -97,13 +68,13 @@ describe('ActionBar', () => {
   });
 
   test('shows Verifica button in learn mode', () => {
-    useItineraryStore.setState({ ...BASE_ITINERARY_STATE, appMode: 'learn' });
+    useItineraryStore.setState({ ...statoItinerario(), appMode: 'learn' });
     render(<ActionBar />);
     expect(screen.getByText('Verifica')).toBeInTheDocument();
   });
 
   test('hides Verifica button in track mode', () => {
-    useItineraryStore.setState({ ...BASE_ITINERARY_STATE, appMode: 'track' });
+    useItineraryStore.setState({ ...statoItinerario(), appMode: 'track' });
     render(<ActionBar />);
     expect(screen.queryByText('Verifica')).not.toBeInTheDocument();
   });
@@ -117,7 +88,7 @@ describe('ActionBar', () => {
   test('TASK-41: la tendina degli export e disabilitata con meno di 2 waypoint', () => {
     // Export e libreria vivono nel profilo Montagna: qui si parla di quelli.
     useUIStore.setState({ profilo: 'montagna' });
-    useItineraryStore.setState({ ...BASE_ITINERARY_STATE, waypoints: [] });
+    useItineraryStore.setState({ ...statoItinerario(), waypoints: [] });
     render(<ActionBar />);
     expect(screen.getByText('Esporta ▾').closest('button')).toBeDisabled();
   });
@@ -126,7 +97,7 @@ describe('ActionBar', () => {
     // Export e libreria vivono nel profilo Montagna: qui si parla di quelli.
     useUIStore.setState({ profilo: 'montagna' });
     useItineraryStore.setState({
-      ...BASE_ITINERARY_STATE,
+      ...statoItinerario(),
       waypoints: [
         { id: 'a', name: 'A', lat: 42, lon: 14 },
         { id: 'b', name: 'B', lat: 42.1, lon: 14.1 },

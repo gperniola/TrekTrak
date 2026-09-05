@@ -209,11 +209,23 @@ export function buildGradientStops(
   return stops;
 }
 
+/**
+ * **La rosa dei venti in italiano: N, NE, E, SE, S, SO, O, NO.**
+ *
+ * Erano `SW`, `W`, `NW` — l'inglese — in sei posti visibili: la scheda della tratta, la
+ * tabella, il righello, la riga di Pianificazione e i due PDF. In un'app che insegna la
+ * cartografia a mano non e' una sfumatura di traduzione: i punti cardinali **sono** il
+ * vocabolario che si sta imparando, e sulla bussola e sulla carta italiana l'ovest e'
+ * segnato O.
+ *
+ * Il giro e' di 45 gradi per settore, con l'arrotondamento al piu' vicino: 22,5 gradi
+ * cadono su NE, 337,5 tornano a N.
+ */
+const ROSA = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'];
+
 export function azimuthToCardinal(azimuth: number): string {
-  const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-  const normalized = ((azimuth % 360) + 360) % 360;
-  const index = Math.round(normalized / 45) % 8;
-  return directions[index];
+  const normalizzato = ((azimuth % 360) + 360) % 360;
+  return ROSA[Math.round(normalizzato / 45) % 8];
 }
 
 /**

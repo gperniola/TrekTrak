@@ -1,6 +1,7 @@
 import { feature } from 'topojson-client';
 import type { Topology, GeometryCollection } from 'topojson-specification';
 import { escapeMarkup } from './escape-markup';
+import { giornoItalianoDi } from './formato';
 
 export type DpcLevel = 0 | 1 | 2 | 3;
 
@@ -80,11 +81,21 @@ export function zonePopupHtml(zone: DpcZone, dayLabel: string, issuedLabel: stri
     `<div style="color:var(--tenue);margin-top:6px;font-size:10px">${esc(issuedLabel)}</div></div>`;
 }
 
-/** Data locale in `YYYY-MM-DD`. Unica implementazione: la copia in EmergencyWmsLayer
- *  era identica carattere per carattere, e una divergenza avrebbe fatto scivolare il
- *  parametro TIME dei WMS rispetto alle date dei giorni DPC. */
+/**
+ * Giorno in `YYYY-MM-DD`, **in ora italiana**.
+ *
+ * Unica implementazione: la copia in `EmergencyWmsLayer` era identica carattere per
+ * carattere, e una divergenza avrebbe fatto scivolare il parametro TIME dei WMS rispetto
+ * alle date dei giorni DPC.
+ *
+ * Usava i getter locali (`getFullYear`, `getMonth`, `getDate`), cioe' il fuso del
+ * **dispositivo**: fra la mezzanotte italiana e quella del dispositivo, su una macchina
+ * fuori dall'Italia, il pulsante «Oggi» puntava al giorno sbagliato del bollettino e il
+ * WMS chiedeva il giorno sbagliato sotto l'etichetta «oggi». Il bollettino DPC descrive
+ * **giornate civili italiane**, quindi il giorno va calcolato in quel fuso.
+ */
 export function toYmd(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return giornoItalianoDi(d);
 }
 
 function ddmm(ymd: string): string {
@@ -110,8 +121,10 @@ export interface DayOption { date: string; label: string; disabled: boolean; }
 /** Regola spec §6: le opzioni sono i giorni coperti dal bollettino, etichettati con la data reale. */
 export function dayOptions(dates: string[], now: Date): DayOption[] {
   const today = toYmd(now);
-  const tomorrow = toYmd(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1));
-  const yesterday = toYmd(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
+  // Un giorno avanti e uno indietro come ISTANTI (24 h esatte), non ricostruendo una data
+  // dai getter locali: il conto va fatto sul tempo, l'etichetta sul fuso italiano.
+  const tomorrow = toYmd(new Date(now.getTime() + 86400000));
+  const yesterday = toYmd(new Date(now.getTime() - 86400000));
   return dates.map((date) => {
     let prefix: string;
     if (date === today) prefix = 'Oggi';

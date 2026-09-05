@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { KEYS } from '@/lib/storage';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
+import { useModaleTastiera } from '@/lib/useModaleTastiera';
 
 interface ReleaseStep {
   title: string;
@@ -290,7 +291,7 @@ export function markWhatsNewSeen(): void {
 export function WhatsNew() {
   const [step, setStep] = useState<number | null>(null);
   const [release, setRelease] = useState<Release | null>(null);
-  const dialogRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useModaleTastiera<HTMLDivElement>(step !== null, () => handleClose());
   useBodyScrollLock(step !== null);
 
   useEffect(() => {
@@ -307,37 +308,6 @@ export function WhatsNew() {
     }
   }, []);
 
-  useEffect(() => {
-    if (step === null) return;
-
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') handleClose();
-    };
-    window.addEventListener('keydown', handleKey);
-
-    dialogRef.current?.focus();
-
-    const dialogEl = dialogRef.current;
-    const trapFocus = (e: KeyboardEvent) => {
-      if (e.key !== 'Tab' || !dialogEl) return;
-      const focusable = dialogEl.querySelectorAll<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      );
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (e.shiftKey) {
-        if (document.activeElement === first) { e.preventDefault(); last?.focus(); }
-      } else {
-        if (document.activeElement === last) { e.preventDefault(); first?.focus(); }
-      }
-    };
-    dialogEl?.addEventListener('keydown', trapFocus);
-
-    return () => {
-      window.removeEventListener('keydown', handleKey);
-      dialogEl?.removeEventListener('keydown', trapFocus);
-    };
-  }, [step]);
 
   function handleClose() {
     setStep(null);

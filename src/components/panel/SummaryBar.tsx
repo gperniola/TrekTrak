@@ -7,26 +7,11 @@ import { formatTime } from '@/lib/format';
 import type { DifficultyGrade } from '@/lib/types';
 import { dislivello, km } from '@/lib/formato';
 import { LIVELLI_SAC } from '@/lib/glossario';
+import { useChiudiFuori } from '@/lib/useChiudiFuori';
 
 function SacBadge({ grade }: { grade: DifficultyGrade }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLSpanElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const close = (e: MouseEvent | TouchEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
-    document.addEventListener('mousedown', close);
-    document.addEventListener('touchstart', close);
-    document.addEventListener('keydown', esc);
-    return () => {
-      document.removeEventListener('mousedown', close);
-      document.removeEventListener('touchstart', close);
-      document.removeEventListener('keydown', esc);
-    };
-  }, [open]);
+  const ref = useChiudiFuori<HTMLSpanElement>(open, () => setOpen(false));
 
   return (
     <span ref={ref} className="relative inline-flex">

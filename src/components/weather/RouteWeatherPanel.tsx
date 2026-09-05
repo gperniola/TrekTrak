@@ -1,27 +1,28 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { useUIStore } from '@/stores/uiStore';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { buildMeteoUrl } from '@/lib/meteo';
 import { sunTimes } from '@/lib/sun';
 import { ATTRIBUZIONE_METEO, fetchRouteForecast } from '@/lib/weather-api';
-import { cielo, cieliPresenti } from '@/lib/cielo';
-import { metri } from '@/lib/formato';
+import { cieliPresenti } from '@/lib/cielo';
+import { metri, oraItaliana } from '@/lib/formato';
 import {
   buildRouteWeather, defaultDeparture, samplePoints,
   type Livello, type RouteWeatherReport,
   formattaFascia,
-  giornoItaliano,
   scartoQuotaMassimo,
   SCARTO_QUOTA_RILEVANTE,
-  istanteItaliano,
-  oraItalianaDi,
 } from '@/lib/route-weather';
 import { SheetHandle } from '@/components/shared/SheetHandle';
 import { useSheetDrag } from '@/lib/useSheetDrag';
 import { useSchermoPiccolo } from '@/lib/useSchermoPiccolo';
+import { useModaleTastiera } from '@/lib/useModaleTastiera';
+import { ScegliPartenza } from '@/components/weather/ScegliPartenza';
+import { TabellaPuntiMeteo } from '@/components/weather/TabellaPuntiMeteo';
+import { ComeSiLegge } from '@/components/weather/ComeSiLegge';
 
 /** Colori per livello: gli stessi che l'app usa per i badge di validazione. */
 const COLORE: Record<string, string> = {
@@ -40,40 +41,15 @@ const ETICHETTA: Record<string, string> = {
   null: 'Non disponibile',
 };
 
-/**
- * Colore del testo che dice PERCHE' un punto e' problematico.
- *
- * Il pallino accanto al nome diceva "qui c'e' qualcosa" ma non cosa: chi legge doveva
- * incrociare da solo le tre colonne di numeri (CAPE, raffiche, pioggia) e sapere quali
- * soglie contano. Il motivo lo sapeva gia' `classifyHour`, che lo scrive in italiano
- * ("raffiche 85 km/h: pericolose in cresta"): non arrivava mai a schermo.
- *
- * Vale anche come accessibilita': il pallino e' `aria-hidden`, quindi la gravita' non
- * era leggibile a un lettore di schermo. Ora e' scritta.
- */
-const COLORE_MOTIVO: Record<string, string> = {
-  '0': 'text-green-300',
-  '1': 'text-amber-300',
-  '2': 'text-orange-300',
-  '3': 'text-red-400',
-  null: 'text-gray-400',
-};
-
 function chiave(l: Livello): string { return l == null ? 'null' : String(l); }
 
-const ORA_FMT: Intl.DateTimeFormatOptions = {
-  hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome',
-};
-
-function ora(iso: string | null | undefined): string {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleTimeString('it-IT', ORA_FMT);
-}
-
-function numero(v: number | undefined, unita = ''): string {
-  return v == null || !Number.isFinite(v) ? '—' : `${Math.round(v)}${unita}`;
-}
+/*
+  L'orario lo scrive `oraItaliana`, la casa dei formati: questo file aveva la sua copia —
+  una costante col fuso piu' una funzioncina — identica a quella di casa. Due copie della
+  stessa regola sono due posti in cui dimenticarsi il fuso, ed e' successo tre volte in
+  questo progetto.
+*/
+const ora = oraItaliana;
 
 /**
  * Meteo **del percorso**, non del posto: incrocia i waypoint con gli orari stimati
@@ -82,6 +58,10 @@ function numero(v: number | undefined, unita = ''): string {
  * È la domanda a cui un'app meteo non può rispondere, perché non conosce il tuo passo.
  * La regola pratica della montagna — in vetta presto, giù prima del pomeriggio — vive
  * esattamente in questo incrocio.
+ *
+ * Qui restano il caricamento della previsione, il verdetto e gli avvisi su quello che il
+ * dato non dice. La scelta della partenza, la tabella per punto e la parte didattica
+ * stanno nei loro file: erano tre pezzi indipendenti in mezzo alla stessa funzione.
  */
 export function RouteWeatherPanel() {
   const open = useUIStore((s) => s.weatherOpen);
@@ -93,8 +73,7 @@ export function RouteWeatherPanel() {
   const [report, setReport] = useState<RouteWeatherReport | null>(null);
   const [errore, setErrore] = useState<string | null>(null);
   const [caricamento, setCaricamento] = useState(false);
-  const [didatticaAperta, setDidatticaAperta] = useState(false);
-  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const dialogRef = useModaleTastiera<HTMLDivElement>(open, () => setOpen(false));
   /*
    * Trascinamento verso il basso per chiudere, solo su schermo piccolo: su desktop
    * questo e' un modale centrato, non un foglio.
@@ -114,12 +93,11 @@ export function RouteWeatherPanel() {
   const refSheet = useCallback((n: HTMLDivElement | null) => {
     dialogRef.current = n;
     refFoglio(n);
-  }, [refFoglio]);
+  }, [refFoglio, dialogRef]);
 
   useBodyScrollLock(open);
 
   const punti = useMemo(() => samplePoints(waypoints), [waypoints]);
-
   /*
     La legenda spiega SOLO le icone che si vedono in questa tabella: ventotto voci
     sarebbero un manuale, e un'iconcina senza la sua parola resta un indovinello (il
@@ -164,36 +142,6 @@ export function RouteWeatherPanel() {
     return () => controller.abort();
   }, [open, departure, carica]);
 
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
-    window.addEventListener('keydown', onKey);
-    dialogRef.current?.focus();
-
-    // Trappola del fuoco, come negli altri modali dell'app: senza, con Tab si finisce
-    // sui comandi dietro al pannello, che nel frattempo sono coperti e inutilizzabili.
-    const dialogo = dialogRef.current;
-    const tab = (e: KeyboardEvent) => {
-      if (e.key !== 'Tab' || dialogo == null) return;
-      const fuocabili = dialogo.querySelectorAll<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      );
-      const primo = fuocabili[0];
-      const ultimo = fuocabili[fuocabili.length - 1];
-      if (e.shiftKey) {
-        if (document.activeElement === primo) { e.preventDefault(); ultimo?.focus(); }
-      } else if (document.activeElement === ultimo) {
-        e.preventDefault(); primo?.focus();
-      }
-    };
-    dialogo?.addEventListener('keydown', tab);
-
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      dialogo?.removeEventListener('keydown', tab);
-    };
-  }, [open, setOpen]);
-
   if (!open) return null;
 
   const primo = waypoints.find((w) => w.lat != null && w.lon != null);
@@ -203,33 +151,6 @@ export function RouteWeatherPanel() {
   const ultimoArrivo = arriviNoti.length > 0 ? arriviNoti[arriviNoti.length - 1] : null;
   const arrivoDopoIlTramonto = ultimoArrivo != null && sole?.sunset != null
     && new Date(ultimoArrivo).getTime() > new Date(sole.sunset).getTime();
-
-  /*
-   * Giorno e ora si scelgono in ORA ITALIANA, perche' in ora italiana e' scritto tutto
-   * il resto del pannello: arrivi, fasce critiche, alba e tramonto. Quando il menu
-   * usava l'ora del dispositivo, su una macchina fuori dall'Italia si sceglieva "le 5"
-   * e la tabella partiva dalle 07:00 — le due meta' del pannello parlavano di due fusi.
-   */
-  const giorni = [0, 1, 2].map((d) => {
-    const giorno = giornoItaliano(new Date(Date.now() + d * 24 * 3600000));
-    return {
-      d,
-      label: d === 0 ? 'oggi' : d === 1 ? 'domani' : 'dopodomani',
-      giorno,
-      data: istanteItaliano(giorno, 12),
-    };
-  });
-  const giornoPartenza = giornoItaliano(departure);
-  const giornoScelto = giorni.find((g) => g.giorno === giornoPartenza)?.d ?? 0;
-  const oraPartenza = oraItalianaDi(departure);
-
-  const cambiaGiorno = (d: number) => {
-    const scelto = giorni.find((g) => g.d === d) ?? giorni[0];
-    setDeparture(istanteItaliano(scelto.giorno, oraPartenza));
-  };
-  const cambiaOra = (h: number) => {
-    setDeparture(istanteItaliano(giornoPartenza, h));
-  };
 
   const meteoUrl = buildMeteoUrl(waypoints);
 
@@ -262,33 +183,7 @@ export function RouteWeatherPanel() {
           </button>
         </div>
 
-        {/* Ora di partenza: senza, "arrivi verso le 14:40" non è calcolabile. */}
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          <span className="text-gray-400">Partenza</span>
-          <select
-            value={giornoScelto}
-            onChange={(e) => cambiaGiorno(Number(e.target.value))}
-            aria-label="Giorno di partenza"
-            className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white max-lg:min-h-[44px]"
-          >
-            {giorni.map((g) => (
-              <option key={g.d} value={g.d}>
-                {g.label} ({g.data.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', timeZone: 'Europe/Rome' })})
-              </option>
-            ))}
-          </select>
-          <span className="text-gray-400">alle</span>
-          <select
-            value={oraPartenza}
-            onChange={(e) => cambiaOra(Number(e.target.value))}
-            aria-label="Ora di partenza"
-            className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white max-lg:min-h-[44px]"
-          >
-            {Array.from({ length: 24 }, (_, h) => (
-              <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
-            ))}
-          </select>
-        </div>
+        <ScegliPartenza partenza={departure} cambia={setDeparture} />
 
         {punti.length === 0 && (
           <p className="text-sm text-gray-300 bg-gray-800 rounded-lg p-3">
@@ -324,50 +219,7 @@ export function RouteWeatherPanel() {
               </p>
             )}
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <caption className="sr-only">Previsione per punto del percorso</caption>
-                <thead>
-                  <tr className="text-gray-400 text-left">
-                    <th scope="col" className="py-1 pr-2 font-medium">Punto</th>
-                    <th scope="col" className="py-1 pr-2 font-medium">Arrivo</th>
-                    <th scope="col" className="py-1 pr-2 font-medium">Cielo</th>
-                    <th scope="col" className="py-1 pr-2 font-medium">CAPE</th>
-                    <th scope="col" className="py-1 pr-2 font-medium">Raffiche</th>
-                    <th scope="col" className="py-1 font-medium">Piogg.</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {report.rows.map((r) => (
-                    <tr key={r.waypointIndex} className="border-t border-gray-800">
-                      <td className="py-1.5 pr-2 text-gray-200">
-                        <span className={`inline-block w-2 h-2 rounded-full mr-1.5 ${
-                          r.classification.level === 3 ? 'bg-red-500'
-                            : r.classification.level === 2 ? 'bg-orange-400'
-                              : r.classification.level === 1 ? 'bg-amber-400'
-                                : r.classification.level === 0 ? 'bg-green-500' : 'bg-gray-500'
-                        }`} aria-hidden />
-                        {r.waypointIndex + 1}. {r.name || 'senza nome'}
-                        {r.classification.reasons.length > 0 && (
-                          <div className={`text-[10px] leading-tight mt-0.5 ${COLORE_MOTIVO[chiave(r.classification.level)]}`}>
-                            {r.classification.reasons.join(' · ')}
-                          </div>
-                        )}
-                      </td>
-                      <td className="py-1.5 pr-2 text-gray-300 font-mono">
-                        {r.arrival != null ? ora(r.arrival) : <span className="text-gray-400 font-sans">n/d</span>}
-                      </td>
-                      <td className="py-1.5 pr-2 text-gray-300 whitespace-nowrap">
-                        <Iconcina codice={r.hour?.weatherCode} temp={r.hour?.temp} />
-                      </td>
-                      <td className="py-1.5 pr-2 text-gray-300">{numero(r.hour?.cape)}</td>
-                      <td className="py-1.5 pr-2 text-gray-300">{numero(r.hour?.gusts, ' km/h')}</td>
-                      <td className="py-1.5 text-gray-300">{numero(r.hour?.precipProb, '%')}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <TabellaPuntiMeteo righe={report.rows} />
 
             {legenda.length > 0 && (
               /*
@@ -433,41 +285,7 @@ export function RouteWeatherPanel() {
           </div>
         )}
 
-        <div>
-          <button
-            onClick={() => setDidatticaAperta((v) => !v)}
-            aria-expanded={didatticaAperta}
-            className="text-xs text-green-400 hover:text-green-300 min-h-[44px] lg:min-h-0 flex items-center gap-1"
-          >
-            <span aria-hidden>{didatticaAperta ? '▾' : '▸'}</span> Come si legge
-          </button>
-          {didatticaAperta && (
-            <div className="mt-1 text-[11px] text-gray-300 bg-gray-800/70 rounded-lg p-3 space-y-2 leading-relaxed">
-              <p>
-                <strong className="text-gray-100">CAPE</strong> è l’energia disponibile ai moti
-                convettivi, in joule per chilogrammo. Dice quanta benzina c’è, non che il temporale
-                ci sarà: sotto 300 la giornata è stabile, sopra 800 basta un innesco — una cresta
-                scaldata dal sole — perché la cella si formi.
-              </p>
-              <p>
-                In montagna la convezione segue il <strong className="text-gray-100">ciclo
-                diurno</strong>: il terreno si scalda, l’aria sale, e il massimo cade nel primo
-                pomeriggio. È la ragione della regola più vecchia dell’alpinismo: in vetta presto,
-                giù prima delle 14.
-              </p>
-              <p>
-                <strong className="text-gray-100">Regola 30/30</strong>: se fra il lampo e il tuono
-                passano meno di 30 secondi, il temporale è entro ~10 km. Si scende dalle creste,
-                si evitano alberi isolati e croci di vetta, e si riprende solo 30 minuti dopo
-                l’ultimo tuono.
-              </p>
-              <p>
-                Le <strong className="text-gray-100">raffiche</strong> contano quanto la pioggia:
-                sopra 50 km/h su terreno esposto si cammina male, sopra 70 non si cammina.
-              </p>
-            </div>
-          )}
-        </div>
+        <ComeSiLegge />
 
         <p className="text-[11px] text-gray-400 leading-snug">
           {ATTRIBUZIONE_METEO}. È una <strong className="font-medium text-gray-400">previsione</strong>,
@@ -484,38 +302,5 @@ export function RouteWeatherPanel() {
         </p>
       </div>
     </div>
-  );
-}
-
-/**
- * La cella del cielo: iconcina, e la temperatura di quell'ora.
- *
- * L'icona è **decorativa** (`aria-hidden`) e accanto c'è sempre la parola in `sr-only`:
- * un'emoji letta da un lettore di schermo dà nomi tecnici tipo «sun behind cloud», che
- * non è la previsione. Il pallino della gravità, in questo progetto, è già stato corretto
- * per lo stesso motivo.
- *
- * Un codice che non si conosce si scrive **n/d**, non lo si disegna sereno: è la regola
- * che questo progetto ha pagato più volte.
- */
-function Iconcina({ codice, temp }: { codice?: number; temp?: number }) {
-  const c = cielo(codice);
-  const gradi = temp != null && Number.isFinite(temp) ? Math.round(temp) : null;
-  if (c == null && gradi == null) return <span className="text-gray-400">n/d</span>;
-  return (
-    <>
-      {c == null ? <span className="text-gray-400">n/d</span> : (
-        <>
-          <span aria-hidden className="text-sm">{c.icona}</span>
-          <span className="sr-only">{c.testo}</span>
-        </>
-      )}
-      {gradi != null && (
-        <>
-          <span aria-hidden className="ml-1 tabular-nums">{gradi}°</span>
-          <span className="sr-only">, {gradi} gradi</span>
-        </>
-      )}
-    </>
   );
 }

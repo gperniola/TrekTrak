@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { EmergencyLayersPanel } from '@/components/map/emergency/EmergencyLayersPanel';
 import { useUIStore } from '@/stores/uiStore';
 import { useItineraryStore } from '@/stores/itineraryStore';
@@ -111,10 +111,32 @@ describe('pannello layer compatto', () => {
     expect(screen.getByRole('switch', { name: 'Focolai attivi (24h)' })).toHaveAttribute('aria-checked', 'false');
   });
 
-  test('accendere non espande la riga', () => {
+  /**
+   * **Accendere ora ESPANDE la riga** — regola cambiata su richiesta dell'utente il
+   * 2026-09-04: «quando attivo un layer, fai aprire in automatico anche la tendina della
+   * legenda; quando la disattivo, se e' aperta falla chiudere».
+   *
+   * Nella v0.14.0 questo test diceva il contrario, e la ragione era buona: i due bersagli
+   * sulla riga sono distinti, e l'uno non deve fare il lavoro dell'altro. Ma la simmetria
+   * fra i due gesti non e' vera: **espandere** e' una richiesta di leggere, **accendere**
+   * e' una richiesta di vedere qualcosa sulla mappa — e i colori di questi layer non si
+   * spiegano da soli (quattro classi di recenza per le aree bruciate, cinque di pericolo
+   * per il FWI, e per l'instabilita' una scala che va al contrario del CAPE). Il momento
+   * in cui la legenda serve e' esattamente quello in cui il layer compare.
+   *
+   * Il gesto opposto resta asimmetrico, ed e' giusto cosi': espandere **non** accende
+   * (vedi il test sopra). Il dettaglio del comportamento sta in
+   * `LegendaSegueInterruttore.test.tsx`.
+   */
+  test('accendere espande la riga, spegnere la richiude', async () => {
     render(<EmergencyLayersPanel />);
-    fireEvent.click(screen.getByRole('switch', { name: 'Focolai attivi (24h)' }));
-    expect(screen.getByRole('button', { name: /Focolai attivi \(24h\)/ })).toHaveAttribute('aria-expanded', 'false');
+    const nome = () => screen.getByRole('button', { name: /Focolai attivi \(24h\)/ });
+    const interruttore = () => screen.getByRole('switch', { name: 'Focolai attivi (24h)' });
+    expect(nome()).toHaveAttribute('aria-expanded', 'false');
+    await act(async () => { fireEvent.click(interruttore()); });
+    expect(nome()).toHaveAttribute('aria-expanded', 'true');
+    await act(async () => { fireEvent.click(interruttore()); });
+    expect(nome()).toHaveAttribute('aria-expanded', 'false');
   });
 
   /**

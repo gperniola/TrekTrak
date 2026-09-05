@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { coordinataItaliana, parseCoordinate, type Coordinate } from '@/lib/coordinate';
+import { useChiudiFuori } from '@/lib/useChiudiFuori';
 
 /**
  * Incolla una coppia di coordinate e posiziona il waypoint (task-26).
@@ -26,26 +27,10 @@ export function IncollaCoordinate({
   compatto?: boolean;
 }) {
   const [aperto, setAperto] = useState(false);
+  const contenitore = useChiudiFuori<HTMLDivElement>(aperto, () => setAperto(false));
   const [testo, setTesto] = useState('');
-  const contenitore = useRef<HTMLDivElement>(null);
 
   const letta = testo.trim() === '' ? null : parseCoordinate(testo);
-
-  useEffect(() => {
-    if (!aperto) return;
-    const fuori = (e: MouseEvent | TouchEvent) => {
-      if (contenitore.current && !contenitore.current.contains(e.target as Node)) setAperto(false);
-    };
-    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setAperto(false); };
-    document.addEventListener('mousedown', fuori);
-    document.addEventListener('touchstart', fuori);
-    document.addEventListener('keydown', esc);
-    return () => {
-      document.removeEventListener('mousedown', fuori);
-      document.removeEventListener('touchstart', fuori);
-      document.removeEventListener('keydown', esc);
-    };
-  }, [aperto]);
 
   const conferma = () => {
     if (letta == null) return;

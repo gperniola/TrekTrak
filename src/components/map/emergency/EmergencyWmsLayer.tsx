@@ -13,7 +13,9 @@ export function wmsTimeParam(mode: 'today' | 'yearToDate' | 'latest', now: Date)
   // serve l'istante piu' recente della sua dimensione temporale.
   if (mode === 'latest') return '';
   const today = toYmd(now);
-  return mode === 'today' ? today : `${now.getFullYear()}-01-01/${today}`;
+  // L'anno si prende dal giorno italiano gia' calcolato: `now.getFullYear()` userebbe il
+  // fuso del dispositivo, e la notte di Capodanno l'intervallo sarebbe dell'anno prima.
+  return mode === 'today' ? today : `${today.slice(0, 4)}-01-01/${today}`;
 }
 
 export function EmergencyWmsLayer({ def }: { def: EmergencyLayerDef }) {

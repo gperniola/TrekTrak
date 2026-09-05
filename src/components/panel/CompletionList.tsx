@@ -9,10 +9,20 @@ import { confirm as appConfirm, toast } from '@/stores/notificationStore';
 import { CompletionForm } from './CompletionForm';
 import { DifficultyRating } from './DifficultyRating';
 import { weatherOption } from '@/lib/weather';
+import { dataItaliana } from '@/lib/formato';
 
+/**
+ * La data di un completamento, in ora italiana.
+ *
+ * Passava da `toLocaleDateString('it-IT')` senza fuso: su un dispositivo non italiano una
+ * salita registrata all'una di notte compariva nel diario col giorno prima. Un'ora
+ * sbagliata si vede, un giorno sbagliato no.
+ *
+ * Se la stringa non si legge si mostra così com'è, invece di scrivere un trattino: e' un
+ * dato che l'utente ha scritto, e vederlo storto aiuta a capire cos'e' andato male.
+ */
 function fmtDate(iso: string): string {
-  const d = Date.parse(iso);
-  return Number.isNaN(d) ? iso : new Date(d).toLocaleDateString('it-IT');
+  return Number.isNaN(Date.parse(iso)) ? iso : dataItaliana(iso);
 }
 
 export function CompletionList({ route }: { route: Itinerary }) {
