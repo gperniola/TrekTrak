@@ -4,6 +4,34 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.24.0] — 2026-09-05 — Il ritorno in un tocco, e il benvenuto che mostra il ciclo dell'app
+
+### Added
+- **Il pulsante del ritorno ↩️** sulla mappa, sopra il cestino, da 2 waypoint in su. La
+  maggior parte delle escursioni torna per la stessa strada, e fin qui l'unico modo di
+  dirlo all'app era rimettere a mano ogni punto in ordine inverso. **Prima spiega, poi
+  fa**: il dialogo dice quanti punti aggiunge, da dove si torna, e — per modalità — se i
+  valori delle tratte nuove li calcola l'app (Pianificazione) o li scrivi tu (Impara).
+  Specchia l'andata escluso l'ultimo punto (A-B-C → A-B-C-B-A): copie con id nuovi, così
+  rinominare o spostare un punto al ritorno non tocca l'andata; coordinate, quote e nomi
+  copiati — sono proprietà del luogo — i giudizi di verifica no. **Un solo passo di
+  «Annulla»** toglie tutto il ritorno. Sopra il tetto dei 50 waypoint non parte affatto,
+  con l'avviso del perché: un ritorno che si ferma a metà senza dirlo sarebbe un percorso
+  che mente.
+- **Il benvenuto mostra il ciclo dell'app.** Il primo passo della guida — che compare al
+  primissimo avvio — ora dice in una frase cosa si fa qui: tocca la mappa per i punti,
+  completa nell'Editor, «Quando partire» incrocia il meteo con i tuoi orari. E lo mostra
+  con un'**animazione** di sette secondi (SVG e keyframe CSS, zero dipendenze): tre
+  tocchi, la linea che si disegna, i campi dell'Editor, il verdetto meteo. Colori dai
+  token del tema — al primo giro a schermo era un riquadro notturno in mezzo al pannello
+  del tema chiaro — decorativa per i lettori di schermo, e con `prefers-reduced-motion`
+  resta il fotogramma finale invece di una mappa vuota.
+
+### Test
+- **2016 unità (+39), 39 end-to-end (+3), 4 offline.** Quattro mutazioni provate e uccise
+  sull'azione del ritorno. Verificato anche a mano in tema chiaro: 2 punti → ritorno →
+  8 km, +548/−548 m simmetrici, profilo altimetrico a specchio.
+
 ## [0.23.0] — 2026-09-05 — La legenda segue l'interruttore, e la pulizia che ha trovato sette difetti
 
 ### Added
