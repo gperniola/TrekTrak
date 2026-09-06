@@ -4,6 +4,36 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.26.1] — 2026-09-06 — Il CAPE non è un allarme, e il bollettino DPC dice il vero
+
+Tre correzioni dalla segnalazione dell'utente, verificate sui dati veri del giorno.
+
+### Fixed
+- **Il meteo del percorso non grida più «attenzione» col cielo stabile.** Il CAPE è
+  l'energia disponibile alla convezione — il carburante, non il fuoco: da solo, con zero
+  pioggia prevista, non fa un temporale. Prima lo faceva scattare da solo (≥300 →
+  attenzione), e d'estate il CAPE pomeridiano in quota è ~500-1000 quasi ogni giorno →
+  falso allarme quotidiano (misurato sull'Abruzzo: coperto, pioggia 0-3%, CAPE ~1000,
+  verdetto arancione). Ora l'avviso segue la previsione vera — codice di temporale e
+  probabilità di pioggia sono il giudice — e il CAPE conta come aggravante di un innesco
+  già previsto (pioggia probabile + CAPE alto = temporali forti), o da solo solo se
+  estremo, come nota. Aggiornato anche il testo didattico «Come si legge».
+- **Il bollettino di protezione civile non mostra più «Ieri».** Il bollettino esce nel
+  pomeriggio e copre oggi+domani rispetto all'emissione: la mattina l'ultimo disponibile
+  è quello di ieri, e comparivano «Ieri» (passato, inutile) e «Oggi». Ora i giorni
+  passati si filtrano via: resta «Oggi», e «Domani» quando il bollettino del pomeriggio è
+  uscito.
+- **Chiarito cosa mostra il layer DPC.** Il layer legge la *criticità idrogeologica* (lo
+  stato di allerta ufficiale), non la *vigilanza meteo* (la previsione dei temporali): un
+  temporale estivo normale non fa scattare l'allerta, e questo generava il dubbio
+  «c'è allerta temporali ma l'app dice niente» (verificato: il bollettino dice davvero
+  nessuna allerta). Rinominato «Allerta protezione civile (DPC)», con descrizione e riga
+  «nessuna allerta» che rimandano a «Quando partire» per i temporali previsti.
+
+### Test
+- 2025 unità, 39 end-to-end, 4 offline. Ogni fix verificato sui dati veri del 2026-09-06
+  (bollettino DPC scaricato, previsione Open-Meteo dell'Abruzzo).
+
 ## [0.26.0] — 2026-09-05 — Pronta per il pubblico: impostazioni da telefono, back sistemato, libreria a riposo
 
 Rilascio nato da una **campagna di review pre-pubblico in cinque giri** (diff, schermo,

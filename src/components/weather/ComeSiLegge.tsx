@@ -23,10 +23,13 @@ export function ComeSiLegge() {
       {aperta && (
         <div className="mt-1 text-[11px] text-gray-300 bg-gray-800/70 rounded-lg p-3 space-y-2 leading-relaxed">
           <p>
+            L’<strong className="text-gray-100">avviso</strong> segue la previsione vera: se il
+            modello dà temporale o pioggia probabile, la riga si accende. Il{' '}
             <strong className="text-gray-100">CAPE</strong> è l’energia disponibile ai moti
-            convettivi, in joule per chilogrammo. Dice quanta benzina c’è, non che il temporale
-            ci sarà: sotto 300 la giornata è stabile, sopra 800 basta un innesco — una cresta
-            scaldata dal sole — perché la cella si formi.
+            convettivi (joule per chilogrammo): la benzina, non il fuoco. Da solo — col cielo
+            coperto ma stabile e zero pioggia prevista — non fa un temporale, quindi non fa
+            scattare l’avviso; conta come <em>aggravante</em> quando la pioggia è già probabile
+            (energia + innesco = celle forti). Lo vedi comunque in tabella, come contesto.
           </p>
           <p>
             In montagna la convezione segue il <strong className="text-gray-100">ciclo

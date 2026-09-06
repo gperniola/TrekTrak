@@ -49,7 +49,7 @@ describe('EmergencyLayersPanel', () => {
   test('mostra tutti i layer del registro, con switch spenti', () => {
     render(<EmergencyLayersPanel />);
     expect(screen.getByText('Focolai attivi (24h)')).toBeInTheDocument();
-    expect(screen.getByText('Allerte meteo-idro (DPC)')).toBeInTheDocument();
+    expect(screen.getByText('Allerta protezione civile (DPC)')).toBeInTheDocument();
     expect(screen.getByText(/Radar pioggia/)).toBeInTheDocument();
     expect(screen.getByText(/Rifugi e ricoveri/)).toBeInTheDocument();
     expect(screen.getByText(/Instabilit. osservata/)).toBeInTheDocument();
@@ -309,7 +309,7 @@ describe('EmergencyLayersPanel', () => {
       },
     });
     render(<EmergencyLayersPanel />);
-    expect(screen.getByText(/Nessuna zona in allerta/)).toBeInTheDocument();
+    expect(screen.getByText(/Nessuno stato di allerta/)).toBeInTheDocument();
   });
 
   test('giorno con zone in allerta: nessun avviso di giornata calma', () => {
@@ -330,7 +330,7 @@ describe('EmergencyLayersPanel', () => {
       },
     });
     render(<EmergencyLayersPanel />);
-    expect(screen.queryByText(/Nessuna zona in allerta/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Nessuno stato di allerta/)).not.toBeInTheDocument();
   });
 });
 

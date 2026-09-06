@@ -188,8 +188,10 @@ export const EMERGENCY_LAYERS: EmergencyLayerDef[] = [
   {
     id: 'dpc-alerts',
     category: 'alluvioni',
-    label: 'Allerte meteo-idro (DPC)',
-    description: 'Criticità idraulica, temporali e idrogeologica/frane per zona di allerta',
+    label: 'Allerta protezione civile (DPC)',
+    description: 'Stato di allerta ufficiale per criticità idraulica, temporali e frane. '
+      + 'È l’allerta delle autorità, non la previsione del tempo: un temporale estivo '
+      + 'normale non fa scattare l’allerta. Per il meteo lungo il percorso usa «Quando partire».',
     kind: 'zones',
     attribution: '<a href="https://github.com/pcm-dpc/DPC-Bollettini-Criticita-Idrogeologica-Idraulica">Dipartimento Protezione Civile</a> (CC-BY 4.0)',
     refreshMinutes: 30,

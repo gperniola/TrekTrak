@@ -118,23 +118,29 @@ export function bulletinDates(bulletinId: string): { today: string; tomorrow: st
 
 export interface DayOption { date: string; label: string; disabled: boolean; }
 
-/** Regola spec §6: le opzioni sono i giorni coperti dal bollettino, etichettati con la data reale. */
+/**
+ * Le opzioni-giorno del bollettino, etichettate con la data reale — **mai i giorni
+ * passati**.
+ *
+ * Il bollettino di criticità esce nel pomeriggio (~14:00-16:00) e copre «oggi» e «domani»
+ * rispetto all'emissione. Quindi la mattina l'ultimo disponibile è quello di ieri, che
+ * copre ieri+oggi: prima mostravamo «Ieri» come pulsante disabilitato, e l'allerta di ieri
+ * non serve a nessuno — segnalato dall'utente il 2026-09-06 («facciamo vedere ieri e
+ * oggi»). Ora i giorni già passati si filtrano via: resta «Oggi» (e «Domani» quando il
+ * bollettino del pomeriggio è uscito). Un giorno passato non è una scelta, è rumore.
+ */
 export function dayOptions(dates: string[], now: Date): DayOption[] {
   const today = toYmd(now);
-  // Un giorno avanti e uno indietro come ISTANTI (24 h esatte), non ricostruendo una data
-  // dai getter locali: il conto va fatto sul tempo, l'etichetta sul fuso italiano.
+  // Un giorno avanti come ISTANTE (24 h esatte), non ricostruendo una data dai getter
+  // locali: il conto va fatto sul tempo, l'etichetta sul fuso italiano.
   const tomorrow = toYmd(new Date(now.getTime() + 86400000));
-  const yesterday = toYmd(new Date(now.getTime() - 86400000));
-  return dates.map((date) => {
-    let prefix: string;
-    if (date === today) prefix = 'Oggi';
-    else if (date === tomorrow) prefix = 'Domani';
-    // Solo il giorno prima è "Ieri": con un bollettino vecchio di due giorni, prima
-    // uscivano due pulsanti entrambi etichettati "Ieri" con date diverse.
-    else if (date === yesterday) prefix = 'Ieri';
-    else prefix = 'Il';
-    return { date, label: `${prefix} ${ddmm(date)}`, disabled: date < today };
-  });
+  return dates
+    .filter((date) => date >= today)
+    .map((date) => {
+      const prefix = date === today ? 'Oggi' : date === tomorrow ? 'Domani' : 'Il';
+      // `disabled` resta per compatibilità, ma dopo il filtro nessun giorno è passato.
+      return { date, label: `${prefix} ${ddmm(date)}`, disabled: false };
+    });
 }
 
 export function defaultDpcDate(dates: string[], now: Date): string | null {
