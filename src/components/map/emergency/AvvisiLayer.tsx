@@ -115,7 +115,11 @@ export function AvvisiLayer(
       {/* Giornata calma: senza questa riga un layer acceso su una mappa vuota è
           indistinguibile da un layer rotto, e sono la maggioranza dei giorni. */}
       {def.id === 'dpc-alerts' && giornataCalma && (
-        <div className="text-[10px] text-green-400">Nessuna zona in allerta per questo giorno</div>
+        <div className="text-[10px] text-green-400 leading-snug">
+          Nessuno stato di allerta per questo giorno. È l’allerta ufficiale della
+          Protezione Civile, non la previsione: i temporali previsti stanno in «Quando
+          partire».
+        </div>
       )}
     </div>
   );

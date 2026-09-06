@@ -97,11 +97,17 @@ describe('bulletinDates / dayOptions / defaultDpcDate', () => {
     expect(defaultDpcDate([today, tomorrow], now)).toBe('2026-08-25');
   });
 
-  test('bollettino di ieri → Ieri disabilitato, Oggi selezionabile (regola della spec §6)', () => {
+  /**
+   * Il bollettino di ieri copre ieri+oggi. Dal fix del 2026-09-06 il giorno passato NON
+   * si mostra: resta solo «Oggi». Un'allerta di ieri non è una scelta utile — segnalato
+   * dall'utente, che vedeva «ieri e oggi» invece di «oggi (e domani quando c'è)».
+   */
+  test('bollettino di ieri → resta solo Oggi, senza «Ieri»', () => {
     const { today, tomorrow } = bulletinDates('20260824_1500');
     const opts = dayOptions([today, tomorrow], now);
-    expect(opts[0]).toEqual({ date: '2026-08-24', label: 'Ieri 24/08', disabled: true });
-    expect(opts[1]).toEqual({ date: '2026-08-25', label: 'Oggi 25/08', disabled: false });
+    expect(opts).toEqual([
+      { date: '2026-08-25', label: 'Oggi 25/08', disabled: false },
+    ]);
     expect(defaultDpcDate([today, tomorrow], now)).toBe('2026-08-25');
   });
 
@@ -111,14 +117,15 @@ describe('bulletinDates / dayOptions / defaultDpcDate', () => {
 });
 
 describe('dayOptions con bollettino vecchio', () => {
-  // Prima ogni data passata prendeva il prefisso "Ieri": con un bollettino di due
-  // giorni comparivano due pulsanti "Ieri" con date diverse.
-  test('solo il giorno prima è "Ieri", i più vecchi hanno prefisso neutro', () => {
+  /**
+   * Bollettino di due giorni fa (copre 24 e 25), guardato il 26: entrambi i giorni sono
+   * passati. Non si mostra nulla — meglio niente che un pulsante «Ieri» inutile. Il layer
+   * dichiara «dati non aggiornati» per conto suo (`isStale`).
+   */
+  test('un bollettino tutto nel passato non produce nessun giorno', () => {
     const now = new Date('2026-08-26T09:00:00');
     const opts = dayOptions(['2026-08-24', '2026-08-25'], now);
-    expect(opts[0].label).toBe('Il 24/08');
-    expect(opts[1].label).toBe('Ieri 25/08');
-    expect(opts.every((o) => o.disabled)).toBe(true);
+    expect(opts).toEqual([]);
   });
 
   test('oggi e domani restano etichettati e abilitati', () => {

@@ -81,7 +81,7 @@ describe('pannello layer compatto', () => {
     render(<EmergencyLayersPanel />);
     fireEvent.click(screen.getByRole('button', { name: /Focolai attivi \(24h\)/ }));
     expect(screen.getByText('Rilevato nelle ultime 6 ore')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /Allerte meteo-idro \(DPC\)/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Allerta protezione civile \(DPC\)/ }));
     expect(screen.getByText('Allerta gialla')).toBeInTheDocument();
     expect(screen.queryByText('Rilevato nelle ultime 6 ore')).not.toBeInTheDocument();
   });
@@ -333,7 +333,7 @@ describe('l eta vera dei dati satellitari', () => {
     attiva('dpc-alerts');
     conFocolai([oreFa(9)]);
     render(<EmergencyLayersPanel />);
-    fireEvent.click(screen.getByRole('button', { name: /Allerte meteo-idro \(DPC\)/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Allerta protezione civile \(DPC\)/ }));
     expect(screen.queryByText(/Passaggi satellite/)).not.toBeInTheDocument();
   });
 });

@@ -50,9 +50,10 @@ describe('review: la partenza notturna', () => {
     for (const d of [27, 28]) {
       for (let h = 0; h < 24; h++) {
         time.push(`2026-08-${d}T${String(h).padStart(2, '0')}:00`);
-        // critico solo alle 01:00 UTC del 28 = 03:00 italiane
-        cape.push(d === 28 && h === 1 ? 1600 : 20);
-        weather_code.push(0); wind_gusts_10m.push(10); precipitation_probability.push(0);
+        // critico solo alle 01:00 UTC del 28 = 03:00 italiane. Dal fix del 2026-09-06
+        // il segnale critico e' la PIOGGIA prevista, non il CAPE (energia senza innesco).
+        cape.push(20); weather_code.push(0); wind_gusts_10m.push(10);
+        precipitation_probability.push(d === 28 && h === 1 ? 75 : 0);
       }
     }
     const r = buildRouteWeather({
@@ -75,8 +76,8 @@ describe('review: la partenza notturna', () => {
     const precipitation_probability: number[] = [];
     for (let h = 0; h < 24; h++) {
       time.push(`2026-08-28T${String(h).padStart(2, '0')}:00`);
-      cape.push(h >= 14 && h <= 16 ? 1400 : 20);   // 16-18 italiane
-      weather_code.push(0); wind_gusts_10m.push(10); precipitation_probability.push(0);
+      cape.push(20); weather_code.push(0); wind_gusts_10m.push(10);
+      precipitation_probability.push(h >= 14 && h <= 16 ? 75 : 0);   // 16-18 italiane
     }
     const r = buildRouteWeather({
       waypoints: [wp(0), wp(1)],

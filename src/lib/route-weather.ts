@@ -77,9 +77,21 @@ export interface Classificazione {
 export const MAX_PUNTI = 12;
 
 // Soglie. CAPE in J/kg: energia disponibile alla convezione, non certezza di temporale.
-const CAPE_MODERATO = 300;
+// È carburante, non fuoco: da solo non fa un temporale, serve un innesco.
 const CAPE_ALTO = 800;
-const CAPE_MOLTO_ALTO = 1500;
+/**
+ * Sopra questa probabilità di pioggia il modello sta prevedendo un innesco: è la
+ * condizione perché il CAPE conti come aggravante («c'è energia E succederà qualcosa»).
+ */
+const CAPE_INNESCO_PIOGGIA = 30;
+/**
+ * CAPE così alto da meritare una nota anche SENZA pioggia prevista: in montagna la
+ * convezione orografica è sotto-risolta dai modelli a maglia larga, e un temporale di
+ * calore può formarsi dove la previsione dà poca pioggia. È un «tienila d'occhio»
+ * (giallo), non un «attenzione»: 2000 e non 1500, perché d'estate 1500 in quota è comune
+ * e allarmarci sopra sarebbe il difetto di prima con una soglia più alta.
+ */
+const CAPE_ESTREMO = 2000;
 // Raffiche in km/h: in cresta e su terreno esposto contano quanto la pioggia.
 const RAFFICA_ATTENZIONE = 30;
 const RAFFICA_FORTE = 50;
@@ -140,41 +152,74 @@ export function arrivalTimes(waypoints: Waypoint[], legs: Leg[], departure: Date
   return out;
 }
 
+/**
+ * **Il rischio di un'ora segue la PREVISIONE, e il CAPE è solo il contesto.**
+ *
+ * La versione precedente lasciava che il CAPE alzasse il livello da solo: CAPE ≥ 300 →
+ * «attenzione», anche col cielo coperto e zero pioggia prevista. D'estate il CAPE
+ * pomeridiano in quota è ~500-1000 quasi ogni giorno, quindi l'app gridava «attenzione»
+ * su pomeriggi che il modello dava nuvolosi e stabili — misurato sull'Abruzzo il
+ * 2026-09-06: cielo coperto, pioggia 0-3%, CAPE 970-1160, e il verdetto era arancione.
+ *
+ * Il CAPE è l'energia DISPONIBILE alla convezione: il carburante, non il fuoco. Senza un
+ * innesco (aria che sale, un fronte, orografia) resta energia inutilizzata. Il modello lo
+ * sa e lo dice, col codice meteo e con la probabilità di pioggia: quelli sono il giudice
+ * del «ci sarà o no». Quindi:
+ *
+ * 1. **codice di temporale** (95/96/99): è una dichiarazione del modello → livello 3;
+ * 2. **probabilità di pioggia**: è già il verdetto sull'innesco → livello 1-2;
+ * 3. **CAPE**: aggravante quando c'è già un innesco previsto (pioggia probabile + CAPE
+ *    alto = temporale potenzialmente forte); da solo, solo se ESTREMO, come «tienila
+ *    d'occhio» per la convezione orografica che i modelli a maglia larga sotto-stimano;
+ * 4. **raffiche**: il vento previsto è un fatto, non un potenziale → restano com'erano.
+ */
 export function classifyHour(o: OraDaClassificare): Classificazione {
   const reasons: string[] = [];
   let level: Livello = 0;
-  let qualcosaDiNoto = false;
-
   const alza = (l: Exclude<Livello, null>) => { if (level != null && l > level) level = l; };
 
-  if (Number.isFinite(o.weatherCode)) {
-    qualcosaDiNoto = true;
-    const etichetta = CODICI_TEMPORALE[o.weatherCode];
-    if (etichetta) { reasons.push(etichetta); alza(3); }
+  const codiceNoto = Number.isFinite(o.weatherCode);
+  const pioggiaNota = Number.isFinite(o.precipProb);
+  const capeNoto = Number.isFinite(o.cape);
+  const raffNota = Number.isFinite(o.gusts);
+  const qualcosaDiNoto = codiceNoto || pioggiaNota || capeNoto || raffNota;
+
+  // 1. Temporale esplicito: il modello lo dichiara. La lettura più forte.
+  if (codiceNoto && CODICI_TEMPORALE[o.weatherCode]) {
+    reasons.push(CODICI_TEMPORALE[o.weatherCode]);
+    alza(3);
   }
 
-  if (Number.isFinite(o.cape)) {
-    qualcosaDiNoto = true;
+  // 2. Pioggia dal modello: la probabilità è già il «ci sarà o no».
+  if (pioggiaNota) {
+    if (o.precipProb >= 70) { reasons.push(`${Math.round(o.precipProb)}% di probabilità di pioggia`); alza(2); }
+    else if (o.precipProb >= 40) { reasons.push(`${Math.round(o.precipProb)}% di probabilità di pioggia`); alza(1); }
+  }
+
+  // 3. CAPE: energia, non evento.
+  if (capeNoto) {
     const c = o.cape;
-    if (c >= CAPE_MOLTO_ALTO) { reasons.push(`CAPE ${Math.round(c)} J/kg: instabilità molto alta`); alza(3); }
-    else if (c >= CAPE_ALTO) { reasons.push(`CAPE ${Math.round(c)} J/kg: instabilità alta`); alza(2); }
-    else if (c >= CAPE_MODERATO) { reasons.push(`CAPE ${Math.round(c)} J/kg: instabilità moderata`); alza(1); }
+    const innescoPrevisto = pioggiaNota && o.precipProb >= CAPE_INNESCO_PIOGGIA;
+    if (innescoPrevisto && c >= CAPE_ALTO) {
+      reasons.push(`CAPE ${Math.round(c)} J/kg con pioggia prevista: possibili temporali forti`);
+      alza(3);
+    } else if (!innescoPrevisto && c >= CAPE_ESTREMO) {
+      reasons.push(`forte instabilità (CAPE ${Math.round(c)} J/kg): in montagna un temporale di calore può formarsi anche con poca pioggia prevista`);
+      alza(1);
+    }
+    // CAPE alto ma senza innesco previsto: non si nomina. Gridare «attenzione» col cielo
+    // stabile e zero pioggia era il difetto — è carburante che resta nel serbatoio.
   }
 
-  if (Number.isFinite(o.gusts)) {
-    qualcosaDiNoto = true;
+  // 4. Raffiche: il vento previsto è un fatto.
+  if (raffNota) {
     const g = o.gusts;
     if (g >= RAFFICA_PERICOLOSA) { reasons.push(`raffiche ${Math.round(g)} km/h: pericolose in cresta`); alza(3); }
     else if (g >= RAFFICA_FORTE) { reasons.push(`raffiche ${Math.round(g)} km/h: forti`); alza(2); }
     else if (g >= RAFFICA_ATTENZIONE) { reasons.push(`raffiche ${Math.round(g)} km/h`); alza(1); }
   }
 
-  if (Number.isFinite(o.precipProb) && o.precipProb >= 60) {
-    reasons.push(`${Math.round(o.precipProb)}% di probabilità di precipitazione`);
-    alza(1);
-  }
-
-  // Nessuna delle tre letture disponibile: si dichiara ignoto invece di "sereno".
+  // Nessuna lettura disponibile: si dichiara ignoto invece di "sereno".
   if (!qualcosaDiNoto) return { level: null, reasons: ['dati non disponibili'] };
   return { level, reasons };
 }

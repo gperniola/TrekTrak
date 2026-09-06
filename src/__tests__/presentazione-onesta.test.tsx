@@ -224,7 +224,7 @@ describe('la tabella dice perche un punto e problematico', () => {
     return { time: t, cape: c, weather_code: w, wind_gusts_10m: g, precipitation_probability: pr, temperature_2m: [] };
   };
 
-  test('scrive le raffiche e l instabilita, non solo un pallino', async () => {
+  test('scrive le raffiche e i temporali, non solo un pallino', async () => {
     const { render: renderPanel, screen: schermo, waitFor: attendi } = await import('@testing-library/react');
     const { useUIStore } = await import('@/stores/uiStore');
     const { useItineraryStore } = await import('@/stores/itineraryStore');
@@ -262,7 +262,9 @@ describe('la tabella dice perche un punto e problematico', () => {
 
     renderPanel(<RouteWeatherPanel />);
     await attendi(() => expect(schermo.getAllByText(/raffiche 85 km\/h/).length).toBeGreaterThan(0));
-    expect(schermo.getAllByText(/instabilit/i).length).toBeGreaterThan(0);
+    // il secondo motivo: dal fix del 2026-09-06 il CAPE con pioggia prevista dice
+    // «temporali forti», non piu' «instabilita'» generica.
+    expect(schermo.getAllByText(/temporal/i).length).toBeGreaterThan(0);
     // e il motivo e' scritto in rosso, come il pallino
     const motivo = schermo.getAllByText(/raffiche 85 km\/h/)[0];
     expect(motivo.className).toMatch(/text-red-400/);

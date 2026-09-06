@@ -106,7 +106,7 @@ describe('a schermo', () => {
   test('accendendo un secondo layer, resta aperto solo il suo', async () => {
     render(<EmergencyLayersPanel />);
     await act(async () => { fireEvent.click(interruttore('Radar pioggia (ultime 2 h)')); });
-    await act(async () => { fireEvent.click(interruttore('Allerte meteo-idro (DPC)')); });
+    await act(async () => { fireEvent.click(interruttore('Allerta protezione civile (DPC)')); });
     expect(dettaglioAperto()).toBe(1);
     expect(idApertо()).toBe('dettaglio-dpc-alerts');
   });
@@ -118,7 +118,7 @@ describe('a schermo', () => {
   test('spegnendo un layer, il dettaglio di un altro resta aperto', async () => {
     render(<EmergencyLayersPanel />);
     await act(async () => { fireEvent.click(interruttore('Radar pioggia (ultime 2 h)')); });
-    await act(async () => { fireEvent.click(interruttore('Allerte meteo-idro (DPC)')); });
+    await act(async () => { fireEvent.click(interruttore('Allerta protezione civile (DPC)')); });
     // Ora e' aperto il DPC; spengo il radar, che non e' quello aperto.
     await act(async () => { fireEvent.click(interruttore('Radar pioggia (ultime 2 h)')); });
     expect(idApertо()).toBe('dettaglio-dpc-alerts');

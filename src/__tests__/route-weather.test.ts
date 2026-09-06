@@ -82,9 +82,14 @@ describe('orari di arrivo dai tempi Munter', () => {
 });
 
 /**
- * La classificazione prende il **peggio** fra tre letture indipendenti. Il codice
- * meteo che dichiara temporale è la lettura più forte: il CAPE dice quanta energia
- * c'è, non che il temporale ci sarà.
+ * **Il rischio di un'ora segue la PREVISIONE, e il CAPE è solo il contesto.**
+ *
+ * Il CAPE è l'energia disponibile alla convezione — il carburante, non il fuoco: da solo
+ * non fa un temporale. La versione precedente lo lasciava alzare il livello da solo, e
+ * gridava «attenzione» sui pomeriggi coperti ma stabili con CAPE alto (misurato
+ * sull'Abruzzo il 2026-09-06: coperto, pioggia 0-3%, CAPE ~1000, verdetto arancione —
+ * segnalato dall'utente). Ora il modello (codice meteo + probabilità di pioggia) è il
+ * giudice del «ci sarà o no», e il CAPE conta come aggravante di un innesco già previsto.
  */
 describe('classificazione di un\'ora', () => {
   // Il tipo e' quello che `classifyHour` accetta davvero: la temperatura non entra nel
@@ -103,10 +108,33 @@ describe('classificazione di un\'ora', () => {
     expect(classifyHour(ora({ weatherCode: code })).level).toBe(3);
   });
 
+  /**
+   * **Il caso dell'utente**: CAPE alto SENZA pioggia prevista non è un'allerta. È il
+   * pomeriggio d'estate coperto ma stabile, e prima era un falso «attenzione».
+   */
   test.each([
-    [200, 0], [500, 1], [1000, 2], [2000, 3],
-  ])('CAPE %i J/kg → livello %i', (cape, atteso) => {
-    expect(classifyHour(ora({ cape })).level).toBe(atteso);
+    [300, 0], [720, 0], [1000, 0], [1500, 0], [1900, 0],
+  ])('CAPE %i J/kg senza pioggia → livello %i (energia, non evento)', (cape, atteso) => {
+    expect(classifyHour(ora({ cape, precipProb: 0 })).level).toBe(atteso);
+  });
+
+  /** Sopra la soglia estrema, una nota gialla anche senza pioggia: convezione orografica. */
+  test('CAPE estremo senza pioggia → «tienila d\'occhio», non «attenzione»', () => {
+    const c = classifyHour(ora({ cape: 2500, precipProb: 5 }));
+    expect(c.level).toBe(1);
+    expect(c.reasons.join(' ')).toMatch(/instabilità/i);
+  });
+
+  /** Con l'innesco previsto (pioggia probabile), il CAPE alto diventa aggravante forte. */
+  test('pioggia probabile + CAPE alto → possibili temporali forti', () => {
+    const c = classifyHour(ora({ cape: 1000, precipProb: 50 }));
+    expect(c.level).toBe(3);
+    expect(c.reasons.join(' ')).toMatch(/temporali forti/i);
+  });
+
+  test('pioggia probabile ma CAPE basso → livello della pioggia, non oltre', () => {
+    expect(classifyHour(ora({ cape: 200, precipProb: 50 })).level).toBe(1);
+    expect(classifyHour(ora({ cape: 200, precipProb: 80 })).level).toBe(2);
   });
 
   test.each([
@@ -131,7 +159,7 @@ describe('classificazione di un\'ora', () => {
   // Dati mancanti non devono diventare "nessun rischio": chi legge crederebbe di
   // sapere qualcosa che non sa.
   test('valori non numerici → si dichiara ignoto, non sereno', () => {
-    const c = classifyHour(ora({ cape: Number.NaN, weatherCode: Number.NaN, gusts: Number.NaN }));
+    const c = classifyHour(ora({ cape: Number.NaN, weatherCode: Number.NaN, gusts: Number.NaN, precipProb: Number.NaN }));
     expect(c.level).toBeNull();
   });
 });
@@ -160,6 +188,12 @@ describe('ora di partenza suggerita', () => {
  */
 describe('rapporto completo', () => {
   const partenza = new Date('2026-08-28T05:00:00Z');
+  /*
+    `base[h]` e' la PROBABILITA' DI PIOGGIA a quell'ora: dal fix del 2026-09-06 e' quella
+    il segnale di criticita', non il CAPE (che da solo, col cielo stabile, era un falso
+    allarme). 75% -> livello 2. La logica delle finestre qui sotto e' indipendente da
+    quale lettura sia critica: usa quella piu' onesta.
+  */
   const orario = (base: Record<string, number>) => {
     const time: string[] = [];
     const cape: number[] = [];
@@ -168,10 +202,10 @@ describe('rapporto completo', () => {
     const precipitation_probability: number[] = [];
     for (let h = 0; h < 24; h++) {
       time.push(`2026-08-28T${String(h).padStart(2, '0')}:00`);
-      cape.push(base[h] ?? 0);
+      cape.push(0);
       weather_code.push(0);
       wind_gusts_10m.push(15);
-      precipitation_probability.push(10);
+      precipitation_probability.push(base[h] ?? 10);
     }
     return { time, cape, weather_code, wind_gusts_10m, precipitation_probability, temperature_2m: [] };
   };
@@ -187,10 +221,10 @@ describe('rapporto completo', () => {
     expect(r.verdict.level).toBe(0);
   });
 
-  test('CAPE alto nel pomeriggio: finestra e verdetto', () => {
-    // dalle 12 alle 18 UTC il CAPE sale sopra 800 → livello 2
+  test('pioggia probabile nel pomeriggio: finestra e verdetto', () => {
+    // dalle 12 alle 18 UTC il modello dà 75% di pioggia → livello 2
     const pomeriggio: Record<string, number> = {};
-    for (let h = 12; h <= 18; h++) pomeriggio[h] = 1200;
+    for (let h = 12; h <= 18; h++) pomeriggio[h] = 75;
     const r = buildRouteWeather({
       waypoints: [wp(0), wp(1)], legs: [leg(0, 480)], departure: partenza,
       punti: [{ waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'WP 0', alt: null }],
@@ -218,7 +252,7 @@ describe('rapporto completo', () => {
    */
   test('il messaggio parla in ora italiana, non UTC', () => {
     const pomeriggio: Record<string, number> = {};
-    for (let h = 12; h <= 18; h++) pomeriggio[h] = 1200;
+    for (let h = 12; h <= 18; h++) pomeriggio[h] = 75;
     const r = buildRouteWeather({
       waypoints: [wp(0), wp(1)], legs: [leg(0, 480)], departure: partenza,
       punti: [{ waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'WP 0', alt: null }],
@@ -230,14 +264,14 @@ describe('rapporto completo', () => {
   });
 
   /**
-   * Il difetto che questo test blocca l'ho visto sui dati veri: con il CAPE critico
-   * a tratti lungo tutta la giornata, un'unica fascia dal minimo al massimo diventava
+   * Il difetto che questo test blocca l'ho visto sui dati veri: con la criticita' a
+   * tratti lungo tutta la giornata, un'unica fascia dal minimo al massimo diventava
    * "00:00-00:00" — aritmeticamente giusto e inutile. Le fasce vere sono due, e
    * dirle e' l'unico modo di essere d'aiuto.
    */
   test('ore critiche non contigue → due fasce, non un unico intervallo', () => {
     const sparse: Record<string, number> = {};
-    for (const h of [2, 3, 14, 15, 16]) sparse[h] = 1200;
+    for (const h of [2, 3, 14, 15, 16]) sparse[h] = 75;
     const r = buildRouteWeather({
       waypoints: [wp(0), wp(1)], legs: [leg(0, 120)], departure: partenza,
       punti: [{ waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'WP 0', alt: null }],
@@ -251,7 +285,7 @@ describe('rapporto completo', () => {
 
   test('la fascia nominata nel verdetto è quella che ti prende, non l’elenco', () => {
     const sparse: Record<string, number> = {};
-    for (const h of [2, 3, 6, 7]) sparse[h] = 1200;  // 05:00-06:00 UTC: dentro il cammino
+    for (const h of [2, 3, 6, 7]) sparse[h] = 75;  // 05:00-06:00 UTC: dentro il cammino
     const r = buildRouteWeather({
       waypoints: [wp(0), wp(1)], legs: [leg(0, 180)], departure: partenza,
       punti: [{ waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'WP 0', alt: null }],
@@ -274,7 +308,7 @@ describe('rapporto completo', () => {
     const r = buildRouteWeather({
       waypoints: [wp(0), wp(1)], legs: [leg(0, 360)], departure: partenza,
       punti: [{ waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'Parcheggio', alt: null }],
-      serie: [orario({ 8: 1200 })],
+      serie: [orario({ 8: 75 })],
     });
     expect(r.verdict.level).toBe(2);
     // 08:00 UTC = 10:00 in Italia
@@ -306,8 +340,8 @@ describe('quando i tempi di percorrenza non ci sono', () => {
     const g: number[] = []; const pp: number[] = [];
     for (let h = 0; h < 24; h++) {
       time.push(`2026-08-28T${String(h).padStart(2, '0')}:00`);
-      cape.push(h >= 12 && h <= 15 ? 1400 : 20);
-      wc.push(0); g.push(10); pp.push(0);
+      cape.push(0); wc.push(0); g.push(10);
+      pp.push(h >= 12 && h <= 15 ? 75 : 0);
     }
     return { time, cape, weather_code: wc, wind_gusts_10m: g, precipitation_probability: pp, temperature_2m: [] };
   };
