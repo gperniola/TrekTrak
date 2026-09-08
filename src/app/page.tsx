@@ -42,11 +42,19 @@ import { MoreMenu } from '@/components/panel/MoreMenu';
 // Il pannello trascina il client Open-Meteo e i calcoli: si carica quando lo si apre.
 const RouteWeatherPanel = dynamic(() => import('@/components/weather/RouteWeatherPanel').then((m) => ({ default: m.RouteWeatherPanel })), { ssr: false });
 import { useTema } from '@/lib/useTema';
+import { useSchermoPiccolo } from '@/lib/useSchermoPiccolo';
 
 export default function Home() {
   // L'aspetto va applicato sempre, non solo quando il pannello e' aperto (task-35).
   useTema();
   const [showMapSettings, setShowMapSettings] = useState(false);
+  /*
+   * Su telefono il profilo altimetrico è un cassetto apri/chiudi: aperto di default, si
+   * abbassa per dare tutta l'altezza alla mappa. Su desktop resta sempre visibile (la
+   * maniglia è `lg:hidden`, quindi lì `profiloAperto` non cambia mai).
+   */
+  const [profiloAperto, setProfiloAperto] = useState(true);
+  const schermoPiccolo = useSchermoPiccolo();
 
   const showSettings = useUIStore((s) => s.settingsOpen);
   const setShowSettings = useUIStore((s) => s.setSettingsOpen);
@@ -173,13 +181,36 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Elevation Profile — in library mode mostra il profilo del percorso selezionato */}
-          <div className="h-[100px] lg:h-[120px] bg-gray-900 border-t border-gray-700 shrink-0">
-            {mainView === 'library'
-              ? (previewRoute
-                  ? <PreviewElevationProfile route={previewRoute} />
-                  : <div className="h-full flex items-center justify-center text-xs text-gray-400 px-3 text-center">Seleziona un percorso per vederne il profilo.</div>)
-              : <ElevationProfile />}
+          {/* Elevation Profile — su telefono è un cassetto apri/chiudi (default aperto);
+              su desktop è sempre visibile. In library mode è il profilo del percorso scelto. */}
+          <div className="bg-gray-900 border-t border-gray-700 shrink-0">
+            {/* La maniglia del cassetto, solo su telefono: alza/abbassa il profilo. */}
+            <button
+              type="button"
+              onClick={() => setProfiloAperto((v) => !v)}
+              aria-expanded={profiloAperto}
+              aria-controls="profilo-altimetrico"
+              aria-label={profiloAperto ? 'Abbassa il profilo altimetrico' : 'Alza il profilo altimetrico'}
+              className="lg:hidden w-full flex items-center justify-center gap-2 min-h-[32px] py-1 text-gray-400 active:bg-white/5"
+            >
+              <span aria-hidden className="w-8 h-1 rounded-full bg-gray-600" />
+              {/* L'etichetta serve solo da chiuso: da aperto ce l'ha già l'intestazione del grafico. */}
+              {!profiloAperto && <span className="text-[11px]">Profilo altimetrico</span>}
+              <span aria-hidden className="text-[9px]">{profiloAperto ? '▾' : '▴'}</span>
+            </button>
+            <div
+              id="profilo-altimetrico"
+              className={profiloAperto ? 'h-[100px] lg:h-[120px]' : 'h-0 overflow-hidden lg:h-[120px]'}
+            >
+              {/* Da chiuso su telefono non si monta il grafico: Recharts a 0 px protesterebbe. */}
+              {(!schermoPiccolo || profiloAperto) && (
+                mainView === 'library'
+                  ? (previewRoute
+                      ? <PreviewElevationProfile route={previewRoute} />
+                      : <div className="h-full flex items-center justify-center text-xs text-gray-400 px-3 text-center">Seleziona un percorso per vederne il profilo.</div>)
+                  : <ElevationProfile />
+              )}
+            </div>
           </div>
 
           {/* Mobile panel sheet — covers map + elevation; the sheet itself scrolls so the
