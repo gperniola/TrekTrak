@@ -106,13 +106,14 @@ describe('Meteo del percorso', () => {
   });
 
   // Il numero dei punti interrogati va dichiarato: altrimenti si crede che il dato sia
-  // stato calcolato per ogni waypoint, e non e' vero.
-  test('dichiara su quanti punti è campionata e che le pause non sono contate', async () => {
+  // stato calcolato per ogni waypoint, e non e' vero. E ora che le soste spostano gli
+  // orari, la nota lo dice: prima diceva il contrario, ed era vero solo prima.
+  test('dichiara su quanti punti è campionata e che le soste sono contate', async () => {
     const serie = serieOggiEDomani();
     fetchRouteForecast.mockResolvedValue({ serie: [serie, serie, serie], elevations: [] });
     render(<RouteWeatherPanel />);
     await waitFor(() => expect(screen.getByText(/campionata su 3 punti/i)).toBeInTheDocument());
-    expect(screen.getByText(/non\s+contano le pause/i)).toBeInTheDocument();
+    expect(screen.getByText(/tengono\s+conto delle soste/i)).toBeInTheDocument();
   });
 
   test('cambiare ora di partenza ricalcola', async () => {

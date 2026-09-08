@@ -6,6 +6,7 @@ import { NumberInput } from '@/components/shared/NumberInput';
 import { IncollaCoordinate } from '@/components/shared/IncollaCoordinate';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { confirm as appConfirm, toast } from '@/stores/notificationStore';
+import { ControlloSosta } from '@/components/panel/ControlloSosta';
 
 export function WaypointCard({ waypoint, dragHandleProps }: { waypoint: Waypoint; dragHandleProps?: Record<string, unknown> }) {
   const updateWaypoint = useItineraryStore((s) => s.updateWaypoint);
@@ -118,6 +119,9 @@ export function WaypointCard({ waypoint, dragHandleProps }: { waypoint: Waypoint
           termine="quota"
           readOnly={isTrack}
         />
+      </div>
+      <div className="mt-2 pt-2 border-t border-gray-700/60">
+        <ControlloSosta id={waypoint.id} pausaMin={waypoint.pausaMin} />
       </div>
     </div>
   );

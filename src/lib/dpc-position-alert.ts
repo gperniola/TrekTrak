@@ -92,3 +92,52 @@ export function positionAlertMessage(alert: PositionAlert, giorno: string): stri
 export function positionAlertSeverity(alert: PositionAlert): 'warning' | 'severe' {
   return alert.level >= 2 ? 'severe' : 'warning';
 }
+
+/**
+ * L'allerta **più grave** fra tutti i punti di un percorso.
+ *
+ * Il meteo del percorso attraversa più zone del bollettino: basta che UN tratto cada in
+ * una zona in allerta perché l'escursione sia da valutare. Si prende la più grave (come
+ * `checkPosition` fa fra zone sovrapposte), non la prima, per non declassare un rosso a
+ * valle di un giallo.
+ *
+ * `unknown` se nessun punto è in allerta ma qualcuno cade in una geometria illeggibile:
+ * "non lo so" non deve diventare "nessuna allerta". `clear` solo se ogni punto è stato
+ * collocato e nessuno è in allerta.
+ */
+export function checkRoute(
+  zones: DpcZone[],
+  points: Array<{ lat: number; lon: number }>,
+): PositionCheck {
+  let migliore: PositionAlert | null = null;
+  let indeterminato = false;
+  for (const p of points) {
+    const esito = checkPosition(zones, p.lat, p.lon);
+    if (esito.outcome === 'alert') {
+      if (migliore == null || esito.alert.level > migliore.level) migliore = esito.alert;
+    } else if (esito.outcome === 'unknown') {
+      indeterminato = true;
+    }
+  }
+  if (migliore != null) return { outcome: 'alert', alert: migliore };
+  return indeterminato ? { outcome: 'unknown' } : { outcome: 'clear' };
+}
+
+/**
+ * Il testo dell'avviso per il **percorso** (non per la posizione).
+ *
+ * Stessa sostanza di `positionAlertMessage`, ma dice «su un tratto del percorso» invece
+ * di «dove ti trovi»: nel meteo del percorso l'allerta riguarda la traccia, non il punto
+ * in cui sei ora.
+ */
+export function routeAlertMessage(alert: PositionAlert, giorno: string): string {
+  const dettaglio = alert.risks
+    .map((r) => `${r.label} ${DPC_LEVEL_LABELS[r.level].toLowerCase()}`)
+    .join(', ');
+  const rischi = dettaglio ? ` — rischio ${dettaglio}` : '';
+  return `Allerta ${DPC_LEVEL_LABELS[alert.level].toLowerCase()} della Protezione Civile per ${giorno}`
+    + ` su un tratto del percorso: ${alert.zoneName}${rischi}.`
+    + ' È il bollettino per l\'intera zona, non una misura sul punto, e non sostituisce'
+    + ' i canali ufficiali di allerta: in caso di emergenza chiama il 112.'
+    + ` Fonte: ${attributionText('dpc-alerts')}.`;
+}

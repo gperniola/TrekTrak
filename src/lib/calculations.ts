@@ -422,6 +422,13 @@ export function computeRouteMetrics(
     if (d > 0) { slopeDistSum += slope * d; distSum += d; }
   }
 
+  // Le soste sono tempo di percorrenza a tutti gli effetti: chi legge «2h 40m» si aspetta
+  // che comprenda la mezz'ora di pranzo in vetta. Ogni pausa positiva entra nel totale.
+  for (const wp of waypoints) {
+    const p = wp.pausaMin;
+    if (Number.isFinite(p) && (p as number) > 0) estimatedTimeMin += p as number;
+  }
+
   const altitudes: number[] = [];
   for (const wp of waypoints) {
     if (wp.altitude != null) altitudes.push(wp.altitude);

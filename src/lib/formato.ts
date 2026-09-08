@@ -151,3 +151,19 @@ export function giornoMese(quando: string | number | Date | null | undefined): s
 export function giornoItalianoDi(quando: Date): string {
   return quando.toLocaleDateString('en-CA', { timeZone: 'Europe/Rome' });
 }
+
+/**
+ * Una durata in minuti scritta a parole: `45 min`, `1 h`, `1 h 30 min`.
+ *
+ * Serve alle pause dei waypoint e alle stime. Zero o valore non finito → `0 min`, non
+ * `—`: qui lo zero e' un'informazione vera («nessuna sosta»), non un dato mancante.
+ */
+export function durataMin(minuti: number): string {
+  if (!Number.isFinite(minuti) || minuti <= 0) return '0 min';
+  const tot = Math.round(minuti);
+  const h = Math.floor(tot / 60);
+  const m = tot % 60;
+  if (h === 0) return `${m} min`;
+  if (m === 0) return `${h} h`;
+  return `${h} h ${m} min`;
+}

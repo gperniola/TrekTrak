@@ -1,7 +1,7 @@
 import type { Feature } from 'geojson';
 import type { DpcLevel, DpcZone } from '@/lib/dpc';
 import {
-  checkPosition, positionAlertMessage, positionAlertSeverity,
+  checkPosition, positionAlertMessage, positionAlertSeverity, checkRoute, routeAlertMessage,
 } from '@/lib/dpc-position-alert';
 
 function quadrato(lon: number, lat: number, d = 0.5): Feature {
@@ -139,5 +139,65 @@ describe('positionAlertSeverity', () => {
     expect(positionAlertSeverity({ zoneName: 'Z', level: 1, risks: [] })).toBe('warning');
     expect(positionAlertSeverity({ zoneName: 'Z', level: 2, risks: [] })).toBe('severe');
     expect(positionAlertSeverity({ zoneName: 'Z', level: 3, risks: [] })).toBe('severe');
+  });
+});
+
+describe('checkRoute (il percorso attraversa più zone)', () => {
+  test('un solo punto in allerta basta: esito alert', () => {
+    const zones = [zona({ name: 'Cresta', feature: quadrato(13.5, 42.1), temporali: 2 })];
+    const punti = [
+      { lat: 41.0, lon: 12.0 }, // fuori
+      { lat: 42.1, lon: 13.5 }, // dentro l'allerta
+    ];
+    const r = checkRoute(zones, punti);
+    expect(r.outcome).toBe('alert');
+    if (r.outcome !== 'alert') return;
+    expect(r.alert.zoneName).toBe('Cresta');
+    expect(r.alert.level).toBe(2);
+  });
+
+  test('più punti in allerta → vince il più grave', () => {
+    const zones = [
+      zona({ name: 'Gialla', feature: quadrato(13.5, 42.1), idraulico: 1 }),
+      zona({ name: 'Rossa', feature: quadrato(14.0, 42.5), idrogeologico: 3 }),
+    ];
+    const r = checkRoute(zones, [{ lat: 42.1, lon: 13.5 }, { lat: 42.5, lon: 14.0 }]);
+    if (r.outcome !== 'alert') throw new Error('atteso alert');
+    expect(r.alert.zoneName).toBe('Rossa');
+    expect(r.alert.level).toBe(3);
+  });
+
+  test('tutti fuori → clear', () => {
+    const zones = [zona({ name: 'Z', feature: quadrato(13.5, 42.1), temporali: 2 })];
+    expect(checkRoute(zones, [{ lat: 41.0, lon: 12.0 }]).outcome).toBe('clear');
+  });
+
+  test('nessuna allerta, ma una geometria illeggibile → unknown, non clear', () => {
+    const rotta: DpcZone = zona({
+      name: 'Illeggibile',
+      // Un tipo di geometria non interrogabile (Point): featureContainsPoint torna null.
+      feature: { type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [13.5, 42.1] } },
+      temporali: 2,
+    });
+    expect(checkRoute([rotta], [{ lat: 42.1, lon: 13.5 }]).outcome).toBe('unknown');
+  });
+
+  test('elenco zone vuoto → unknown', () => {
+    expect(checkRoute([], [{ lat: 42.1, lon: 13.5 }]).outcome).toBe('unknown');
+  });
+});
+
+describe('routeAlertMessage', () => {
+  test('parla del percorso, non della posizione, e riporta zona e rischi', () => {
+    const alert = {
+      zoneName: 'Abruzzo-Marsica', level: 2 as const,
+      risks: [{ label: 'temporali', level: 2 as const }],
+    };
+    const msg = routeAlertMessage(alert, 'oggi');
+    expect(msg).toContain('su un tratto del percorso');
+    expect(msg).toContain('Abruzzo-Marsica');
+    expect(msg).toContain('temporali');
+    expect(msg).toContain('112');
+    expect(msg).not.toContain('dove ti trovi');
   });
 });

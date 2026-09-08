@@ -18,6 +18,7 @@ import { MyLocationButton } from './MyLocationButton';
 import { PosizioneUtente } from './PosizioneUtente';
 import { ClearWaypointsButton } from './ClearWaypointsButton';
 import { PulsanteRitorno } from './PulsanteRitorno';
+import { PulsantePausa } from './PulsantePausa';
 import { EmergencyLayersButton } from './emergency/EmergencyLayersButton';
 import { EmergencyLayersPanel } from './emergency/EmergencyLayersPanel';
 import { RadarControls } from './emergency/RadarControls';
@@ -251,6 +252,7 @@ export function InteractiveMap() {
       <MyLocationButton hidden={compassActive} />
       {!libraryPreview && <ClearWaypointsButton />}
       {!libraryPreview && <PulsanteRitorno />}
+      {!libraryPreview && <PulsantePausa />}
       <EmergencyLayersButton />
       {/*
         I comandi del radar stanno sulla mappa, non solo nel pannello: si accende il layer,

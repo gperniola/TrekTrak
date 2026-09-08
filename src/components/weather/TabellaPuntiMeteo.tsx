@@ -1,7 +1,7 @@
 'use client';
 
 import { cielo } from '@/lib/cielo';
-import { oraItaliana } from '@/lib/formato';
+import { oraItaliana, durataMin } from '@/lib/formato';
 import type { Livello, RigaPercorso } from '@/lib/route-weather';
 
 /**
@@ -61,13 +61,14 @@ export function TabellaPuntiMeteo({ righe }: { righe: RigaPercorso[] }) {
         </thead>
         <tbody>
           {righe.map((r) => (
-            <tr key={r.waypointIndex} className="border-t border-gray-800">
+            <tr key={`${r.waypointIndex}-${r.fase ?? 'x'}`} className="border-t border-gray-800">
               <td className="py-1.5 pr-2 text-gray-200">
                 <span
                   className={`inline-block w-2 h-2 rounded-full mr-1.5 ${PALLINO[chiave(r.classification.level)]}`}
                   aria-hidden
                 />
                 {r.waypointIndex + 1}. {r.name || 'senza nome'}
+                <EtichettaSosta fase={r.fase} pausaMin={r.pausaMin} />
                 {r.classification.reasons.length > 0 && (
                   <div className={`text-[10px] leading-tight mt-0.5 ${COLORE_MOTIVO[chiave(r.classification.level)]}`}>
                     {r.classification.reasons.join(' · ')}
@@ -88,6 +89,34 @@ export function TabellaPuntiMeteo({ righe }: { righe: RigaPercorso[] }) {
         </tbody>
       </table>
     </div>
+  );
+}
+
+/**
+ * Dice, sotto il nome del punto, che qui c'è una **sosta** e in che fase è questa riga.
+ *
+ * Con sosta lunga il punto compare due volte — «arrivo» e «ripartenza» — e senza
+ * un'etichetta le due righe sarebbero identiche al primo sguardo, con orari diversi e
+ * nessuna spiegazione. Con sosta breve c'è una riga sola: si annota solo la durata.
+ */
+function EtichettaSosta({ fase, pausaMin }: { fase?: 'arrivo' | 'ripartenza'; pausaMin?: number }) {
+  const min = pausaMin ?? 0;
+  if (min <= 0) return null;
+  if (fase == null) {
+    return (
+      <span className="ml-1.5 text-[10px] text-amber-300 whitespace-nowrap">
+        <span aria-hidden>⏸</span> sosta {durataMin(min)}
+      </span>
+    );
+  }
+  return (
+    <span
+      className={`ml-1.5 text-[10px] px-1 rounded whitespace-nowrap ${
+        fase === 'arrivo' ? 'bg-amber-900/50 text-amber-200' : 'bg-sky-900/50 text-sky-200'
+      }`}
+    >
+      {fase === 'arrivo' ? `arrivo · sosta ${durataMin(min)}` : 'ripartenza'}
+    </span>
   );
 }
 
