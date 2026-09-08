@@ -1,6 +1,6 @@
 import {
   parseAlertLevel, parseDpcTopology, zonePopupHtml,
-  dayOptions, defaultDpcDate, bulletinDates,
+  dayOptions, defaultDpcDate, bulletinDates, urlBollettinoDpc,
 } from '@/lib/dpc';
 
 // Mini-topology con 2 zone (quadrati), stessa struttura dei file DPC reali
@@ -133,5 +133,17 @@ describe('dayOptions con bollettino vecchio', () => {
     const opts = dayOptions(['2026-08-26', '2026-08-27'], now);
     expect(opts.map((o) => o.label)).toEqual(['Oggi 26/08', 'Domani 27/08']);
     expect(opts.every((o) => o.disabled)).toBe(false);
+  });
+});
+
+
+describe('urlBollettinoDpc — la mappa ufficiale esposta', () => {
+  test('costruisce l’URL della preview PNG per il giorno', () => {
+    expect(urlBollettinoDpc('20260908_1426', 'oggi')).toBe(
+      'https://raw.githubusercontent.com/pcm-dpc/DPC-Bollettini-Criticita-Idrogeologica-Idraulica/master/files/preview/20260908_1426_oggi.png',
+    );
+    expect(urlBollettinoDpc('20260908_1426', 'domani')).toBe(
+      'https://raw.githubusercontent.com/pcm-dpc/DPC-Bollettini-Criticita-Idrogeologica-Idraulica/master/files/preview/20260908_1426_domani.png',
+    );
   });
 });
