@@ -56,3 +56,42 @@ describe('TabellaPuntiMeteo e le soste', () => {
     expect(screen.queryByText(/sosta/i)).not.toBeInTheDocument();
   });
 });
+
+
+describe('TabellaPuntiMeteo e i punti in mezzo', () => {
+  const rigaBaseM = (over: Partial<RigaPercorso>): RigaPercorso => ({
+    waypointIndex: 0, name: 'Punto', alt: 1000, modelElevation: 1000,
+    arrival: '2026-09-07T10:00:00Z', hour: null,
+    classification: { level: 0, reasons: [] },
+    ...over,
+  });
+  const meta = { ibIndex: 1, frazione: 0.5, kmDaInizio: 7.3, traA: 'Rifugio', traB: 'Vetta' };
+
+  test('un intermedio critico si mostra con «in mezzo», i km e «tra A e B»', () => {
+    const righe: RigaPercorso[] = [
+      rigaBaseM({ waypointIndex: 0, name: 'Rifugio' }),
+      rigaBaseM({
+        name: 'in mezzo', intermedio: meta,
+        classification: { level: 3, reasons: ['temporale previsto'] },
+      }),
+      rigaBaseM({ waypointIndex: 1, name: 'Vetta' }),
+    ];
+    render(<TabellaPuntiMeteo righe={righe} />);
+    expect(screen.getByText('in mezzo')).toBeInTheDocument();
+    expect(screen.getByText(/tra «Rifugio» e «Vetta»/)).toBeInTheDocument();
+    expect(screen.getByText(/temporale previsto/)).toBeInTheDocument();
+  });
+
+  test('un intermedio tranquillo (livello 0) non compare in tabella', () => {
+    const righe: RigaPercorso[] = [
+      rigaBaseM({ waypointIndex: 0, name: 'Rifugio' }),
+      rigaBaseM({ name: 'in mezzo', intermedio: meta, classification: { level: 0, reasons: [] } }),
+      rigaBaseM({ waypointIndex: 1, name: 'Vetta' }),
+    ];
+    render(<TabellaPuntiMeteo righe={righe} />);
+    expect(screen.queryByText('in mezzo')).not.toBeInTheDocument();
+    // i due waypoint reali ci sono
+    expect(screen.getByText(/Rifugio/)).toBeInTheDocument();
+    expect(screen.getByText(/Vetta/)).toBeInTheDocument();
+  });
+});

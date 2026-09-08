@@ -2,7 +2,7 @@
 
 import { cielo } from '@/lib/cielo';
 import { oraItaliana, durataMin } from '@/lib/formato';
-import type { Livello, RigaPercorso } from '@/lib/route-weather';
+import { righeVisibili, type Livello, type RigaPercorso, type PuntoIntermedio } from '@/lib/route-weather';
 
 /**
  * Colore del testo che dice PERCHE' un punto e' problematico.
@@ -60,14 +60,21 @@ export function TabellaPuntiMeteo({ righe }: { righe: RigaPercorso[] }) {
           </tr>
         </thead>
         <tbody>
-          {righe.map((r) => (
-            <tr key={`${r.waypointIndex}-${r.fase ?? 'x'}`} className="border-t border-gray-800">
+          {righeVisibili(righe).map((r) => (
+            <tr
+              key={r.intermedio != null
+                ? `mezzo-${Math.round(r.intermedio.kmDaInizio * 10)}`
+                : `${r.waypointIndex}-${r.fase ?? 'x'}`}
+              className="border-t border-gray-800"
+            >
               <td className="py-1.5 pr-2 text-gray-200">
                 <span
                   className={`inline-block w-2 h-2 rounded-full mr-1.5 ${PALLINO[chiave(r.classification.level)]}`}
                   aria-hidden
                 />
-                {r.waypointIndex + 1}. {r.name || 'senza nome'}
+                {r.intermedio != null
+                  ? <EtichettaIntermedio intermedio={r.intermedio} />
+                  : <>{r.waypointIndex + 1}. {r.name || 'senza nome'}</>}
                 <EtichettaSosta fase={r.fase} pausaMin={r.pausaMin} />
                 {r.classification.reasons.length > 0 && (
                   <div className={`text-[10px] leading-tight mt-0.5 ${COLORE_MOTIVO[chiave(r.classification.level)]}`}>
@@ -89,6 +96,29 @@ export function TabellaPuntiMeteo({ righe }: { righe: RigaPercorso[] }) {
         </tbody>
       </table>
     </div>
+  );
+}
+
+/**
+ * L'etichetta di un punto **inserito automaticamente** fra due waypoint distanti.
+ *
+ * Compare solo quando quel punto è critico (la tabella filtra con `righeVisibili`): dice
+ * che non è un waypoint dell'utente ma un controllo «in mezzo», fra quali waypoint cade —
+ * così si capisce dov'è senza cercarlo sulla mappa. Quale dei due (se più d'uno sullo
+ * stesso tratto) lo distinguono l'orario di arrivo e il motivo, accanto.
+ *
+ * NON si scrive «≈ km N»: la distanza qui sarebbe in linea d'aria, mentre tutto il resto
+ * dell'app conta i km lungo la traccia reale — un numero che non combacia con gli altri
+ * è peggio di nessun numero (la lezione della v0.13.3).
+ */
+function EtichettaIntermedio({ intermedio }: { intermedio: PuntoIntermedio }) {
+  return (
+    <>
+      <span className="text-amber-200 font-medium">in mezzo</span>
+      <span className="block text-[10px] leading-tight text-gray-400">
+        tra «{intermedio.traA}» e «{intermedio.traB}»
+      </span>
+    </>
   );
 }
 

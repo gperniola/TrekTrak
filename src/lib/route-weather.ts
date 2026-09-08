@@ -1,4 +1,5 @@
 import { oraItaliana } from './formato';
+import { haversineDistance } from './calculations';
 import type { Waypoint, Leg } from './types';
 
 /**
@@ -13,8 +14,36 @@ import type { Waypoint, Leg } from './types';
  * Tutto quello che c'è qui è **puro**: la rete sta in `weather-api.ts`.
  */
 
+/**
+ * Metadati di un punto **inserito automaticamente** fra due waypoint distanti.
+ *
+ * Non è un waypoint dell'utente: serve a non lasciare un buco geografico dove il meteo
+ * potrebbe essere diverso. `traA`/`traB` sono i waypoint che lo racchiudono, `frazione`
+ * la sua posizione nel TEMPO fra i loro due arrivi (per stimare a che ora ci passi).
+ */
+export interface PuntoIntermedio {
+  /** Indice del waypoint che segue (quello che precede è `waypointIndex` del punto). */
+  ibIndex: number;
+  /**
+   * Posizione 0..1 lungo il segmento A→B, misurata in **distanza** (linea d'aria). La si
+   * riusa come frazione di **tempo** per stimare l'orario di passaggio: dentro una tratta
+   * il passo di Munter è costante, quindi distanza e tempo sono proporzionali. È una
+   * stima, e come tale è dichiarata.
+   */
+  frazione: number;
+  /**
+   * Distanza cumulata (linea d'aria) dall'inizio: NON si mostra all'utente — i km a
+   * schermo sono di traccia, e mescolarli confonde (v0.13.3). Serve solo come chiave
+   * stabile e ordinata della riga.
+   */
+  kmDaInizio: number;
+  traA: string;
+  traB: string;
+}
+
 /** Un punto del percorso su cui si è chiesta la previsione. */
 export interface PuntoInterrogato {
+  /** Per un waypoint reale: il suo indice. Per un intermedio: l'indice del waypoint A. */
   waypointIndex: number;
   lat: number;
   lon: number;
@@ -28,6 +57,8 @@ export interface PuntoInterrogato {
    * alla stessa ora. Senza la quota si legge il meteo del fondovalle.
    */
   alt: number | null;
+  /** Presente solo sui punti inseriti automaticamente fra due waypoint distanti. */
+  intermedio?: PuntoIntermedio;
 }
 
 /** Una lettura oraria per un punto. */
@@ -103,28 +134,104 @@ const CODICI_TEMPORALE: Record<number, string> = {
   99: 'temporale con grandine forte',
 };
 
-export function samplePoints(waypoints: Waypoint[], max = MAX_PUNTI): PuntoInterrogato[] {
+/**
+ * Distanza (km) oltre la quale, fra due waypoint consecutivi, si inserisce un punto in
+ * mezzo per il meteo. Le maglie dei modelli sono 1-11 km: con waypoint a 15 km di
+ * distanza il tratto centrale non verrebbe interrogato, e un temporale che si forma lì
+ * sfuggirebbe. Scelto dall'utente: ~5 km.
+ */
+export const SPAZIO_MAX_KM = 5;
+
+/**
+ * I punti su cui chiedere la previsione: i waypoint dell'utente, **più** punti inseriti
+ * automaticamente dove due waypoint distano più di `spazioMaxKm`.
+ *
+ * Con solo partenza e arrivo lontani, interrogare i due estremi lascia scoperto tutto il
+ * mezzo: qui si spezza il tratto più lungo finché nessun buco supera la soglia, entro il
+ * tetto di `max` punti (una sola chiamata, multi-punto). Se i waypoint sono già tanti si
+ * fa il contrario — si downsampla — e non c'è spazio per gli intermedi.
+ *
+ * I punti inseriti portano `intermedio`: la tabella li mostra solo quando sono critici,
+ * ma alimentano sempre verdetto e fasce critiche (è lì che sta la sicurezza).
+ */
+export function samplePoints(
+  waypoints: Waypoint[], max = MAX_PUNTI, spazioMaxKm = SPAZIO_MAX_KM,
+): PuntoInterrogato[] {
   const validi = waypoints
     .map((wp, i) => ({ wp, i }))
     .filter(({ wp }) => wp.lat != null && wp.lon != null);
   if (validi.length === 0) return [];
 
-  const scelti = validi.length <= max
-    ? validi
-    // Primo e ultimo sempre, il resto a passo costante: un percorso lungo deve essere
-    // rappresentato agli estremi, dove cambia la quota.
-    : Array.from({ length: max }, (_, k) => validi[Math.round((k * (validi.length - 1)) / (max - 1))]);
+  const daWaypoint = (wp: Waypoint, i: number): PuntoInterrogato => ({
+    waypointIndex: i, lat: wp.lat as number, lon: wp.lon as number, name: wp.name, alt: wp.altitude,
+  });
 
-  const visti = new Set<number>();
-  return scelti
-    .filter(({ i }) => (visti.has(i) ? false : (visti.add(i), true)))
-    .map(({ wp, i }) => ({
-      waypointIndex: i,
-      lat: wp.lat as number,
-      lon: wp.lon as number,
-      name: wp.name,
-      alt: wp.altitude,
-    }));
+  // Troppi waypoint per il tetto: si downsampla (estremi sempre), nessuno spazio per gli
+  // intermedi.
+  if (validi.length >= max) {
+    const scelti = validi.length === max
+      ? validi
+      : Array.from({ length: max }, (_, k) => validi[Math.round((k * (validi.length - 1)) / (max - 1))]);
+    const visti = new Set<number>();
+    return scelti
+      .filter(({ i }) => (visti.has(i) ? false : (visti.add(i), true)))
+      .map(({ wp, i }) => daWaypoint(wp, i));
+  }
+
+  // Distanze cumulate lungo i waypoint validi, per l'etichetta «≈ km N».
+  const cum: number[] = [0];
+  for (let j = 1; j < validi.length; j++) {
+    const a = validi[j - 1].wp, b = validi[j].wp;
+    cum.push(cum[j - 1] + haversineDistance(a.lat as number, a.lon as number, b.lat as number, b.lon as number));
+  }
+
+  // Lista di lavoro: i waypoint reali, con l'indice nell'array `validi`.
+  interface Pos { lat: number; lon: number; vi: number | null; }
+  const pos: Pos[] = validi.map(({ wp }, vi) => ({ lat: wp.lat as number, lon: wp.lon as number, vi }));
+
+  // Spezza sempre il segmento più lungo, finché supera la soglia e c'è budget: così i
+  // punti si distribuiscono da soli sui tratti che ne hanno più bisogno.
+  while (pos.length < max) {
+    let idx = -1;
+    let dMax = 0;
+    for (let k = 0; k < pos.length - 1; k++) {
+      const d = haversineDistance(pos[k].lat, pos[k].lon, pos[k + 1].lat, pos[k + 1].lon);
+      if (d > dMax) { dMax = d; idx = k; }
+    }
+    if (idx < 0 || dMax <= spazioMaxKm) break;
+    const a = pos[idx], b = pos[idx + 1];
+    // Punto medio geografico: alla scala del tratto la linea d'aria basta per il meteo.
+    pos.splice(idx + 1, 0, { lat: (a.lat + b.lat) / 2, lon: (a.lon + b.lon) / 2, vi: null });
+  }
+
+  return pos.map((p, k) => {
+    if (p.vi != null) return daWaypoint(validi[p.vi].wp, validi[p.vi].i);
+    // Intermedio: i waypoint reali che lo racchiudono (i segmenti non scavalcano mai un
+    // waypoint, quindi A e B esistono sempre a sinistra e a destra).
+    let aK = k; while (aK >= 0 && pos[aK].vi == null) aK--;
+    let bK = k; while (bK < pos.length && pos[bK].vi == null) bK++;
+    const viA = pos[aK].vi as number;
+    const viB = pos[bK].vi as number;
+    const A = validi[viA].wp, B = validi[viB].wp;
+    const dAB = haversineDistance(A.lat as number, A.lon as number, B.lat as number, B.lon as number);
+    const dAP = haversineDistance(A.lat as number, A.lon as number, p.lat, p.lon);
+    const frazione = dAB > 0 ? Math.min(1, dAP / dAB) : 0;
+    const alt = A.altitude != null && B.altitude != null
+      ? Math.round(A.altitude + (B.altitude - A.altitude) * frazione)
+      : null;
+    return {
+      waypointIndex: validi[viA].i,
+      lat: p.lat, lon: p.lon,
+      name: `tra «${A.name}» e «${B.name}»`,
+      alt,
+      intermedio: {
+        ibIndex: validi[viB].i,
+        frazione,
+        kmDaInizio: cum[viA] + dAP,
+        traA: A.name, traB: B.name,
+      },
+    };
+  });
 }
 
 /**
@@ -287,6 +394,12 @@ export interface RigaPercorso {
    * delle due è. Con sosta breve o assente, il campo manca (una sola riga).
    */
   fase?: 'arrivo' | 'ripartenza';
+  /**
+   * Presente se questa riga è un punto **inserito automaticamente** fra due waypoint
+   * distanti (non un waypoint dell'utente). La tabella lo mostra solo quando è critico
+   * (`righeVisibili`), ma alimenta sempre verdetto e fasce.
+   */
+  intermedio?: PuntoIntermedio;
 }
 
 /**
@@ -296,6 +409,25 @@ export interface RigaPercorso {
  * 1 ora o più, mostra arrivo e partenza».
  */
 export const SOGLIA_PAUSA_METEO = 60;
+
+/**
+ * Da questo livello in su un punto **intermedio** (inserito fra due waypoint distanti)
+ * compare in tabella. Sotto, resta nascosto: alimenta comunque verdetto e fasce, ma non
+ * intasa la tabella quando il meteo lì è tranquillo. Scelta dell'utente: «solo se
+ * problematico» = da «Attenzione» in su.
+ */
+export const SOGLIA_MOSTRA_INTERMEDIO = 2;
+
+/**
+ * Le righe da MOSTRARE in tabella: i waypoint reali sempre, gli intermedi solo se la
+ * loro criticità raggiunge `SOGLIA_MOSTRA_INTERMEDIO`. Le righe nascoste restano nel
+ * rapporto (verdetto e fasce le hanno già viste): è solo un filtro di presentazione.
+ */
+export function righeVisibili(rows: RigaPercorso[]): RigaPercorso[] {
+  return rows.filter(
+    (r) => r.intermedio == null || (r.classification.level ?? 0) >= SOGLIA_MOSTRA_INTERMEDIO,
+  );
+}
 
 /**
  * Una fascia critica **contigua**, come istanti.
@@ -502,7 +634,24 @@ export function buildRouteWeather(input: {
 
   const arrivi = arrivalTimes(waypoints, legs, departure);
   const rows: RigaPercorso[] = punti.flatMap((p, k) => {
-    const arrivo = arrivi[p.waypointIndex] ?? null;
+    /*
+     * Orario del punto. Per un waypoint è il suo arrivo; per un intermedio si interpola
+     * fra l'arrivo ad A e quello a B, partendo da DOPO la sosta ad A (il punto è già in
+     * cammino). Se un estremo non ha orario, l'intermedio nemmeno.
+     */
+    let arrivo: Date | null;
+    if (p.intermedio != null) {
+      const tA = arrivi[p.waypointIndex] ?? null;
+      const tB = arrivi[p.intermedio.ibIndex] ?? null;
+      if (tA == null || tB == null) {
+        arrivo = null;
+      } else {
+        const partenzaDaA = tA.getTime() + pausaDi(waypoints[p.waypointIndex]) * 60000;
+        arrivo = new Date(partenzaDaA + p.intermedio.frazione * (tB.getTime() - partenzaDaA));
+      }
+    } else {
+      arrivo = arrivi[p.waypointIndex] ?? null;
+    }
     /*
      * Una serie per punto, nello stesso ordine. Se per quel punto la serie non c'e' —
      * risposta piu' corta di quanto chiesto — la riga dichiara "non disponibile".
@@ -515,7 +664,8 @@ export function buildRouteWeather(input: {
     const mia = serie[k];
     const quotaModello = input.elevations?.[k];
     const modelElevation = Number.isFinite(quotaModello) ? (quotaModello as number) : null;
-    const pausa = pausaDi(waypoints[p.waypointIndex]);
+    // Gli intermedi non sono waypoint: non hanno soste (la sosta di A è già nell'orario).
+    const pausa = p.intermedio != null ? 0 : pausaDi(waypoints[p.waypointIndex]);
 
     /** Costruisce una riga per un dato istante (arrivo o ripartenza). */
     const riga = (istante: Date | null, extra: Partial<RigaPercorso>): RigaPercorso => {
@@ -527,6 +677,7 @@ export function buildRouteWeather(input: {
         arrival: istante?.toISOString() ?? null,
         hour,
         classification: hour ? classifyHour(hour) : { level: null, reasons: [motivo] },
+        ...(p.intermedio != null ? { intermedio: p.intermedio } : {}),
         ...extra,
       };
     };
@@ -642,7 +793,12 @@ export function buildRouteWeather(input: {
       // Qui `arrival` non e' nullo: una riga critica ha una lettura, e una lettura
       // esiste solo se l'orario di arrivo si conosce.
       const quando = dove.arrival != null ? `verso le ${orario(dove.arrival)} ` : '';
-      message = `Attenzione: ${quando}sei a «${dove.name}» e la previsione è critica.${coda}`;
+      // Un punto in mezzo non ha un nome proprio: si dice «nel tratto tra A e B», non
+      // «sei a «tra «A» e «B»»» — le virgolette annidate del nome dell'intermedio.
+      const luogo = dove.intermedio != null
+        ? `nel tratto tra «${dove.intermedio.traA}» e «${dove.intermedio.traB}»`
+        : `a «${dove.name}»`;
+      message = `Attenzione: ${quando}sei ${luogo} e la previsione è critica.${coda}`;
     } else if (hitWindow != null) {
       /*
        * Nessun punto interrogato e' critico all'ora del suo arrivo, ma una fascia
@@ -656,7 +812,12 @@ export function buildRouteWeather(input: {
        * livelli, non la verita' della frase.
        */
       const dove = doveAllInizioFinestra();
-      const dettaglio = dove != null ? `, e a quell’ora hai passato «${dove.name}»` : '';
+      const nomeLuogo = dove == null
+        ? ''
+        : dove.intermedio != null
+          ? `il tratto tra «${dove.intermedio.traA}» e «${dove.intermedio.traB}»`
+          : `«${dove.name}»`;
+      const dettaglio = dove != null ? `, e a quell’ora hai passato ${nomeLuogo}` : '';
       // Inizio E fine: senza la fine non si puo' decidere se aspettare o rinunciare.
       message = `Attenzione: dalle ${orario(hitWindow.fromISO)} alle ${orarioFine(hitWindow.toISO)}`
         + ` la previsione diventa critica${dettaglio}, mentre sei ancora in cammino.${coda}`;
@@ -691,6 +852,10 @@ export const SCARTO_QUOTA_RILEVANTE = 150;
 export function scartoQuotaMassimo(rows: RigaPercorso[]): number | null {
   let peggiore: number | null = null;
   for (const r of rows) {
+    // Un punto in mezzo non ha una quota da correggere: l'avviso invita a «scrivere la
+    // quota nell'Editor», ma per un punto inserito dall'app non c'è un campo. La sua
+    // quota è già interpolata dai waypoint, che restano loro il posto dove agire.
+    if (r.intermedio != null) continue;
     const s = scartoQuota(r);
     if (s == null) continue;
     if (peggiore == null || Math.abs(s) > Math.abs(peggiore)) peggiore = s;

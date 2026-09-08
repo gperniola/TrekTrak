@@ -4,6 +4,26 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.28.0] — 2026-09-08 — Il meteo del percorso guarda anche in mezzo, e spiega i suoi livelli
+
+Rifiniture al «Meteo del percorso» nate da domande dell'utente: capire da cosa nasce il
+verdetto, e non lasciare scoperti i tratti lunghi fra un waypoint e l'altro.
+
+### Added
+- **Popup «Livelli di criticità».** Sotto il verdetto del meteo un link ⓘ apre la
+  spiegazione: la scala (Nessuna criticità → Rischio alto), gli eventi che alzano il
+  livello con le loro soglie (temporale, pioggia probabile, raffiche, instabilità con
+  innesco) e come i punti diventano un verdetto (il peggiore, più la fascia critica che
+  incrocia il cammino). È distinto dal «Come si legge» in fondo, che spiega la
+  meteorologia: questo dice come l'app **assegna** la gravità.
+- **Meteo anche «in mezzo» ai waypoint lontani.** Con partenza e arrivo distanti e nessun
+  punto intermedio, la previsione veniva chiesta solo ai due estremi: un temporale sul
+  tratto centrale poteva sfuggire, perché le maglie dei modelli sono di chilometri. Ora
+  dove due waypoint distano più di ~5 km l'app inserisce dei punti **in mezzo** (entro il
+  tetto del campionamento, in una sola chiamata). Alimentano **sempre** il verdetto e le
+  fasce critiche; in tabella compaiono **solo se lì il meteo è critico** (da «Attenzione»
+  in su), etichettati «in mezzo · tra «A» e «B»», con l'orario stimato di passaggio.
+
 ## [0.27.0] — 2026-09-08 — Le soste lungo il cammino, il passo nel meteo, l'allerta sul percorso
 
 Tre richieste dell'utente sul «compagno di gita»: pianificare le pause, provare ritmi
