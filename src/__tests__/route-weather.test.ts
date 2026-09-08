@@ -183,8 +183,11 @@ describe('classificazione di un\'ora', () => {
   test('ogni motivo è nominato, non solo il livello', () => {
     const c = classifyHour(ora({ cape: 1200, gusts: 55, weatherCode: 95, precipProb: 80 }));
     expect(c.reasons.length).toBeGreaterThanOrEqual(3);
+    // Motivi corti ma tutti presenti: temporale, pioggia, raffiche (il numero del CAPE
+    // sta nella sua colonna, non ripetuto nel motivo).
     expect(c.reasons.join(' ')).toMatch(/temporale/i);
-    expect(c.reasons.join(' ')).toMatch(/CAPE/);
+    expect(c.reasons.join(' ')).toMatch(/pioggia/i);
+    expect(c.reasons.join(' ')).toMatch(/raffiche/i);
   });
 
   // Dati mancanti non devono diventare "nessun rischio": chi legge crederebbe di

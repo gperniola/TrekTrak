@@ -128,8 +128,11 @@ const RAFFICA_ATTENZIONE = 30;
 const RAFFICA_FORTE = 50;
 const RAFFICA_PERICOLOSA = 70;
 /** Codici WMO di temporale: la lettura più forte, perché è una dichiarazione. */
+// Motivi tenuti CORTI: dicono cosa e il numero (che sta anche nella colonna). Il
+// perche' esteso — «in cresta», «temporale di calore», le soglie — vive in «Come si
+// legge», e ripeterlo sotto ogni punto rendeva la riga un paragrafo.
 const CODICI_TEMPORALE: Record<number, string> = {
-  95: 'temporale previsto',
+  95: 'temporale',
   96: 'temporale con grandine',
   99: 'temporale con grandine forte',
 };
@@ -315,8 +318,8 @@ export function classifyHour(o: OraDaClassificare): Classificazione {
 
   // 2. Pioggia dal modello: la probabilità è già il «ci sarà o no».
   if (pioggiaNota) {
-    if (o.precipProb >= 70) { reasons.push(`${Math.round(o.precipProb)}% di probabilità di pioggia`); alza(2); }
-    else if (o.precipProb >= 40) { reasons.push(`${Math.round(o.precipProb)}% di probabilità di pioggia`); alza(1); }
+    if (o.precipProb >= 70) { reasons.push(`pioggia ${Math.round(o.precipProb)}%`); alza(2); }
+    else if (o.precipProb >= 40) { reasons.push(`pioggia ${Math.round(o.precipProb)}%`); alza(1); }
   }
 
   // 3. CAPE: energia, non evento.
@@ -324,10 +327,10 @@ export function classifyHour(o: OraDaClassificare): Classificazione {
     const c = o.cape;
     const innescoPrevisto = pioggiaNota && o.precipProb >= CAPE_INNESCO_PIOGGIA;
     if (innescoPrevisto && c >= CAPE_ALTO) {
-      reasons.push(`CAPE ${Math.round(c)} J/kg con pioggia prevista: possibili temporali forti`);
+      reasons.push('possibili temporali forti');
       alza(3);
     } else if (!innescoPrevisto && c >= CAPE_ESTREMO) {
-      reasons.push(`forte instabilità (CAPE ${Math.round(c)} J/kg): in montagna un temporale di calore può formarsi anche con poca pioggia prevista`);
+      reasons.push('forte instabilità: possibile temporale di calore');
       alza(1);
     }
     // CAPE alto ma senza innesco previsto: non si nomina. Gridare «attenzione» col cielo
@@ -337,8 +340,8 @@ export function classifyHour(o: OraDaClassificare): Classificazione {
   // 4. Raffiche: il vento previsto è un fatto.
   if (raffNota) {
     const g = o.gusts;
-    if (g >= RAFFICA_PERICOLOSA) { reasons.push(`raffiche ${Math.round(g)} km/h: pericolose in cresta`); alza(3); }
-    else if (g >= RAFFICA_FORTE) { reasons.push(`raffiche ${Math.round(g)} km/h: forti`); alza(2); }
+    if (g >= RAFFICA_PERICOLOSA) { reasons.push(`raffiche ${Math.round(g)} km/h, pericolose`); alza(3); }
+    else if (g >= RAFFICA_FORTE) { reasons.push(`raffiche ${Math.round(g)} km/h`); alza(2); }
     else if (g >= RAFFICA_ATTENZIONE) { reasons.push(`raffiche ${Math.round(g)} km/h`); alza(1); }
   }
 

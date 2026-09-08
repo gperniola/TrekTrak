@@ -4,6 +4,20 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.29.1] — 2026-09-08 — Il pannello del meteo, più asciutto
+
+### Changed
+- **Meno testo discorsivo nel «Meteo del percorso».** Via il paragrafo «Previsione
+  campionata su X punti… i modelli hanno maglie di chilometri…», superfluo nella lettura
+  quotidiana. La scheda «Livelli di criticità» non è più un popup a parte: il suo
+  contenuto — la scala, le soglie degli eventi, come i punti diventano un verdetto, i
+  punti «in mezzo» — è ora dentro **«Come si legge»**, insieme alla meteorologia (CAPE,
+  ciclo diurno, regola 30/30, vento), a fisarmonica.
+- **Motivi punto-per-punto più corti.** Sotto ogni punto critico il motivo dice ora *cosa*
+  e il *numero* (che è anche nella sua colonna): «temporale», «pioggia 75%», «raffiche
+  85 km/h, pericolose», «possibili temporali forti». Il perché esteso — «in cresta»,
+  «temporale di calore», le soglie — sta in «Come si legge», non ripetuto sotto ogni riga.
+
 ## [0.29.0] — 2026-09-08 — Ciclo di correzioni dall'analisi di usabilità
 
 Una code review più una passata a schermo su telefono (profilo Montagna) hanno trovato
