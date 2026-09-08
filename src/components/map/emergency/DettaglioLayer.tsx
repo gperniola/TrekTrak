@@ -1,7 +1,7 @@
 'use client';
 
 import { useEmergencyStore } from '@/stores/emergencyStore';
-import { dayOptions } from '@/lib/dpc';
+import { dayOptions, urlBollettinoDpc } from '@/lib/dpc';
 import { oraItaliana } from '@/lib/formato';
 import { descriviFinestra, type FinestraRilevazioni } from '@/lib/eta-focolai';
 import type { EmergencyLayerDef } from '@/lib/emergency-layers';
@@ -147,6 +147,23 @@ function GiorniDpc() {
         ))}
       </div>
       <div className="text-[10px] text-gray-400">Bollettino del {dpc.issuedLabel}</div>
+      {/*
+        Il bollettino ufficiale per intero: la mappa PNG che il DPC pubblica, per il
+        giorno scelto qui sopra (il primo giorno del bollettino è «oggi», il secondo
+        «domani»). È la stessa fonte da cui l'app legge le zone — chi vuole leggerlo tutto
+        lo scarica da lì.
+      */}
+      <a
+        href={urlBollettinoDpc(
+          dpc.bulletinId,
+          dpc.days.findIndex((d) => d.date === dpcSelectedDate) >= 1 ? 'domani' : 'oggi',
+        )}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-[10px] text-amber-300 hover:text-amber-200 underline inline-flex items-center gap-1 max-lg:min-h-[36px]"
+      >
+        Scarica il bollettino ufficiale (mappa) <span aria-hidden>↗</span>
+      </a>
     </div>
   );
 }

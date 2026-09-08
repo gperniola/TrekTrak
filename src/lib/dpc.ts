@@ -116,6 +116,21 @@ export function bulletinDates(bulletinId: string): { today: string; tomorrow: st
   };
 }
 
+/** Le mappe ufficiali del bollettino (PNG) pubblicate dal DPC, la stessa fonte delle zone. */
+const DPC_PREVIEW_BASE =
+  'https://raw.githubusercontent.com/pcm-dpc/DPC-Bollettini-Criticita-Idrogeologica-Idraulica/master/files/preview';
+
+/**
+ * URL della **mappa ufficiale del bollettino** (PNG) per uno dei due giorni coperti.
+ *
+ * `oggi` è il primo giorno del bollettino, `domani` il secondo — gli stessi nomi che il
+ * DPC usa nei file. È il «bollettino esposto» che pubblica il Dipartimento, non un nostro
+ * derivato: chi vuole leggerlo per intero lo scarica da qui.
+ */
+export function urlBollettinoDpc(bulletinId: string, giorno: 'oggi' | 'domani'): string {
+  return `${DPC_PREVIEW_BASE}/${bulletinId}_${giorno}.png`;
+}
+
 export interface DayOption { date: string; label: string; disabled: boolean; }
 
 /**
