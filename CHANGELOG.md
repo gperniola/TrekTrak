@@ -4,6 +4,14 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.30.0] — 2026-09-08 — Il profilo altimetrico, un cassetto su telefono
+
+### Added
+- **Su telefono il profilo altimetrico in basso è un cassetto apri/chiudi.** Aperto di
+  default; una maniglia lo **abbassa** — così la mappa guadagna tutta l'altezza — e lo
+  **rialza**. Da chiuso resta solo la maniglia, con l'etichetta «Profilo altimetrico», per
+  sapere cosa riaprire. Su desktop nulla cambia: il profilo è sempre visibile.
+
 ## [0.29.2] — 2026-09-08 — Il bollettino DPC si scarica dal suo cassetto
 
 ### Added
