@@ -157,12 +157,17 @@ describe('la scelta del tema', () => {
     expect(temaEffettivo('sistema', false)).toBe('chiaro');
   });
 
-  /** Un valore salvato che non riconosciamo e' «non lo so», non un errore. */
-  test('un tema salvato illeggibile vale «come il sistema»', () => {
-    expect(temaValido('arcobaleno')).toBe('sistema');
-    expect(temaValido(null)).toBe('sistema');
-    expect(temaValido(undefined)).toBe('sistema');
+  /**
+   * Un valore assente o che non riconosciamo vale il tema di partenza — **scuro**, non
+   * «come il sistema»: chi vuole seguire il sistema lo dice, e quella scelta si conserva.
+   */
+  test('un tema assente o illeggibile vale il default scuro', () => {
+    expect(temaValido('arcobaleno')).toBe('scuro');
+    expect(temaValido(null)).toBe('scuro');
+    expect(temaValido(undefined)).toBe('scuro');
     expect(temaValido('chiaro')).toBe('chiaro');
+    // «sistema» resta una scelta esplicita valida, non viene schiacciata sul default.
+    expect(temaValido('sistema')).toBe('sistema');
   });
 });
 
@@ -209,7 +214,8 @@ describe('quello che deve sopravvivere a un riavvio', () => {
   test('un tema inventato non si ritrova, e non fa danni', () => {
     localStorage.setItem('trektrak_settings', JSON.stringify({ ...vuote(), tema: 'arcobaleno' }));
     expect(loadSettings().tema).toBeUndefined();
-    expect(temaValido(loadSettings().tema)).toBe('sistema');
+    // Assente = tema di partenza scuro (non «come il sistema»).
+    expect(temaValido(loadSettings().tema)).toBe('scuro');
   });
 
   test('il passo personale si ritrova', () => {

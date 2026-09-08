@@ -4,6 +4,20 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.30.2] — 2026-09-08 — Minuti nella partenza meteo, tema scuro di default
+
+### Added
+- **I minuti nella scelta dell'ora di partenza («Meteo del percorso»).** Prima si poteva
+  scegliere solo l'ora in punto; ora accanto all'ora c'è un menu dei minuti a passi di 5
+  (7:30, 7:45…) — due tendine, non un campo di testo libero. I minuti si conservano
+  cambiando ora o giorno. Sotto, la logica è la stessa che tiene tutto il pannello in ora
+  italiana: `istanteItaliano` accetta i minuti, `minutiItalianiDi` li rilegge.
+
+### Changed
+- **Il tema di partenza è ora scuro, non «come il sistema».** È l'aspetto con cui l'app è
+  nata e quello che serve in montagna la sera. Chi vuole seguire il tema del telefono lo
+  sceglie esplicitamente («Come il sistema» in Impostazioni), e quella scelta si conserva.
+
 ## [0.30.1] — 2026-09-08 — La scheda non si chiude più, e la PWA si aggiorna
 
 ### Fixed

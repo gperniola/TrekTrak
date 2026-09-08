@@ -8,10 +8,10 @@ import { useTema } from '@/lib/useTema';
 /**
  * Sceglie l'aspetto: chiaro, scuro, o come il sistema (task-35).
  *
- * «Come il sistema» è il valore di partenza, e non è un terzo aspetto: è una delega. Chi
- * ha messo il telefono in scuro alle sette di sera non vuole ripetere la scelta qui, e
- * l'app lo segue **mentre cambia** — la preferenza del sistema si ascolta, non si legge
- * una volta all'avvio.
+ * Il valore di partenza è **scuro** (l'aspetto con cui l'app è nata). «Come il sistema»
+ * non è un terzo aspetto ma una delega: chi lo sceglie fa seguire all'app la preferenza
+ * del telefono, e l'app la segue **mentre cambia** — la si ascolta, non si legge una
+ * volta all'avvio.
  */
 export function SceltaTema() {
   const { tema, effettivo } = useTema();
