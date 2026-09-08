@@ -4,7 +4,19 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
-## [0.30.2] — 2026-09-08 — Minuti nella partenza meteo, tema scuro di default
+## [0.30.2] — 2026-09-08 — Il back non chiude più l'app, minuti nel meteo, tema scuro
+
+### Fixed
+- **Il tasto Indietro non chiude più l'app finendo la guida di primo avvio.** Il fix della
+  v0.30.1 non bastava: chiudere un livello con un gesto (il ✕, «Salta» sulla guida, la
+  scelta di un percorso) rimuoveva la sua entry di cronologia con `history.go(-1)`, e in
+  una scheda in incognito — dove non c'è nessuna pagina prima dell'app — quel salto poteva
+  andare **oltre l'app e chiudere la scheda** (succedeva con «Salta» e anche arrivando in
+  fondo alla guida con «Avanti»). Fix strutturale: la chiusura a gesto **non tocca più la
+  cronologia**; l'entry resta e la consuma il tasto Indietro, e alla riapertura di un
+  livello viene riusata — così la cronologia non cresce e nessun salto può scavalcare
+  l'app. Verificato su browser reale a viewport mobile: dopo «Salta», il primo Indietro
+  non esce (resta sulla mappa), il secondo propone «Uscire da TrekTrak?».
 
 ### Added
 - **I minuti nella scelta dell'ora di partenza («Meteo del percorso»).** Prima si poteva
