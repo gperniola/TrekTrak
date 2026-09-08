@@ -105,15 +105,17 @@ describe('Meteo del percorso', () => {
     expect(verdetto).toMatch(/Punto \d/);
   });
 
-  // Il numero dei punti interrogati va dichiarato: altrimenti si crede che il dato sia
-  // stato calcolato per ogni waypoint, e non e' vero. E ora che le soste spostano gli
-  // orari, la nota lo dice: prima diceva il contrario, ed era vero solo prima.
-  test('dichiara su quanti punti è campionata e che le soste sono contate', async () => {
+  // Caricata la previsione, il pannello mostra la tabella per punto e la parte
+  // esplicativa a fisarmonica («Come si legge»). La spiegazione dei livelli non è più un
+  // popup a parte: è dentro «Come si legge».
+  test('caricata la previsione, mostra la tabella e «Come si legge»', async () => {
     const serie = serieOggiEDomani();
     fetchRouteForecast.mockResolvedValue({ serie: [serie, serie, serie], elevations: [] });
     render(<RouteWeatherPanel />);
-    await waitFor(() => expect(screen.getByText(/campionata su 3 punti/i)).toBeInTheDocument());
-    expect(screen.getByText(/tengono\s+conto delle soste/i)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText('Cielo')).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: /come si legge/i })).toBeInTheDocument();
+    // il paragrafo discorsivo del campionamento è stato tolto dal pannello
+    expect(screen.queryByText(/campionata su/i)).not.toBeInTheDocument();
   });
 
   test('cambiare ora di partenza ricalcola', async () => {

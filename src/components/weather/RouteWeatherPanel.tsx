@@ -25,7 +25,6 @@ import { useModaleTastiera } from '@/lib/useModaleTastiera';
 import { ScegliPartenza } from '@/components/weather/ScegliPartenza';
 import { TabellaPuntiMeteo } from '@/components/weather/TabellaPuntiMeteo';
 import { ComeSiLegge } from '@/components/weather/ComeSiLegge';
-import { SpiegazioneCriticita } from '@/components/weather/SpiegazioneCriticita';
 import { AllertaDpcPercorso } from '@/components/weather/AllertaDpcPercorso';
 
 /** Colori per livello: gli stessi che l'app usa per i badge di validazione. */
@@ -270,9 +269,6 @@ export function RouteWeatherPanel() {
               <p className="text-sm mt-0.5 leading-snug">{report.verdict.message}</p>
             </div>
 
-            {/* Il metro dietro il colore del verdetto: la scala e le soglie, a un tocco. */}
-            <SpiegazioneCriticita />
-
             {report.windows.length > 0 && (
               <p className="text-[11px] text-gray-400">
                 Ore instabili nella giornata:{' '}
@@ -329,14 +325,6 @@ export function RouteWeatherPanel() {
                       <strong className="font-medium">Pianificazione</strong> e li calcola l&rsquo;app.</>}
               </p>
             )}
-            <p className="text-[11px] text-gray-400">
-              Previsione campionata su {report.sampled} {report.sampled === 1 ? 'punto' : 'punti'} del
-              percorso: i modelli hanno maglie di chilometri, quindi punti vicini danno lo stesso dato.
-              Dove due waypoint sono lontani si aggiungono punti <strong className="font-medium text-gray-400">in
-              mezzo</strong>, mostrati in tabella solo se lì il meteo è critico. Gli orari vengono dalla
-              stima di Munter, col tuo passo, e <strong className="font-medium text-gray-400">tengono
-              conto delle soste</strong> che imposti sui punti.
-            </p>
           </>
         )}
 
