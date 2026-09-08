@@ -84,6 +84,40 @@ describe('la guardia base', () => {
     expect(spingi).toHaveBeenCalledTimes(1);
   });
 
+  /**
+   * **Una entry di livello non porta `ttGuard`.** Lo spread `{...history.state}` (che
+   * serve a preservare l'albero del router di Next) trascinava avanti anche `ttGuard`: il
+   * livello ereditava la marca della guardia. Dopo un reload che atterra su quel livello,
+   * `spingiGuardia` la credeva già presente e non la spingeva — e senza guardia base il
+   * primo Indietro usciva dall'app (in incognito: chiudeva la scheda, completando la
+   * guida di primo avvio dopo un auto-aggiornamento).
+   */
+  test('un livello aperto non eredita ttGuard', () => {
+    const { getByTestId } = render(<Pagina />);
+    act(() => { getByTestId('apri').click(); });
+    const stato = window.history.state as { ttGuard?: boolean; ttDepth?: number };
+    expect(stato.ttDepth).toBe(1);
+    expect(stato.ttGuard).toBeUndefined();
+  });
+
+  /**
+   * Il difetto vero, riprodotto: si atterra (come dopo un reload) su una entry di livello,
+   * e la guardia base **deve** essere ri-spinta. Col vecchio codice il livello portava
+   * `ttGuard` e la guardia veniva saltata.
+   */
+  test('atterrando su una entry di livello, la guardia si ri-spinge', () => {
+    const primo = render(<Pagina />);
+    act(() => { primo.getByTestId('apri').click(); });
+    const statoLivello = window.history.state; // il livello (ttDepth, senza ttGuard)
+    primo.unmount();
+    // Reload simulato: la entry corrente è quella del livello.
+    window.history.replaceState(statoLivello, '', '/');
+    spingi.mockClear();
+    render(<Pagina />);
+    expect(spingi).toHaveBeenCalledTimes(1);
+    expect((window.history.state as { ttGuard?: boolean }).ttGuard).toBe(true);
+  });
+
   /** Su desktop il tasto Indietro è quello del browser: non si tocca niente. */
   test('su schermo grande non spinge niente', () => {
     schermoPiccolo(false);

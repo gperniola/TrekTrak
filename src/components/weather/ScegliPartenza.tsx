@@ -45,17 +45,21 @@ export function ScegliPartenza(
           </option>
         ))}
       </select>
-      <span className="text-gray-400">alle</span>
-      <select
-        value={oraPartenza}
-        onChange={(e) => cambia(istanteItaliano(giornoPartenza, Number(e.target.value)))}
-        aria-label="Ora di partenza"
-        className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white max-lg:min-h-[44px]"
-      >
-        {Array.from({ length: 24 }, (_, h) => (
-          <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
-        ))}
-      </select>
+      {/* «alle» e l'ora restano insieme: su schermo stretto andavano a capo separati,
+          con «alle» solo in fondo a una riga e l'ora sotto. */}
+      <span className="flex items-center gap-2">
+        <span className="text-gray-400">alle</span>
+        <select
+          value={oraPartenza}
+          onChange={(e) => cambia(istanteItaliano(giornoPartenza, Number(e.target.value)))}
+          aria-label="Ora di partenza"
+          className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white max-lg:min-h-[44px]"
+        >
+          {Array.from({ length: 24 }, (_, h) => (
+            <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
+          ))}
+        </select>
+      </span>
     </div>
   );
 }

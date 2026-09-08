@@ -43,7 +43,7 @@ export function MapToolsFab() {
   };
 
   return (
-    <div className="lg:hidden absolute left-3 bottom-3 z-[1000] flex flex-col items-start gap-2">
+    <div className="lg:hidden absolute left-3 bottom-7 z-[1000] flex flex-col items-start gap-2">
       {open && strumenti.map((t) => (
         <button
           key={t.key}
