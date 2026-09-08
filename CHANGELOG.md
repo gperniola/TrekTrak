@@ -4,6 +4,15 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.29.2] — 2026-09-08 — Il bollettino DPC si scarica dal suo cassetto
+
+### Added
+- **Link al bollettino ufficiale nel dettaglio del layer «Allerta protezione civile
+  (DPC)».** Aprendo la legenda del layer, sotto la data di emissione c'è «Scarica il
+  bollettino ufficiale (mappa)»: apre la mappa PNG che il Dipartimento pubblica per il
+  giorno selezionato (oggi/domani) — la stessa fonte da cui l'app legge le zone, per chi
+  vuole leggere il bollettino per intero.
+
 ## [0.29.1] — 2026-09-08 — Il pannello del meteo, più asciutto
 
 ### Changed
