@@ -25,6 +25,7 @@ import { useModaleTastiera } from '@/lib/useModaleTastiera';
 import { ScegliPartenza } from '@/components/weather/ScegliPartenza';
 import { TabellaPuntiMeteo } from '@/components/weather/TabellaPuntiMeteo';
 import { ComeSiLegge } from '@/components/weather/ComeSiLegge';
+import { SpiegazioneCriticita } from '@/components/weather/SpiegazioneCriticita';
 import { AllertaDpcPercorso } from '@/components/weather/AllertaDpcPercorso';
 
 /** Colori per livello: gli stessi che l'app usa per i badge di validazione. */
@@ -265,6 +266,9 @@ export function RouteWeatherPanel() {
               </div>
               <p className="text-sm mt-0.5 leading-snug">{report.verdict.message}</p>
             </div>
+
+            {/* Il metro dietro il colore del verdetto: la scala e le soglie, a un tocco. */}
+            <SpiegazioneCriticita />
 
             {report.windows.length > 0 && (
               <p className="text-[11px] text-gray-400">
