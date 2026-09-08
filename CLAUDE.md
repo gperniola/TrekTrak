@@ -53,7 +53,14 @@ overlay aperti, profilo, `guidaAperta`, `settingsOpen`) · `emergencyStore` (i l
   la previsione Open-Meteo (`route-weather.ts`). **L'avviso segue la previsione vera**
   (codice meteo + probabilità di pioggia); il **CAPE è contesto/aggravante, non un
   trigger** (v0.26.1). Sole/crepuscolo in `sun.ts` (NOAA, nessuna rete), cielo in
-  `cielo.ts`.
+  `cielo.ts`. Il **passo** si cambia anche dal pannello (`applicaPasso`, stesso globale
+  delle Impostazioni); la **rete è separata dalla ricostruzione** — il report è un
+  `useMemo`, cambiare passo/soste non riscarica. Le **soste ai waypoint** (`pausaMin` su
+  `Waypoint`, tastino ⏸️ sulla mappa e controllo nella lista) spostano gli arrivi (`arrivalTimes`),
+  e una sosta ≥60 min (`SOGLIA_PAUSA_METEO`) sdoppia il punto in `arrivo`/`ripartenza`
+  (campo `fase`); il **ritorno automatico non copia le soste**. In cima al pannello,
+  l'**allerta DPC del percorso** (`AllertaDpcPercorso` + `checkRoute`) se un tratto è in
+  una zona in allerta nel giorno di partenza (v0.27.0).
 - **Layer di emergenza** (⚠️): 10 layer opzionali (focolai FIRMS, aree bruciate + FWI
   EFFIS, allerta DPC, valanghe EAWS, neve GIBS, terremoti INGV, rifugi Overpass, radar
   RainViewer, instabilità Meteosat). Definiti in `emergency-layers.ts` (registry
