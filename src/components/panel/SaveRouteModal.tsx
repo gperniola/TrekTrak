@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useModaleTastiera } from '@/lib/useModaleTastiera';
 
 export function SaveRouteModal({
   initialName, onConfirm, onClose,
@@ -11,19 +12,18 @@ export function SaveRouteModal({
 }) {
   const [name, setName] = useState(initialName);
   const [notes, setNotes] = useState('');
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  // Escape + fuoco iniziale + trappola del Tab (prima solo Escape: col Tab si usciva
+  // dal modale verso i comandi dietro).
+  const dialogRef = useModaleTastiera<HTMLDivElement>(true, onClose);
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1200]" onClick={onClose}>
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="save-route-title"
+        tabIndex={-1}
         /* Vedi `dialoghi-raggiungibili.test.ts`: senza tetto d'altezza, un dialogo
            centrato che cresce esce anche dal bordo superiore e diventa in parte
            impossibile da raggiungere. */

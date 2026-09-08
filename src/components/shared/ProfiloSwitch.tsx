@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useUIStore } from '@/stores/uiStore';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { ETICHETTE_PROFILO, type Profilo } from '@/lib/profilo';
@@ -32,6 +32,15 @@ export function ProfiloSwitch() {
   const profilo = useUIStore((s) => s.profilo);
   const setProfilo = useUIStore((s) => s.setProfilo);
   const [spiegazione, setSpiegazione] = useState<string | null>(null);
+
+  // La spiegazione è un avviso del momento del cambio, non un'etichetta permanente:
+  // senza questo restava a schermo per sempre dopo il primo toggle. Otto secondi come gli
+  // altri status transitori dell'app.
+  useEffect(() => {
+    if (spiegazione == null) return;
+    const t = setTimeout(() => setSpiegazione(null), 8000);
+    return () => clearTimeout(t);
+  }, [spiegazione]);
 
   const cambia = () => {
     const nuovo: Profilo = profilo === 'imparo' ? 'montagna' : 'imparo';

@@ -1,6 +1,6 @@
 import { oraItaliana } from './formato';
 import { haversineDistance } from './calculations';
-import type { Waypoint, Leg } from './types';
+import type { Waypoint, Leg, AppMode } from './types';
 
 /**
  * Incrocia l'itinerario con l'ora: **cosa incontro, e quando**.
@@ -623,6 +623,12 @@ export function buildRouteWeather(input: {
   serie: SerieOraria[];
   /** Quote a cui il modello ha risposto, una per punto, nello stesso ordine. */
   elevations?: number[];
+  /**
+   * Serve solo a scrivere il consiglio giusto quando i tempi mancano: in «Impara» si
+   * inseriscono a mano o si passa a Pianificazione; in «Pianificazione» li calcola l'app
+   * (serve la rete), e dire «passa a Pianificazione» a chi ci è già è un consiglio falso.
+   */
+  appMode?: AppMode;
 }): RouteWeatherReport {
   const { waypoints, legs, departure, punti, serie } = input;
   if (punti.length === 0 || serie.length === 0) {
@@ -765,9 +771,15 @@ export function buildRouteWeather(input: {
      * Le fasce critiche restano informazione vera e si dicono: quello che manca e'
      * l'incrocio, non la previsione.
      */
+    /*
+     * Il consiglio dipende dalla modalità: in Pianificazione i tempi li calcola l'app
+     * (serve la rete), quindi «passa a Pianificazione» a chi ci è già sarebbe falso.
+     */
+    const comeAvereITempi = input.appMode === 'track'
+      ? 'i tempi delle tratte non sono ancora stati calcolati (serve la connessione)'
+      : 'servono i tempi: inserisci distanza e dislivelli, oppure passa a Pianificazione';
     message = windows.length > 0
-      ? `Ore instabili nella giornata: ${windows.map(fascia).join(', ')}. Per sapere se ti prendono `
-        + 'servono i tempi di percorrenza: inserisci distanza e dislivelli, oppure passa a Pianificazione.'
+      ? `Ore instabili nella giornata: ${windows.map(fascia).join(', ')}. Per sapere se ti prendono, ${comeAvereITempi}.`
       : 'Nessuna criticità nella giornata. Gli orari di arrivo non sono stimabili finché mancano '
         + 'distanza e dislivelli delle tratte.';
     return {

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { RouteCompletion } from '@/lib/types';
 import { DifficultyRating } from './DifficultyRating';
 import { WEATHER_OPTIONS } from '@/lib/weather';
+import { giornoItalianoDi } from '@/lib/formato';
 
 export function CompletionForm({
   initial, onSubmit, onCancel, idPrefix = 'cf',
@@ -14,7 +15,9 @@ export function CompletionForm({
   /** Unique prefix so multiple forms on screen don't collide on DOM ids. */
   idPrefix?: string;
 }) {
-  const [date, setDate] = useState(initial?.date ?? new Date().toISOString().slice(0, 10));
+  // Il giorno ITALIANO, non `toISOString().slice(0,10)` (che è UTC): fra mezzanotte e le
+  // 2 del mattino il default cadeva su ieri, in silenzio. Stessa classe della v0.11.8.
+  const [date, setDate] = useState(initial?.date ?? giornoItalianoDi(new Date()));
   const [hours, setHours] = useState(initial?.durationMinutes != null ? String(Math.floor(initial.durationMinutes / 60)) : '');
   const [minutes, setMinutes] = useState(initial?.durationMinutes != null ? String(initial.durationMinutes % 60) : '');
   const [difficulty, setDifficulty] = useState<RouteCompletion['difficulty']>(initial?.difficulty);

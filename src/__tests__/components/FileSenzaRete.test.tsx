@@ -145,7 +145,7 @@ describe('LegCard: in Pianificazione i valori li calcola l app', () => {
   test('tempo e pendenza compaiono coi formati italiani', () => {
     render(<LegCard leg={tratta} />);
     expect(screen.getByText(/Pendenza: 14,1%/)).toBeInTheDocument();
-    expect(screen.getByText(/Tempo: 1h 30m/)).toBeInTheDocument();
+    expect(screen.getByText(/Tempo: 1 h 30 min/)).toBeInTheDocument();
   });
 
   /**

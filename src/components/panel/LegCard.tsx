@@ -4,8 +4,7 @@ import type { Leg } from '@/lib/types';
 import { NumberInput } from '@/components/shared/NumberInput';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { azimuthToCardinal } from '@/lib/calculations';
-import { formatTime } from '@/lib/format';
-import { percento } from '@/lib/formato';
+import { percento, durataMin } from '@/lib/formato';
 
 export function LegCard({ leg }: { leg: Leg }) {
   const updateLeg = useItineraryStore((s) => s.updateLeg);
@@ -72,7 +71,7 @@ export function LegCard({ leg }: { leg: Leg }) {
       {/* Derived data */}
       <div className="flex flex-wrap gap-3 mt-2 text-gray-400">
         {leg.estimatedTime != null && (
-          <span>Tempo: {formatTime(leg.estimatedTime)}</span>
+          <span>Tempo: {leg.estimatedTime != null ? durataMin(leg.estimatedTime) : 'n/d'}</span>
         )}
         {leg.slope != null && (
           <span>Pendenza: {percento(leg.slope)}</span>

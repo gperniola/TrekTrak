@@ -4,6 +4,37 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.29.0] — 2026-09-08 — Ciclo di correzioni dall'analisi di usabilità
+
+Una code review più una passata a schermo su telefono (profilo Montagna) hanno trovato
+tredici rilievi: nessuno bloccante, tutti corretti qui, con test.
+
+### Fixed
+- **L'ora dei focolai era quella del dispositivo, non italiana.** Il popup «Rilevata: …»
+  del layer focolai usava `toLocaleString` senza fuso: su un telefono fuori dall'Italia
+  l'orario del passaggio satellitare era sfasato (il gemello dei terremoti la scriveva già
+  giusta). Corretto, e il guardiano del fuso è stato **esteso a `toLocaleString`**, che
+  prima non controllava — era il buco da cui il difetto era passato.
+- **Il meteo consigliava «passa a Pianificazione» a chi ci era già.** In Pianificazione,
+  se i dati delle tratte non erano ancora stati calcolati (rete assente), il pannello
+  diceva di passare alla modalità corrente. Ora il messaggio è consapevole della modalità.
+- **Il popup «La mia posizione» copriva cestino, ritorno e sosta.** Era nella stessa cella
+  di quei pulsanti; spostato di lato, ora non li nasconde.
+- **Formati di durata incoerenti.** Sulla stessa barra si leggevano «2h 30m» e «2 h 30 min»;
+  i tempi passano tutti dalla casa dei formati (`durataMin`), e la «m» ambigua con i metri
+  sparisce.
+- **I totali dell'Editor sommavano gli sconosciuti come 0.** In «Impara», prima di
+  compilare le tratte, distanza e tempo mostravano «0» come se fosse un totale vero: ora
+  «—» finché non c'è un dato.
+- **Bersagli di tocco sotto i 44px** nella lista waypoint (modifica/rimuovi/sosta) e sul
+  banner di aggiornamento: portati alla soglia su telefono.
+- **Modali di impostazioni senza trappola del fuoco** (tolleranze, impostazioni mappa,
+  salva in libreria): col Tab il fuoco usciva sui comandi dietro. Ora restano nel modale.
+- **La data di default del diario era in UTC** — fra mezzanotte e le 2 cadeva su ieri.
+- Rifiniture: badge sosta «1h+» invece di «1h» per 90 minuti, emoji dei completamenti
+  etichettata per i lettori di schermo, spiegazione del cambio profilo che si richiude da
+  sola.
+
 ## [0.28.0] — 2026-09-08 — Il meteo del percorso guarda anche in mezzo, e spiega i suoi livelli
 
 Rifiniture al «Meteo del percorso» nate da domande dell'utente: capire da cosa nasce il

@@ -6,11 +6,10 @@ import { useItineraryStore } from '@/stores/itineraryStore';
 import { useUIStore } from '@/stores/uiStore';
 import { useAuthStore } from '@/stores/authStore';
 import { exportItineraryJSON } from '@/lib/export-json';
-import { formatTime } from '@/lib/format';
 import { confirm as appConfirm, toast } from '@/stores/notificationStore';
 import { CompletionList } from './CompletionList';
 import { buildMeteoUrl } from '@/lib/meteo';
-import { km, metri, percento } from '@/lib/formato';
+import { km, metri, percento, durataMin } from '@/lib/formato';
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
@@ -97,7 +96,7 @@ export function RouteDetailCard() {
       {m && (
         <div className="grid grid-cols-2 gap-1.5">
           <Stat label="Distanza" value={km(m.distanceKm)} />
-          <Stat label="Stima" value={formatTime(m.estimatedTimeMin)} />
+          <Stat label="Stima" value={durataMin(m.estimatedTimeMin)} />
           <Stat label="Dislivello +" value={`+${metri(m.elevationGain)}`} />
           <Stat label="Dislivello -" value={`-${metri(m.elevationLoss)}`} />
           <Stat label="Alt. min" value={m.minAltitude != null ? metri(m.minAltitude) : '—'} />

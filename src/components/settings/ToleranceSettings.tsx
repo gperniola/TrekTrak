@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useModaleTastiera } from '@/lib/useModaleTastiera';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { saveSettings } from '@/lib/storage';
 import { useUIStore } from '@/stores/uiStore';
@@ -21,13 +22,9 @@ export function ToleranceSettings({ onClose }: { onClose: () => void }) {
   const [testi, setTesti] = useState<Partial<Record<keyof TolSettings, string>>>({});
   const [paceFactor, setPaceFactor] = useState<number>(settings.pace?.factor ?? DEFAULT_PACE.factor);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+  // Escape, fuoco iniziale e trappola del Tab in un colpo: senza, col Tab si finiva sui
+  // comandi della mappa dietro il modale. L'hook è lo stesso di RouteWeatherPanel/WhatsNew.
+  const dialogRef = useModaleTastiera<HTMLDivElement>(true, onClose);
 
   const handleSave = () => {
     const newSettings = { ...settings, tolerances: tol, pace: { factor: paceFactor } };
@@ -46,7 +43,15 @@ export function ToleranceSettings({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1200]" onClick={onClose}>
-      <div className="bg-gray-800 rounded-lg p-6 w-80 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Tolleranze di validazione e impostazioni"
+        tabIndex={-1}
+        className="bg-gray-800 rounded-lg p-6 w-80 max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <h3 className="text-lg font-bold text-green-400 mb-4">Tolleranze di validazione</h3>
         <p className="text-xs text-gray-400 mb-4">
           Soglia stretta = valore impostato. Soglia larga = 2x il valore.

@@ -25,7 +25,7 @@ export function WaypointCard({ waypoint, dragHandleProps }: { waypoint: Waypoint
           </span>
           <button
             onClick={() => setEditing((p) => !p)}
-            className="text-gray-400 hover:text-gray-300 text-sm shrink-0 min-w-[28px] min-h-[28px] flex items-center justify-center"
+            className="text-gray-400 hover:text-gray-300 text-sm shrink-0 min-w-[28px] min-h-[28px] max-lg:min-w-[44px] max-lg:min-h-[44px] flex items-center justify-center"
             aria-label="Modifica nome"
             title="Modifica nome"
           >
@@ -33,7 +33,7 @@ export function WaypointCard({ waypoint, dragHandleProps }: { waypoint: Waypoint
           </button>
         </div>
         <div className="flex gap-1 items-center shrink-0">
-          <span {...dragHandleProps} className="cursor-grab text-gray-400 hover:text-gray-200 text-xs px-1" title="Trascina per riordinare" aria-label="Trascina per riordinare">
+          <span {...dragHandleProps} className="cursor-grab text-gray-400 hover:text-gray-200 text-xs px-1 max-lg:min-w-[44px] max-lg:min-h-[44px] flex items-center justify-center" title="Trascina per riordinare" aria-label="Trascina per riordinare">
             ☰
           </span>
           <button
@@ -49,7 +49,7 @@ export function WaypointCard({ waypoint, dragHandleProps }: { waypoint: Waypoint
                 toast.success('Waypoint rimosso');
               }
             }}
-            className="text-gray-400 hover:text-red-400 text-xs px-1"
+            className="text-gray-400 hover:text-red-400 text-xs px-1 max-lg:min-w-[44px] max-lg:min-h-[44px] flex items-center justify-center"
             title="Rimuovi"
             aria-label="Rimuovi waypoint"
           >

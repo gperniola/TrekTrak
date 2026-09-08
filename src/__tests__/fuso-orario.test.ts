@@ -74,7 +74,10 @@ export function senzaFuso(testo: string): number[] {
       return;
     }
     if (nudo.startsWith('//') || nudo.startsWith('*')) return;
-    if (!/toLocale(Date|Time)String/.test(riga)) return;
+    // Anche `toLocaleString` (senza `Date`/`Time`): la sua assenza dal guardiano ha
+    // lasciato passare il fuso del dispositivo nel popup dei focolai. `(Date|Time)?`
+    // copre tutt'e tre le forme.
+    if (!/toLocale(Date|Time)?String/.test(riga)) return;
     const finestra = righe.slice(i, i + 8).join('\n');
     const fine = finestra.indexOf(');');
     const chiamata = fine === -1 ? finestra : finestra.slice(0, fine);
@@ -122,6 +125,9 @@ describe('il fuso non si dimentica', () => {
     // Prima di fidarsi del verde: il controllo deve saper diventare rosso.
     expect(senzaFuso("d.toLocaleDateString('it-IT');")).toEqual([1]);
     expect(senzaFuso("d.toLocaleTimeString('it-IT', { hour: '2-digit' });")).toEqual([1]);
+    // `toLocaleString` senza fuso: era il buco da cui passava il popup dei focolai.
+    expect(senzaFuso("d.toLocaleString('it-IT', { hour: '2-digit' });")).toEqual([1]);
+    expect(senzaFuso("d.toLocaleString('it-IT', { timeZone: 'Europe/Rome' });")).toEqual([]);
     expect(senzaFuso("d.toLocaleDateString('it-IT', { timeZone: 'Europe/Rome' });")).toEqual([]);
     // E i commenti non contano: documentare il difetto non deve renderlo colpevole.
     expect(senzaFuso("// passava da d.toLocaleDateString('it-IT') senza fuso")).toEqual([]);

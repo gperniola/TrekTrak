@@ -72,6 +72,7 @@ export function RouteWeatherPanel() {
   const setOpen = useUIStore((s) => s.setWeatherOpen);
   const waypoints = useItineraryStore((s) => s.waypoints);
   const legs = useItineraryStore((s) => s.legs);
+  const appMode = useItineraryStore((s) => s.appMode);
   const paceFactor = useItineraryStore((s) => s.settings.pace?.factor ?? DEFAULT_PACE.factor);
   const applicaPasso = useItineraryStore((s) => s.applicaPasso);
 
@@ -112,10 +113,10 @@ export function RouteWeatherPanel() {
   const report = useMemo<RouteWeatherReport | null>(() => {
     if (datiMeteo == null || punti.length === 0) return null;
     return buildRouteWeather({
-      waypoints, legs, departure, punti,
+      waypoints, legs, departure, punti, appMode,
       serie: datiMeteo.serie, elevations: datiMeteo.elevations,
     });
-  }, [datiMeteo, waypoints, legs, departure, punti]);
+  }, [datiMeteo, waypoints, legs, departure, punti, appMode]);
   /*
     La legenda spiega SOLO le icone che si vedono in questa tabella: ventotto voci
     sarebbero un manuale, e un'iconcina senza la sua parola resta un indovinello (il
@@ -317,9 +318,15 @@ export function RouteWeatherPanel() {
 
             {report.rows.some((r) => r.arrival == null) && (
               <p className="text-[11px] text-amber-300 bg-gray-800 border border-amber-800/60 rounded px-2 py-1.5 leading-snug">
-                Gli orari di arrivo non sono stimabili: alle tratte mancano distanza o
-                dislivelli. Inseriscili nell&rsquo;Editor, oppure passa a{' '}
-                <strong className="font-medium">Pianificazione</strong> e li calcola l&rsquo;app.
+                {appMode === 'track'
+                  /* In Pianificazione i valori li calcola l'app da ORS: se mancano è un
+                     problema di calcolo/connessione, non «passa a Pianificazione» (ci sei già). */
+                  ? <>Gli orari di arrivo non sono stimabili: i dati delle tratte non sono
+                      ancora stati calcolati. Serve la connessione per il calcolo automatico —
+                      riprova quando sei online.</>
+                  : <>Gli orari di arrivo non sono stimabili: alle tratte mancano distanza o
+                      dislivelli. Inseriscili nell&rsquo;Editor, oppure passa a{' '}
+                      <strong className="font-medium">Pianificazione</strong> e li calcola l&rsquo;app.</>}
               </p>
             )}
             <p className="text-[11px] text-gray-400">

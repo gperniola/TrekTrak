@@ -4,8 +4,7 @@ import { useState } from 'react';
 import type { Leg, Waypoint } from '@/lib/types';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { azimuthToCardinal } from '@/lib/calculations';
-import { formatTime } from '@/lib/format';
-import { dislivello, km, metri, numero, percento } from '@/lib/formato';
+import { dislivello, km, metri, numero, percento, durataMin } from '@/lib/formato';
 import { confirm as appConfirm, toast } from '@/stores/notificationStore';
 import { IncollaCoordinate } from '@/components/shared/IncollaCoordinate';
 import { coordinataItaliana } from '@/lib/coordinate';
@@ -152,7 +151,7 @@ export function TrackWaypointRow({
           {leg != null && (leg.slope != null || leg.estimatedTime != null) && (
             <div className="text-[11px] text-gray-400 flex flex-wrap gap-3">
               {leg.slope != null && <span>pendenza {percento(leg.slope)}</span>}
-              {leg.estimatedTime != null && <span>{formatTime(leg.estimatedTime)} stimati</span>}
+              {leg.estimatedTime != null && <span>{durataMin(leg.estimatedTime)} stimati</span>}
             </div>
           )}
           <ControlloSosta id={waypoint.id} pausaMin={waypoint.pausaMin} />

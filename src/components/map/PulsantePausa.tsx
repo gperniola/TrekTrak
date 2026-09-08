@@ -69,7 +69,9 @@ export function PulsantePausa() {
         ⏸️
         {pausa > 0 && (
           <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-amber-500 text-black text-[10px] font-bold flex items-center justify-center tabular-nums">
-            {pausa >= 60 ? `${Math.floor(pausa / 60)}h` : pausa}
+            {/* Il «+» quando ci sono minuti oltre l'ora: «1h» per 90 min mentiva; «1h+»
+                dice «più di un'ora» senza fingere precisione nel badge minuscolo. */}
+            {pausa >= 60 ? (pausa % 60 === 0 ? `${pausa / 60}h` : `${Math.floor(pausa / 60)}h+`) : pausa}
           </span>
         )}
       </button>
