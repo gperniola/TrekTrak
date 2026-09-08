@@ -8,6 +8,30 @@ import { confirm as appConfirm } from '@/stores/notificationStore';
 /** Sotto questa larghezza il tasto Indietro è quello del telefono, e va gestito. */
 const SOLO_SCHERMO_PICCOLO = '(max-width: 1023px)';
 
+/**
+ * Lo stato di `history` da riusare in un `pushState` NOSTRO, **senza** le nostre marche.
+ *
+ * Lo spread `{...history.state}` serve a preservare l'albero del router di Next (bug #3),
+ * ma trascinava avanti anche `ttGuard`/`ttDepth`: dopo un reload si atterrava su una entry
+ * di **livello** che aveva ancora `ttGuard` ereditato, e `spingiGuardia` — credendo la
+ * guardia già presente — non la spingeva. Rimasto senza guardia base, il primo Indietro
+ * usciva dall'app; in una scheda in incognito (nessuna pagina prima) **chiudeva la
+ * scheda**, ed è successo completando la guida di primo avvio dopo un auto-aggiornamento.
+ *
+ * Qui si tiene l'albero di Next e si buttano SOLO le nostre due marche, così ogni entry
+ * porta la propria e una sola: la guardia ha `ttGuard`, un livello ha `ttDepth`, mai
+ * entrambe.
+ */
+function statoBase(): Record<string, unknown> {
+  const corrente = typeof window !== 'undefined' && window.history.state
+    ? (window.history.state as Record<string, unknown>)
+    : {};
+  const s = { ...corrente };
+  delete s.ttGuard;
+  delete s.ttDepth;
+  return s;
+}
+
 export interface ModaliLocali {
   /** «Impostazioni mappa», che vive come stato locale della pagina. */
   mapSettingsOpen: boolean;
@@ -124,7 +148,7 @@ export function useTastoIndietro(modali: ModaliLocali) {
 
     const spingiGuardia = () => {
       if (window.history.state && (window.history.state as { ttGuard?: boolean }).ttGuard) return;
-      window.history.pushState({ ...window.history.state, ttGuard: true }, '');
+      window.history.pushState({ ...statoBase(), ttGuard: true }, '');
     };
     spingiGuardia();
 
@@ -172,7 +196,7 @@ export function useTastoIndietro(modali: ModaliLocali) {
     if (profondita > spinte.current) {
       const n = profondita - spinte.current;
       for (let i = 0; i < n; i++) {
-        window.history.pushState({ ...window.history.state, ttDepth: spinte.current + i + 1 }, '');
+        window.history.pushState({ ...statoBase(), ttDepth: spinte.current + i + 1 }, '');
       }
       spinte.current = profondita;
     } else if (profondita < spinte.current) {

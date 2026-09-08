@@ -3,12 +3,27 @@
 import { useEffect, useState } from 'react';
 
 /**
- * Avvisa quando il service worker rileva una nuova versione dell'app e offre un
- * pulsante per ricaricare e applicarla subito. Senza questo, una PWA continua a
- * servire la versione in cache finché l'utente non chiude e riapre del tutto.
+ * Avvisa quando il service worker rileva una nuova versione dell'app e offre un pulsante
+ * per ricaricare e applicarla. Senza, una PWA continua a servire la versione in cache
+ * finché non la si chiude e riapre del tutto — la segnalazione dell'utente «l'app non si
+ * aggiorna all'ultima versione».
  *
- * Mostra il banner solo quando esiste già un controller (= aggiornamento, non
- * la primissima installazione del service worker).
+ * ## Perché guardare `controllerchange`, non solo `installing`/`waiting`
+ *
+ * Il service worker è configurato con `skipWaiting` + `clientsClaim` (`app/sw.ts`): un SW
+ * nuovo si attiva **subito**, senza sostare in «waiting», e prende il controllo della
+ * pagina. La versione precedente di questo banner guardava solo lo stato `installing`/
+ * `waiting`: se il SW nuovo si era già attivato prima che il banner montasse — cioè quasi
+ * sempre, perché aggiorna in background — non c'era più niente da vedere, e l'avviso non
+ * compariva mai. Il segnale affidabile è `controllerchange`: il controller della pagina è
+ * cambiato = una versione nuova ha preso il posto di quella con cui la pagina era partita.
+ *
+ * ## Perché chiamare `registration.update()`
+ *
+ * Il browser cerca un SW nuovo alla navigazione. Una PWA installata resta aperta senza
+ * navigare per ore, quindi da sola non se ne accorgerebbe: si chiede noi il controllo,
+ * all'avvio e ogni volta che l'app torna in primo piano (il momento in cui la si riapre
+ * prima di una gita).
  */
 export function UpdateBanner() {
   const [show, setShow] = useState(false);
@@ -16,13 +31,30 @@ export function UpdateBanner() {
   useEffect(() => {
     if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
     let cancelled = false;
+    const mostra = () => { if (!cancelled) setShow(true); };
 
-    const watch = (sw: ServiceWorker | null) => {
+    /*
+     * Il controller al montaggio: se c'è già, un `controllerchange` successivo è un
+     * AGGIORNAMENTO (una versione nuova ha preso il posto). Se non c'è — primissima
+     * installazione — il primo `controllerchange` è solo il SW che si insedia, non un
+     * aggiornamento, e non si avvisa.
+     */
+    const controllerIniziale = navigator.serviceWorker.controller;
+    const alCambioController = () => { if (controllerIniziale) mostra(); };
+    navigator.serviceWorker.addEventListener('controllerchange', alCambioController);
+
+    let reg: ServiceWorkerRegistration | null = null;
+
+    const controlla = () => { reg?.update().catch(() => { /* offline o non disponibile */ }); };
+    const allaVisibilita = () => { if (document.visibilityState === 'visible') controlla(); };
+    document.addEventListener('visibilitychange', allaVisibilita);
+    // Rete di sicurezza per chi tiene l'app aperta a lungo senza mai nasconderla.
+    const timer = setInterval(controlla, 60 * 60 * 1000);
+
+    const seguiInstallazione = (sw: ServiceWorker | null) => {
       if (!sw) return;
       const check = () => {
-        if (!cancelled && sw.state === 'installed' && navigator.serviceWorker.controller) {
-          setShow(true);
-        }
+        if (sw.state === 'installed' && navigator.serviceWorker.controller) mostra();
       };
       check();
       sw.addEventListener('statechange', check);
@@ -30,18 +62,22 @@ export function UpdateBanner() {
 
     navigator.serviceWorker
       .getRegistration()
-      .then((reg) => {
-        if (!reg || cancelled) return;
-        if (reg.waiting && navigator.serviceWorker.controller) setShow(true);
-        watch(reg.installing);
-        reg.addEventListener('updatefound', () => watch(reg.installing));
+      .then((r) => {
+        if (!r || cancelled) return;
+        reg = r;
+        // Un SW nuovo già in attesa (skipWaiting a parte, può capitare) è un aggiornamento.
+        if (r.waiting && navigator.serviceWorker.controller) mostra();
+        seguiInstallazione(r.installing);
+        r.addEventListener('updatefound', () => seguiInstallazione(r.installing));
+        controlla(); // una prima verifica all'avvio
       })
-      .catch(() => {
-        /* registrazione SW non disponibile: nessun avviso */
-      });
+      .catch(() => { /* registrazione non disponibile: nessun avviso */ });
 
     return () => {
       cancelled = true;
+      navigator.serviceWorker.removeEventListener('controllerchange', alCambioController);
+      document.removeEventListener('visibilitychange', allaVisibilita);
+      clearInterval(timer);
     };
   }, []);
 

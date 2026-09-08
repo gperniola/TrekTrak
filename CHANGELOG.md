@@ -4,6 +4,23 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.30.1] — 2026-09-08 — La scheda non si chiude più, e la PWA si aggiorna
+
+### Fixed
+- **Il tasto Indietro non chiude più l'app per sbaglio.** Le marche di cronologia del
+  gestore del tasto Indietro (`ttGuard`/`ttDepth`) si trascinavano avanti con lo spread di
+  `history.state`: dopo un reload che atterrava su una entry di livello, la guardia base
+  non veniva ripristinata e il primo Indietro usciva dall'app — in una scheda in incognito
+  (senza pagine prima) **chiudeva la scheda**, tipicamente completando la guida di primo
+  avvio dopo un auto-aggiornamento. Ora ogni entry porta una sola marca.
+- **La PWA si aggiorna all'ultima versione in modo affidabile.** Il service worker è in
+  `skipWaiting`, quindi la versione nuova si attivava in silenzio e l'avviso «Nuova
+  versione» non compariva (guardava uno stato già passato). Ora l'aggiornamento si rileva
+  dal cambio di controller, e l'app chiede al browser di controllare all'avvio e a ogni
+  ritorno in primo piano.
+- **Bassa risoluzione**: il pulsante degli strumenti sulla mappa non copre più la riga di
+  attribuzione; nel meteo «alle [ora]» non va più a capo da solo su schermo stretto.
+
 ## [0.30.0] — 2026-09-08 — Il profilo altimetrico, un cassetto su telefono
 
 ### Added
