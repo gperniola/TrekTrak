@@ -70,7 +70,7 @@ export function UpdateBanner() {
           nel chiaro. Un letterale sopra un letterale sta a 8,6:1 nei due temi.
           (Stessa radice del TASK-63, dove il fondo fisso e' il bianco dei popup.)
         */
-        className="shrink-0 bg-[#ffffff40] hover:bg-[#ffffff66] rounded px-3 min-h-[36px] font-bold"
+        className="shrink-0 bg-[#ffffff40] hover:bg-[#ffffff66] rounded px-3 min-h-[36px] max-lg:min-h-[44px] font-bold"
       >
         Ricarica
       </button>

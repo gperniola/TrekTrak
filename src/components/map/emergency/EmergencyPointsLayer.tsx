@@ -36,8 +36,12 @@ const CONFIDENCE_LABELS: Record<FirePoint['confidence'], string> = {
 };
 
 function formatAcquired(iso: string): string {
+  // Ora ITALIANA: senza `timeZone` il popup «Rilevata: …» mostrerebbe l'ora del
+  // dispositivo — su un telefono fuori fuso, l'orario del passaggio satellitare sbagliato.
+  // Il gemello dei terremoti la scrive già così; qui mancava.
   return new Date(iso).toLocaleString('it-IT', {
     day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+    timeZone: 'Europe/Rome',
   });
 }
 

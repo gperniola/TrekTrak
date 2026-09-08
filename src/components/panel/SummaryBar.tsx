@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { calculateDifficulty } from '@/lib/calculations';
-import { formatTime } from '@/lib/format';
 import type { DifficultyGrade } from '@/lib/types';
 import { dislivello, km, durataMin } from '@/lib/formato';
 import { LIVELLI_SAC } from '@/lib/glossario';
@@ -42,14 +41,21 @@ export function SummaryBar() {
   const legs = useItineraryStore((s) => s.legs);
   const waypoints = useItineraryStore((s) => s.waypoints);
 
-  const totalDistance = legs.reduce((sum, l) => sum + (l.distance ?? 0), 0);
-  const totalGain = legs.reduce((sum, l) => sum + (l.elevationGain ?? 0), 0);
-  const totalLoss = legs.reduce((sum, l) => sum + (l.elevationLoss ?? 0), 0);
+  // Somma solo i valori NOTI, e restituisce `null` se non ce n'è nessuno: un itinerario
+  // in «Impara» prima di compilare le tratte non ha un totale di 0 km / 0h, ha un totale
+  // che non si sa ancora. Sommarli come zero è la classe «non lo so ≠ zero» del progetto.
+  const somma = (vals: Array<number | null | undefined>): number | null => {
+    const noti = vals.filter((v): v is number => v != null && Number.isFinite(v));
+    return noti.length === 0 ? null : noti.reduce((a, b) => a + b, 0);
+  };
+  const totalDistance = somma(legs.map((l) => l.distance));
+  const totalGain = somma(legs.map((l) => l.elevationGain));
+  const totalLoss = somma(legs.map((l) => l.elevationLoss));
   // Tempo di cammino (Munter) e tempo delle soste, tenuti distinti: la stima di Munter
   // e' un ritmo di cammino, sommarci le soste in silenzio farebbe leggere una passeggiata
   // di 35 minuti come lunga due ore. Il totale con le soste si dice a parte, e solo se
   // ci sono soste.
-  const totalTime = legs.reduce((sum, l) => sum + (l.estimatedTime ?? 0), 0);
+  const totalTime = somma(legs.map((l) => l.estimatedTime));
   const totalPause = waypoints.reduce(
     (sum, w) => sum + (Number.isFinite(w.pausaMin) && (w.pausaMin as number) > 0 ? (w.pausaMin as number) : 0),
     0,
@@ -61,14 +67,14 @@ export function SummaryBar() {
     <div className="border-t border-gray-700 p-3 bg-gray-900">
       <div className="rounded-lg bg-gray-800/60 px-3 py-2">
         <div className="flex justify-between text-xs mb-1 tabular-nums font-semibold">
-          <span className="text-gray-200">{km(totalDistance)}</span>
-          <span className="text-red-400">{dislivello(totalGain, '+')}</span>
-          <span className="text-blue-400">{dislivello(totalLoss, '−')}</span>
-          <span className="text-gray-200">{formatTime(totalTime)}</span>
+          <span className="text-gray-200">{totalDistance == null ? '—' : km(totalDistance)}</span>
+          <span className="text-red-400">{totalGain == null ? '—' : dislivello(totalGain, '+')}</span>
+          <span className="text-blue-400">{totalLoss == null ? '—' : dislivello(totalLoss, '−')}</span>
+          <span className="text-gray-200">{totalTime == null ? '—' : durataMin(totalTime)}</span>
         </div>
         <div className="flex justify-between items-center text-xs text-gray-400">
           <span>Difficolt&agrave;: <SacBadge grade={difficulty} /></span>
-          {totalPause > 0 && (
+          {totalTime != null && totalPause > 0 && (
             <span className="tabular-nums">
               con soste <strong className="font-semibold text-gray-200">{durataMin(totalTime + totalPause)}</strong>
               <span className="text-gray-400"> ({durataMin(totalPause)} di sosta)</span>

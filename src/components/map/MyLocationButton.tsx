@@ -128,7 +128,7 @@ export function MyLocationButton({ hidden }: { hidden?: boolean }) {
 
       {/* Location info popup */}
       {location && (
-        <div ref={guardiaPopup} aria-live="polite" className="absolute bottom-40 right-3 z-[1000] bg-gray-900/95 border border-gray-600 rounded-lg p-3 shadow-xl max-w-[200px]">
+        <div ref={guardiaPopup} aria-live="polite" className="absolute bottom-28 right-14 z-[1000] bg-gray-900/95 border border-gray-600 rounded-lg p-3 shadow-xl max-w-[200px]">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[10px] text-gray-400 font-medium">LA MIA POSIZIONE</span>
             <button
@@ -171,7 +171,7 @@ export function MyLocationButton({ hidden }: { hidden?: boolean }) {
 
       {/* Error message */}
       {error && (
-        <div ref={guardiaErrore} role="status" aria-live="polite" className="absolute bottom-40 right-3 z-[1000] bg-red-900/90 rounded-lg px-3 py-2 text-xs text-[#fecaca] shadow-lg">
+        <div ref={guardiaErrore} role="status" aria-live="polite" className="absolute bottom-28 right-14 z-[1000] bg-red-900/90 rounded-lg px-3 py-2 text-xs text-[#fecaca] shadow-lg max-w-[220px]">
           {error}
         </div>
       )}

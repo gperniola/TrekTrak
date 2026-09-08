@@ -404,6 +404,25 @@ describe('quando i tempi di percorrenza non ci sono', () => {
     expect(r.verdict.message).toMatch(/dislivelli|Track/);      // dice cosa manca
   });
 
+  test('in Pianificazione non dice «passa a Pianificazione» (ci sei già), ma parla di calcolo/connessione', () => {
+    const r = buildRouteWeather({
+      waypoints: [wp(0), wp(1)], legs: [senzaTempo], departure: partenza, appMode: 'track',
+      punti: [{ waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'Parcheggio', alt: null }],
+      serie: [serieCritica()],
+    });
+    expect(r.verdict.message).not.toMatch(/passa a Pianificazione/);
+    expect(r.verdict.message).toMatch(/calcolat|connessione/i);
+  });
+
+  test('in Impara (o senza modalità) invita a inserire i valori o passare a Pianificazione', () => {
+    const r = buildRouteWeather({
+      waypoints: [wp(0), wp(1)], legs: [senzaTempo], departure: partenza, appMode: 'learn',
+      punti: [{ waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'Parcheggio', alt: null }],
+      serie: [serieCritica()],
+    });
+    expect(r.verdict.message).toMatch(/passa a Pianificazione/);
+  });
+
   test('senza criticità lo dice, e spiega comunque cosa manca', () => {
     const time: string[] = []; const cape: number[] = []; const wc: number[] = [];
     const g: number[] = []; const pp: number[] = [];

@@ -35,7 +35,7 @@ export function ControlloSosta({ id, pausaMin }: { id: string; pausaMin?: number
           <button
             key={min}
             onClick={() => imposta(id, pausa + min)}
-            className="px-1.5 py-0.5 min-h-[28px] rounded bg-gray-700 hover:bg-gray-600 text-gray-100 transition-colors"
+            className="px-1.5 py-0.5 min-h-[28px] max-lg:min-h-[44px] rounded bg-gray-700 hover:bg-gray-600 text-gray-100 transition-colors"
             aria-label={`Aggiungi ${testo} di sosta`}
           >
             +{min >= 60 ? '1h' : min}
@@ -44,7 +44,7 @@ export function ControlloSosta({ id, pausaMin }: { id: string; pausaMin?: number
         {pausa > 0 && (
           <button
             onClick={() => imposta(id, 0)}
-            className="px-1.5 py-0.5 min-h-[28px] rounded text-gray-400 hover:text-red-300 transition-colors"
+            className="px-1.5 py-0.5 min-h-[28px] max-lg:min-h-[44px] max-lg:min-w-[44px] rounded text-gray-400 hover:text-red-300 transition-colors"
             aria-label="Azzera la sosta"
             title="Azzera la sosta"
           >

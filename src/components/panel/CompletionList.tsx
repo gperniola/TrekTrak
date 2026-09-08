@@ -4,12 +4,11 @@ import { useState } from 'react';
 import type { Itinerary, RouteCompletion } from '@/lib/types';
 import { useRouteLibraryStore } from '@/stores/routeLibraryStore';
 import { useAuthStore } from '@/stores/authStore';
-import { formatTime } from '@/lib/format';
 import { confirm as appConfirm, toast } from '@/stores/notificationStore';
 import { CompletionForm } from './CompletionForm';
 import { DifficultyRating } from './DifficultyRating';
 import { weatherOption } from '@/lib/weather';
-import { dataItaliana } from '@/lib/formato';
+import { dataItaliana, durataMin } from '@/lib/formato';
 
 /**
  * La data di un completamento, in ora italiana.
@@ -79,7 +78,7 @@ export function CompletionList({ route }: { route: Itinerary }) {
                 <div>
                   <span className="font-medium">{c.personName}</span>
                   <span className="text-gray-400"> · {fmtDate(c.date)}</span>
-                  {c.durationMinutes != null && <span className="text-gray-400"> · {formatTime(c.durationMinutes)}</span>}
+                  {c.durationMinutes != null && <span className="text-gray-400"> · {durataMin(c.durationMinutes)}</span>}
                   {w && <span className="text-gray-400" title={w.label}> · {w.icon} {w.label}</span>}
                 </div>
                 {canManage && (

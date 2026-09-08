@@ -3,7 +3,7 @@
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { saveSettings } from '@/lib/storage';
 import { isRoutingAvailable } from '@/lib/routing-api';
-import { useEffect } from 'react';
+import { useModaleTastiera } from '@/lib/useModaleTastiera';
 import { SAMPLE_INTERVAL_OPTIONS, BASE_MAPS } from '@/lib/types';
 import type { SampleIntervalOption, BaseMapId } from '@/lib/types';
 import { MappaOffline } from './MappaOffline';
@@ -45,13 +45,9 @@ export function MapSettings({ onClose }: { onClose: () => void }) {
     saveSettings(newSettings);
   };
 
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [onClose]);
+  // Escape + fuoco iniziale + trappola del Tab: prima solo Escape, e col Tab il fuoco
+  // usciva sui comandi della mappa dietro il modale.
+  const dialogRef = useModaleTastiera<HTMLDivElement>(true, onClose);
 
   return (
     <div
@@ -59,9 +55,11 @@ export function MapSettings({ onClose }: { onClose: () => void }) {
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label="Impostazioni mappa"
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         /*
           `max-h` e `overflow-y-auto` non sono rifiniture: senza, un dialogo centrato con

@@ -39,7 +39,8 @@ function Row({ route, index }: { route: Itinerary; index: number }) {
         <div className="text-sm font-medium truncate">{route.name || 'Senza nome'}</div>
         <div className="text-[11px] text-gray-400">
           {route.createdByUsername && <span className="text-green-500">@{route.createdByUsername} · </span>}
-          {numero(km, 1)} km · +{numero(gain)} m · 🥾{completions}
+          {numero(km, 1)} km · +{numero(gain)} m · <span aria-hidden>🥾</span>{completions}
+          <span className="sr-only"> {completions === 1 ? 'completamento' : 'completamenti'}</span>
         </div>
       </div>
     </div>
