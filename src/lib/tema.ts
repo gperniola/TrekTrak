@@ -60,9 +60,18 @@ export function applicaTema(effettivo: 'chiaro' | 'scuro'): void {
   else radice.removeAttribute('data-tema');
 }
 
-/** Un tema salvato che non riconosciamo vale «come il sistema», non un errore. */
+/**
+ * Il tema di partenza — chi non ha ancora scelto, o ha un valore salvato che non
+ * riconosciamo — è **scuro**: è l'aspetto con cui l'app è nata e quello che serve in
+ * montagna la sera. Chi vuole seguire il sistema lo dice esplicitamente («Come il
+ * sistema»), e quella scelta si salva e si rispetta.
+ *
+ * Prima il default era «come il sistema»; ora è scuro (una scelta di prodotto, non un
+ * cambio di significato: un valore assente resta «non lo so», e a «non lo so» si risponde
+ * col tema di casa invece di delegare).
+ */
 export function temaValido(salvato: string | null | undefined): Tema {
-  return TEMI.includes(salvato as Tema) ? (salvato as Tema) : 'sistema';
+  return TEMI.includes(salvato as Tema) ? (salvato as Tema) : 'scuro';
 }
 
 // --- Contrasto, per non affidare la leggibilità all'occhio -----------------------------

@@ -555,6 +555,17 @@ export function oraItalianaDi(d: Date): number {
   return Number.isFinite(h) ? h % 24 : 0;
 }
 
+/** I minuti (0-59) di un istante, in ora italiana. Come `oraItalianaDi`, ma per i minuti. */
+export function minutiItalianiDi(d: Date): number {
+  // "HH:MM" e si ritagliano i minuti: leggere il solo campo minuti da `toLocaleString`
+  // non è affidabile fra i motori, l'orario completo sì.
+  const hhmm = d.toLocaleString('en-GB', {
+    timeZone: 'Europe/Rome', hour: '2-digit', minute: '2-digit', hour12: false,
+  });
+  const min = Number(hhmm.slice(3, 5));
+  return Number.isFinite(min) ? min : 0;
+}
+
 /**
  * L'istante che in Italia e' `giorno` alle `ora` in punto.
  *
@@ -562,13 +573,14 @@ export function oraItalianaDi(d: Date): number {
  * mai ambiguo nemmeno nei giorni del cambio d'ora, si misura quanto vale a Roma e si
  * scende all'inizio del giorno locale.
  */
-export function istanteItaliano(giorno: string, ora: number): Date {
+export function istanteItaliano(giorno: string, ora: number, minuti = 0): Date {
   const [y, m, g] = giorno.split('-').map(Number);
   const mezzogiorno = Date.UTC(y, m - 1, g, 12, 0, 0);
   const oreLocali = Number(
     new Date(mezzogiorno).toLocaleString('en-GB', { timeZone: 'Europe/Rome', hour: '2-digit', hour12: false })
   );
-  return new Date(mezzogiorno - oreLocali * 3600000 + ora * 3600000);
+  // Lo scarto del fuso in Italia è sempre di ore intere, quindi i minuti si sommano diretti.
+  return new Date(mezzogiorno - oreLocali * 3600000 + ora * 3600000 + minuti * 60000);
 }
 
 /**

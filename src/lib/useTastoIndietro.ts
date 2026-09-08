@@ -138,10 +138,13 @@ export function useTastoIndietro(modali: ModaliLocali) {
     (mobileTab !== 'map' ? 1 : 0);
 
   const inUscita = useRef(false);
-  /** Quante entry "di livello" sono state spinte sopra la guardia base. */
+  /**
+   * Quante entry stanno sopra la guardia base. Sale quando si apre un livello; NON scende
+   * quando un livello si chiude con un gesto (quella entry resta e viene riusata alla
+   * prossima apertura, così la cronologia resta limitata). Scende solo quando il tasto
+   * Indietro consuma una entry.
+   */
   const spinte = useRef(0);
-  /** Quanti `popstate` auto-inflitti (da `history.go`) vanno ignorati. */
-  const daIgnorare = useRef(0);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia(SOLO_SCHERMO_PICCOLO).matches) return;
@@ -153,14 +156,15 @@ export function useTastoIndietro(modali: ModaliLocali) {
     spingiGuardia();
 
     const alPop = () => {
-      if (daIgnorare.current > 0) { daIgnorare.current--; return; }
       if (inUscita.current) return;
       if (spinte.current > 0) {
         /*
-          Una entry di livello è stata consumata dal tasto Indietro: si chiude un livello.
-          Si decrementa PRIMA, così l'effetto di sincronia — reagendo al calo della
-          profondità — vede cronologia e interfaccia già allineate e non tocca la
-          cronologia una seconda volta.
+          Una entry sopra la guardia è stata consumata dal tasto Indietro: si chiude il
+          livello più in alto, se ce n'è uno aperto. Se quella entry era **orfana** (il
+          livello era già stato chiuso con un gesto, e l'entry lasciata lì per riuso),
+          `chiudiUnLivello` non trova niente da chiudere e non fa nulla: la si è consumata
+          a vuoto, ed è giusto così — l'importante è non uscire dall'app finché resta una
+          entry sopra la guardia.
         */
         spinte.current--;
         chiudiUnLivello.current();
@@ -185,11 +189,17 @@ export function useTastoIndietro(modali: ModaliLocali) {
   }, []);
 
   /*
-    Sincronia cronologia ↔ profondità dell'interfaccia. Gira FUORI da `popstate` — a ogni
+    Sincronia cronologia → profondità dell'interfaccia. Gira FUORI da `popstate` — a ogni
     cambio di profondità — dove `pushState` è affidabile: spinge una entry per ogni livello
-    aperto in più, e rimuove le entry in eccesso (`history.go`) quando un livello viene
-    chiuso da un gesto dell'utente (il ✕, la scelta di un percorso). I `popstate` generati
-    da `history.go` sono marcati come auto-inflitti e ignorati.
+    aperto **in più** rispetto al massimo mai raggiunto (`spinte`).
+
+    Chiudere un livello con un gesto (il ✕, «Salta» sulla guida, la scelta di un percorso)
+    **non tocca la cronologia**: prima si rimuoveva l'entry con `history.go`, ma in una
+    scheda in incognito — dove non c'è nessuna pagina prima dell'app — quel salto poteva
+    andare oltre l'app e **chiudere la scheda** (è successo completando la guida di primo
+    avvio). Ora l'entry resta lì: il tasto Indietro la consuma a vuoto, e alla prossima
+    apertura di un livello viene **riusata** invece di spingerne una nuova — così la
+    cronologia non cresce oltre il massimo di livelli aperti insieme.
   */
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia(SOLO_SCHERMO_PICCOLO).matches) return;
@@ -199,11 +209,7 @@ export function useTastoIndietro(modali: ModaliLocali) {
         window.history.pushState({ ...statoBase(), ttDepth: spinte.current + i + 1 }, '');
       }
       spinte.current = profondita;
-    } else if (profondita < spinte.current) {
-      const differenza = spinte.current - profondita;
-      spinte.current = profondita;
-      daIgnorare.current += differenza;
-      window.history.go(-differenza);
     }
+    // profondità < spinte (livello chiuso con un gesto): si lascia l'entry per il riuso.
   }, [profondita]);
 }

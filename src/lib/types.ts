@@ -231,8 +231,8 @@ export interface AppSettings {
   pace?: PaceSettings;
   /**
    * Aspetto: chiaro, scuro o come il sistema (task-35). Facoltativo perche' le
-   * impostazioni salvate prima della v0.17 non lo hanno, e assente vale «come il
-   * sistema».
+   * impostazioni salvate prima della v0.17 non lo hanno, e assente vale **scuro** (il
+   * tema di partenza: vedi `temaValido`).
    */
   tema?: Tema;
 }

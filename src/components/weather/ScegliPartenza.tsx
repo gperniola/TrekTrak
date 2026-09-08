@@ -1,6 +1,10 @@
 'use client';
 
-import { giornoItaliano, istanteItaliano, oraItalianaDi } from '@/lib/route-weather';
+import { giornoItaliano, istanteItaliano, oraItalianaDi, minutiItalianiDi } from '@/lib/route-weather';
+
+/** I minuti offerti nel menu, a passi di 5: precisione più che sufficiente per la partenza. */
+const MINUTI = Array.from({ length: 12 }, (_, i) => i * 5);
+const due = (n: number) => String(n).padStart(2, '0');
 
 /**
  * **Giorno e ora di partenza.** Senza, «arrivi verso le 14:40» non è calcolabile: tutto
@@ -10,6 +14,9 @@ import { giornoItaliano, istanteItaliano, oraItalianaDi } from '@/lib/route-weat
  * pannello: arrivi, fasce critiche, alba e tramonto. Quando il menu usava l'ora del
  * dispositivo, su una macchina fuori dall'Italia si sceglieva «le 5» e la tabella partiva
  * dalle 07:00 — le due metà del pannello parlavano di due fusi diversi.
+ *
+ * Ora e minuti sono **due menu a tendina** (non un campo di testo libero): l'ora 0-23, i
+ * minuti a passi di 5. Prima si sceglieva solo l'ora, e chi parte alle 7:30 non poteva.
  */
 export function ScegliPartenza(
   { partenza, cambia }: { partenza: Date; cambia: (quando: Date) => void },
@@ -26,6 +33,14 @@ export function ScegliPartenza(
   const giornoPartenza = giornoItaliano(partenza);
   const giornoScelto = giorni.find((g) => g.giorno === giornoPartenza)?.d ?? 0;
   const oraPartenza = oraItalianaDi(partenza);
+  const minutiPartenza = minutiItalianiDi(partenza);
+  // Se i minuti correnti non cadono su un passo di 5 (caso raro), il valore corrente entra
+  // comunque nel menu, così il campo mostra sempre l'ora vera invece di saltare a un'altra.
+  const opzioniMinuti = MINUTI.includes(minutiPartenza)
+    ? MINUTI
+    : [...MINUTI, minutiPartenza].sort((a, b) => a - b);
+
+  const selectCls = 'bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white max-lg:min-h-[44px]';
 
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -34,10 +49,10 @@ export function ScegliPartenza(
         value={giornoScelto}
         onChange={(e) => {
           const scelto = giorni.find((g) => g.d === Number(e.target.value)) ?? giorni[0];
-          cambia(istanteItaliano(scelto.giorno, oraPartenza));
+          cambia(istanteItaliano(scelto.giorno, oraPartenza, minutiPartenza));
         }}
         aria-label="Giorno di partenza"
-        className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white max-lg:min-h-[44px]"
+        className={selectCls}
       >
         {giorni.map((g) => (
           <option key={g.d} value={g.d}>
@@ -45,18 +60,28 @@ export function ScegliPartenza(
           </option>
         ))}
       </select>
-      {/* «alle» e l'ora restano insieme: su schermo stretto andavano a capo separati,
-          con «alle» solo in fondo a una riga e l'ora sotto. */}
-      <span className="flex items-center gap-2">
+      {/* «alle» e l'orario restano insieme: su schermo stretto andavano a capo separati. */}
+      <span className="flex items-center gap-1.5">
         <span className="text-gray-400">alle</span>
         <select
           value={oraPartenza}
-          onChange={(e) => cambia(istanteItaliano(giornoPartenza, Number(e.target.value)))}
+          onChange={(e) => cambia(istanteItaliano(giornoPartenza, Number(e.target.value), minutiPartenza))}
           aria-label="Ora di partenza"
-          className="bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-white max-lg:min-h-[44px]"
+          className={selectCls}
         >
           {Array.from({ length: 24 }, (_, h) => (
-            <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
+            <option key={h} value={h}>{due(h)}</option>
+          ))}
+        </select>
+        <span className="text-gray-400" aria-hidden>:</span>
+        <select
+          value={minutiPartenza}
+          onChange={(e) => cambia(istanteItaliano(giornoPartenza, oraPartenza, Number(e.target.value)))}
+          aria-label="Minuti di partenza"
+          className={selectCls}
+        >
+          {opzioniMinuti.map((mm) => (
+            <option key={mm} value={mm}>{due(mm)}</option>
           ))}
         </select>
       </span>

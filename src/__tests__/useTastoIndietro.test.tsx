@@ -143,24 +143,50 @@ describe('cronologia e profondita si tengono allineate', () => {
   });
 
   /**
-   * Chiudere un livello **col ✕** (non col tasto Indietro) lascerebbe una entry orfana in
-   * cronologia: la si rimuove con `history.go`, e il `popstate` che ne deriva è
-   * auto-inflitto, quindi va ignorato — altrimenti chiuderebbe un secondo livello.
+   * **Chiudere un livello con un gesto (il ✕, «Salta») NON naviga la cronologia.**
+   *
+   * Prima si rimuoveva l'entry con `history.go(-1)`: in una scheda in incognito, dove non
+   * c'è nessuna pagina prima dell'app, quel salto poteva andare oltre l'app e **chiudere
+   * la scheda** (è successo completando la guida di primo avvio). Ora l'entry resta lì e
+   * la consuma il tasto Indietro; niente navigazione = niente chiusura della scheda.
    */
-  test('chiudere un livello con un gesto rimuove la sua entry', () => {
+  test('chiudere un livello con un gesto non naviga la cronologia', () => {
     render(<Pagina />);
     act(() => { useUIStore.getState().setMoreMenuOpen(true); });
+    vai.mockClear();
     act(() => { useUIStore.getState().setMoreMenuOpen(false); });
-    expect(vai).toHaveBeenCalledWith(-1);
+    expect(vai).not.toHaveBeenCalled();
   });
 
-  test('e il popstate che ne deriva non chiude niente altro', () => {
+  /**
+   * L'entry lasciata da un gesto viene **riusata** alla prossima apertura, invece di
+   * spingerne una nuova: così la cronologia non cresce a ogni apri/chiudi.
+   */
+  test('l entry di un livello chiuso a gesto si riusa alla riapertura', () => {
     render(<Pagina />);
+    expect(spingi).toHaveBeenCalledTimes(1); // guardia
     act(() => { useUIStore.getState().setMoreMenuOpen(true); });
+    expect(spingi).toHaveBeenCalledTimes(2); // + un livello
+    act(() => { useUIStore.getState().setMoreMenuOpen(false); }); // gesto: nessun push
+    act(() => { useUIStore.getState().setSearchOpen(true); }); // riapre: riusa l'orfana
+    expect(spingi).toHaveBeenCalledTimes(2); // ancora due: niente nuova entry
+  });
+
+  /**
+   * Il difetto vero: chiuso l'unico livello con un gesto, il primo tasto Indietro consuma
+   * la entry orfana **a vuoto** senza chiudere nulla né uscire dall'app. Prima il gesto
+   * aveva già fatto `history.go(-1)`, e in incognito quello usciva.
+   */
+  test('chiuso l unico livello a gesto, il tasto Indietro consuma l orfana senza uscire', () => {
+    render(<Pagina />);
     act(() => { useUIStore.getState().setSearchOpen(true); });
-    act(() => { useUIStore.getState().setMoreMenuOpen(false); }); // ✕ sul menu
-    pop(); // il popstate auto-inflitto da history.go
-    expect(useUIStore.getState().searchOpen).toBe(true);
+    act(() => { useUIStore.getState().setSearchOpen(false); }); // gesto → entry orfana
+    // Un livello aperto ora non c'è più; la entry orfana resta.
+    pop(); // consuma l'orfana: non deve chiudere nulla né tentare l'uscita
+    expect(useUIStore.getState().searchOpen).toBe(false);
+    // Il secondo Indietro, quello sì, arriva alla guardia base (uscita): qui non serve
+    // provarlo — basta che il PRIMO non abbia navigato la cronologia (nessun history.go).
+    expect(vai).not.toHaveBeenCalled();
   });
 });
 
