@@ -1,8 +1,10 @@
 import {
   samplePoints, arrivalTimes, classifyHour, defaultDeparture, buildRouteWeather,
   scartoQuota, scartoQuotaMassimo, SCARTO_QUOTA_RILEVANTE, SOGLIA_PAUSA_METEO, pausaDi,
+  righeVisibili, SPAZIO_MAX_KM, SOGLIA_MOSTRA_INTERMEDIO,
   type OraDaClassificare, type RigaPercorso,
 } from '@/lib/route-weather';
+import { haversineDistance } from '@/lib/calculations';
 import type { Waypoint, Leg } from '@/lib/types';
 
 const wp = (i: number, lat = 46.4 + i / 100, alt: number | null = 2000 + i * 100): Waypoint => ({
@@ -454,6 +456,22 @@ describe('scarto fra la quota del punto e quella del modello', () => {
     expect(scartoQuotaMassimo([])).toBeNull();
   });
 
+  /**
+   * Un punto in mezzo non entra nello scarto: l'avviso invita a «scrivere la quota
+   * nell'Editor», ma per un punto inserito dall'app non c'è un campo — sarebbe un
+   * consiglio non applicabile.
+   */
+  test('gli intermedi non contano nello scarto (non hanno una quota da correggere)', () => {
+    const intermedio: RigaPercorso = {
+      ...riga(1000, 2596),
+      intermedio: { ibIndex: 1, frazione: 0.5, kmDaInizio: 6, traA: 'A', traB: 'B' },
+    };
+    // il grosso scarto è su un intermedio: ignorato
+    expect(scartoQuotaMassimo([riga(1000, 1050), intermedio])).toBe(50);
+    // se restano solo intermedi, non c'è nulla da correggere
+    expect(scartoQuotaMassimo([intermedio])).toBeNull();
+  });
+
   test('la soglia per parlarne vale circa un grado', () => {
     // Un grado ogni 150 m: sotto, il margine e' minore dell'incertezza del modello.
     expect(SCARTO_QUOTA_RILEVANTE).toBeGreaterThanOrEqual(100);
@@ -467,8 +485,10 @@ describe('scarto fra la quota del punto e quella del modello', () => {
  */
 describe('la quota dei punti campionati', () => {
   test('viene dall itinerario, punto per punto', () => {
+    // 46,4 e 46,5 distano ~11 km: ora fra i due si inseriscono punti in mezzo. La quota
+    // dei WAYPOINT resta quella dell'itinerario; gli intermedi hanno la loro interpolata.
     const punti = samplePoints([wp(0, 46.4, 1200), wp(1, 46.5, 2596)]);
-    expect(punti.map((p) => p.alt)).toEqual([1200, 2596]);
+    expect(punti.filter((p) => p.intermedio == null).map((p) => p.alt)).toEqual([1200, 2596]);
   });
 
   test('una quota che manca resta mancante, non diventa zero', () => {
@@ -598,5 +618,125 @@ describe('le soste nel rapporto', () => {
     const p1 = r.rows.filter((x) => x.waypointIndex === 1)[0];
     expect(p1.pausaMin).toBeUndefined();
     expect(p1.fase).toBeUndefined();
+  });
+});
+
+describe('punti in mezzo sui tratti lunghi (densificazione)', () => {
+  const far = (i: number, lat: number, lon: number, alt: number | null = 1000): Waypoint => ({
+    id: `f${i}`, name: `F${i}`, lat, lon, altitude: alt, order: i,
+  });
+
+  test('due waypoint vicini: nessun punto in mezzo', () => {
+    const p = samplePoints([far(0, 46.0, 11.0), far(1, 46.02, 11.0)]); // ~2,2 km
+    expect(p).toHaveLength(2);
+    expect(p.every((x) => x.intermedio == null)).toBe(true);
+  });
+
+  test('due waypoint lontani: punti in mezzo, e nessun buco oltre ~5 km', () => {
+    const p = samplePoints([far(0, 46.0, 11.0), far(1, 46.108, 11.0)]); // ~12 km
+    // gli estremi restano i waypoint reali
+    expect(p[0].intermedio).toBeUndefined();
+    expect(p[p.length - 1].intermedio).toBeUndefined();
+    const mezzi = p.filter((x) => x.intermedio != null);
+    expect(mezzi.length).toBeGreaterThan(0);
+    for (let k = 1; k < p.length; k++) {
+      const d = haversineDistance(p[k - 1].lat, p[k - 1].lon, p[k].lat, p[k].lon);
+      expect(d).toBeLessThanOrEqual(SPAZIO_MAX_KM + 0.6);
+    }
+    const m = mezzi[0];
+    expect(m.intermedio!.traA).toBe('F0');
+    expect(m.intermedio!.traB).toBe('F1');
+    expect(m.intermedio!.frazione).toBeGreaterThan(0);
+    expect(m.intermedio!.frazione).toBeLessThan(1);
+    expect(m.intermedio!.kmDaInizio).toBeGreaterThan(0);
+    expect(m.alt).not.toBeNull(); // quota interpolata fra 1000 e 1000
+  });
+
+  test('percorso lunghissimo con 2 soli waypoint: si resta entro il tetto', () => {
+    const p = samplePoints([far(0, 45.0, 11.0), far(1, 46.0, 11.0)]); // ~111 km
+    expect(p.length).toBeLessThanOrEqual(12);
+    expect(p.filter((x) => x.intermedio != null).length).toBe(10); // 12 - 2 reali
+  });
+
+  test('quota mancante a un estremo: intermedio senza quota, non zero', () => {
+    const p = samplePoints([far(0, 46.0, 11.0, null), far(1, 46.108, 11.0, 1500)]);
+    const m = p.find((x) => x.intermedio != null);
+    expect(m).toBeDefined();
+    expect(m!.alt).toBeNull(); // «non lo so», non 750
+  });
+});
+
+describe('righeVisibili: gli intermedi si mostrano solo se critici', () => {
+  const riga = (over: Partial<RigaPercorso>): RigaPercorso => ({
+    waypointIndex: 0, name: 'x', alt: null, modelElevation: null, arrival: null, hour: null,
+    classification: { level: 0, reasons: [] }, ...over,
+  });
+  const meta = { ibIndex: 1, frazione: 0.5, kmDaInizio: 6, traA: 'A', traB: 'B' };
+
+  test('un waypoint reale si mostra sempre, anche a livello 0', () => {
+    expect(righeVisibili([riga({})])).toHaveLength(1);
+  });
+
+  test('un intermedio sotto la soglia (0 o 1) è nascosto', () => {
+    const rows = [riga({ intermedio: meta, classification: { level: 1, reasons: [] } })];
+    expect(righeVisibili(rows)).toHaveLength(0);
+  });
+
+  test('un intermedio da Attenzione in su si mostra', () => {
+    const rows = [riga({ intermedio: meta, classification: { level: SOGLIA_MOSTRA_INTERMEDIO, reasons: ['x'] } })];
+    expect(righeVisibili(rows)).toHaveLength(1);
+  });
+});
+
+describe('il meteo in mezzo nel rapporto', () => {
+  const far = (i: number, lat: number, lon: number): Waypoint => ({
+    id: `f${i}`, name: `F${i}`, lat, lon, altitude: 1000, order: i,
+  });
+  const serieCostante = (over: Partial<{ cape: number; weather_code: number; gusts: number; precip: number }> = {}) => {
+    const time: string[] = [], cape: number[] = [], weather_code: number[] = [];
+    const wind_gusts_10m: number[] = [], precipitation_probability: number[] = [], temperature_2m: number[] = [];
+    for (let h = 0; h < 24; h++) {
+      time.push(`2026-08-28T${String(h).padStart(2, '0')}:00`);
+      cape.push(over.cape ?? 0); weather_code.push(over.weather_code ?? 0);
+      wind_gusts_10m.push(over.gusts ?? 10); precipitation_probability.push(over.precip ?? 0);
+      temperature_2m.push(15);
+    }
+    return { time, cape, weather_code, wind_gusts_10m, precipitation_probability, temperature_2m };
+  };
+  const partenza = new Date('2026-08-28T05:00:00Z');
+  const A = far(0, 46.0, 11.0), B = far(1, 46.108, 11.0); // ~12 km
+
+  test('un punto in mezzo ha un orario di arrivo fra A e B', () => {
+    const punti = samplePoints([A, B]);
+    const r = buildRouteWeather({
+      waypoints: [A, B], legs: [leg(0, 120)], departure: partenza, punti,
+      serie: punti.map(() => serieCostante()),
+    });
+    const arrA = new Date(r.rows[0].arrival as string).getTime();
+    const arrB = new Date(r.rows[r.rows.length - 1].arrival as string).getTime();
+    const mezzi = r.rows.filter((x) => x.intermedio != null);
+    expect(mezzi.length).toBeGreaterThan(0);
+    for (const m of mezzi) {
+      const t = new Date(m.arrival as string).getTime();
+      expect(t).toBeGreaterThan(arrA);
+      expect(t).toBeLessThan(arrB);
+    }
+  });
+
+  test('un temporale su un punto in mezzo alza il verdetto e rende visibile la riga', () => {
+    const punti = samplePoints([A, B]);
+    const idxMezzo = punti.findIndex((x) => x.intermedio != null);
+    const serie = punti.map((_, k) => (k === idxMezzo ? serieCostante({ weather_code: 95 }) : serieCostante()));
+    const r = buildRouteWeather({ waypoints: [A, B], legs: [leg(0, 120)], departure: partenza, punti, serie });
+    expect(r.verdict.level).toBe(3);
+    const visibili = righeVisibili(r.rows);
+    expect(visibili.some((x) => x.intermedio != null && x.classification.level === 3)).toBe(true);
+    // gli altri intermedi (sereni) restano nascosti
+    const mezziTotali = r.rows.filter((x) => x.intermedio != null).length;
+    const mezziVisibili = visibili.filter((x) => x.intermedio != null).length;
+    expect(mezziVisibili).toBeLessThan(mezziTotali);
+    // Il verdetto nomina il TRATTO, senza virgolette annidate («tra «A» e «B»»).
+    expect(r.verdict.message).toContain('nel tratto tra «F0» e «F1»');
+    expect(r.verdict.message).not.toContain('«tra «');
   });
 });

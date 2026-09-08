@@ -12,7 +12,7 @@ import { metri, numero, oraItaliana } from '@/lib/formato';
 import { saveSettings } from '@/lib/storage';
 import { DEFAULT_PACE } from '@/lib/types';
 import {
-  buildRouteWeather, defaultDeparture, samplePoints,
+  buildRouteWeather, defaultDeparture, samplePoints, righeVisibili,
   type Livello, type RouteWeatherReport, type SerieOraria,
   formattaFascia,
   scartoQuotaMassimo,
@@ -122,7 +122,9 @@ export function RouteWeatherPanel() {
     `title` del mouse, al tocco, non esiste).
   */
   const legenda = useMemo(
-    () => cieliPresenti((report?.rows ?? []).map((r) => r.hour?.weatherCode)),
+    // Solo le righe VISIBILI: un intermedio nascosto non ha icona in tabella, quindi la
+    // sua voce nella legenda sarebbe un'icona che non si vede da nessuna parte.
+    () => cieliPresenti(righeVisibili(report?.rows ?? []).map((r) => r.hour?.weatherCode)),
     [report],
   );
   /*
@@ -323,7 +325,9 @@ export function RouteWeatherPanel() {
             <p className="text-[11px] text-gray-400">
               Previsione campionata su {report.sampled} {report.sampled === 1 ? 'punto' : 'punti'} del
               percorso: i modelli hanno maglie di chilometri, quindi punti vicini danno lo stesso dato.
-              Gli orari vengono dalla stima di Munter, col tuo passo, e <strong className="font-medium text-gray-400">tengono
+              Dove due waypoint sono lontani si aggiungono punti <strong className="font-medium text-gray-400">in
+              mezzo</strong>, mostrati in tabella solo se lì il meteo è critico. Gli orari vengono dalla
+              stima di Munter, col tuo passo, e <strong className="font-medium text-gray-400">tengono
               conto delle soste</strong> che imposti sui punti.
             </p>
           </>

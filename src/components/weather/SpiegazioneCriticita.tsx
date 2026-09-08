@@ -136,6 +136,12 @@ export function SpiegazioneCriticita() {
                 quando si apre — il verdetto la nomina e sale ad Attenzione. Una fascia alle 18 non conta se
                 alle 15 sei già rientrato.
               </p>
+              <p className="text-[11px] text-gray-400 leading-relaxed">
+                Se due waypoint sono lontani, l’app interroga anche dei punti <strong className="text-gray-300">in
+                mezzo</strong> (uno ogni ~5 km, finché c’è spazio nel campionamento): entrano sempre nel
+                verdetto e nelle fasce, ma compaiono in tabella solo quando lì il meteo è critico — così il
+                tratto centrale viene guardato, non solo gli estremi.
+              </p>
             </section>
           </div>
         </div>
