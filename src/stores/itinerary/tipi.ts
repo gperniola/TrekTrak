@@ -26,6 +26,8 @@ export interface ItineraryState {
    * inverso, escluso l'ultimo (dove ci si gira). Un solo passo di annulla.
    */
   aggiungiRitorno: () => void;
+  /** Imposta i minuti di sosta a un waypoint (gesto: entra in annulla/rifai). */
+  impostaPausaWaypoint: (id: string, minuti: number) => void;
   addWaypointAtPosition: (lat: number, lon: number) => void;
   removeWaypoint: (id: string) => void;
   /**
@@ -45,6 +47,13 @@ export interface ItineraryState {
   reorderWaypoints: (newOrder: number[]) => void;
   clearAllValidation: () => void;
   updateSettings: (settings: AppSettings) => void;
+  /**
+   * Cambia il passo personale (fattore Munter) E ricalcola i tempi di TUTTE le tratte.
+   * `updateSettings` da solo scrive il fattore ma lascia i tempi già calcolati col
+   * passo vecchio — un difetto silenzioso: chi ritocca il passo non vedeva cambiare le
+   * durate finché non toccava una tratta. Il ricalcolo conserva i giudizi di verifica.
+   */
+  applicaPasso: (factor: number) => void;
   resetItinerary: () => void;
   loadItinerary: (id: string, name: string, waypoints: Waypoint[], legs: Leg[], createdAt?: string) => void;
   /**

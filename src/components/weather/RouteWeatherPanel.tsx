@@ -8,10 +8,12 @@ import { buildMeteoUrl } from '@/lib/meteo';
 import { sunTimes } from '@/lib/sun';
 import { ATTRIBUZIONE_METEO, fetchRouteForecast } from '@/lib/weather-api';
 import { cieliPresenti } from '@/lib/cielo';
-import { metri, oraItaliana } from '@/lib/formato';
+import { metri, numero, oraItaliana } from '@/lib/formato';
+import { saveSettings } from '@/lib/storage';
+import { DEFAULT_PACE } from '@/lib/types';
 import {
   buildRouteWeather, defaultDeparture, samplePoints,
-  type Livello, type RouteWeatherReport,
+  type Livello, type RouteWeatherReport, type SerieOraria,
   formattaFascia,
   scartoQuotaMassimo,
   SCARTO_QUOTA_RILEVANTE,
@@ -23,6 +25,7 @@ import { useModaleTastiera } from '@/lib/useModaleTastiera';
 import { ScegliPartenza } from '@/components/weather/ScegliPartenza';
 import { TabellaPuntiMeteo } from '@/components/weather/TabellaPuntiMeteo';
 import { ComeSiLegge } from '@/components/weather/ComeSiLegge';
+import { AllertaDpcPercorso } from '@/components/weather/AllertaDpcPercorso';
 
 /** Colori per livello: gli stessi che l'app usa per i badge di validazione. */
 const COLORE: Record<string, string> = {
@@ -68,9 +71,11 @@ export function RouteWeatherPanel() {
   const setOpen = useUIStore((s) => s.setWeatherOpen);
   const waypoints = useItineraryStore((s) => s.waypoints);
   const legs = useItineraryStore((s) => s.legs);
+  const paceFactor = useItineraryStore((s) => s.settings.pace?.factor ?? DEFAULT_PACE.factor);
+  const applicaPasso = useItineraryStore((s) => s.applicaPasso);
 
   const [departure, setDeparture] = useState<Date>(() => defaultDeparture(new Date()));
-  const [report, setReport] = useState<RouteWeatherReport | null>(null);
+  const [datiMeteo, setDatiMeteo] = useState<{ serie: SerieOraria[]; elevations?: number[] } | null>(null);
   const [errore, setErrore] = useState<string | null>(null);
   const [caricamento, setCaricamento] = useState(false);
   const dialogRef = useModaleTastiera<HTMLDivElement>(open, () => setOpen(false));
@@ -98,6 +103,18 @@ export function RouteWeatherPanel() {
   useBodyScrollLock(open);
 
   const punti = useMemo(() => samplePoints(waypoints), [waypoints]);
+
+  /*
+    Il rapporto si RICOSTRUISCE localmente quando cambiano waypoint, tratte (cioè il
+    passo) o partenza: incrocia gli orari di Munter con la previsione già in mano.
+  */
+  const report = useMemo<RouteWeatherReport | null>(() => {
+    if (datiMeteo == null || punti.length === 0) return null;
+    return buildRouteWeather({
+      waypoints, legs, departure, punti,
+      serie: datiMeteo.serie, elevations: datiMeteo.elevations,
+    });
+  }, [datiMeteo, waypoints, legs, departure, punti]);
   /*
     La legenda spiega SOLO le icone che si vedono in questa tabella: ventotto voci
     sarebbero un manuale, e un'iconcina senza la sua parola resta un indovinello (il
@@ -115,25 +132,29 @@ export function RouteWeatherPanel() {
   */
   const scartoQuota = useMemo(() => scartoQuotaMassimo(report?.rows ?? []), [report]);
 
+  /*
+    La RETE dipende solo dai punti e dal giorno: la previsione oraria per punto non
+    cambia col passo. Cambiare il passo ricalcola solo gli orari di arrivo, sotto, senza
+    una nuova chiamata — prima ogni tocco sullo slider avrebbe rifatto la richiesta e
+    fatto lampeggiare "sto chiedendo la previsione".
+  */
   const carica = useCallback((quando: Date, signal: AbortSignal) => {
-    if (punti.length === 0) { setReport(null); setErrore(null); return; }
+    if (punti.length === 0) { setDatiMeteo(null); setErrore(null); return; }
     setCaricamento(true);
     setErrore(null);
     // Quanti giorni servono: quello della partenza più uno, per i percorsi che
     // sforano la mezzanotte o le partenze di dopodomani.
     const giorni = Math.ceil((quando.getTime() - Date.now()) / 86400000) + 2;
     fetchRouteForecast(punti, giorni, signal)
-      .then(({ serie, elevations }) => {
-        if (signal.aborted) return;
-        setReport(buildRouteWeather({ waypoints, legs, departure: quando, punti, serie, elevations }));
-      })
+      .then((dati) => { if (!signal.aborted) setDatiMeteo(dati); })
       .catch((e: unknown) => {
         if (signal.aborted) return;
         setErrore(e instanceof Error ? e.message : 'Previsione non disponibile');
-        setReport(null);
+        setDatiMeteo(null);
       })
       .finally(() => { if (!signal.aborted) setCaricamento(false); });
-  }, [punti, waypoints, legs]);
+  }, [punti]);
+
 
   useEffect(() => {
     if (!open) return;
@@ -183,7 +204,44 @@ export function RouteWeatherPanel() {
           </button>
         </div>
 
+        {/* L'allerta ufficiale va davanti al meteo: è sicurezza, non previsione. */}
+        <AllertaDpcPercorso punti={punti} departure={departure} />
+
         <ScegliPartenza partenza={departure} cambia={setDeparture} />
+
+        {/*
+          Il passo qui è lo STESSO delle Impostazioni: cambiarlo ricalcola gli orari di
+          tutte le tratte (via `applicaPasso`) e lo salva, così vale anche fuori dal
+          pannello. È qui perché è qui che gli orari contano: «arrivi alle 14» dipende
+          dal tuo passo, e provarne un altro senza aprire le Impostazioni è naturale.
+        */}
+        {punti.length > 0 && (
+          <div className="rounded-lg border border-gray-700 bg-gray-800/60 p-3">
+            <div className="flex items-center justify-between mb-1">
+              <label htmlFor="passo-meteo" className="text-xs font-medium text-gray-300">
+                Il tuo passo
+              </label>
+              <span className="text-xs font-bold text-green-400 tabular-nums">{numero(paceFactor, 2)}×</span>
+            </div>
+            <input
+              id="passo-meteo"
+              type="range"
+              min="0.7" max="1.5" step="0.05"
+              value={paceFactor}
+              onChange={(e) => {
+                applicaPasso(Number(e.target.value));
+                // Lo stesso passo globale: si salva come dalle Impostazioni.
+                saveSettings(useItineraryStore.getState().settings);
+              }}
+              className="w-full accent-green-500"
+              aria-label="Il tuo passo, moltiplicatore del tempo di Munter"
+            />
+            <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
+              <span>0.7× svelto</span>
+              <span>1.5× tranquillo</span>
+            </div>
+          </div>
+        )}
 
         {punti.length === 0 && (
           <p className="text-sm text-gray-300 bg-gray-800 rounded-lg p-3">
@@ -261,8 +319,8 @@ export function RouteWeatherPanel() {
             <p className="text-[11px] text-gray-400">
               Previsione campionata su {report.sampled} {report.sampled === 1 ? 'punto' : 'punti'} del
               percorso: i modelli hanno maglie di chilometri, quindi punti vicini danno lo stesso dato.
-              Gli orari vengono dalla stima di Munter e <strong className="font-medium text-gray-400">non
-              contano le pause</strong>.
+              Gli orari vengono dalla stima di Munter, col tuo passo, e <strong className="font-medium text-gray-400">tengono
+              conto delle soste</strong> che imposti sui punti.
             </p>
           </>
         )}

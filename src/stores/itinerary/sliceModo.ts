@@ -4,7 +4,7 @@ import { DEFAULT_MAP_DISPLAY, DEFAULT_TOLERANCES } from '../../lib/types';
 import type { ItineraryState } from './tipi';
 import { recalculateLeg, restoreLegForMode, snapshotLegForMode } from './helpers';
 
-export type SliceModo = Pick<ItineraryState, 'appMode' | 'setAppMode' | 'settings' | 'updateSettings'>;
+export type SliceModo = Pick<ItineraryState, 'appMode' | 'setAppMode' | 'settings' | 'updateSettings' | 'applicaPasso'>;
 
 /**
  * Il modo dell'itinerario (Learn o Track) e le impostazioni.
@@ -55,4 +55,16 @@ export const creaSliceModo: StateCreator<ItineraryState, [], [], SliceModo> = (s
   },
 
   updateSettings: (settings) => set({ settings }),
+
+  applicaPasso: (factor) => {
+    const sicuro = Number.isFinite(factor) && factor > 0 ? factor : 1;
+    const settings = { ...get().settings, pace: { factor: sicuro } };
+    // Ricalcola i tempi (e le pendenze) di tutte le tratte col passo nuovo. `recalculateLeg`
+    // conserva `...leg`, quindi distanze, dislivelli e i giudizi di verifica restano: cambia
+    // solo cio' che dal passo dipende. E' un ricalcolo dell'app, non un gesto: fuori dalla storia.
+    set({
+      settings,
+      legs: get().legs.map((l) => recalculateLeg(l, sicuro)),
+    });
+  },
 });

@@ -11,6 +11,7 @@ export type SliceWaypoints = Pick<
   | 'waypoints'
   | 'addWaypoint'
   | 'aggiungiRitorno'
+  | 'impostaPausaWaypoint'
   | 'addWaypointAtPosition'
   | 'removeWaypoint'
   | 'clearWaypoints'
@@ -96,6 +97,8 @@ export const creaSliceWaypoints: StateCreator<ItineraryState, [], [], SliceWaypo
         trackAltitude: wp.trackAltitude,
         learnAltitude: wp.learnAltitude,
         order: waypoints.length + i,
+        // `pausaMin` NON si copia di proposito: la sosta e' del passaggio, non del luogo.
+        // Al ritorno si decide di nuovo se e quanto fermarsi (richiesta utente 2026-09-07).
       }));
 
     const tutti = [...waypoints, ...ritorno];
@@ -106,6 +109,18 @@ export const creaSliceWaypoints: StateCreator<ItineraryState, [], [], SliceWaypo
     set({ waypoints: tutti, legs: tratte });
     // Un gesto solo: «Annulla» toglie tutto il ritorno in un colpo, non un punto a volta.
     get().registraGesto('aggiunta del ritorno');
+  },
+
+  impostaPausaWaypoint: (id, minuti) => {
+    // Solo valori sensati: negativi o non numerici valgono «nessuna pausa». Oltre il tetto
+    // e' un errore di dito piu' che un'intenzione, quindi si taglia.
+    const pulita = Number.isFinite(minuti) && minuti > 0 ? Math.min(Math.round(minuti), 24 * 60) : 0;
+    set({
+      waypoints: get().waypoints.map((wp) =>
+        wp.id === id ? { ...wp, pausaMin: pulita > 0 ? pulita : undefined } : wp,
+      ),
+    });
+    get().registraGesto('modifica del waypoint');
   },
 
   removeWaypoint: (id) => {

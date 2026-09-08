@@ -1,6 +1,6 @@
 import {
   samplePoints, arrivalTimes, classifyHour, defaultDeparture, buildRouteWeather,
-  scartoQuota, scartoQuotaMassimo, SCARTO_QUOTA_RILEVANTE,
+  scartoQuota, scartoQuotaMassimo, SCARTO_QUOTA_RILEVANTE, SOGLIA_PAUSA_METEO, pausaDi,
   type OraDaClassificare, type RigaPercorso,
 } from '@/lib/route-weather';
 import type { Waypoint, Leg } from '@/lib/types';
@@ -78,6 +78,35 @@ describe('orari di arrivo dai tempi Munter', () => {
   test('con tutti i tempi noti gli orari ci sono tutti', () => {
     const t = arrivalTimes([wp(0), wp(1), wp(2)], [leg(0, 30), leg(1, 45)], partenza);
     expect(t.every((x) => x != null)).toBe(true);
+  });
+
+  /**
+   * **Una sosta a un punto sposta in avanti gli arrivi dei punti SUCCESSIVI**, non
+   * l'arrivo a quel punto: si arriva, ci si ferma, si riparte. L'arrivo al punto della
+   * sosta resta l'ora in cui ci si arriva.
+   */
+  test('la pausa a un punto ritarda gli arrivi successivi, non il suo', () => {
+    const conPausa = { ...wp(1), pausaMin: 30 };
+    const t = arrivalTimes([wp(0), conPausa, wp(2)], [leg(0, 60), leg(1, 60)], partenza);
+    const min = (x: Date | null) => x == null ? null : (x.getTime() - partenza.getTime()) / 60000;
+    expect(min(t[0])).toBe(0);
+    expect(min(t[1])).toBe(60);        // arrivo al punto 1: invariato
+    expect(min(t[2])).toBe(60 + 30 + 60); // punto 2: cammino + sosta + cammino
+  });
+
+  test('la pausa dell ultimo punto non sposta nessun arrivo', () => {
+    const ultimoConPausa = { ...wp(2), pausaMin: 45 };
+    const t = arrivalTimes([wp(0), wp(1), ultimoConPausa], [leg(0, 30), leg(1, 30)], partenza);
+    const min = (x: Date | null) => x == null ? null : (x!.getTime() - partenza.getTime()) / 60000;
+    expect(min(t[2])).toBe(60);
+  });
+
+  test('pausaDi legge solo valori positivi e finiti', () => {
+    expect(pausaDi(wp(0))).toBe(0);
+    expect(pausaDi({ ...wp(0), pausaMin: 15 })).toBe(15);
+    expect(pausaDi({ ...wp(0), pausaMin: 0 })).toBe(0);
+    expect(pausaDi({ ...wp(0), pausaMin: -5 })).toBe(0);
+    expect(pausaDi(undefined)).toBe(0);
   });
 });
 
@@ -489,5 +518,85 @@ describe('la temperatura nella riga', () => {
     // E senza le quote del modello, lo scarto non si sa: non e' "zero".
     expect(r.rows[0].modelElevation).toBeNull();
     expect(scartoQuota(r.rows[0])).toBeNull();
+  });
+});
+
+/**
+ * **Le soste nel rapporto meteo.**
+ *
+ * Scelta dell'utente: se la sosta dura ≥ 1 ora, il meteo all'arrivo e alla ripartenza
+ * possono essere diversi, quindi il punto compare DUE volte (arrivo e ripartenza). Sotto
+ * l'ora, la lettura oraria sarebbe la stessa e la seconda riga sarebbe un doppione:
+ * una riga sola, e la sosta slitta solo gli arrivi successivi.
+ */
+describe('le soste nel rapporto', () => {
+  const partenza = new Date('2026-08-28T05:00:00Z'); // 07:00 IT
+  // Serie con weathercode temporale (95) solo alle 09:00 UTC (11:00 IT), sereno altrove.
+  const serie = () => {
+    const time: string[] = []; const cape: number[] = []; const wc: number[] = [];
+    const g: number[] = []; const pp: number[] = [];
+    for (let h = 0; h < 24; h++) {
+      time.push(`2026-08-28T${String(h).padStart(2, '0')}:00`);
+      cape.push(0); g.push(10); pp.push(0);
+      wc.push(h === 9 ? 95 : 0);   // 09:00 UTC = temporale
+    }
+    return { time, cape, weather_code: wc, wind_gusts_10m: g, precipitation_probability: pp, temperature_2m: [] };
+  };
+  const punto = (i: number) => ({ waypointIndex: i, lat: 46.4 + i / 100, lon: 11.8, name: `P${i}`, alt: null });
+
+  test('sosta lunga (>= 1h): due righe per il punto, arrivo e ripartenza', () => {
+    // arrivo a P1 alle 08:00 UTC (180 min dopo la partenza delle 05:00), sosta 90 min -> ripartenza 09:30
+    const conPausa = { ...wp(1), pausaMin: 90 };
+    const r = buildRouteWeather({
+      waypoints: [wp(0), conPausa], legs: [leg(0, 180)], departure: partenza,
+      punti: [punto(0), punto(1)],
+      serie: [serie(), serie()],
+    });
+    const righeP1 = r.rows.filter((x) => x.waypointIndex === 1);
+    expect(righeP1).toHaveLength(2);
+    expect(righeP1[0].fase).toBe('arrivo');
+    expect(righeP1[1].fase).toBe('ripartenza');
+    // l'arrivo è alle 08:00 UTC (sereno), la ripartenza alle 09:30 -> l'ora vicina è le 09:00 (temporale)
+    expect(righeP1[0].classification.level).toBe(0);
+    expect(righeP1[1].classification.level).toBe(3);
+    expect(SOGLIA_PAUSA_METEO).toBe(60);
+  });
+
+  test('sosta breve (< 1h): una riga sola, ma la sosta è dichiarata', () => {
+    const conPausa = { ...wp(1), pausaMin: 20 };
+    const r = buildRouteWeather({
+      waypoints: [wp(0), conPausa, wp(2)], legs: [leg(0, 60), leg(1, 60)], departure: partenza,
+      punti: [punto(0), punto(1), punto(2)],
+      serie: [serie(), serie(), serie()],
+    });
+    const righeP1 = r.rows.filter((x) => x.waypointIndex === 1);
+    expect(righeP1).toHaveLength(1);
+    expect(righeP1[0].fase).toBeUndefined();
+    expect(righeP1[0].pausaMin).toBe(20);
+  });
+
+  test('la sosta breve sposta comunque l arrivo al punto successivo', () => {
+    const conPausa = { ...wp(1), pausaMin: 20 };
+    const senza = buildRouteWeather({
+      waypoints: [wp(0), wp(1), wp(2)], legs: [leg(0, 60), leg(1, 60)], departure: partenza,
+      punti: [punto(0), punto(1), punto(2)], serie: [serie(), serie(), serie()],
+    });
+    const con = buildRouteWeather({
+      waypoints: [wp(0), conPausa, wp(2)], legs: [leg(0, 60), leg(1, 60)], departure: partenza,
+      punti: [punto(0), punto(1), punto(2)], serie: [serie(), serie(), serie()],
+    });
+    const arrivoP2 = (r: typeof con) => r.rows.filter((x) => x.waypointIndex === 2)[0].arrival;
+    const diff = (new Date(arrivoP2(con)!).getTime() - new Date(arrivoP2(senza)!).getTime()) / 60000;
+    expect(diff).toBe(20);
+  });
+
+  test('senza sosta il punto resta una riga sola, senza pausaMin ne fase', () => {
+    const r = buildRouteWeather({
+      waypoints: [wp(0), wp(1)], legs: [leg(0, 60)], departure: partenza,
+      punti: [punto(0), punto(1)], serie: [serie(), serie()],
+    });
+    const p1 = r.rows.filter((x) => x.waypointIndex === 1)[0];
+    expect(p1.pausaMin).toBeUndefined();
+    expect(p1.fase).toBeUndefined();
   });
 });

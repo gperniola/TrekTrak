@@ -137,6 +137,20 @@ export function samplePoints(waypoints: Waypoint[], max = MAX_PUNTI): PuntoInter
  *
  * Un orario che non si conosce va detto, non stimato a zero.
  */
+/** La pausa in un punto, in minuti: 0 se non impostata o non valida. */
+export function pausaDi(wp: Waypoint | undefined): number {
+  const m = wp?.pausaMin;
+  return Number.isFinite(m) && (m as number) > 0 ? (m as number) : 0;
+}
+
+/**
+ * Gli orari di **arrivo** a ogni waypoint.
+ *
+ * Le pause slittano in avanti gli arrivi dei punti **successivi**: si arriva al punto
+ * (arrivo invariato), ci si ferma `pausaMin`, e da lì in poi tutto scorre più tardi. La
+ * pausa dell'ultimo punto non ha nessun arrivo dopo di sé, quindi non sposta niente qui
+ * (ma conta nel tempo totale — vedi `computeRouteMetrics`).
+ */
 export function arrivalTimes(waypoints: Waypoint[], legs: Leg[], departure: Date): (Date | null)[] {
   const out: (Date | null)[] = [];
   let minuti = 0;
@@ -148,6 +162,8 @@ export function arrivalTimes(waypoints: Waypoint[], legs: Leg[], departure: Date
       else minuti += t as number;
     }
     out.push(catenaRotta ? null : new Date(departure.getTime() + minuti * 60000));
+    // La sosta a questo punto ritarda gli arrivi ai punti dopo, non l'arrivo a questo.
+    if (!catenaRotta) minuti += pausaDi(waypoints[i]);
   }
   return out;
 }
@@ -261,7 +277,25 @@ export interface RigaPercorso {
   /** Lettura dell'ora più vicina all'arrivo, se disponibile. */
   hour: PuntoOrario | null;
   classification: Classificazione;
+  /**
+   * Minuti di sosta a questo punto, se > 0. Solo per l'etichetta in tabella.
+   */
+  pausaMin?: number;
+  /**
+   * Con una sosta **lunga** (≥ `SOGLIA_PAUSA_METEO`), il punto genera DUE righe — il
+   * meteo all'arrivo e alla ripartenza possono differire — e questo campo dice quale
+   * delle due è. Con sosta breve o assente, il campo manca (una sola riga).
+   */
+  fase?: 'arrivo' | 'ripartenza';
 }
+
+/**
+ * Sopra questa sosta (minuti) il meteo all'arrivo e alla ripartenza vanno mostrati
+ * **entrambi**: le previsioni hanno passo orario, quindi sotto l'ora la lettura sarebbe
+ * la stessa e la seconda riga sarebbe un doppione. Scelta dell'utente: «se la pausa dura
+ * 1 ora o più, mostra arrivo e partenza».
+ */
+export const SOGLIA_PAUSA_METEO = 60;
 
 /**
  * Una fascia critica **contigua**, come istanti.
@@ -467,7 +501,7 @@ export function buildRouteWeather(input: {
   }
 
   const arrivi = arrivalTimes(waypoints, legs, departure);
-  const rows: RigaPercorso[] = punti.map((p, k) => {
+  const rows: RigaPercorso[] = punti.flatMap((p, k) => {
     const arrivo = arrivi[p.waypointIndex] ?? null;
     /*
      * Una serie per punto, nello stesso ordine. Se per quel punto la serie non c'e' —
@@ -479,20 +513,38 @@ export function buildRouteWeather(input: {
      * stesso CAPE come se fosse stato calcolato per ognuno.
      */
     const mia = serie[k];
-    // Senza orario di arrivo non si puo' dire "il meteo quando ci arrivi": si dichiara
-    // il motivo, invece di leggere un'ora a caso.
-    const hour = arrivo != null && mia != null ? letturaVicina(mia, arrivo) : null;
-    const motivo = arrivo == null ? 'orario di arrivo non stimabile' : 'dati non disponibili';
     const quotaModello = input.elevations?.[k];
-    return {
-      waypointIndex: p.waypointIndex,
-      name: p.name,
-      alt: p.alt,
-      modelElevation: Number.isFinite(quotaModello) ? (quotaModello as number) : null,
-      arrival: arrivo?.toISOString() ?? null,
-      hour,
-      classification: hour ? classifyHour(hour) : { level: null, reasons: [motivo] },
+    const modelElevation = Number.isFinite(quotaModello) ? (quotaModello as number) : null;
+    const pausa = pausaDi(waypoints[p.waypointIndex]);
+
+    /** Costruisce una riga per un dato istante (arrivo o ripartenza). */
+    const riga = (istante: Date | null, extra: Partial<RigaPercorso>): RigaPercorso => {
+      // Senza orario non si puo' dire "il meteo quando ci arrivi": si dichiara il motivo.
+      const hour = istante != null && mia != null ? letturaVicina(mia, istante) : null;
+      const motivo = istante == null ? 'orario di arrivo non stimabile' : 'dati non disponibili';
+      return {
+        waypointIndex: p.waypointIndex, name: p.name, alt: p.alt, modelElevation,
+        arrival: istante?.toISOString() ?? null,
+        hour,
+        classification: hour ? classifyHour(hour) : { level: null, reasons: [motivo] },
+        ...extra,
+      };
     };
+
+    /*
+     * Sosta lunga: il meteo all'arrivo e alla ripartenza possono essere diversi, quindi
+     * due righe. La ripartenza è l'arrivo più la durata della sosta. Con arrivo ignoto
+     * non si sdoppia niente: non c'è un istante da spostare.
+     */
+    if (pausa >= SOGLIA_PAUSA_METEO && arrivo != null) {
+      const ripartenza = new Date(arrivo.getTime() + pausa * 60000);
+      return [
+        riga(arrivo, { pausaMin: pausa, fase: 'arrivo' }),
+        riga(ripartenza, { pausaMin: pausa, fase: 'ripartenza' }),
+      ];
+    }
+    // Sosta breve o assente: una riga sola (la sosta breve resta come etichetta).
+    return [riga(arrivo, pausa > 0 ? { pausaMin: pausa } : {})];
   });
 
   // Estremi dell'intervallo da esaminare: dall'inizio del giorno della partenza alla

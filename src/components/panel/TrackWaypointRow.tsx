@@ -9,6 +9,7 @@ import { dislivello, km, metri, numero, percento } from '@/lib/formato';
 import { confirm as appConfirm, toast } from '@/stores/notificationStore';
 import { IncollaCoordinate } from '@/components/shared/IncollaCoordinate';
 import { coordinataItaliana } from '@/lib/coordinate';
+import { ControlloSosta } from '@/components/panel/ControlloSosta';
 
 /**
  * Waypoint e tratta successiva, **in modalità Track**: valori letti, non campi.
@@ -154,6 +155,7 @@ export function TrackWaypointRow({
               {leg.estimatedTime != null && <span>{formatTime(leg.estimatedTime)} stimati</span>}
             </div>
           )}
+          <ControlloSosta id={waypoint.id} pausaMin={waypoint.pausaMin} />
         </div>
       )}
 

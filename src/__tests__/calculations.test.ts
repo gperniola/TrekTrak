@@ -738,4 +738,25 @@ describe('computeRouteMetrics', () => {
     expect(m.minAltitude).toBe(90);
     expect(m.maxAltitude).toBe(410);
   });
+
+  /**
+   * Le soste sono tempo di percorrenza: chi legge «2h 40m» si aspetta che comprenda la
+   * mezz'ora di pranzo. Ogni pausa positiva entra nel totale.
+   */
+  test('le pause dei waypoint entrano nel tempo totale', () => {
+    const senza = computeRouteMetrics([wp('a', 100), wp('b', 200)], [leg(2, 120, 0)]);
+    const conPause = computeRouteMetrics(
+      [{ ...wp('a', 100), pausaMin: 15 }, { ...wp('b', 200), pausaMin: 30 }],
+      [leg(2, 120, 0)],
+    );
+    expect(conPause.estimatedTimeMin).toBe(senza.estimatedTimeMin + 45);
+  });
+
+  test('pause a zero o negative non toccano il totale', () => {
+    const base = computeRouteMetrics([wp('a', 100)], [leg(1, 60, 0)]);
+    const strane = computeRouteMetrics(
+      [{ ...wp('a', 100), pausaMin: 0 }], [leg(1, 60, 0)],
+    );
+    expect(strane.estimatedTimeMin).toBe(base.estimatedTimeMin);
+  });
 });

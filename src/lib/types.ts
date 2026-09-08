@@ -39,6 +39,13 @@ export interface Waypoint {
   /** Snapshot of altitude as last typed in Learn mode. */
   learnAltitude?: number | null;
   order: number;
+  /**
+   * Minuti di sosta in questo punto. La pausa è del **passaggio**, non del luogo: sposta
+   * in avanti gli orari di arrivo ai punti successivi (arrivo → sosta → riparti) e conta
+   * nel tempo totale. Per questo il ritorno automatico NON la copia — al ritorno decidi
+   * di nuovo se e quanto fermarti.
+   */
+  pausaMin?: number;
   validationState?: {
     altitude?: ValidationResult;
   };

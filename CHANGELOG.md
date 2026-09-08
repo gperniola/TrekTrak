@@ -4,6 +4,35 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.27.0] — 2026-09-08 — Le soste lungo il cammino, il passo nel meteo, l'allerta sul percorso
+
+Tre richieste dell'utente sul «compagno di gita»: pianificare le pause, provare ritmi
+diversi, e vedere subito se il percorso attraversa un'allerta ufficiale.
+
+### Added
+- **Soste ai waypoint.** Sulla mappa, con un waypoint messo, compare un tastino ⏸️: apre
+  un popover con «+15 min / +30 min / +1 ora» che si sommano a ogni tocco (una sosta
+  pranzo è un tocco su «1 ora» più uno su «15 min»). Agisce sull'ultimo punto; le soste
+  dei punti intermedi si ritoccano dalla lista dell'Editor, dove ogni punto ha il suo
+  controllo. La sosta **sposta in avanti gli orari di arrivo** ai punti successivi ed
+  entra nel tempo totale (la barra di riepilogo mostra «con soste …»). Il ritorno
+  automatico **non** copia le pause: al ritorno si decide di nuovo.
+- **Il passo nel meteo del percorso.** Nel pannello «Quando partire» c'è lo stesso passo
+  personale delle Impostazioni: spostarlo ricalcola gli orari di tutte le tratte e li
+  salva. La previsione **non** viene riscaricata — il meteo per punto non dipende dal
+  passo, solo gli orari — così provare un ritmo diverso è immediato.
+- **Sosta lunga = meteo di arrivo e di ripartenza.** Se ti fermi **un'ora o più**, il
+  punto compare due volte nella tabella del meteo, «arrivo» e «ripartenza»: alle due ore
+  il tempo può essere diverso, e questa è proprio l'informazione che una sosta lunga
+  rende utile. Con soste brevi resta una riga sola, con l'etichetta della durata.
+- **Allerta Protezione Civile in cima al meteo del percorso.** Se un tratto del percorso
+  cade in una zona con un'allerta ufficiale **nel giorno di partenza**, un banner lo dice
+  sopra la previsione — è sicurezza, non meteo, e va davanti. Basta un punto in allerta;
+  vince il rischio più grave. Tace se il bollettino non copre quel giorno (dopodomani) o
+  se una geometria è illeggibile: «non lo so» non diventa un falso «nessun avviso». Le
+  coordinate non lasciano il dispositivo — le geometrie si scaricano e il confronto
+  avviene sul telefono.
+
 ## [0.26.1] — 2026-09-06 — Il CAPE non è un allarme, e il bollettino DPC dice il vero
 
 Tre correzioni dalla segnalazione dell'utente, verificate sui dati veri del giorno.

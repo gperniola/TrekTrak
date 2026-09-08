@@ -5,7 +5,7 @@ import { useItineraryStore } from '@/stores/itineraryStore';
 import { calculateDifficulty } from '@/lib/calculations';
 import { formatTime } from '@/lib/format';
 import type { DifficultyGrade } from '@/lib/types';
-import { dislivello, km } from '@/lib/formato';
+import { dislivello, km, durataMin } from '@/lib/formato';
 import { LIVELLI_SAC } from '@/lib/glossario';
 import { useChiudiFuori } from '@/lib/useChiudiFuori';
 
@@ -40,11 +40,20 @@ function SacBadge({ grade }: { grade: DifficultyGrade }) {
 
 export function SummaryBar() {
   const legs = useItineraryStore((s) => s.legs);
+  const waypoints = useItineraryStore((s) => s.waypoints);
 
   const totalDistance = legs.reduce((sum, l) => sum + (l.distance ?? 0), 0);
   const totalGain = legs.reduce((sum, l) => sum + (l.elevationGain ?? 0), 0);
   const totalLoss = legs.reduce((sum, l) => sum + (l.elevationLoss ?? 0), 0);
+  // Tempo di cammino (Munter) e tempo delle soste, tenuti distinti: la stima di Munter
+  // e' un ritmo di cammino, sommarci le soste in silenzio farebbe leggere una passeggiata
+  // di 35 minuti come lunga due ore. Il totale con le soste si dice a parte, e solo se
+  // ci sono soste.
   const totalTime = legs.reduce((sum, l) => sum + (l.estimatedTime ?? 0), 0);
+  const totalPause = waypoints.reduce(
+    (sum, w) => sum + (Number.isFinite(w.pausaMin) && (w.pausaMin as number) > 0 ? (w.pausaMin as number) : 0),
+    0,
+  );
   const maxSlope = Math.max(0, ...legs.map((l) => l.slope ?? 0));
   const difficulty = calculateDifficulty(maxSlope);
 
@@ -57,8 +66,14 @@ export function SummaryBar() {
           <span className="text-blue-400">{dislivello(totalLoss, '−')}</span>
           <span className="text-gray-200">{formatTime(totalTime)}</span>
         </div>
-        <div className="flex justify-between text-xs text-gray-400">
+        <div className="flex justify-between items-center text-xs text-gray-400">
           <span>Difficolt&agrave;: <SacBadge grade={difficulty} /></span>
+          {totalPause > 0 && (
+            <span className="tabular-nums">
+              con soste <strong className="font-semibold text-gray-200">{durataMin(totalTime + totalPause)}</strong>
+              <span className="text-gray-400"> ({durataMin(totalPause)} di sosta)</span>
+            </span>
+          )}
         </div>
       </div>
     </div>

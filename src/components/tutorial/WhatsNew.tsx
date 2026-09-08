@@ -76,6 +76,25 @@ function ColoredPathMockup() {
  */
 const RELEASES: Release[] = [
   {
+    // Due passi: le soste (la novità che si tocca) e il passo nel meteo. Non c'è un passo
+    // sull'allerta della Protezione Civile: quel banner compare da sé quando un tratto è
+    // in allerta, e raccontarlo qui insegnerebbe ad aspettarselo sempre.
+    version: '0.27.0',
+    date: '2026-09-08',
+    steps: [
+      {
+        title: 'Le soste lungo il cammino',
+        text: 'Metti un waypoint e sulla mappa compare ⏸️: aggiungi una sosta a incrementi di 15, 30 o 60 minuti. La sosta sposta in avanti gli orari di arrivo ai punti dopo, entra nel tempo totale e la ritocchi anche dalla lista dell’Editor.',
+        icon: '⏸️',
+      },
+      {
+        title: 'Il tuo passo, anche nel meteo',
+        text: 'Nel «Quando partire» c’è lo stesso passo delle Impostazioni: spostalo e gli orari lungo il percorso si ricalcolano subito, per capire a che ora arrivi davvero se vai più svelto o più tranquillo.',
+        icon: '🕐',
+      },
+    ],
+  },
+  {
     version: '0.18.0',
     date: '2026-09-01',
     steps: [
