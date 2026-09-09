@@ -788,3 +788,59 @@ describe('non si mescola un colore del tema con un fondo che non lo segue', () =
     expect(trovate).toEqual([]);
   });
 });
+
+/**
+ * Lo script anti-lampo in `app/layout.tsx` e `temaValido` devono decidere lo **stesso**
+ * default. Sono due strati diversi — uno gira sincrono nel `<head>` prima di React,
+ * l'altro dentro React — e se scelgono default diversi si ha un lampo di tema al primo
+ * fotogramma. È già successo: portando il default a «scuro» in `temaValido`, lo script
+ * inline diceva ancora «sistema», così un utente nuovo col telefono in chiaro apriva
+ * l'app su un fotogramma chiaro subito ridipinto scuro. Nessun test lo vedeva, perché
+ * `temaValido` era provato da solo. Qui i due strati si provano **insieme**.
+ */
+describe('lo script anti-lampo e temaValido non possono divergere', () => {
+  const layout = readFileSync(join(process.cwd(), 'src', 'app', 'layout.tsx'), 'utf8');
+  const scriptInline = layout.match(/__html:\s*`([\s\S]*?)`,/)?.[1];
+
+  /** Che cosa scrive lo script inline su `data-tema` (undefined = scuro, niente attributo). */
+  function decisioneInline(settingsJSON: string, prefersDark: boolean): string | undefined {
+    const catturato: Record<string, string> = {};
+    const documentFinto = { documentElement: { setAttribute: (k: string, v: string) => { catturato[k] = v; } } };
+    const windowFinto = { matchMedia: () => ({ matches: prefersDark }) };
+    const localStorageFinto = { getItem: () => settingsJSON };
+    // eslint-disable-next-line no-new-func
+    const fn = new Function('localStorage', 'window', 'document', scriptInline as string);
+    fn(localStorageFinto, windowFinto, documentFinto);
+    return catturato['data-tema'];
+  }
+
+  test('lo script inline si estrae dal layout', () => {
+    expect(typeof scriptInline).toBe('string');
+    expect((scriptInline as string).length).toBeGreaterThan(50);
+  });
+
+  /**
+   * Il caso che è sfuggito: utente nuovo (nessun tema salvato), telefono in chiaro. Il
+   * default è scuro, quindi lo script NON deve mettere `data-tema='chiaro'`, altrimenti
+   * React lo toglierebbe subito dopo — il lampo.
+   */
+  test('utente nuovo col sistema in chiaro: nessun data-tema (scuro), niente lampo', () => {
+    expect(decisioneInline('{}', false)).toBeUndefined();
+  });
+
+  test.each([
+    [undefined, true], [undefined, false],
+    ['chiaro', true], ['chiaro', false],
+    ['scuro', true], ['scuro', false],
+    ['sistema', true], ['sistema', false],
+    ['arcobaleno', true], ['arcobaleno', false],
+  ] as const)('tema salvato %s, sistema scuro=%s: i due strati concordano', (tema, prefersDark) => {
+    const settingsJSON = tema === undefined ? '{}' : JSON.stringify({ tema });
+    const inline = decisioneInline(settingsJSON, prefersDark);
+    const effettivo = temaEffettivo(temaValido(tema), prefersDark);
+    // Lo script mette 'chiaro' se e solo se il tema effettivo è chiaro; altrimenti lascia
+    // scuro (nessun attributo). Deve combaciare con quello che React deciderà.
+    const atteso = effettivo === 'chiaro' ? 'chiaro' : undefined;
+    expect(inline).toBe(atteso);
+  });
+});

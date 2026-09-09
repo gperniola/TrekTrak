@@ -28,6 +28,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           «chiaro». Qualche riga di script che gira sincrono e' l'unico modo di evitarlo:
           il primo fotogramma non si puo' correggere dopo.
 
+          Il fallback per un tema assente/illeggibile e' **scuro**, lo stesso di
+          `temaValido`: se qui dicesse «sistema», un utente nuovo col telefono in chiaro
+          vedrebbe il primo fotogramma chiaro e subito dopo React — che per un tema assente
+          risponde «scuro» — lo ridipingerebbe scuro. Cioe' esattamente il lampo che questo
+          script esiste per evitare. I due default DEVONO restare allineati.
+
           Tutto dentro un try: se lo storage e' bloccato resta l'aspetto scuro, che e'
           quello con cui l'app e' nata.
         */}
@@ -36,7 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             __html: `try{
   var s=JSON.parse(localStorage.getItem('trektrak_settings')||'{}');
   var t=s&&s.tema;
-  if(t!=='chiaro'&&t!=='scuro'&&t!=='sistema')t='sistema';
+  if(t!=='chiaro'&&t!=='scuro'&&t!=='sistema')t='scuro';
   var scuro=t==='scuro'||(t==='sistema'&&window.matchMedia('(prefers-color-scheme: dark)').matches);
   if(!scuro)document.documentElement.setAttribute('data-tema','chiaro');
 }catch(e){}`,

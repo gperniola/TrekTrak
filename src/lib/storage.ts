@@ -258,7 +258,8 @@ export function loadSettings(): AppSettings {
       /*
        * Passo personale e tema si conservano se sono **plausibili**, e si perdono in
        * silenzio se non lo sono: un fattore di andatura assurdo falserebbe ogni stima, e
-       * un tema sconosciuto vale «come il sistema».
+       * un tema sconosciuto qui viene scartato — poi `temaValido` lo risolve nel tema di
+       * partenza, che è **scuro** (non più «come il sistema»).
        *
        * `pace` era gia' sparito a ogni riavvio: questa funzione ricostruisce l'oggetto da
        * zero con due soli campi, quindi chi si era tarato l'andatura la ritrovava a 1,0 al
