@@ -7,7 +7,7 @@ import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { buildMeteoUrl } from '@/lib/meteo';
 import { sunTimes } from '@/lib/sun';
 import { ATTRIBUZIONE_METEO, fetchRouteForecast, type RouteForecast } from '@/lib/weather-api';
-import { cieliPresenti } from '@/lib/cielo';
+import { cieliPresenti, cieloDellOra } from '@/lib/cielo';
 import { metri, numero, oraItaliana } from '@/lib/formato';
 import { saveSettings } from '@/lib/storage';
 import { DEFAULT_PACE, MODELLO_METEO_PREDEFINITO, type ModelloMeteo } from '@/lib/types';
@@ -17,6 +17,7 @@ import {
   formattaFascia,
   scartoQuotaMassimo,
   SCARTO_QUOTA_RILEVANTE,
+  SOGLIE_MODELLO,
 } from '@/lib/route-weather';
 import { SheetHandle } from '@/components/shared/SheetHandle';
 import { useSheetDrag } from '@/lib/useSheetDrag';
@@ -78,6 +79,7 @@ export function RouteWeatherPanel() {
   const paceFactor = useItineraryStore((s) => s.settings.pace?.factor ?? DEFAULT_PACE.factor);
   const applicaPasso = useItineraryStore((s) => s.applicaPasso);
   const modello = useItineraryStore((s) => s.settings.modelloMeteo ?? MODELLO_METEO_PREDEFINITO);
+  const soglie = SOGLIE_MODELLO[modello];
   const updateSettings = useItineraryStore((s) => s.updateSettings);
 
   const [departure, setDeparture] = useState<Date>(() => defaultDeparture(new Date()));
@@ -127,10 +129,19 @@ export function RouteWeatherPanel() {
     `title` del mouse, al tocco, non esiste).
   */
   const legenda = useMemo(
-    // Solo le righe VISIBILI: un intermedio nascosto non ha icona in tabella, quindi la
-    // sua voce nella legenda sarebbe un'icona che non si vede da nessuna parte.
-    () => cieliPresenti(righeVisibili(report?.rows ?? []).map((r) => r.hour?.weatherCode)),
-    [report],
+    /*
+      Solo le righe VISIBILI: un intermedio nascosto non ha icona in tabella, quindi la sua
+      voce nella legenda sarebbe un'icona che non si vede da nessuna parte.
+
+      E si spiega l'iconcina **mostrata**, non quella del codice: quando la probabilità
+      contraddice la corsa del modello la tabella mostra «possibile pioggia», e una legenda
+      costruita sui codici spiegherebbe un sole che a schermo non c'è.
+    */
+    () => cieliPresenti(
+      righeVisibili(report?.rows ?? [])
+        .map((r) => cieloDellOra(r.hour?.weatherCode, r.hour?.precipProb, soglie.arancione)),
+    ),
+    [report, soglie],
   );
   /*
     Se il modello ha risposto per una quota diversa da quella del punto, temperatura e
@@ -330,7 +341,7 @@ export function RouteWeatherPanel() {
               </p>
             )}
 
-            <TabellaPuntiMeteo righe={report.rows} />
+            <TabellaPuntiMeteo righe={report.rows} soglie={soglie} />
 
             {/*
               Da chi vengono i numeri si dichiara. Un altro modello, alla stessa ora e nello

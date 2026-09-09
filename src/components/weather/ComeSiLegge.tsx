@@ -134,6 +134,14 @@ export function ComeSiLegge({ modello = MODELLO_METEO_PREDEFINITO }: { modello?:
               scritto a parole fra i motivi del punto.
             </p>
             <p>
+              <strong className="text-gray-100">L&apos;iconcina e la percentuale non sono la stessa
+              cosa.</strong> Il codice del cielo è quello di <em>una</em> corsa del modello; la
+              probabilità viene da un <em>insieme</em> di simulazioni. Possono contraddirsi — corsa
+              asciutta, maggioranza bagnata — e quando succede l&apos;iconcina segue la probabilità
+              e dice «possibile pioggia»: fra due numeri veri si mostra quello che poggia su più
+              simulazioni. Il dettaglio della riga (⋮) dice sempre cosa aveva detto la corsa.
+            </p>
+            <p>
               In montagna la convezione segue il <strong className="text-gray-100">ciclo diurno</strong>: il
               terreno si scalda, l’aria sale, e il massimo cade nel primo pomeriggio. È la ragione della regola
               più vecchia dell’alpinismo: in vetta presto, giù prima delle 14.

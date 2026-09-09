@@ -69,17 +69,63 @@ export function cielo(codice: number | null | undefined): Cielo | null {
 }
 
 /**
+ * Quando la corsa del modello non fa piovere ma la **probabilita'** dice il contrario.
+ *
+ * Non e' un codice WMO: e' la dichiarazione onesta di un disaccordo fra due variabili
+ * dello stesso servizio.
+ */
+const POSSIBILE_PIOGGIA: Cielo = { icona: '🌦️', testo: 'possibile pioggia' };
+
+/** Codici che descrivono un cielo **senza** precipitazione: quelli che si possono correggere. */
+const CIELO_ASCIUTTO = new Set([0, 1, 2, 3]);
+
+/**
+ * **Il cielo da mostrare per un'ora**, che non e' sempre quello del codice.
+ *
+ * Segnalato dall'utente il 2026-09-09: la riga diceva «pioggia 78% · possibili temporali
+ * forti» e l'iconcina mostrava il **sole**. Non e' un codice strano — «temporali con
+ * schiarite» non esiste nella WMO: sono due domande diverse. Il `weather_code` e' il cielo
+ * di **una** corsa del modello; la probabilita' viene da un ensemble di simulazioni. Quella
+ * corsa era capitata fra le asciutte, mentre la maggioranza bagnava.
+ *
+ * Misurato sui due mesi della verifica: succede nel **6,4%** delle ore con ECMWF, e
+ * nell'**1,6%** con l'iconcina proprio del sole — concentrato nei giorni convettivi, cioe'
+ * quelli che contano.
+ *
+ * Quando la probabilita' raggiunge la soglia d'attenzione **di quel modello** e il codice
+ * non dichiara precipitazione, si mostra il disaccordo invece di uno dei due lati. Non e'
+ * inventare un cielo: fra due variabili entrambe reali si sceglie quella meglio fondata, ed
+ * e' la stessa che decide il colore del pallino.
+ *
+ * **La nebbia no**: in montagna e' un pericolo suo, e coprirla con la pioggia toglierebbe
+ * un'informazione invece di aggiungerla.
+ */
+export function cieloDellOra(
+  codice: number | null | undefined,
+  precipProb: number | null | undefined,
+  sogliaArancione: number,
+): Cielo | null {
+  const base = cielo(codice);
+  // Senza un codice non si mostra niente: la probabilita' da sola non dice che cielo c'e'.
+  if (base == null) return null;
+  const probNota = precipProb != null && Number.isFinite(precipProb);
+  if (probNota && precipProb >= sogliaArancione && CIELO_ASCIUTTO.has(codice as number)) {
+    return POSSIBILE_PIOGGIA;
+  }
+  return base;
+}
+
+/**
  * I cieli **distinti** che compaiono in un elenco di codici, in ordine di comparsa.
  *
  * Serve alla legenda sotto la tabella: le icone da spiegare sono quelle che si vedono
  * davvero, non tutte e ventotto. Un'iconcina senza la sua parola è un indovinello, e il
  * `title` del mouse al tocco non esiste — lezione già pagata in questo progetto.
  */
-export function cieliPresenti(codici: Array<number | null | undefined>): Cielo[] {
+export function cieliPresenti(cieli: Array<Cielo | null | undefined>): Cielo[] {
   const visti = new Set<string>();
   const out: Cielo[] = [];
-  for (const c of codici) {
-    const v = cielo(c);
+  for (const v of cieli) {
     if (v == null || visti.has(v.testo)) continue;
     visti.add(v.testo);
     out.push(v);

@@ -1,8 +1,8 @@
 'use client';
 
-import { cielo } from '@/lib/cielo';
+import { cieloDellOra, type Cielo } from '@/lib/cielo';
 import { numero, oraItaliana, durataMin } from '@/lib/formato';
-import { righeVisibili, type Livello, type RigaPercorso, type PuntoIntermedio } from '@/lib/route-weather';
+import { righeVisibili, type Livello, type RigaPercorso, type PuntoIntermedio, type SoglieModello } from '@/lib/route-weather';
 import { Fragment, useEffect, useState } from 'react';
 import { AzioniPunto, BottoneAzioniPunto } from '@/components/weather/AzioniPunto';
 
@@ -92,7 +92,7 @@ function testoMm(mm: number | undefined): string {
  * che tempo farà in un posto; questa dice che tempo farà **dove sarai tu**, perché conosce
  * il tuo passo.
  */
-export function TabellaPuntiMeteo({ righe }: { righe: RigaPercorso[] }) {
+export function TabellaPuntiMeteo({ righe, soglie }: { righe: RigaPercorso[]; soglie: SoglieModello }) {
   /*
     Una riga aperta per volta, come nel pannello dei layer: due dettagli aperti insieme
     raddoppierebbero l'altezza della tabella senza servire a niente.
@@ -151,7 +151,7 @@ export function TabellaPuntiMeteo({ righe }: { righe: RigaPercorso[] }) {
                 {r.arrival != null ? oraItaliana(r.arrival) : <span className="text-gray-400 font-sans">n/d</span>}
               </td>
               <td className="py-1.5 pr-1 text-gray-300 whitespace-nowrap">
-                <Iconcina codice={r.hour?.weatherCode} temp={r.hour?.temp} />
+                <Iconcina cielo={cieloDellOra(r.hour?.weatherCode, r.hour?.precipProb, soglie.arancione)} temp={r.hour?.temp} />
               </td>
               <td className="py-1.5 pr-1 text-gray-300">{intero(r.hour?.precipProb, '%')}</td>
               <td className={`py-1.5 pr-1 whitespace-nowrap ${classeMm(r.hour?.mm)}`}>
@@ -195,7 +195,7 @@ export function TabellaPuntiMeteo({ righe }: { righe: RigaPercorso[] }) {
               */
               <tr id={idPannello}>
                 <td colSpan={7} className="pb-2 pl-4 pr-1 bg-gray-800/40">
-                  <AzioniPunto riga={r} />
+                  <AzioniPunto riga={r} soglie={soglie} />
                 </td>
               </tr>
             )}
@@ -270,8 +270,7 @@ function EtichettaSosta({ fase, pausaMin }: { fase?: 'arrivo' | 'ripartenza'; pa
  * Un codice che non si conosce si scrive **n/d**, non lo si disegna sereno: è la regola
  * che questo progetto ha pagato più volte.
  */
-function Iconcina({ codice, temp }: { codice?: number; temp?: number }) {
-  const c = cielo(codice);
+function Iconcina({ cielo: c, temp }: { cielo: Cielo | null; temp?: number }) {
   const gradi = temp != null && Number.isFinite(temp) ? Math.round(temp) : null;
   if (c == null && gradi == null) return <span className="text-gray-400">n/d</span>;
   return (

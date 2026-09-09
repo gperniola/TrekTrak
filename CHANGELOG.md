@@ -4,6 +4,34 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.31.3] — 2026-09-09 — L'iconcina non dice più «sereno» sotto un avviso di pioggia
+
+### Fixed
+- **Il cielo non contraddice più la riga che lo contiene.** Segnalato dall'utente: «pioggia
+  78%, possibili temporali forti, raffiche 31 km/h» e l'iconcina mostrava il **sole**. Non
+  è un codice WMO strano — «temporali con schiarite» non esiste: sono **due domande
+  diverse**. Il codice del cielo è quello di *una* corsa del modello; la probabilità viene
+  da un *insieme* di simulazioni, e quella corsa era capitata fra le asciutte. Misurato sui
+  due mesi della verifica: succede nel **6,4%** delle ore con ECMWF, nell'1,6% con
+  l'iconcina proprio del sole, e concentrato nei giorni convettivi — cioè quelli che
+  contano. Ora, quando la probabilità raggiunge la soglia d'attenzione **di quel modello**
+  e il codice non dichiara precipitazione, l'iconcina dice «possibile pioggia». La nebbia
+  fa eccezione: in montagna è un pericolo suo e non si copre.
+
+### Added
+- **Il dettaglio della riga (⋮) dice cosa aveva detto la corsa** quando l'iconcina non la
+  segue: «la corsa del modello dà «sereno» qui, ma la probabilità di pioggia è 78%».
+- **«Come si legge» spiega la differenza** fra il codice (una corsa) e la probabilità (più
+  simulazioni), che è il punto didattico dietro tutta questa storia.
+
+### Note
+- La strada alternativa — prendere l'iconcina **contando i membri dell'ensemble** — è stata
+  misurata e **scartata**, coi numeri: nel caso segnalato la maggioranza dei membri dava
+  comunque «poco nuvoloso» (19 su 51), quindi non avrebbe mostrato pioggia; e il conteggio
+  dei membri (5% sopra 0,1 mm) e la probabilità dichiarata (54%) vengono da **due
+  popolazioni diverse**, che messe nella stessa riga sarebbero due fonti mescolate. Costava
+  anche una seconda chiamata da 100-300 KB su un host che il service worker non copre.
+
 ## [0.31.2] — 2026-09-09 — La tabella del meteo si legge meglio
 
 Segnalazioni dell'utente sul rilascio precedente, tutte su cose che si vedono.

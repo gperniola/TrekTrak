@@ -1,4 +1,4 @@
-import { cielo, cieliPresenti } from '@/lib/cielo';
+import { cielo, cieliPresenti, cieloDellOra } from '@/lib/cielo';
 
 /**
  * L'iconcina del cielo, chiesta il 2026-09-02. Quello che si prova qui non e' la tabella
@@ -45,12 +45,15 @@ describe('il cielo di un ora', () => {
 
   describe('la legenda', () => {
     test('elenca una volta sola i cieli presenti, in ordine di comparsa', () => {
-      const l = cieliPresenti([3, 0, 3, 95, 0]);
+      // La legenda ora riceve i CIELI mostrati, non i codici: deve spiegare quello che si
+      // vede in tabella, e ciò che si vede può essere «possibile pioggia», che un codice
+      // non è.
+      const l = cieliPresenti([3, 0, 3, 95, 0].map(cielo));
       expect(l.map((c) => c.testo)).toEqual(['coperto', 'sereno', 'temporale']);
     });
 
     test('salta quelli che non si conoscono, senza inventarli', () => {
-      expect(cieliPresenti([undefined, Number.NaN, 4, null])).toEqual([]);
+      expect(cieliPresenti([undefined, Number.NaN, 4, null].map((c) => cielo(c as number)))).toEqual([]);
     });
 
     /**
@@ -59,8 +62,67 @@ describe('il cielo di un ora', () => {
      * un errore.
      */
     test('non ripete due codici che dicono la stessa cosa', () => {
-      expect(cieliPresenti([61, 63]).length).toBe(2); // "pioggia debole" e "pioggia": diverse
-      expect(cieliPresenti([45, 45]).length).toBe(1);
+      expect(cieliPresenti([61, 63].map(cielo)).length).toBe(2); // "pioggia debole" e "pioggia": diverse
+      expect(cieliPresenti([45, 45].map(cielo)).length).toBe(1);
     });
+  });
+});
+
+/**
+ * **L'iconcina non può dire «sereno» mentre la riga avverte di pioggia.**
+ *
+ * Segnalato dall'utente il 2026-09-09: «pioggia 78%, possibili temporali forti, raffiche
+ * 31 km/h» e l'iconcina mostrava il sole. Non è un codice WMO strano — «temporali con
+ * schiarite» non esiste: sono **due domande diverse**. Il `weather_code` è il cielo di UNA
+ * corsa del modello, la probabilità viene da un ensemble di simulazioni. Quella corsa era
+ * capitata fra le asciutte.
+ *
+ * Misurato sui due mesi di verifica: succede nel 6,4% delle ore con ECMWF, e nell'1,6% con
+ * l'iconcina proprio del sole. Non è un caso limite, ed è concentrato nei giorni convettivi.
+ *
+ * Perché dalla probabilità e non contando i membri dell'ensemble: misurato sul caso vero,
+ * la maggioranza dei membri dava comunque «poco nuvoloso» (19 su 51), e il conteggio dei
+ * membri (5% sopra 0,1 mm) e la probabilità dichiarata (54%) vengono da **due popolazioni
+ * diverse** — mescolarle nella stessa riga sarebbe il difetto che l'app si è imposta di
+ * non fare.
+ */
+describe('il cielo mostrato quando la probabilità contraddice il codice', () => {
+  test('sereno con pioggia probabile diventa «possibile pioggia»', () => {
+    expect(cieloDellOra(0, 78, 32)?.testo).toBe('possibile pioggia');
+  });
+
+  test('anche «coperto» con pioggia probabile: è la stessa contraddizione', () => {
+    expect(cieloDellOra(3, 54, 32)?.testo).toBe('possibile pioggia');
+  });
+
+  test('sotto la soglia del modello il codice resta quello che è', () => {
+    expect(cieloDellOra(0, 31, 32)?.testo).toBe('sereno');
+    expect(cieloDellOra(3, 0, 32)?.testo).toBe('coperto');
+  });
+
+  /** La soglia è del MODELLO: con ICON basta molto meno, ed è voluto. */
+  test('la soglia è quella del modello che sta parlando', () => {
+    expect(cieloDellOra(0, 12, 10)?.testo).toBe('possibile pioggia');
+    expect(cieloDellOra(0, 12, 32)?.testo).toBe('sereno');
+  });
+
+  /** Se il codice già dichiara precipitazione, non c'è niente da correggere. */
+  test('un codice di pioggia resta il suo, con la sua parola precisa', () => {
+    expect(cieloDellOra(80, 78, 32)?.testo).toBe('rovesci deboli');
+    expect(cieloDellOra(95, 78, 32)?.testo).toBe('temporale');
+  });
+
+  /** La nebbia non si copre: in montagna è un pericolo suo, non un dettaglio del cielo. */
+  test('la nebbia resta nebbia anche con pioggia probabile', () => {
+    expect(cieloDellOra(45, 78, 32)?.testo).toBe('nebbia');
+  });
+
+  test('senza codice non si inventa un cielo, nemmeno con la probabilità alta', () => {
+    expect(cieloDellOra(Number.NaN, 78, 32)).toBeNull();
+    expect(cieloDellOra(null, 78, 32)).toBeNull();
+  });
+
+  test('probabilità ignota: decide il codice, come sempre', () => {
+    expect(cieloDellOra(0, Number.NaN, 32)?.testo).toBe('sereno');
   });
 });
