@@ -115,6 +115,45 @@ describe('lettura della risposta', () => {
     expect(r.serie.ecmwf[0].time[0]).toBe('2026-08-28T05:00');
   });
 
+  /**
+   * **Se un modello sparisce, resta l'altro.**
+   *
+   * Gli identificativi di Open-Meteo non sono stabili — `ecmwf_ifs_hres` non esiste,
+   * `ecmwf_ifs04` risponde senza dati — e prima bastava che un blocco mancasse per far
+   * fallire TUTTA la lettura: il pannello mostrava un errore anche quando la serie del
+   * modello scelto era arrivata intatta. Ora il modello che non parla resta vuoto e
+   * l'altro continua a funzionare.
+   */
+  test('un modello che non risponde non porta giu anche l altro', () => {
+    const soloIcon = { ...conModelli(serie(0)) };
+    for (const k of Object.keys(soloIcon)) if (k.endsWith('_ecmwf_ifs')) delete (soloIcon as Record<string, unknown>)[k];
+    const r = leggiRisposta([{ elevation: 2100, hourly: soloIcon }]);
+    expect(r.serie.icon).toHaveLength(1);
+    expect(r.serie.ecmwf).toEqual([]);
+  });
+
+  /**
+   * Un modello che parla per un punto e tace per un altro NON si tiene a meta': gli indici
+   * delle serie devono corrispondere uno a uno ai punti chiesti, e una serie in meno
+   * significherebbe attribuire a un punto il meteo di un altro — la classe di difetto piu'
+   * pericolosa di questo progetto.
+   */
+  test('un modello parziale si scarta tutto, invece di disallineare i punti', () => {
+    const monco = { ...conModelli(serie(0)) };
+    for (const k of Object.keys(monco)) if (k.endsWith('_ecmwf_ifs')) delete (monco as Record<string, unknown>)[k];
+    const r = leggiRisposta([
+      { elevation: 2100, hourly: conModelli(serie(0)) },
+      { elevation: 2600, hourly: monco },
+    ]);
+    expect(r.serie.ecmwf).toEqual([]);
+    expect(r.serie.icon).toHaveLength(2);
+  });
+
+  test('se non parla NESSUN modello, allora si dichiara l errore', () => {
+    expect(() => leggiRisposta([{ elevation: 2100, hourly: { time: ['x'] } }]))
+      .toThrow(/previsione/i);
+  });
+
   test('risposta non ok → errore in italiano', async () => {
     rispondi({}, false, 503);
     await expect(fetchRouteForecast(punti, 2)).rejects.toThrow(/previsione/i);

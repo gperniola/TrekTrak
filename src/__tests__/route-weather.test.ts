@@ -1,10 +1,11 @@
 import {
   samplePoints, arrivalTimes, classifyHour, defaultDeparture, buildRouteWeather,
   scartoQuota, scartoQuotaMassimo, SCARTO_QUOTA_RILEVANTE, SOGLIA_PAUSA_METEO, pausaDi,
-  righeVisibili, SPAZIO_MAX_KM, SOGLIA_MOSTRA_INTERMEDIO, SOGLIE_MODELLO,
+  righeVisibili, SPAZIO_MAX_KM, SOGLIA_MOSTRA_INTERMEDIO, SOGLIE_MODELLO, CODICI_GIUDICATI,
   type OraDaClassificare, type RigaPercorso,
 } from '@/lib/route-weather';
 import { haversineDistance } from '@/lib/calculations';
+import { cielo } from '@/lib/cielo';
 import type { Waypoint, Leg } from '@/lib/types';
 
 const wp = (i: number, lat = 46.4 + i / 100, alt: number | null = 2000 + i * 100): Waypoint => ({
@@ -894,5 +895,30 @@ describe('il meteo in mezzo nel rapporto', () => {
     // Il verdetto nomina il TRATTO, senza virgolette annidate («tra «A» e «B»»).
     expect(r.verdict.message).toContain('nel tratto tra «F0» e «F1»');
     expect(r.verdict.message).not.toContain('«tra «');
+  });
+});
+
+/**
+ * **Una sola fonte per i nomi dei codici WMO.**
+ *
+ * `classifyHour` riscriveva a mano i 19 nomi italiani che stanno già in `cielo.ts`: due
+ * copie della stessa tabella sono due posti in cui cambiare una parola, e nella stessa
+ * riga si sarebbero potuti leggere due nomi diversi per lo stesso codice (uno nella
+ * colonna «Cielo», l'altro fra i motivi). Ora il livello sta qui e **il nome lo legge da
+ * `cielo.ts`**; questo test è la guardia che le due tabelle non divergano.
+ */
+describe('i codici giudicati esistono tutti in cielo.ts', () => {
+  test.each(CODICI_GIUDICATI.map((c) => [c]))('il codice %i ha un nome', (codice) => {
+    expect(cielo(codice)?.testo).toBeTruthy();
+  });
+
+  test('il motivo scritto è ESATTAMENTE la parola del cielo', () => {
+    for (const codice of CODICI_GIUDICATI) {
+      const c = classifyHour(
+        { time: 't', cape: 0, weatherCode: codice, gusts: 0, precipProb: 0 },
+        SOGLIE_MODELLO.ecmwf,
+      );
+      expect(c.reasons).toContain(cielo(codice)!.testo);
+    }
   });
 });

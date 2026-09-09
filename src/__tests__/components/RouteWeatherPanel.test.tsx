@@ -314,3 +314,27 @@ describe('il cielo di ogni punto', () => {
     expect(screen.queryByText(/in basso del punto/i)).not.toBeInTheDocument();
   });
 });
+
+/**
+ * **Se il modello scelto non ha risposto, l'app non lascia in un vicolo cieco.**
+ *
+ * Un identificativo di Open-Meteo che sparisce non è teoria: `ecmwf_ifs_hres` non esiste
+ * e `ecmwf_ifs04` risponde senza dati. Prima la lettura falliva tutta; ora il modello muto
+ * resta vuoto, e chi lo ha scelto deve almeno sapere che l'altro c'è.
+ */
+describe('un modello senza dati', () => {
+  test('lo dichiara e indica quello che ha risposto', async () => {
+    const serie = {
+      time: ['2026-09-09T05:00'], cape: [0], weather_code: [0], wind_gusts_10m: [0],
+      precipitation_probability: [0], temperature_2m: [10], precipitation: [0],
+    };
+    fetchRouteForecast.mockResolvedValue({
+      serie: { ecmwf: [], icon: [serie, serie, serie] },
+      elevations: [],
+    });
+    render(<RouteWeatherPanel />);
+    await waitFor(() => expect(fetchRouteForecast).toHaveBeenCalled());
+    const avviso = await screen.findByText(/ECMWF non ha risposto/i);
+    expect(avviso).toHaveTextContent('ICON');
+  });
+});

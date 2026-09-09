@@ -13,7 +13,7 @@ import { saveSettings } from '@/lib/storage';
 import { DEFAULT_PACE, MODELLO_METEO_PREDEFINITO, type ModelloMeteo } from '@/lib/types';
 import {
   buildRouteWeather, defaultDeparture, samplePoints, righeVisibili,
-  type Livello, type RouteWeatherReport, type SerieOraria,
+  type Livello, type RouteWeatherReport,
   formattaFascia,
   scartoQuotaMassimo,
   SCARTO_QUOTA_RILEVANTE,
@@ -252,8 +252,10 @@ export function RouteWeatherPanel() {
         )}
 
         {/*
-          Il modello, come il passo, è lo STESSO delle Impostazioni: si salva e vale anche
-          fuori dal pannello. È qui perché è qui che si vede la differenza.
+          Il modello vive **solo qui**: a differenza del passo non ha un gemello nelle
+          Impostazioni, perché è qui che la differenza si vede. Si salva comunque fra le
+          impostazioni e sopravvive alla ricarica — cosa che alla v0.31.0 NON faceva, e il
+          commento diceva già di sì: `loadSettings` scriveva il campo e non lo rileggeva.
 
           Cambiarlo NON richiama la rete: la previsione dei due modelli arriva in una
           richiesta sola, e questo è solo un ricalcolo — la stessa regola del passo.
@@ -295,6 +297,21 @@ export function RouteWeatherPanel() {
         {errore && (
           <p role="alert" className="text-sm text-[#fecaca] bg-red-900/40 border border-red-700 rounded-lg p-3">
             {errore}
+          </p>
+        )}
+
+        {/*
+          Il modello scelto non ha parlato e l'altro si': senza dirlo, l'utente resta
+          davanti a «previsione non disponibile» senza sapere che a un tocco di distanza
+          c'e' un modello che ha risposto.
+        */}
+        {datiMeteo != null && !caricamento
+          && datiMeteo.serie[modello].length === 0
+          && datiMeteo.serie[modello === 'ecmwf' ? 'icon' : 'ecmwf'].length > 0 && (
+          <p role="status" className="text-sm text-amber-200 bg-amber-900/40 border border-amber-700 rounded-lg p-3">
+            {NOME_MODELLO[modello]} non ha risposto per questo percorso.{' '}
+            <strong className="font-medium">{NOME_MODELLO[modello === 'ecmwf' ? 'icon' : 'ecmwf']}</strong>{' '}
+            invece sì: puoi sceglierlo qui sopra.
           </p>
         )}
 

@@ -1,4 +1,5 @@
 import { oraItaliana } from './formato';
+import { cielo } from './cielo';
 import { haversineDistance } from './calculations';
 import type { Waypoint, Leg, AppMode, ModelloMeteo } from './types';
 import { MODELLO_METEO_PREDEFINITO } from './types';
@@ -173,51 +174,38 @@ export const SOGLIE_MODELLO: Record<ModelloMeteo, SoglieModello> = {
 const RAFFICA_ATTENZIONE = 30;
 const RAFFICA_FORTE = 50;
 const RAFFICA_PERICOLOSA = 70;
-/** Codici WMO di temporale: la lettura più forte, perché è una dichiarazione. */
-// Motivi tenuti CORTI: dicono cosa e il numero (che sta anche nella colonna). Il
-// perche' esteso — «in cresta», «temporale di calore», le soglie — vive in «Come si
-// legge», e ripeterlo sotto ogni punto rendeva la riga un paragrafo.
-const CODICI_TEMPORALE: Record<number, string> = {
-  95: 'temporale',
-  96: 'temporale con grandine',
-  99: 'temporale con grandine forte',
-};
 /**
- * Gli **altri** codici WMO di precipitazione, col livello che meritano.
+ * **Quanto pesa ogni codice WMO di precipitazione.**
  *
- * Prima esisteva solo `CODICI_TEMPORALE`: la tabella WMO era completa in `cielo.ts` per
- * **disegnare** l'iconcina, e ignorata da chi **giudica**. Il risultato, misurato il
- * 2026-09-09 su 288 ore, erano 7 ore con la pioggia scritta nel codice e il verdetto a
- * verde — cinque delle quali `80 = rovesci deboli`. L'unico grilletto per la pioggia era
- * la probabilità, che è un'altra cosa: dice «se», non «cosa».
+ * Qui sta solo il **livello**: il nome italiano del codice lo tiene `cielo.ts`, che è la
+ * tabella WMO dell'app. Prima erano riscritti a mano anche qui — due copie della stessa
+ * tabella, cioè due posti in cui cambiare una parola, e la possibilità di leggere nella
+ * stessa riga due nomi diversi per lo stesso codice (uno nella colonna «Cielo», l'altro
+ * fra i motivi). C'e' un test che tiene allineate le due tabelle.
  *
  * La scala: pioviggine e rovesci deboli sono un fastidio (1); pioggia e neve continue
- * bagnano e raffreddano, ed è lì che comincia l'ipotermia (2); le forme forti e **tutto
- * ciò che gela** sono un pericolo (3) — in quota il ghiaccio non è pioggia intensa, è un
- * altro problema.
+ * bagnano e raffreddano, ed e' li' che comincia l'ipotermia (2); le forme forti, **tutto
+ * cio' che gela** e il temporale sono un pericolo (3) — in quota il ghiaccio non e'
+ * pioggia intensa, e' un altro problema.
+ *
+ * Prima della v0.31.0 l'unica voce qui dentro era il temporale: pioviggine, pioggia, neve
+ * e rovesci esistevano in `cielo.ts` per **disegnare** l'iconcina e nessuno li leggeva per
+ * **giudicare**. Misurato su 288 ore: 7 con la pioggia scritta nel codice e il verdetto a
+ * verde, cinque delle quali «rovesci deboli».
  */
-const CODICI_PRECIPITAZIONE: Record<number, { testo: string; livello: 1 | 2 | 3 }> = {
-  51: { testo: 'pioviggine leggera', livello: 1 },
-  53: { testo: 'pioviggine', livello: 1 },
-  55: { testo: 'pioviggine intensa', livello: 1 },
-  56: { testo: 'pioviggine che gela', livello: 3 },
-  57: { testo: 'pioviggine che gela, intensa', livello: 3 },
-  61: { testo: 'pioggia debole', livello: 2 },
-  63: { testo: 'pioggia', livello: 2 },
-  65: { testo: 'pioggia forte', livello: 3 },
-  66: { testo: 'pioggia che gela', livello: 3 },
-  67: { testo: 'pioggia che gela, forte', livello: 3 },
-  71: { testo: 'neve debole', livello: 1 },
-  73: { testo: 'neve', livello: 2 },
-  75: { testo: 'neve forte', livello: 3 },
-  77: { testo: 'granelli di neve', livello: 1 },
-  80: { testo: 'rovesci deboli', livello: 1 },
-  81: { testo: 'rovesci', livello: 2 },
-  82: { testo: 'rovesci violenti', livello: 3 },
-  85: { testo: 'rovesci di neve', livello: 2 },
-  86: { testo: 'rovesci di neve forti', livello: 3 },
+const LIVELLO_PER_CODICE: Record<number, 1 | 2 | 3> = {
+  51: 1, 53: 1, 55: 1,          // pioviggine
+  56: 3, 57: 3,                 // pioviggine che gela
+  61: 2, 63: 2, 65: 3,          // pioggia
+  66: 3, 67: 3,                 // pioggia che gela
+  71: 1, 73: 2, 75: 3, 77: 1,   // neve
+  80: 1, 81: 2, 82: 3,          // rovesci
+  85: 2, 86: 3,                 // rovesci di neve
+  95: 3, 96: 3, 99: 3,          // temporale: la lettura piu' forte, perche' e' una dichiarazione
 };
 
+/** I codici che entrano nel giudizio: serve al test che li confronta con `cielo.ts`. */
+export const CODICI_GIUDICATI: readonly number[] = Object.keys(LIVELLO_PER_CODICE).map(Number);
 /**
  * Distanza (km) oltre la quale, fra due waypoint consecutivi, si inserisce un punto in
  * mezzo per il meteo. Le maglie dei modelli sono 1-11 km: con waypoint a 15 km di
@@ -391,18 +379,14 @@ export function classifyHour(o: OraDaClassificare, soglie: SoglieModello): Class
   const raffNota = Number.isFinite(o.gusts);
   const qualcosaDiNoto = codiceNoto || pioggiaNota || capeNoto || raffNota;
 
-  // 1. Temporale esplicito: il modello lo dichiara. La lettura più forte.
-  if (codiceNoto && CODICI_TEMPORALE[o.weatherCode]) {
-    reasons.push(CODICI_TEMPORALE[o.weatherCode]);
-    alza(3);
-  }
-
-  // 1-bis. Le altre precipitazioni dichiarate dal codice. Il modello sta dicendo che
-  // cade qualcosa: finora lo ascoltava solo l'iconcina, non il giudizio.
-  const precipitazione = codiceNoto ? CODICI_PRECIPITAZIONE[o.weatherCode] : undefined;
-  if (precipitazione != null) {
-    reasons.push(precipitazione.testo);
-    alza(precipitazione.livello);
+  // 1. La precipitazione dichiarata dal codice, temporale compreso: e' il modello che
+  // dice che cade qualcosa. Il nome lo scrive `cielo.ts`, cosi' la parola nei motivi e
+  // quella nella colonna «Cielo» non possono divergere.
+  const livelloCodice = codiceNoto ? LIVELLO_PER_CODICE[o.weatherCode] : undefined;
+  if (livelloCodice != null) {
+    const nome = cielo(o.weatherCode)?.testo;
+    if (nome != null) reasons.push(nome);
+    alza(livelloCodice);
   }
 
   // 2. Pioggia dal modello: la probabilità è già il «ci sarà o no».
