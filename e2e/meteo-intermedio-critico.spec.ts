@@ -1,4 +1,4 @@
-import { test, expect, apriApp } from './supporto';
+import { test, expect, apriApp, perDueModelli } from './supporto';
 import type { Page } from '@playwright/test';
 
 /**
@@ -48,11 +48,12 @@ function previsione(n: number, critico: number, quote: number[]) {
         temperature_2m.push(brutto ? 12 : 18);
       }
     }
-    return { time, cape, weather_code, wind_gusts_10m, precipitation_probability, temperature_2m };
+    return { time, cape, weather_code, wind_gusts_10m, precipitation_probability, temperature_2m,
+      precipitation: time.map(() => (brutto ? 4.2 : 0)) };
   };
   return Array.from({ length: n }, (_, i) => ({
     elevation: quote[i] ?? 1257,
-    hourly: serie(i === critico),
+    hourly: perDueModelli(serie(i === critico)),
   }));
 }
 

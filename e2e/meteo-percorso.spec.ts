@@ -1,4 +1,4 @@
-import { test, expect, apriApp } from './supporto';
+import { test, expect, apriApp, perDueModelli } from './supporto';
 import type { Page } from '@playwright/test';
 
 /**
@@ -50,11 +50,13 @@ function previsione(quote: number[]) {
         precipitation_probability.push(0); temperature_2m.push(temp);
       }
     }
-    return { time, cape, weather_code, wind_gusts_10m, precipitation_probability, temperature_2m };
+    return { time, cape, weather_code, wind_gusts_10m, precipitation_probability, temperature_2m,
+      precipitation: time.map(() => 0) };
   };
   const codici = [0, 3, 95];
   const temperature = [16, 9, 8];
-  return quote.map((q, i) => ({ elevation: q, hourly: serie(codici[i], temperature[i]) }));
+  // Le due serie sono uguali: qui non si prova il disaccordo fra modelli.
+  return quote.map((q, i) => ({ elevation: q, hourly: perDueModelli(serie(codici[i], temperature[i])) }));
 }
 
 async function apriIlMeteo(page: Page, itinerario: unknown = IT): Promise<string[]> {
@@ -134,6 +136,34 @@ test.describe('meteo del percorso', () => {
     // Nessuna voce inventata: la legenda non e' il manuale della WMO.
     expect(testo).not.toContain('nebbia');
     expect(testo).not.toContain('neve');
+  });
+
+  /**
+   * **Cambiare modello non richiede una nuova previsione.**
+   *
+   * I due modelli arrivano in una richiesta sola (misurato: ~17 KB), quindi la tendina è
+   * un ricalcolo. È la stessa regola già valida per il passo, e qui la si verifica dove
+   * conta: contando le richieste vere che partono dal browser.
+   */
+  test('la tendina cambia modello senza richiamare la rete', async ({ page }) => {
+    const chiesti = await apriIlMeteo(page);
+    const prima = chiesti.length;
+    await expect(page.getByText(/vengono da/i)).toContainText('ECMWF');
+
+    await page.getByLabel(/Modello di previsione/i).selectOption('icon');
+
+    await expect(page.getByText(/vengono da/i)).toContainText('ICON');
+    expect(chiesti.length).toBe(prima);
+  });
+
+  /** Al tocco non c'è nessun `title`: la voce del menu deve essere scritta e raggiungibile. */
+  test('i tre puntini di una riga aprono quel punto su Meteoblue', async ({ page }) => {
+    await apriIlMeteo(page);
+    const riga = page.getByRole('table').getByRole('row').filter({ hasText: 'Cima delle Murelle' });
+    await riga.getByRole('button', { name: /Altre azioni/i }).click();
+    const voce = page.getByRole('menuitem', { name: /Apri su Meteoblue/i });
+    await expect(voce).toBeVisible();
+    await expect(voce).toHaveAttribute('href', /meteoblue\.com.*42\.085N14\.014E/);
   });
 
   /**

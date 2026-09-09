@@ -152,5 +152,31 @@ export async function apriEditor(page: Page): Promise<void> {
   if (await scheda.isVisible().catch(() => false)) await scheda.click();
 }
 
+/**
+ * La forma vera della risposta di Open-Meteo con **più modelli**: ogni variabile è
+ * suffissa col nome del modello (`weather_code_ecmwf_ifs`), mentre `time` resta unico.
+ *
+ * L'app chiede ECMWF e ICON in una sola richiesta, quindi una risposta finta con le
+ * chiavi nude non verrebbe riconosciuta e il pannello resterebbe in errore — senza che
+ * ci sia nulla di rotto nell'app.
+ *
+ * Le due serie sono identiche se non si passa la seconda: la maggior parte degli scenari
+ * non prova il disaccordo fra modelli, prova altro.
+ */
+export function perDueModelli(
+  ecmwf: Record<string, unknown[]>,
+  icon: Record<string, unknown[]> = ecmwf,
+): Record<string, unknown[]> {
+  const suffissa = (s: Record<string, unknown[]>, api: string) =>
+    Object.fromEntries(
+      Object.entries(s).filter(([k]) => k !== 'time').map(([k, v]) => [`${k}_${api}`, v]),
+    );
+  return {
+    time: ecmwf.time,
+    ...suffissa(ecmwf, 'ecmwf_ifs'),
+    ...suffissa(icon, 'icon_seamless'),
+  };
+}
+
 export const test = base;
 export { expect };
