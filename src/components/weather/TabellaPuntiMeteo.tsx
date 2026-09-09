@@ -1,7 +1,7 @@
 'use client';
 
 import { cielo } from '@/lib/cielo';
-import { oraItaliana, durataMin } from '@/lib/formato';
+import { numero, oraItaliana, durataMin } from '@/lib/formato';
 import { righeVisibili, type Livello, type RigaPercorso, type PuntoIntermedio } from '@/lib/route-weather';
 
 /**
@@ -33,8 +33,34 @@ const PALLINO: Record<string, string> = {
 
 function chiave(l: Livello): string { return l == null ? 'null' : String(l); }
 
-function numero(v: number | undefined, unita = ''): string {
+function intero(v: number | undefined, unita = ''): string {
   return v == null || !Number.isFinite(v) ? '—' : `${Math.round(v)}${unita}`;
+}
+
+/**
+ * Il colore dei millimetri: la scala convenzionale dell'intensita' oraria (debole sotto
+ * 1, moderata fino a 4, forte fino a 10, nubifragio oltre), coi colori che l'app usa gia'
+ * per la gravita'.
+ *
+ * NON entra nel giudizio: le soglie misurate sono di probabilita', e una soglia in mm
+ * inventata qui sarebbe il difetto che quella misura ha appena tolto. Serve all'occhio,
+ * per distinguere una spruzzata da un rovescio che ti ferma.
+ */
+function classeMm(mm: number | undefined): string {
+  if (mm == null || !Number.isFinite(mm) || mm < 1) return 'text-gray-300';
+  if (mm < 4) return 'text-amber-300';
+  if (mm < 10) return 'text-orange-300';
+  return 'text-red-400';
+}
+
+/**
+ * Zero e' un fatto («non piove»), un dato che manca e' un'altra cosa: si scrivono
+ * diversi. Confonderli e' la direzione di errore che questo progetto ha gia' pagato.
+ */
+function testoMm(mm: number | undefined): string {
+  if (mm == null || !Number.isFinite(mm)) return 'n/d';
+  if (mm === 0) return '—';
+  return `${numero(mm, 1)} mm`;
 }
 
 /**
@@ -54,7 +80,7 @@ export function TabellaPuntiMeteo({ righe }: { righe: RigaPercorso[] }) {
             <th scope="col" className="py-1 pr-2 font-medium">Punto</th>
             <th scope="col" className="py-1 pr-2 font-medium">Arrivo</th>
             <th scope="col" className="py-1 pr-2 font-medium">Cielo</th>
-            <th scope="col" className="py-1 pr-2 font-medium">CAPE</th>
+            <th scope="col" className="py-1 pr-2 font-medium">mm</th>
             <th scope="col" className="py-1 pr-2 font-medium">Raffiche</th>
             <th scope="col" className="py-1 font-medium">Piogg.</th>
           </tr>
@@ -88,9 +114,11 @@ export function TabellaPuntiMeteo({ righe }: { righe: RigaPercorso[] }) {
               <td className="py-1.5 pr-2 text-gray-300 whitespace-nowrap">
                 <Iconcina codice={r.hour?.weatherCode} temp={r.hour?.temp} />
               </td>
-              <td className="py-1.5 pr-2 text-gray-300">{numero(r.hour?.cape)}</td>
-              <td className="py-1.5 pr-2 text-gray-300">{numero(r.hour?.gusts, ' km/h')}</td>
-              <td className="py-1.5 text-gray-300">{numero(r.hour?.precipProb, '%')}</td>
+              <td className={`py-1.5 pr-2 whitespace-nowrap ${classeMm(r.hour?.mm)}`}>
+                {testoMm(r.hour?.mm)}
+              </td>
+              <td className="py-1.5 pr-2 text-gray-300">{intero(r.hour?.gusts, ' km/h')}</td>
+              <td className="py-1.5 text-gray-300">{intero(r.hour?.precipProb, '%')}</td>
             </tr>
           ))}
         </tbody>

@@ -95,3 +95,51 @@ describe('TabellaPuntiMeteo e i punti in mezzo', () => {
     expect(screen.getByText(/Vetta/)).toBeInTheDocument();
   });
 });
+
+/**
+ * **I millimetri al posto del CAPE.**
+ *
+ * Il CAPE è energia in J/kg: a chi cammina non dice niente, e occupava una colonna su un
+ * telefono. Sparisce dalla tabella ma **resta nel giudizio** — quando conta, `classifyHour`
+ * lo scrive a parole («possibili temporali forti»). Al suo posto i millimetri, che sono la
+ * differenza fra una spruzzata e un rovescio che ti ferma.
+ */
+describe('la colonna dei millimetri', () => {
+  const oraCon = (over: Partial<NonNullable<RigaPercorso['hour']>>) => ({
+    time: '2026-09-09T15:00:00.000Z', cape: 2500, weatherCode: 3, gusts: 12,
+    precipProb: 40, temp: 12, mm: 0, ...over,
+  });
+
+  test('il CAPE non si mostra più: è un numero che non dice niente a chi cammina', () => {
+    render(<TabellaPuntiMeteo righe={[rigaBase({ hour: oraCon({ cape: 2500 }) })]} />);
+    expect(screen.queryByText('CAPE')).not.toBeInTheDocument();
+    expect(screen.queryByText('2500')).not.toBeInTheDocument();
+  });
+
+  test('i millimetri si scrivono all\'italiana e si colorano per gravità', () => {
+    render(<TabellaPuntiMeteo righe={[rigaBase({ hour: oraCon({ mm: 9.7 }) })]} />);
+    const cella = screen.getByText('9,7 mm');
+    expect(cella).toHaveClass('text-orange-300');
+  });
+
+  /** Una cifra decimale sempre, così in colonna i numeri restano allineati. */
+  test.each([
+    [0.4, '0,4 mm', 'text-gray-300'],
+    [2.4, '2,4 mm', 'text-amber-300'],
+    [6.9, '6,9 mm', 'text-orange-300'],
+    [14, '14,0 mm', 'text-red-400'],
+  ])('%s mm → «%s», nel colore della sua gravità', (mm, testo, classe) => {
+    render(<TabellaPuntiMeteo righe={[rigaBase({ hour: oraCon({ mm }) })]} />);
+    expect(screen.getByText(testo)).toHaveClass(classe);
+  });
+
+  /** Zero è un fatto («non piove»), un dato che manca è un'altra cosa. Non si confondono. */
+  test('zero millimetri è un trattino, un dato assente è n/d', () => {
+    render(<TabellaPuntiMeteo righe={[
+      rigaBase({ name: 'asciutto', hour: oraCon({ mm: 0 }) }),
+      rigaBase({ waypointIndex: 1, name: 'ignoto', hour: oraCon({ mm: Number.NaN }) }),
+    ]} />);
+    expect(screen.getByText('—')).toBeInTheDocument();
+    expect(screen.getAllByText('n/d').length).toBeGreaterThanOrEqual(1);
+  });
+});
