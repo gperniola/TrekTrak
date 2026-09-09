@@ -1,18 +1,22 @@
 # Meteo del percorso: perché diceva «nuvoloso» sotto un temporale — misure del 2026-09-09
 
-Nasce da due segnalazioni dell'utente, a poche ore l'una dall'altra:
+Nasce da tre segnalazioni dell'utente, nell'arco di una giornata:
 
 > «sul percorso mi dice nuvoloso ma se apro meteoblue mi dice temporali e piogge»
 
 > «anche con "piogge deboli" segna verde, nessuna criticità»
+
+> «"pioggia 78%, possibili temporali forti" … però l'iconcina cielo mostra "sereno", perché?»
 
 Tutti i numeri qui sono **misurati** contro i servizi veri il 2026-09-09, e la parte
 centrale — la classifica fra i modelli — è verificata contro **osservazioni**, non contro
 un altro modello. Lo script che rifà le misure è `meteo-verifica-modelli.py`, nella stessa
 cartella: la prossima volta si rimisura invece di discutere.
 
-Il punto del documento è che le due segnalazioni sono **difetti diversi**, e che il più
-grave dei due non è quello che sembrava.
+Il punto del documento è che le tre segnalazioni sono **difetti diversi**, e che il più
+grave non è quello che sembrava. Il terzo è arrivato **dopo** le correzioni dei primi due:
+la stessa frattura fra corsa singola ed ensemble, sopravvissuta in un posto che non avevo
+guardato.
 
 ---
 
@@ -67,6 +71,95 @@ Maiella  2026-09-10 19:00 UTC
   app:   codice=3 (coperto), prob=0%, CAPE=900   ->  VERDE
   ECMWF: codice=95  =  TEMPORALE
 ```
+
+---
+
+## Difetto C — l'iconcina diceva «sereno» sotto un avviso di pioggia
+
+Segnalato dall'utente il 2026-09-09, dopo le correzioni precedenti:
+
+> «"pioggia 78%, possibili temporali forti, raffiche 31 km/h" per strada statale Appia 7
+> alle 17 di oggi, però l'iconcina cielo mostra "sereno", perché? forse temporali con
+> schiarite viene visto come sereno?»
+
+**No: quel codice WMO non esiste.** È di nuovo la frattura del difetto A, sopravvissuta in
+un posto che non avevo guardato — la colonna «Cielo». Le due variabili rispondono a due
+domande diverse:
+
+- **`weather_code`** è il cielo di **una** corsa del modello in quella cella a quell'ora;
+- **`precipitation_probability`** viene da un **insieme di simulazioni**.
+
+Quella corsa era capitata fra le asciutte. Dati veri di quel pomeriggio, ECMWF sulla SS7
+(40,83 / 16,50):
+
+| ora it. | codice | probabilità | CAPE |
+|---|---|---|---|
+| 17:00 | 51 pioviggine | 65% | 1350 |
+| **18:00** | **0 sereno** | **54%** | 1850 |
+| 19:00 | 0 sereno | 31% | 2340 |
+
+**Quanto spesso**, sui due mesi e le 8 stazioni della verifica principale:
+
+| | cielo senza pioggia + probabilità da «attenzione» in su | di cui con l'iconcina del sole |
+|---|---|---|
+| ECMWF | 760 ore su 11.904 = **6,4%** | 196 = 1,6% |
+| ICON | 897 su 11.904 = **7,5%** | 85 = 0,7% |
+
+Circa un'ora su quindici, e concentrata nei giorni convettivi — cioè quelli in cui la
+tabella serve.
+
+### La strada che sembrava migliore, e perché è stata scartata
+
+Domanda dell'utente: *«l'ensemble che ti dà bagnato non ha nulla per mostrare l'iconcina
+corretta? non ha variabile cielo come la run singola?»*
+
+**Ce l'ha.** `ensemble-api.open-meteo.com` espone `weather_code` **per ogni membro** — 51
+per `ecmwf_ifs025`, 40 per `icon_seamless` — accetta `elevation`, e una sola chiamata copre
+entrambi i modelli. Quindi si poteva **contare** il cielo invece di dedurlo.
+
+Misurato, non è la strada giusta, per tre ragioni indipendenti.
+
+**1. Nel caso segnalato non avrebbe mostrato pioggia.** Alle 18:00, i 51 membri ECMWF:
+
+```
+19 poco nuvoloso   14 pioviggine   9 sereno   9 parz. nuvoloso
+```
+
+La maggioranza dà **poco nuvoloso**. I bagnati sono 14 su 51 (27%): una minoranza. Toglie
+il «sereno», non mette la pioggia.
+
+**2. I membri e la probabilità dichiarata sono due popolazioni diverse.** Alla stessa ora:
+
+| ora it. | membri con codice di pioggia | membri con > 0,1 mm | probabilità dichiarata |
+|---|---|---|---|
+| 15:00 | 84% | 50% | **29%** |
+| 18:00 | 27% | **5%** | **54%** |
+
+Il 54% **non viene da quei 51 membri** (la documentazione parla di ~30 simulazioni).
+Mettere nella stessa riga un'iconcina contata su una popolazione e una percentuale presa da
+un'altra sarebbe **mescolare le fonti** — la regola che questa stessa versione ha appena
+stabilito per i due modelli. Nota a margine: l'ensemble ECMWF è **a passo di tre ore**, quindi
+tre ore consecutive riportano gli stessi conteggi.
+
+**3. Costo e una trappola.** 12 punti × 3 giorni × due modelli = **299 KB** contro i 17 KB
+della chiamata attuale (un percorso tipico da 5-6 punti su 2 giorni starebbe sui 100 KB). E
+l'host è `ensemble-api.open-meteo.com`: la regola `NetworkOnly` del service worker copre
+`api.open-meteo.com` e **non lo intercetterebbe**, quindi le previsioni finirebbero nella
+cache generica da un'ora — il difetto della v0.13.5.
+
+Più un costo di sostanza: l'ensemble ECMWF gira a ~25 km di maglia contro i 9 km della corsa
+singola. Si guadagnerebbe il consenso e si perderebbe risoluzione, su un'app dove la cella di
+valle e quella di cresta sono due mondi.
+
+### Cosa si è fatto
+
+L'iconcina **segue la probabilità**: sopra la soglia d'attenzione *di quel modello* e con un
+codice che non dichiara precipitazione, mostra «possibile pioggia». Una variabile sola, la
+stessa che decide il colore del pallino, alla risoluzione fine del modello, zero byte in più.
+**La nebbia è esclusa**: in montagna è un pericolo suo, e coprirla toglierebbe informazione.
+
+Il dettaglio della riga dice sempre cosa aveva detto la corsa, e «Come si legge» spiega la
+differenza fra una corsa e un insieme — è il punto didattico dietro tutta questa storia.
 
 ---
 
@@ -279,6 +372,8 @@ Progetto in `docs/superpowers/specs/2026-09-09-meteo-modelli-e-soglie-design.md`
 4. Colonna CAPE via dalla tabella (resta nel giudizio, detto a parole), millimetri al suo
    posto, colorati per gravità.
 5. Menu ⋮ per riga con «Apri su Meteoblue».
+6. L'iconcina segue la probabilità quando il codice la contraddice (difetto C).
 
-**Rimandati:** ensemble grezzo a 51 membri, ICON-2I come indicatore «localmente forti»,
-Meteoblue via API.
+**Scartato con misura:** l'iconcina contata sui membri dell'ensemble (vedi difetto C).
+
+**Rimandati:** ICON-2I come indicatore «localmente forti», Meteoblue via API.
