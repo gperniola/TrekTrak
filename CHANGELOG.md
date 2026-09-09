@@ -4,6 +4,18 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.30.3] — 2026-09-09 — Niente lampo di tema all'avvio
+
+### Fixed
+- **Nessun lampo chiaro→scuro all'apertura per chi ha il telefono in chiaro.** Portando
+  il tema di partenza a scuro (v0.30.2), lo script anti-lampo nel `<head>` — quello che
+  decide l'aspetto **prima** del primo disegno — era rimasto sul vecchio default «come il
+  sistema»: un utente nuovo col sistema in chiaro vedeva il primo fotogramma chiaro,
+  subito ridipinto scuro da React, a ogni avvio. Ora i due strati (script inline e
+  `temaValido`) decidono lo stesso default, e un test che li prova **insieme** — eseguendo
+  davvero lo script inline — impedisce che tornino a divergere. Trovato in una sessione di
+  review incrociata (codice + usabilità + prova sullo schermo).
+
 ## [0.30.2] — 2026-09-08 — Il back non chiude più l'app, minuti nel meteo, tema scuro
 
 ### Fixed
