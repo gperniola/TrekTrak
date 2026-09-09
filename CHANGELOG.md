@@ -4,6 +4,18 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.30.4] — 2026-09-09 — Su desktop i banner tornano fasce in alto
+
+### Fixed
+- **Su desktop il banner dell'allerta Protezione Civile alla posizione (e quello offline)
+  non copre più la mappa.** Erano figli diretti di un `<main>` che su desktop diventava
+  `flex-row`, e lì un banner in flusso non è una fascia in alto ma una **colonna a tutta
+  altezza**: col testo lungo dell'allerta, larga abbastanza da coprire la mappa. Su mobile
+  (`<main>` a colonna) erano fasce in alto e si vedevano bene — per questo il difetto non
+  si notava lì. Ora `<main>` resta **sempre** una colonna e la riga sidebar+mappa sta in
+  un contenitore a parte, sotto i banner. Verificato su desktop con un test e2e (e per
+  mutazione).
+
 ## [0.30.3] — 2026-09-09 — Niente lampo di tema all'avvio
 
 ### Fixed

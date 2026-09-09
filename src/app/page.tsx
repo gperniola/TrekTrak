@@ -101,7 +101,15 @@ export default function Home() {
 
 
   return (
-    <main className="h-dvh flex flex-col lg:flex-row overflow-hidden">
+    <main className="h-dvh flex flex-col overflow-hidden">
+      {/*
+        I banner in flusso stanno SOPRA la riga sidebar+mappa, non dentro. `<main>` resta
+        una colonna: così i banner sono fasce a tutta larghezza in alto. Erano figli
+        diretti di un `<main>` che su desktop diventava `flex-row`, e lì un banner
+        `shrink-0` non è una fascia in alto ma una **colonna a tutta altezza** che copre
+        la mappa (su mobile, colonna, si vedeva bene; su desktop no). La riga con la
+        sidebar e la mappa è ora un contenitore a parte, sotto i banner.
+      */}
       <OfflineBanner />
       <UpdateBanner />
       {/* Allerta DPC nella zona dove ci si trova. In flusso come gli altri due banner:
@@ -111,6 +119,8 @@ export default function Home() {
           `trektrak_invited` non viene mai rimosso — avrebbe spento la funzione per la
           quasi totalità degli utenti. */}
       {!justInvited && <DpcPositionWarning />}
+      {/* La riga sidebar + mappa: colonna su mobile, affiancate su desktop. */}
+      <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
       {/* Desktop sidebar — hidden on mobile */}
       <div className="hidden lg:flex">
         <LeftPanel />
@@ -225,6 +235,7 @@ export default function Home() {
         {/* Bottom navigation — mobile only, always visible */}
         <BottomNav />
       </div>
+      </div>{/* fine riga sidebar + mappa */}
 
       {/* Settings Modals */}
       {showSettings && <ToleranceSettings onClose={() => setShowSettings(false)} />}
