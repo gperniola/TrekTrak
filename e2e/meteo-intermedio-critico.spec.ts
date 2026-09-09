@@ -98,9 +98,15 @@ test.describe('punti in mezzo a due waypoint distanti', () => {
   test('col temporale in mezzo compare una riga in più, «in mezzo» fra i due punti', async ({ page }) => {
     await apriIlMeteo(page, 2);
     const righe = page.getByRole('table').getByRole('row');
-    // intestazione + 2 waypoint + 1 punto in mezzo (gli altri due in mezzo sono sereni)
-    await expect(righe).toHaveCount(4);
-    const mezzo = righe.filter({ hasText: 'in mezzo' });
+    /*
+      Si contano i PUNTI, non le righe della tabella: un punto critico si porta dietro la
+      sua riga di motivi, e contare le righe legherebbe questo test a una scelta di layout
+      che non c'entra niente con quello che sta verificando.
+    */
+    const punti = righe.filter({ has: page.getByRole('button', { name: /Altre azioni/i }) });
+    // i 2 waypoint piu' 1 punto in mezzo (gli altri due in mezzo sono sereni e restano nascosti)
+    await expect(punti).toHaveCount(3);
+    const mezzo = punti.filter({ hasText: 'in mezzo' });
     await expect(mezzo).toHaveCount(1);
     await expect(mezzo).toContainText('tra «Passo Lanciano» e «Blockhaus»');
     await expect(mezzo).toContainText('temporale');
@@ -111,7 +117,8 @@ test.describe('punti in mezzo a due waypoint distanti', () => {
   test('se in mezzo è sereno, nessuna riga in più: la tabella non si intasa', async ({ page }) => {
     await apriIlMeteo(page, -1);
     const righe = page.getByRole('table').getByRole('row');
-    await expect(righe).toHaveCount(3); // intestazione + i due waypoint
+    const punti = righe.filter({ has: page.getByRole('button', { name: /Altre azioni/i }) });
+    await expect(punti).toHaveCount(2); // solo i due waypoint
     await expect(righe.filter({ hasText: 'in mezzo' })).toHaveCount(0);
   });
 });

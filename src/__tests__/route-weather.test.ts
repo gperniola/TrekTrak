@@ -193,10 +193,15 @@ describe('classificazione di un\'ora', () => {
   test('ogni motivo è nominato, non solo il livello', () => {
     const c = classifyHour(ora({ cape: 1200, gusts: 55, weatherCode: 95, precipProb: 80 }), soglie);
     expect(c.reasons.length).toBeGreaterThanOrEqual(3);
-    // Motivi corti ma tutti presenti: temporale, pioggia, raffiche (il numero del CAPE
-    // sta nella sua colonna, non ripetuto nel motivo).
-    expect(c.reasons.join(' ')).toMatch(/temporale/i);
-    expect(c.reasons.join(' ')).toMatch(/pioggia/i);
+    /*
+      Motivi corti ma tutti presenti. La probabilità sta **attaccata a ciò che il codice
+      dichiara** — «temporale 80%», non «temporale · pioggia 80%»: quell'80% è la
+      probabilità di quel fenomeno, e chiamarla «pioggia» con un codice di temporale (o,
+      peggio, di neve) diceva una cosa che non è vera. Il numero del CAPE non si ripete:
+      sta nel dettaglio della riga.
+    */
+    expect(c.reasons.join(' ')).toMatch(/temporale 80%/i);
+    expect(c.reasons.join(' ')).toMatch(/temporali forti/i);
     expect(c.reasons.join(' ')).toMatch(/raffiche/i);
   });
 
@@ -920,5 +925,38 @@ describe('i codici giudicati esistono tutti in cielo.ts', () => {
       );
       expect(c.reasons).toContain(cielo(codice)!.testo);
     }
+  });
+});
+
+/**
+ * **Il motivo non balbetta, e non cambia la sostanza in acqua.**
+ *
+ * Visto a schermo il 2026-09-09: con `codice 63` e probabilità 70 la riga scriveva
+ * «pioggia · pioggia 70%». Peggio con la neve — «neve · **pioggia** 70%» — dove la seconda
+ * metà dice una cosa che non è vera. Il codice dà il nome, la probabilità dà il numero:
+ * insieme sono **un** motivo solo.
+ */
+describe('il nome della precipitazione e la sua probabilità sono un motivo solo', () => {
+  const ora = (weatherCode: number, precipProb: number): OraDaClassificare => ({
+    time: '2026-09-09T15:00:00.000Z', cape: 0, weatherCode, gusts: 10, precipProb,
+  });
+
+  test('pioggia dichiarata e probabile: «pioggia 70%», non «pioggia · pioggia 70%»', () => {
+    const c = classifyHour(ora(63, 70), SOGLIE_MODELLO.ecmwf);
+    expect(c.reasons).toEqual(['pioggia 70%']);
+  });
+
+  test('con la neve il numero resta della neve, non diventa pioggia', () => {
+    const c = classifyHour(ora(73, 70), SOGLIE_MODELLO.ecmwf);
+    expect(c.reasons).toEqual(['neve 70%']);
+    expect(c.reasons.join(' ')).not.toMatch(/pioggia/);
+  });
+
+  test('codice senza probabilità: resta il solo nome', () => {
+    expect(classifyHour(ora(80, 0), SOGLIE_MODELLO.ecmwf).reasons).toEqual(['rovesci deboli']);
+  });
+
+  test('probabilità senza codice di pioggia: si dice «pioggia», che è ciò che il numero misura', () => {
+    expect(classifyHour(ora(3, 70), SOGLIE_MODELLO.ecmwf).reasons).toEqual(['pioggia 70%']);
   });
 });

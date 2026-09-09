@@ -36,7 +36,12 @@ function previsione(quote: number[]) {
     const x = new Date(oggi.getTime() + d * 86400000);
     return x.toISOString().slice(0, 10);
   });
-  const serie = (codice: number, temp: number) => {
+  /*
+    Il punto col temporale porta pioggia VERA (12,4 mm): la colonna dei millimetri deve
+    essere alla sua larghezza massima, se no la misura a 360 px passerebbe solo perche' la
+    previsione finta e' asciutta — cioe' per il motivo sbagliato.
+  */
+  const serie = (codice: number, temp: number, mm = 0) => {
     const time: string[] = [];
     const cape: number[] = [];
     const weather_code: number[] = [];
@@ -47,16 +52,19 @@ function previsione(quote: number[]) {
       for (let h = 0; h < 24; h++) {
         time.push(`${g}T${String(h).padStart(2, '0')}:00`);
         cape.push(10); weather_code.push(codice); wind_gusts_10m.push(12);
-        precipitation_probability.push(0); temperature_2m.push(temp);
+        precipitation_probability.push(codice === 95 ? 70 : 0); temperature_2m.push(temp);
       }
     }
     return { time, cape, weather_code, wind_gusts_10m, precipitation_probability, temperature_2m,
-      precipitation: time.map(() => 0) };
+      precipitation: time.map(() => mm) };
   };
   const codici = [0, 3, 95];
   const temperature = [16, 9, 8];
+  const millimetri = [0, 0, 12.4];
   // Le due serie sono uguali: qui non si prova il disaccordo fra modelli.
-  return quote.map((q, i) => ({ elevation: q, hourly: perDueModelli(serie(codici[i], temperature[i])) }));
+  return quote.map((q, i) => ({
+    elevation: q, hourly: perDueModelli(serie(codici[i], temperature[i], millimetri[i])),
+  }));
 }
 
 async function apriIlMeteo(page: Page, itinerario: unknown = IT): Promise<string[]> {

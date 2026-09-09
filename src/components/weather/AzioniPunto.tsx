@@ -1,6 +1,8 @@
 'use client';
 
 import { linkMeteoblue } from '@/lib/meteoblue';
+import { metri, numero } from '@/lib/formato';
+import type { RigaPercorso } from '@/lib/route-weather';
 
 /**
  * Le **azioni di un punto** del meteo del percorso.
@@ -49,28 +51,52 @@ export function BottoneAzioniPunto(
 }
 
 /**
- * Il contenuto rivelato: per ora una voce sola.
+ * Il contenuto rivelato: il link a Meteoblue e i **numeri che la tabella non mostra**.
  *
  * Meteoblue si apre con un **link**, non coi suoi dati: la loro API vuole una chiave da
  * tenere su un server, e la pagina non si può leggere (risponde con una sfida Cloudflare).
  * Il link invece non chiede niente e porta l'utente alla fonte che consulta di suo.
+ *
+ * Qui sotto stanno i dati che dalla tabella sono stati tolti perché a colpo d'occhio non
+ * servono — il CAPE su tutti — ma che chi vuole capire *perché* un punto è arancione deve
+ * poter vedere. Toglierli dalla tabella non vuol dire nasconderli.
  */
-export function AzioniPunto({ lat, lon, nome }: { lat: number; lon: number; nome: string }) {
-  const indirizzo = linkMeteoblue(lat, lon);
-  // Senza coordinate valide non c'e' nessuna pagina da aprire: si dichiara invece di
-  // offrire un collegamento che non porta da nessuna parte.
-  if (indirizzo == null) {
-    return <span className="text-[11px] text-gray-400">Nessuna azione: coordinate non disponibili.</span>;
-  }
+export function AzioniPunto({ riga }: { riga: RigaPercorso }) {
+  const indirizzo = linkMeteoblue(riga.lat, riga.lon);
+  const nome = riga.name || 'senza nome';
   return (
-    <a
-      href={indirizzo}
-      target="_blank"
-      // `noopener`: senza, la pagina aperta puo' manipolare quella che l'ha aperta.
-      rel="noopener noreferrer"
-      className="inline-flex items-center gap-1 text-[11px] text-green-400 hover:text-green-300 underline max-lg:min-h-[44px]"
-    >
-      Apri «{nome}» su Meteoblue <span aria-hidden>↗</span>
-    </a>
+    <div className="space-y-1">
+      {indirizzo != null ? (
+        <a
+          href={indirizzo}
+          target="_blank"
+          // `noopener`: senza, la pagina aperta puo' manipolare quella che l'ha aperta.
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-[11px] text-green-400 hover:text-green-300 underline max-lg:min-h-[44px]"
+        >
+          Leggi previsione Meteoblue per «{nome}» <span aria-hidden>↗</span>
+        </a>
+      ) : (
+        // Senza coordinate valide non c'e' nessuna pagina da aprire: si dichiara invece
+        // di offrire un collegamento che non porta da nessuna parte.
+        <span className="text-[11px] text-gray-400">Coordinate non disponibili: nessuna pagina da aprire.</span>
+      )}
+      <dl className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-gray-400">
+        <div className="flex gap-1">
+          <dt>CAPE</dt>
+          <dd className="text-gray-300">
+            {Number.isFinite(riga.hour?.cape)
+              ? `${numero(riga.hour!.cape, 0)} J/kg`
+              : 'n/d'}
+          </dd>
+        </div>
+        <div className="flex gap-1">
+          <dt>quota del modello</dt>
+          <dd className="text-gray-300">
+            {riga.modelElevation != null ? metri(riga.modelElevation) : 'n/d'}
+          </dd>
+        </div>
+      </dl>
+    </div>
   );
 }

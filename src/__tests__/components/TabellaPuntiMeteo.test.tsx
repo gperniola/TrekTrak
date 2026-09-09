@@ -118,16 +118,16 @@ describe('la colonna dei millimetri', () => {
 
   test('i millimetri si scrivono all\'italiana e si colorano per gravità', () => {
     render(<TabellaPuntiMeteo righe={[rigaBase({ hour: oraCon({ mm: 9.7 }) })]} />);
-    const cella = screen.getByText('9,7');
+    const cella = screen.getByText('9,7 mm');
     expect(cella).toHaveClass('text-orange-300');
   });
 
   /** Una cifra decimale sempre, così in colonna i numeri restano allineati. */
   test.each([
-    [0.4, '0,4', 'text-gray-300'],
-    [2.4, '2,4', 'text-amber-300'],
-    [6.9, '6,9', 'text-orange-300'],
-    [14, '14,0', 'text-red-400'],
+    [0.4, '0,4 mm', 'text-gray-300'],
+    [2.4, '2,4 mm', 'text-amber-300'],
+    [6.9, '6,9 mm', 'text-orange-300'],
+    [14, '14,0 mm', 'text-red-400'],
   ])('%s mm → «%s», nel colore della sua gravità', (mm, testo, classe) => {
     render(<TabellaPuntiMeteo righe={[rigaBase({ hour: oraCon({ mm }) })]} />);
     expect(screen.getByText(testo)).toHaveClass(classe);
@@ -205,5 +205,28 @@ describe('trattino e n/d non si confondono', () => {
     // un solo trattino in tutta la riga: quello dei millimetri a zero
     expect(screen.getAllByText('—')).toHaveLength(1);
     expect(screen.getAllByText('n/d').length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+/**
+ * **L'ordine delle colonne è una scelta, non un caso.**
+ *
+ * Chiesto dall'utente il 2026-09-09: prima la probabilità («piove?»), poi i millimetri
+ * («quanto?»), poi le raffiche. È l'ordine in cui si legge una previsione: l'evento prima
+ * della sua intensità.
+ */
+describe('ordine delle colonne', () => {
+  test('Punto, Arrivo, Cielo, Piogg., mm, Raffiche, azioni', () => {
+    render(<TabellaPuntiMeteo righe={[rigaBase({})]} />);
+    const intestazioni = screen.getAllByRole('columnheader').map((th) => th.textContent?.trim());
+    expect(intestazioni).toEqual(['Punto', 'Arrivo', 'Cielo', 'Piogg.', 'mm', 'Raffiche', 'Azioni']);
+  });
+
+  /** Il numero senza unità era ambiguo: «0,2» sono millimetri o centimetri? */
+  test('i millimetri portano la loro unità, in cella', () => {
+    render(<TabellaPuntiMeteo righe={[rigaBase({
+      hour: { time: 't', cape: 0, weatherCode: 61, gusts: 10, precipProb: 30, temp: 9, mm: 0.2 },
+    })]} />);
+    expect(screen.getByText('0,2 mm')).toBeInTheDocument();
   });
 });

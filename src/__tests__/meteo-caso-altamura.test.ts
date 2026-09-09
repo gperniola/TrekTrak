@@ -52,8 +52,9 @@ describe('Altamura, 2026-09-09: il pomeriggio del temporale', () => {
    */
   test('con ICON la pioggia si nomina, non solo il vento', () => {
     const c = giudizio(17, 'icon');
-    expect(c.reasons).toContain('rovesci deboli');
-    expect(c.reasons.join(' ')).toMatch(/pioggia 28%/);
+    // Il codice dà il nome e la probabilità il numero, in un motivo solo: «rovesci deboli
+    // 28%», non «rovesci deboli · pioggia 28%» — quel 28% è la probabilità DI QUEI rovesci.
+    expect(c.reasons).toContain('rovesci deboli 28%');
   });
 
   /**
