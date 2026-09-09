@@ -4,6 +4,17 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.31.4] — 2026-09-09 — «Come si legge» dice meno
+
+### Changed
+- **La sezione «La meteorologia dietro» è più corta.** Il CAPE perde la coda su dove *non*
+  compare in tabella: serve a capire perché un avviso scatta o non scatta, non a insegnare
+  meteorologia. E sparisce il paragrafo su come l'iconcina possa divergere dalla
+  probabilità — quello è lo studio che sta in
+  `backlog/docs/meteo-verifica-modelli-analisi.md`, e a chi guarda la tabella non serve la
+  teoria: gli serve il dettaglio della riga, che glielo dice quando succede e solo quando
+  succede.
+
 ## [0.31.3] — 2026-09-09 — L'iconcina non dice più «sereno» sotto un avviso di pioggia
 
 ### Fixed

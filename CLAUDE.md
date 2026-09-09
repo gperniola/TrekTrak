@@ -67,7 +67,11 @@ overlay aperti, profilo, `guidaAperta`, `settingsOpen`) · `emergencyStore` (i l
   accanto per rifare la misura); le stesse costanti le legge «Come si legge», che non può
   quindi divergere. I **nomi dei codici WMO** hanno una sola casa, `cielo.ts`: il giudizio
   ne prende il testo e ci attacca la probabilità in **un motivo solo** («neve 70%», non
-  «neve · pioggia 70%»). Sole/crepuscolo in `sun.ts` (NOAA, nessuna rete), cielo in
+  «neve · pioggia 70%»). **L'iconcina non è sempre quella del codice**: `cieloDellOra`
+  mostra «possibile pioggia» quando la probabilità raggiunge l'arancione del modello e il
+  codice non dichiara precipitazione — il codice è di **una** corsa, la probabilità di un
+  **insieme** (la nebbia è esclusa: è un pericolo suo). La legenda elenca i cieli
+  **mostrati**, non quelli dei codici. Sole/crepuscolo in `sun.ts` (NOAA, nessuna rete), cielo in
   `cielo.ts`. Il **passo** si cambia anche dal pannello (`applicaPasso`, stesso globale
   delle Impostazioni); la **rete è separata dalla ricostruzione** — il report è un
   `useMemo`, cambiare passo/soste/**modello** non riscarica. Le **soste ai waypoint** (`pausaMin` su
@@ -109,6 +113,12 @@ overlay aperti, profilo, `guidaAperta`, `settingsOpen`) · `emergencyStore` (i l
 - **Chiavi**: `FIRMS_MAP_KEY` e `SUPABASE_SERVICE_ROLE_KEY` sono **server-only** — mai il
   prefisso `NEXT_PUBLIC_`. Le altre (ORS, Thunderforest) sono nel bundle client di
   proposito. Le chiavi `localStorage` stanno in `KEYS` (`lib/storage.ts`).
+- **Un campo nuovo in `AppSettings` va RILETTO in `loadSettings`**, che ricostruisce
+  l'oggetto da un elenco fisso: chi non lo aggiunge lì lo scrive e lo butta via, in
+  silenzio. È successo cinque volte (`pace`, `trektrak_user_level`, `slim`,
+  `modelloMeteo`). Ora la fixture del test è `Required<AppSettings>`, quindi **la
+  dimenticanza non compila**; e se il valore fa da chiave, si verifica contro il suo
+  insieme prima di accettarlo (`MODELLI_METEO`, come `TEMI`).
 
 ## Come si lavora qui
 
