@@ -156,14 +156,29 @@ test.describe('meteo del percorso', () => {
     expect(chiesti.length).toBe(prima);
   });
 
-  /** Al tocco non c'è nessun `title`: la voce del menu deve essere scritta e raggiungibile. */
-  test('i tre puntini di una riga aprono quel punto su Meteoblue', async ({ page }) => {
+  /**
+   * Al tocco non c'è nessun `title`: la voce deve essere scritta e raggiungibile.
+   *
+   * Si prova sull'**ultima** riga di proposito: è lì che la vecchia tendina assoluta
+   * veniva ritagliata dal contenitore della tabella, e la prima riga — l'unica che avevo
+   * guardato — non lo mostrava.
+   */
+  test('i tre puntini dell ultima riga rivelano quel punto su Meteoblue', async ({ page }) => {
     await apriIlMeteo(page);
-    const riga = page.getByRole('table').getByRole('row').filter({ hasText: 'Cima delle Murelle' });
-    await riga.getByRole('button', { name: /Altre azioni/i }).click();
-    const voce = page.getByRole('menuitem', { name: /Apri su Meteoblue/i });
+    const tabella = page.getByRole('table');
+    await tabella.getByRole('button', { name: /Altre azioni/i }).last().click();
+    // Dentro la TABELLA: in fondo al pannello c'e' gia' un «Previsione completa su
+    // Meteoblue», e cercarlo in tutta la pagina ne trova due.
+    const voce = tabella.getByRole('link', { name: /Meteoblue/i });
     await expect(voce).toBeVisible();
     await expect(voce).toHaveAttribute('href', /meteoblue\.com.*42\.085N14\.014E/);
+    // Rivelata in una riga, quindi dentro il contenitore: niente da ritagliare.
+    const dentro = await page.evaluate(() => {
+      const a = document.querySelector('a[href*="meteoblue"]')!;
+      const box = document.querySelector('table')!.parentElement!;
+      return a.getBoundingClientRect().bottom <= box.getBoundingClientRect().bottom + 1;
+    });
+    expect(dentro).toBe(true);
   });
 
   /**
@@ -192,4 +207,35 @@ test.describe('meteo del percorso', () => {
     await expect(page.getByText(/maglia/i)).toBeVisible();
     await expect(page.getByText(/in basso del punto/i)).toBeVisible();
   });
+});
+
+/**
+ * **La tabella deve starci per intero sui telefoni stretti.**
+ *
+ * Il test qui sopra guarda che non scorra la **pagina**; questo guarda un livello sotto,
+ * dentro il contenitore della tabella — ed è lì che il difetto si era nascosto. Misurato
+ * il 2026-09-09 a 360 px: tabella 353 px in un contenitore da 326, e l'unica cosa tagliata
+ * era **la colonna dei tre puntini**, cioè l'unico comando della tabella. Nessuno scorre
+ * di lato per cercare un pulsante che non sa che esiste.
+ *
+ * 360 px non è un caso estremo: è l'iPhone SE e mezzo mondo Android.
+ */
+test.describe('la tabella su un telefono stretto', () => {
+  test.use({ viewport: { width: 360, height: 900 } });
+
+  test('a 360 px non scorre di lato, e i tre puntini si vedono', async ({ page }) => {
+    await apriIlMeteo(page);
+    const m = await page.evaluate(() => {
+      const tab = document.querySelector('table')!;
+      const box = tab.parentElement!;
+      const ultima = tab.querySelector('tbody tr td:last-child')!;
+      return {
+        eccedenza: box.scrollWidth - box.clientWidth,
+        ultimaDentro: ultima.getBoundingClientRect().right <= box.getBoundingClientRect().right + 1,
+      };
+    });
+    expect(m.eccedenza).toBeLessThanOrEqual(1);
+    expect(m.ultimaDentro).toBe(true);
+  });
+
 });

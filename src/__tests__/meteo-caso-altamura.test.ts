@@ -56,8 +56,19 @@ describe('Altamura, 2026-09-09: il pomeriggio del temporale', () => {
     expect(c.reasons.join(' ')).toMatch(/pioggia 28%/);
   });
 
-  test('con ICON le 17:00 non sono più un giallo da vento', () => {
-    expect(giudizio(17, 'icon').level).toBeGreaterThanOrEqual(2);
+  /**
+   * **Anche con ICON le 17:00 sono rosse, non arancioni.**
+   *
+   * Trovato in review: la soglia d'innesco del CAPE («c'è energia E succederà qualcosa»)
+   * era rimasta a un 30% fisso mentre le soglie della pioggia diventavano per modello.
+   * Con ICON, che dichiara l'attenzione a 10, quel 30 rendeva la regola del livello 3
+   * **irraggiungibile proprio nella fascia che conta**: 28% e CAPE 1390 restavano
+   * arancioni. Il primo test che avevo scritto chiedeva `>= 2` e non se ne accorgeva.
+   */
+  test('con ICON le 17:00 arrivano al livello massimo, come con ECMWF', () => {
+    const c = giudizio(17, 'icon');
+    expect(c.level).toBe(3);
+    expect(c.reasons.join(' ')).toMatch(/temporali forti/);
   });
 
   /** Alle 16:00 e alle 18:00 l'app era VERDE mentre il temporale era in zona. */
@@ -73,10 +84,15 @@ describe('Altamura, 2026-09-09: il pomeriggio del temporale', () => {
   });
 
   /**
-   * Il confronto che spiega la tendina: alle 18:00 ECMWF grida e ICON sussurra. Nessuno
-   * dei due è «sbagliato» — e per questo l'app dice sempre da chi vengono i numeri.
+   * Il confronto che spiega la tendina: alle 16:00 ECMWF grida (53% e CAPE 1030) e ICON
+   * sussurra (18% e CAPE 380, troppo poca energia per l'aggravante). Nessuno dei due è
+   * «sbagliato» — e per questo l'app dice sempre da chi vengono i numeri.
+   *
+   * L'ora è 16:00 e non più 18:00 perché, ancorando l'innesco del CAPE alla soglia del
+   * modello, alle 18:00 anche ICON arriva al massimo: i due lì ora **concordano**, ed è
+   * il comportamento voluto. L'intento del caso resta, cambia l'ora che lo mostra.
    */
   test('i due modelli non concordano, ed è il motivo per cui si sceglie', () => {
-    expect(giudizio(18, 'ecmwf').level).toBeGreaterThan(giudizio(18, 'icon').level as number);
+    expect(giudizio(16, 'ecmwf').level).toBeGreaterThan(giudizio(16, 'icon').level as number);
   });
 });

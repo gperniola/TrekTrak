@@ -1,5 +1,5 @@
-import type { Itinerary, AppSettings, ValidationSession, Waypoint, Leg, RouteCompletion } from './types';
-import { DEFAULT_TOLERANCES, DEFAULT_MAP_DISPLAY, BASE_MAPS, SAMPLE_INTERVAL_OPTIONS } from './types';
+import type { Itinerary, AppSettings, ValidationSession, Waypoint, Leg, RouteCompletion, ModelloMeteo } from './types';
+import { DEFAULT_TOLERANCES, DEFAULT_MAP_DISPLAY, BASE_MAPS, SAMPLE_INTERVAL_OPTIONS, MODELLI_METEO } from './types';
 import { computeRouteMetrics } from './calculations';
 import { isEmergencyLayerId } from './emergency-layers';
 import { TEMI, type Tema } from './tema';
@@ -273,6 +273,15 @@ export function loadSettings(): AppSettings {
         ? { pace: { factor: parsed.pace.factor } }
         : {}),
       ...(TEMI.includes(parsed?.tema) ? { tema: parsed.tema as Tema } : {}),
+      /*
+       * E il modello meteo, che alla v0.31.0 e' cascato **nella stessa trappola** elencata
+       * qui sopra: scritto da `saveSettings`, mai riletto da questo elenco fisso, quindi
+       * chi sceglieva ICON ripartiva in ECMWF — in silenzio e con soglie diverse.
+       * Si verifica contro `MODELLI_METEO` perche' il valore finisce a fare da chiave.
+       */
+      ...(MODELLI_METEO.includes(parsed?.modelloMeteo)
+        ? { modelloMeteo: parsed.modelloMeteo as ModelloMeteo }
+        : {}),
     };
     // Drop any persisted emergency layer id no longer present in the registry
     // (e.g. removed/renamed layer between app versions).

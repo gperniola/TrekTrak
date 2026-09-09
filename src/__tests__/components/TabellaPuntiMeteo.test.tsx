@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { TabellaPuntiMeteo } from '@/components/weather/TabellaPuntiMeteo';
 import type { RigaPercorso } from '@/lib/route-weather';
 
@@ -118,16 +118,16 @@ describe('la colonna dei millimetri', () => {
 
   test('i millimetri si scrivono all\'italiana e si colorano per gravità', () => {
     render(<TabellaPuntiMeteo righe={[rigaBase({ hour: oraCon({ mm: 9.7 }) })]} />);
-    const cella = screen.getByText('9,7 mm');
+    const cella = screen.getByText('9,7');
     expect(cella).toHaveClass('text-orange-300');
   });
 
   /** Una cifra decimale sempre, così in colonna i numeri restano allineati. */
   test.each([
-    [0.4, '0,4 mm', 'text-gray-300'],
-    [2.4, '2,4 mm', 'text-amber-300'],
-    [6.9, '6,9 mm', 'text-orange-300'],
-    [14, '14,0 mm', 'text-red-400'],
+    [0.4, '0,4', 'text-gray-300'],
+    [2.4, '2,4', 'text-amber-300'],
+    [6.9, '6,9', 'text-orange-300'],
+    [14, '14,0', 'text-red-400'],
   ])('%s mm → «%s», nel colore della sua gravità', (mm, testo, classe) => {
     render(<TabellaPuntiMeteo righe={[rigaBase({ hour: oraCon({ mm }) })]} />);
     expect(screen.getByText(testo)).toHaveClass(classe);
@@ -141,5 +141,69 @@ describe('la colonna dei millimetri', () => {
     ]} />);
     expect(screen.getByText('—')).toBeInTheDocument();
     expect(screen.getAllByText('n/d').length).toBeGreaterThanOrEqual(1);
+  });
+});
+
+/**
+ * **Le azioni si aprono in una riga sotto, non in un riquadro sovrapposto.**
+ *
+ * La prima versione era una tendina assoluta, e dentro il contenitore della tabella —
+ * `overflow-x: auto`, che forza anche `overflow-y` — quella dell'ultima riga veniva
+ * ritagliata (misurato: 52 px fuori). Una riga in più non si può ritagliare.
+ */
+describe('le azioni di una riga', () => {
+  const apri = (n = 0) => fireEvent.click(screen.getAllByRole('button', { name: /Altre azioni/i })[n]);
+
+  test('chiuse di partenza: nessun link a occupare la tabella', () => {
+    render(<TabellaPuntiMeteo righe={[rigaBase({ name: 'Vetta' })]} />);
+    expect(screen.queryByRole('link', { name: /Meteoblue/i })).not.toBeInTheDocument();
+  });
+
+  test('il ⋮ rivela il link per quel punto, in una riga in più', () => {
+    render(<TabellaPuntiMeteo righe={[rigaBase({ name: 'Vetta' })]} />);
+    const primaRighe = screen.getAllByRole('row').length;
+    apri();
+    expect(screen.getAllByRole('row').length).toBe(primaRighe + 1);
+    expect(screen.getByRole('link', { name: /Meteoblue/i })).toBeInTheDocument();
+  });
+
+  test('Escape chiude', () => {
+    render(<TabellaPuntiMeteo righe={[rigaBase({ name: 'Vetta' })]} />);
+    apri();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('link', { name: /Meteoblue/i })).not.toBeInTheDocument();
+  });
+
+  /** Due dettagli aperti insieme raddoppierebbero l'altezza della tabella per niente. */
+  test('una riga per volta', () => {
+    render(<TabellaPuntiMeteo righe={[
+      rigaBase({ name: 'Alfa' }),
+      rigaBase({ waypointIndex: 1, name: 'Beta', lat: 43, lon: 12 }),
+    ]} />);
+    apri(0);
+    apri(1);
+    expect(screen.getAllByRole('link', { name: /Meteoblue/i })).toHaveLength(1);
+    expect(screen.getByRole('link', { name: /Beta/i })).toBeInTheDocument();
+  });
+});
+
+/**
+ * **Il trattino vuol dire una cosa sola.**
+ *
+ * Significava «zero» nella colonna dei millimetri e «non lo so» in quelle accanto, nella
+ * stessa riga: chi legge non poteva distinguere un fatto da una lacuna. Ora l'assenza è
+ * `n/d` ovunque.
+ */
+describe('trattino e n/d non si confondono', () => {
+  test('raffiche e pioggia mancanti si dichiarano n/d, non con un trattino', () => {
+    render(<TabellaPuntiMeteo righe={[rigaBase({
+      hour: {
+        time: 't', cape: 0, weatherCode: 3, temp: 10, mm: 0,
+        gusts: Number.NaN, precipProb: Number.NaN,
+      },
+    })]} />);
+    // un solo trattino in tutta la riga: quello dei millimetri a zero
+    expect(screen.getAllByText('—')).toHaveLength(1);
+    expect(screen.getAllByText('n/d').length).toBeGreaterThanOrEqual(2);
   });
 });

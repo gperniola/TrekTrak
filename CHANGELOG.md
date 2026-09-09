@@ -4,6 +4,47 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.31.1] — 2026-09-09 — Le correzioni della review sulla v0.31.0
+
+Una sessione di review sul rilascio precedente. Tre difetti gravi, tutti nella stessa
+direzione: **cose dichiarate e non vere**.
+
+### Fixed
+- **La scelta del modello ora sopravvive davvero al riavvio.** Nella v0.31.0 non lo faceva:
+  `loadSettings` ricostruisce le impostazioni da un elenco fisso di campi e `modelloMeteo`
+  non c'era, quindi chi sceglieva ICON ripartiva in ECMWF — in silenzio e con soglie
+  diverse. La voce del changelog qui sotto diceva «la scelta si salva come il passo», e
+  non era vero. È la stessa trappola che il commento di quella funzione già elenca (`pace`,
+  `trektrak_user_level`, `slim`). Il valore ora si verifica prima di accettarlo, perché
+  viene usato come chiave.
+- **«Come si legge» non documenta più una versione cancellata.** Diceva «pioggia ≥ 70% →
+  Attenzione» mentre il codice scattava a 32 o 10, non elencava i codici di precipitazione
+  appena aggiunti, e prometteva una colonna CAPE che non esiste più. Ora le soglie le
+  **legge** dalle stesse costanti del giudizio: non possono più divergere.
+- **Con ICON il livello massimo era irraggiungibile.** Il grilletto del CAPE («pioggia ≥
+  30%») era rimasto un numero fisso mentre le soglie diventavano per modello: ad Altamura,
+  28% e CAPE 1390 con un temporale in corso, ICON restava arancione mentre ECMWF andava a
+  rosso. Ora è ancorato alla soglia del modello; non aggiunge avvisi, sposta la gravità di
+  avvisi che scattavano già.
+- **Il menu dei tre puntini era ritagliato.** La tendina viveva dentro il contenitore della
+  tabella, e `overflow-x: auto` forza anche `overflow-y`: quella dell'ultima riga sbordava
+  di 52 px. Ora il dettaglio si apre in una **riga sotto**, come nel pannello dei layer:
+  niente posizionamento assoluto, niente da ritagliare.
+- **A 360 px la tabella non ci stava**, e la colonna tagliata era proprio quella dei tre
+  puntini — l'unico comando. L'unità «mm» ripetuta in ogni riga costava 25 px e
+  l'intestazione la dice già.
+- **Il trattino voleva dire due cose opposte** nella stessa riga: «zero» sotto i millimetri
+  e «non lo so» sotto raffiche e pioggia. Ora l'assenza è «n/d» ovunque.
+- **Se un modello non risponde, resta l'altro.** Prima bastava un blocco mancante per far
+  fallire tutta la lettura, e il pannello mostrava un errore anche quando la serie del
+  modello scelto era arrivata intatta. Ora il modello muto resta vuoto, e il pannello dice
+  quale dei due ha risposto.
+
+### Changed
+- I nomi italiani dei codici WMO hanno **una sola casa** (`cielo.ts`): erano riscritti a
+  mano anche nel giudizio, con la possibilità di leggere due nomi diversi per lo stesso
+  codice nella stessa riga.
+
 ## [0.31.0] — 2026-09-09 — Il meteo dice quando piove, e lo dice il modello che scegli tu
 
 Nato da due segnalazioni dell'utente a poche ore l'una dall'altra: «sul percorso mi dice

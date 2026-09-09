@@ -236,6 +236,16 @@ export const DEFAULT_PACE: PaceSettings = { factor: 1 };
 export type ModelloMeteo = 'ecmwf' | 'icon';
 
 /**
+ * L'insieme dei valori validi, per **verificare** ciò che si rilegge da `localStorage`.
+ *
+ * Serve perché il modello viene poi usato come **chiave** (`SOGLIE_MODELLO[modello]`,
+ * `serie[modello]`): un valore fuori dall'insieme — una voce modificata a mano, o scritta
+ * da una versione futura con un terzo modello e riletta da una vecchia — darebbe
+ * `undefined`, e la prima soglia letta lancerebbe. Stessa forma di `TEMI`.
+ */
+export const MODELLI_METEO: readonly ModelloMeteo[] = ['ecmwf', 'icon'];
+
+/**
  * ECMWF: discrimina meglio (AUC 0,927 contro 0,891) ed e' l'unico dei due che arriva a
  * coprire il 90% dei temporali — la probabilita' di ICON satura sotto quella soglia.
  */

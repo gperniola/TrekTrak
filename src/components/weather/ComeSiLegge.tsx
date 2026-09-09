@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { SOGLIE_MODELLO } from '@/lib/route-weather';
+import { MODELLO_METEO_PREDEFINITO, type ModelloMeteo } from '@/lib/types';
 
 /**
  * **Come si legge il meteo del percorso**: la parte esplicativa, a fisarmonica, chiusa
@@ -21,20 +23,36 @@ const LIVELLI: { pallino: string; nome: string; quando: string }[] = [
   { pallino: 'bg-red-500', nome: 'Rischio alto', quando: 'temporale, raffiche pericolose o instabilità con innesco' },
 ];
 
-/** Gli eventi che alzano il livello, con la soglia e il grado risultante. */
-const EVENTI: { evento: string; soglia: string; livello: string }[] = [
-  { evento: 'Temporale (anche con grandine)', soglia: 'dichiarato dal modello', livello: 'Rischio alto' },
-  { evento: 'Instabilità con innesco', soglia: 'CAPE ≥ 800 e pioggia ≥ 30%', livello: 'Rischio alto' },
-  { evento: 'Raffiche pericolose', soglia: '≥ 70 km/h', livello: 'Rischio alto' },
-  { evento: 'Pioggia molto probabile', soglia: '≥ 70%', livello: 'Attenzione' },
-  { evento: 'Raffiche forti', soglia: '50–69 km/h', livello: 'Attenzione' },
-  { evento: 'Pioggia probabile', soglia: '40–69%', livello: 'Da tenere d’occhio' },
-  { evento: 'Raffiche', soglia: '30–49 km/h', livello: 'Da tenere d’occhio' },
-  { evento: 'Instabilità estrema, senza pioggia', soglia: 'CAPE ≥ 2000', livello: 'Da tenere d’occhio' },
-];
+/**
+ * Gli eventi che alzano il livello, con la soglia e il grado risultante.
+ *
+ * **Si RICAVANO da `SOGLIE_MODELLO`, non si riscrivono a mano.** Erano una copia dei
+ * numeri, e alla v0.31.0 quella copia è rimasta indietro: la schermata che spiega le
+ * regole raccontava soglie (40 e 70) che il codice non usava più. La sola schermata che
+ * documenta il giudizio non può dire il falso — e l'unico modo perché non ricapiti è che
+ * legga le stesse costanti del giudizio.
+ */
+function eventi(modello: ModelloMeteo): { evento: string; soglia: string; livello: string }[] {
+  const s = SOGLIE_MODELLO[modello];
+  return [
+    { evento: 'Temporale (anche con grandine)', soglia: 'dichiarato dal modello', livello: 'Rischio alto' },
+    { evento: 'Pioggia forte, rovesci violenti, neve forte', soglia: 'dichiarati dal modello', livello: 'Rischio alto' },
+    { evento: 'Pioggia o neve che gela', soglia: 'dichiarata dal modello', livello: 'Rischio alto' },
+    { evento: 'Instabilità con innesco', soglia: `CAPE ≥ 800 e pioggia ≥ ${s.arancione}%`, livello: 'Rischio alto' },
+    { evento: 'Raffiche pericolose', soglia: '≥ 70 km/h', livello: 'Rischio alto' },
+    { evento: 'Pioggia, rovesci o neve', soglia: 'dichiarati dal modello', livello: 'Attenzione' },
+    { evento: 'Pioggia molto probabile', soglia: `≥ ${s.arancione}%`, livello: 'Attenzione' },
+    { evento: 'Raffiche forti', soglia: '50–69 km/h', livello: 'Attenzione' },
+    { evento: 'Pioviggine, rovesci deboli, neve debole', soglia: 'dichiarati dal modello', livello: 'Da tenere d’occhio' },
+    { evento: 'Pioggia probabile', soglia: `${s.giallo}–${s.arancione - 1}%`, livello: 'Da tenere d’occhio' },
+    { evento: 'Raffiche', soglia: '30–49 km/h', livello: 'Da tenere d’occhio' },
+    { evento: 'Instabilità estrema, senza pioggia', soglia: 'CAPE ≥ 2000', livello: 'Da tenere d’occhio' },
+  ];
+}
 
-export function ComeSiLegge() {
+export function ComeSiLegge({ modello = MODELLO_METEO_PREDEFINITO }: { modello?: ModelloMeteo }) {
   const [aperta, setAperta] = useState(false);
+  const EVENTI = eventi(modello);
   return (
     <div>
       <button
@@ -111,8 +129,9 @@ export function ComeSiLegge() {
               Il <strong className="text-gray-100">CAPE</strong> è l’energia disponibile ai moti convettivi
               (joule per chilogrammo): la benzina, non il fuoco. Da solo — col cielo coperto ma stabile e zero
               pioggia prevista — non fa un temporale, quindi non fa scattare l’avviso; conta come
-              <em> aggravante</em> quando la pioggia è già probabile (energia + innesco = celle forti). Lo vedi
-              comunque in tabella, come contesto.
+              <em> aggravante</em> quando la pioggia è già probabile (energia + innesco = celle forti). Non
+              compare in tabella — è un numero che a chi cammina non dice niente: quando conta, lo trovi
+              scritto a parole fra i motivi del punto.
             </p>
             <p>
               In montagna la convezione segue il <strong className="text-gray-100">ciclo diurno</strong>: il

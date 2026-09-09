@@ -41,6 +41,9 @@ const MODELLI_API: Record<ModelloMeteo, string> = {
   icon: 'icon_seamless',
 };
 
+/** Sentinella: questo modello ha gia' fallito su un punto, quindi si butta tutto. */
+const MODELLO_ASSENTE: SerieOraria[] = [];
+
 export interface RouteForecast {
   /**
    * Una serie per punto, nello stesso ordine dei punti richiesti, **per ogni modello**.
@@ -133,10 +136,25 @@ export function leggiRisposta(dati: unknown): RouteForecast {
     if (orarie == null) throw new Error('Previsione in un formato non riconosciuto');
     for (const modello of Object.keys(MODELLI_API) as ModelloMeteo[]) {
       const s = serieDelModello(orarie, MODELLI_API[modello]);
-      if (s == null) throw new Error('Previsione in un formato non riconosciuto');
-      serie[modello].push(s);
+      // Un modello che tace per QUESTO punto si scarta **per intero**, non a meta': le
+      // serie devono corrispondere uno a uno ai punti chiesti, e tenerne una in meno
+      // vorrebbe dire attribuire a un punto il meteo di un altro.
+      if (s == null) serie[modello] = MODELLO_ASSENTE;
+      else if (serie[modello] !== MODELLO_ASSENTE) serie[modello].push(s);
     }
     elevations.push(typeof o?.elevation === 'number' ? o.elevation : Number.NaN);
+  }
+  for (const modello of Object.keys(MODELLI_API) as ModelloMeteo[]) {
+    if (serie[modello] === MODELLO_ASSENTE) serie[modello] = [];
+  }
+  /*
+   * Un modello in meno non e' un errore: gli identificativi di Open-Meteo non sono stabili
+   * (`ecmwf_ifs_hres` non esiste, `ecmwf_ifs04` risponde senza dati) e la serie che il
+   * pannello sta mostrando puo' benissimo essere l'altra. Si dichiara errore solo quando
+   * non ha parlato **nessuno**.
+   */
+  if (serie.ecmwf.length === 0 && serie.icon.length === 0) {
+    throw new Error('Previsione in un formato non riconosciuto');
   }
   return { serie, elevations };
 }
