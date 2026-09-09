@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { TabellaPuntiMeteo } from '@/components/weather/TabellaPuntiMeteo';
-import type { RigaPercorso } from '@/lib/route-weather';
+import { SOGLIE_MODELLO, type RigaPercorso } from '@/lib/route-weather';
 
 /**
  * **Il rendering delle soste in tabella.**
@@ -19,7 +19,7 @@ const rigaBase = (over: Partial<RigaPercorso>): RigaPercorso => ({
 
 describe('TabellaPuntiMeteo e le soste', () => {
   test('sosta breve (una riga): annota «⏸ sosta 20 min» sul punto', () => {
-    render(<TabellaPuntiMeteo righe={[rigaBase({ name: 'Sella', pausaMin: 20 })]} />);
+    render(<TabellaPuntiMeteo righe={[rigaBase({ name: 'Sella', pausaMin: 20 })]} soglie={SOGLIE_MODELLO.ecmwf} />);
     // Il testo è spezzato dallo span dell'icona: `getAllByText` non lancia con più nodi.
     expect(
       screen.getAllByText((_t, el) => /sosta 20 min/i.test(el?.textContent ?? '')).length,
@@ -41,7 +41,7 @@ describe('TabellaPuntiMeteo e le soste', () => {
         arrival: '2026-09-07T11:00:00Z',
       }),
     ];
-    render(<TabellaPuntiMeteo righe={righe} />);
+    render(<TabellaPuntiMeteo righe={righe} soglie={SOGLIE_MODELLO.ecmwf} />);
     // due righe corpo, non una sola (chiave composita: senza, React ne collassa una)
     const corpo = screen.getAllByRole('row').filter((r) => r.querySelector('td'));
     expect(corpo).toHaveLength(2);
@@ -52,7 +52,7 @@ describe('TabellaPuntiMeteo e le soste', () => {
   });
 
   test('nessuna sosta: nessuna etichetta', () => {
-    render(<TabellaPuntiMeteo righe={[rigaBase({ name: 'Cima' })]} />);
+    render(<TabellaPuntiMeteo righe={[rigaBase({ name: 'Cima' })]} soglie={SOGLIE_MODELLO.ecmwf} />);
     expect(screen.queryByText(/sosta/i)).not.toBeInTheDocument();
   });
 });
@@ -76,7 +76,7 @@ describe('TabellaPuntiMeteo e i punti in mezzo', () => {
       }),
       rigaBaseM({ waypointIndex: 1, name: 'Vetta' }),
     ];
-    render(<TabellaPuntiMeteo righe={righe} />);
+    render(<TabellaPuntiMeteo righe={righe} soglie={SOGLIE_MODELLO.ecmwf} />);
     expect(screen.getByText('in mezzo')).toBeInTheDocument();
     expect(screen.getByText(/tra «Rifugio» e «Vetta»/)).toBeInTheDocument();
     expect(screen.getByText(/temporale previsto/)).toBeInTheDocument();
@@ -88,7 +88,7 @@ describe('TabellaPuntiMeteo e i punti in mezzo', () => {
       rigaBaseM({ name: 'in mezzo', intermedio: meta, classification: { level: 0, reasons: [] } }),
       rigaBaseM({ waypointIndex: 1, name: 'Vetta' }),
     ];
-    render(<TabellaPuntiMeteo righe={righe} />);
+    render(<TabellaPuntiMeteo righe={righe} soglie={SOGLIE_MODELLO.ecmwf} />);
     expect(screen.queryByText('in mezzo')).not.toBeInTheDocument();
     // i due waypoint reali ci sono
     expect(screen.getByText(/Rifugio/)).toBeInTheDocument();
@@ -111,13 +111,13 @@ describe('la colonna dei millimetri', () => {
   });
 
   test('il CAPE non si mostra più: è un numero che non dice niente a chi cammina', () => {
-    render(<TabellaPuntiMeteo righe={[rigaBase({ hour: oraCon({ cape: 2500 }) })]} />);
+    render(<TabellaPuntiMeteo righe={[rigaBase({ hour: oraCon({ cape: 2500 }) })]} soglie={SOGLIE_MODELLO.ecmwf} />);
     expect(screen.queryByText('CAPE')).not.toBeInTheDocument();
     expect(screen.queryByText('2500')).not.toBeInTheDocument();
   });
 
   test('i millimetri si scrivono all\'italiana e si colorano per gravità', () => {
-    render(<TabellaPuntiMeteo righe={[rigaBase({ hour: oraCon({ mm: 9.7 }) })]} />);
+    render(<TabellaPuntiMeteo righe={[rigaBase({ hour: oraCon({ mm: 9.7 }) })]} soglie={SOGLIE_MODELLO.ecmwf} />);
     const cella = screen.getByText('9,7 mm');
     expect(cella).toHaveClass('text-orange-300');
   });
@@ -129,7 +129,7 @@ describe('la colonna dei millimetri', () => {
     [6.9, '6,9 mm', 'text-orange-300'],
     [14, '14,0 mm', 'text-red-400'],
   ])('%s mm → «%s», nel colore della sua gravità', (mm, testo, classe) => {
-    render(<TabellaPuntiMeteo righe={[rigaBase({ hour: oraCon({ mm }) })]} />);
+    render(<TabellaPuntiMeteo righe={[rigaBase({ hour: oraCon({ mm }) })]} soglie={SOGLIE_MODELLO.ecmwf} />);
     expect(screen.getByText(testo)).toHaveClass(classe);
   });
 
@@ -138,7 +138,7 @@ describe('la colonna dei millimetri', () => {
     render(<TabellaPuntiMeteo righe={[
       rigaBase({ name: 'asciutto', hour: oraCon({ mm: 0 }) }),
       rigaBase({ waypointIndex: 1, name: 'ignoto', hour: oraCon({ mm: Number.NaN }) }),
-    ]} />);
+    ]} soglie={SOGLIE_MODELLO.ecmwf} />);
     expect(screen.getByText('—')).toBeInTheDocument();
     expect(screen.getAllByText('n/d').length).toBeGreaterThanOrEqual(1);
   });
@@ -155,12 +155,12 @@ describe('le azioni di una riga', () => {
   const apri = (n = 0) => fireEvent.click(screen.getAllByRole('button', { name: /Altre azioni/i })[n]);
 
   test('chiuse di partenza: nessun link a occupare la tabella', () => {
-    render(<TabellaPuntiMeteo righe={[rigaBase({ name: 'Vetta' })]} />);
+    render(<TabellaPuntiMeteo righe={[rigaBase({ name: 'Vetta' })]} soglie={SOGLIE_MODELLO.ecmwf} />);
     expect(screen.queryByRole('link', { name: /Meteoblue/i })).not.toBeInTheDocument();
   });
 
   test('il ⋮ rivela il link per quel punto, in una riga in più', () => {
-    render(<TabellaPuntiMeteo righe={[rigaBase({ name: 'Vetta' })]} />);
+    render(<TabellaPuntiMeteo righe={[rigaBase({ name: 'Vetta' })]} soglie={SOGLIE_MODELLO.ecmwf} />);
     const primaRighe = screen.getAllByRole('row').length;
     apri();
     expect(screen.getAllByRole('row').length).toBe(primaRighe + 1);
@@ -168,7 +168,7 @@ describe('le azioni di una riga', () => {
   });
 
   test('Escape chiude', () => {
-    render(<TabellaPuntiMeteo righe={[rigaBase({ name: 'Vetta' })]} />);
+    render(<TabellaPuntiMeteo righe={[rigaBase({ name: 'Vetta' })]} soglie={SOGLIE_MODELLO.ecmwf} />);
     apri();
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('link', { name: /Meteoblue/i })).not.toBeInTheDocument();
@@ -179,7 +179,7 @@ describe('le azioni di una riga', () => {
     render(<TabellaPuntiMeteo righe={[
       rigaBase({ name: 'Alfa' }),
       rigaBase({ waypointIndex: 1, name: 'Beta', lat: 43, lon: 12 }),
-    ]} />);
+    ]} soglie={SOGLIE_MODELLO.ecmwf} />);
     apri(0);
     apri(1);
     expect(screen.getAllByRole('link', { name: /Meteoblue/i })).toHaveLength(1);
@@ -201,7 +201,7 @@ describe('trattino e n/d non si confondono', () => {
         time: 't', cape: 0, weatherCode: 3, temp: 10, mm: 0,
         gusts: Number.NaN, precipProb: Number.NaN,
       },
-    })]} />);
+    })]} soglie={SOGLIE_MODELLO.ecmwf} />);
     // un solo trattino in tutta la riga: quello dei millimetri a zero
     expect(screen.getAllByText('—')).toHaveLength(1);
     expect(screen.getAllByText('n/d').length).toBeGreaterThanOrEqual(2);
@@ -217,7 +217,7 @@ describe('trattino e n/d non si confondono', () => {
  */
 describe('ordine delle colonne', () => {
   test('Punto, Arrivo, Cielo, Piogg., mm, Raffiche, azioni', () => {
-    render(<TabellaPuntiMeteo righe={[rigaBase({})]} />);
+    render(<TabellaPuntiMeteo righe={[rigaBase({})]} soglie={SOGLIE_MODELLO.ecmwf} />);
     const intestazioni = screen.getAllByRole('columnheader').map((th) => th.textContent?.trim());
     expect(intestazioni).toEqual(['Punto', 'Arrivo', 'Cielo', 'Piogg.', 'mm', 'Raffiche', 'Azioni']);
   });
@@ -226,7 +226,7 @@ describe('ordine delle colonne', () => {
   test('i millimetri portano la loro unità, in cella', () => {
     render(<TabellaPuntiMeteo righe={[rigaBase({
       hour: { time: 't', cape: 0, weatherCode: 61, gusts: 10, precipProb: 30, temp: 9, mm: 0.2 },
-    })]} />);
+    })]} soglie={SOGLIE_MODELLO.ecmwf} />);
     expect(screen.getByText('0,2 mm')).toBeInTheDocument();
   });
 });

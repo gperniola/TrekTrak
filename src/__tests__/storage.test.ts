@@ -128,6 +128,39 @@ describe('settings', () => {
   });
 
   /**
+   * **Ogni campo delle impostazioni deve tornare indietro. Tutti, senza eccezioni.**
+   *
+   * `loadSettings` non legge l'oggetto salvato: lo **ricostruisce** da un elenco fisso di
+   * campi. Quindi un campo nuovo di `AppSettings` è dimenticato *per difetto*, e la
+   * dimenticanza è silenziosa — si scrive, si rilegge niente, e l'utente ritrova il valore
+   * predefinito senza che nulla segnali un errore.
+   *
+   * È successo **cinque volte**: `pace`, `trektrak_user_level`, `slim`, e da ultimo
+   * `modelloMeteo` alla v0.31.0. Il commento dentro `loadSettings` elencava già le prime
+   * quattro, e non è bastato.
+   *
+   * Il tipo qui sotto è `Required<AppSettings>`: se domani si aggiunge un campo e non lo
+   * si mette in questa fixture, **questo file non compila**. È il punto — la dimenticanza
+   * deve fermare la build, non arrivare in produzione e tornare indietro tre rilasci dopo.
+   */
+  const impostazioniComplete: Required<AppSettings> = {
+    tolerances: { altitude: 30, coordinates: 0.002, distance: 15, azimuth: 10, elevationDelta: 20 },
+    // `opentopomap` e non Thunderforest: quest'ultima è disponibile solo con la chiave, e
+    // `loadSettings` ripiega su un'altra mappa quando non lo è — il test fallirebbe per
+    // una ragione che non c'entra.
+    mapDisplay: { ...DEFAULT_MAP_DISPLAY, coloredPath: false, baseMap: 'opentopomap', sampleInterval: 100 },
+    pace: { factor: 1.25 },
+    tema: 'chiaro',
+    modelloMeteo: 'icon',
+  };
+
+  test.each(Object.keys(impostazioniComplete))('il campo «%s» sopravvive al riavvio', (campo) => {
+    saveSettings(impostazioniComplete);
+    const riletto = loadSettings() as unknown as Record<string, unknown>;
+    expect(riletto[campo]).toEqual((impostazioniComplete as unknown as Record<string, unknown>)[campo]);
+  });
+
+  /**
    * Un valore fuori dall'insieme non deve arrivare al codice che ci indicizza dentro:
    * `SOGLIE_MODELLO[qualunquecosa]` sarebbe `undefined` e la prima soglia letta
    * lancerebbe. Si scarta, come già si fa col tema.

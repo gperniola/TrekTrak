@@ -52,14 +52,22 @@ overlay aperti, profilo, `guidaAperta`, `settingsOpen`) · `emergencyStore` (i l
 - **Meteo del percorso** («Quando partire»): incrocia i waypoint con gli orari di Munter e
   la previsione Open-Meteo (`route-weather.ts`). **L'avviso segue la previsione vera**
   (codice meteo + probabilità di pioggia); il **CAPE è contesto/aggravante, non un
-  trigger** (v0.26.1) e **non si mostra in tabella** — al suo posto i millimetri, colorati
-  per gravità (v0.31.0). **Due modelli** (`ecmwf_ifs` + `icon_seamless`) in **una sola
-  richiesta**; l'utente sceglie il suo dalla tendina (`AppSettings.modelloMeteo`,
-  predefinito ECMWF) e **quel modello possiede tutto** — righe, motivi, verdetto, fasce:
-  i valori non si mescolano mai fra fonti. Le **soglie di pioggia sono per modello** e
-  **misurate**, non a occhio (`SOGLIE_MODELLO`: ECMWF 15/32, ICON 5/10 — da 171 temporali
+  trigger** (v0.26.1), e la sua soglia d'innesco **è quella dell'arancione del modello**,
+  non un numero fisso — fissa era irraggiungibile per ICON. Fuori dalla tabella (al suo
+  posto i millimetri, **con l'unità in cella**, colorati per gravità), ma visibile nel
+  **dettaglio della riga** insieme alla quota a cui ha risposto il modello. Colonne:
+  `Punto · Arrivo · Cielo · Piogg. · mm · Raffiche · ⋮`. **Due modelli** (`ecmwf_ifs` +
+  `icon_seamless`) in **una sola richiesta**; l'utente sceglie il suo dalla tendina
+  (`AppSettings.modelloMeteo`, predefinito ECMWF — e `loadSettings` deve **rileggerlo**:
+  alla v0.31.0 lo scriveva e lo buttava via) e **quel modello possiede tutto** — righe,
+  motivi, verdetto, fasce: i valori non si mescolano mai fra fonti. Un modello che non
+  risponde resta vuoto senza spegnere il pannello. Le **soglie di pioggia sono per modello**
+  e **misurate**, non a occhio (`SOGLIE_MODELLO`: ECMWF 15/32, ICON 5/10 — da 171 temporali
   osservati al METAR, vedi `backlog/docs/meteo-verifica-modelli-analisi.md` e lo script
-  accanto per rifare la misura). Sole/crepuscolo in `sun.ts` (NOAA, nessuna rete), cielo in
+  accanto per rifare la misura); le stesse costanti le legge «Come si legge», che non può
+  quindi divergere. I **nomi dei codici WMO** hanno una sola casa, `cielo.ts`: il giudizio
+  ne prende il testo e ci attacca la probabilità in **un motivo solo** («neve 70%», non
+  «neve · pioggia 70%»). Sole/crepuscolo in `sun.ts` (NOAA, nessuna rete), cielo in
   `cielo.ts`. Il **passo** si cambia anche dal pannello (`applicaPasso`, stesso globale
   delle Impostazioni); la **rete è separata dalla ricostruzione** — il report è un
   `useMemo`, cambiare passo/soste/**modello** non riscarica. Le **soste ai waypoint** (`pausaMin` su

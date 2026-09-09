@@ -1,8 +1,9 @@
 'use client';
 
 import { linkMeteoblue } from '@/lib/meteoblue';
+import { cielo, cieloDellOra } from '@/lib/cielo';
 import { metri, numero } from '@/lib/formato';
-import type { RigaPercorso } from '@/lib/route-weather';
+import type { RigaPercorso, SoglieModello } from '@/lib/route-weather';
 
 /**
  * Le **azioni di un punto** del meteo del percorso.
@@ -61,9 +62,19 @@ export function BottoneAzioniPunto(
  * servono — il CAPE su tutti — ma che chi vuole capire *perché* un punto è arancione deve
  * poter vedere. Toglierli dalla tabella non vuol dire nasconderli.
  */
-export function AzioniPunto({ riga }: { riga: RigaPercorso }) {
+export function AzioniPunto({ riga, soglie }: { riga: RigaPercorso; soglie: SoglieModello }) {
   const indirizzo = linkMeteoblue(riga.lat, riga.lon);
   const nome = riga.name || 'senza nome';
+  /*
+    Quando l'iconcina non e' quella del codice, si dice perche'. Il disaccordo fra la corsa
+    del modello e la probabilita' e' esattamente la cosa che l'utente ha chiesto («l'iconcina
+    dice sereno, perche'?»), e nasconderlo lascerebbe la domanda in piedi.
+  */
+  const codice = riga.hour?.weatherCode;
+  const prob = riga.hour?.precipProb;
+  const mostrato = cieloDellOra(codice, prob, soglie.arancione);
+  const daCodice = cielo(codice);
+  const corretto = mostrato != null && daCodice != null && mostrato.testo !== daCodice.testo;
   return (
     <div className="space-y-1">
       {indirizzo != null ? (
@@ -80,6 +91,13 @@ export function AzioniPunto({ riga }: { riga: RigaPercorso }) {
         // Senza coordinate valide non c'e' nessuna pagina da aprire: si dichiara invece
         // di offrire un collegamento che non porta da nessuna parte.
         <span className="text-[11px] text-gray-400">Coordinate non disponibili: nessuna pagina da aprire.</span>
+      )}
+      {corretto && (
+        <p className="text-[10px] leading-tight text-gray-400">
+          La corsa del modello dà «{daCodice!.testo}» qui, ma la probabilità di pioggia è{' '}
+          {Math.round(prob as number)}%: l&apos;iconcina segue la probabilità, che viene da
+          più simulazioni invece che da una sola.
+        </p>
       )}
       <dl className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-gray-400">
         <div className="flex gap-1">
