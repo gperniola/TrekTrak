@@ -4,6 +4,45 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.31.0] — 2026-09-09 — Il meteo dice quando piove, e lo dice il modello che scegli tu
+
+Nato da due segnalazioni dell'utente a poche ore l'una dall'altra: «sul percorso mi dice
+nuvoloso ma se apro meteoblue mi dice temporali e piogge» e «anche con piogge deboli segna
+verde, nessuna criticità». Erano **due difetti diversi**, e il più grave non era quello che
+sembrava. Le misure che hanno guidato tutto stanno in
+`backlog/docs/meteo-verifica-modelli-analisi.md` e si rifanno con lo script accanto.
+
+### Fixed
+- **La pioggia dichiarata dal modello non è più «nessuna criticità».** `classifyHour`
+  leggeva **solo** i codici WMO 95/96/99: pioviggine, pioggia, neve e rovesci esistevano in
+  `cielo.ts` per disegnare l'iconcina e nessuno li leggeva per giudicare. Misurato su 288
+  ore: 7 con la pioggia scritta nel codice e il verdetto a verde, cinque delle quali
+  «rovesci deboli». Ad Altamura, il pomeriggio del temporale, il modello aveva in mano
+  «rovesci deboli» e l'unico motivo che l'app scriveva era il vento.
+- **Le soglie di allerta non erano tarate su niente.** Erano 40% e 70% per chiunque, ma la
+  probabilità media di ICON **nelle ore in cui il temporale c'è davvero** vale 38,7%:
+  l'arancione a 70 era irraggiungibile per costruzione. Ora sono **misurate**, e diverse per
+  modello — ECMWF 15/32, ICON 5/10 — su 171 temporali osservati al METAR in 8 stazioni
+  italiane per due mesi, con tolleranza ±1 ora. I due arancioni sono tarati per avvisare
+  allo stesso modo (81% e 78% dei temporali presi), così cambiare modello non cambia di
+  nascosto quanto l'app allarma.
+
+### Added
+- **Si sceglie il modello di previsione** dal pannello «Quando partire»: ECMWF (predefinito;
+  AUC 0,927 contro 0,891, ed è l'unico dei due che arriva a coprire il 90% dei temporali) o
+  ICON. Il modello scelto possiede **tutto** — righe, motivi, verdetto, fasce critiche — e
+  sotto la tabella c'è scritto da chi vengono i numeri: mescolare le fonti dentro una riga
+  mostrerebbe una previsione che nessun modello ha mai fatto. La scelta si salva come il
+  passo, e **cambiarla non richiede una nuova previsione** (i due modelli arrivano in una
+  richiesta sola, ~17 KB misurati).
+- **I millimetri al posto del CAPE** in tabella, colorati per gravità sulla scala
+  convenzionale dell'intensità oraria. Il CAPE è energia in J/kg: a chi cammina non dice
+  niente, e occupava una colonna su un telefono. Resta nel **giudizio**, dove conta, e lì
+  si legge a parole («possibili temporali forti»). Zero millimetri è un trattino, un dato
+  che manca è «n/d»: sono due cose diverse.
+- **Tre puntini su ogni riga** con «Apri su Meteoblue», che porta alla previsione di **quel
+  punto** sul sito che l'utente consulta di suo.
+
 ## [0.30.4] — 2026-09-09 — Su desktop i banner tornano fasce in alto
 
 ### Fixed
