@@ -1,6 +1,7 @@
 import { oraItaliana } from './formato';
 import { haversineDistance } from './calculations';
-import type { Waypoint, Leg, AppMode } from './types';
+import type { Waypoint, Leg, AppMode, ModelloMeteo } from './types';
+import { MODELLO_METEO_PREDEFINITO } from './types';
 
 /**
  * Incrocia l'itinerario con l'ora: **cosa incontro, e quando**.
@@ -71,16 +72,26 @@ export interface PuntoOrario {
   precipProb: number;
   /** Temperatura in gradi, alla quota chiesta al modello. */
   temp: number;
+  /**
+   * Millimetri di precipitazione nell'ora. La probabilità dice **se** piove, questi
+   * dicono **quanto**: 0,2 mm è una spruzzata, 9,7 è un rovescio che ti ferma.
+   */
+  mm: number;
 }
 
 /**
- * Quel che basta per **giudicare** un'ora: la temperatura non entra nel giudizio.
+ * Quel che basta per **giudicare** un'ora: temperatura e millimetri non entrano.
  *
- * Tenerla fuori non e' pignoleria: `classifyHour` e' la funzione che decide i livelli di
+ * Tenerli fuori non e' pignoleria: `classifyHour` e' la funzione che decide i livelli di
  * rischio, e chiederle un campo che non guarda vorrebbe dire inventarne un valore in ogni
  * punto che la chiama — cioe' esattamente dove nascono i dati finti.
+ *
+ * I **mm** in particolare restano fuori di proposito: la verifica del 2026-09-09 su 171
+ * temporali osservati ha misurato soglie di **probabilità** (ECMWF 32%, ICON 10%), non di
+ * millimetri. Aggiungerne una qui senza averla misurata sarebbe rimettere le soglie a
+ * occhio che quella verifica ha appena tolto.
  */
-export type OraDaClassificare = Omit<PuntoOrario, 'temp'>;
+export type OraDaClassificare = Omit<PuntoOrario, 'temp' | 'mm'>;
 
 /** Serie orarie come arrivano da Open-Meteo, un oggetto per punto. */
 export interface SerieOraria {
@@ -90,6 +101,7 @@ export interface SerieOraria {
   wind_gusts_10m: number[];
   precipitation_probability: number[];
   temperature_2m: number[];
+  precipitation: number[];
 }
 
 /**
@@ -123,6 +135,29 @@ const CAPE_INNESCO_PIOGGIA = 30;
  * e allarmarci sopra sarebbe il difetto di prima con una soglia più alta.
  */
 const CAPE_ESTREMO = 2000;
+/** Le due soglie di probabilita' di pioggia di un modello: sotto la prima e' verde. */
+export interface SoglieModello { giallo: number; arancione: number }
+
+/**
+ * Soglie **misurate**, non scelte a occhio.
+ *
+ * Verifica del 2026-09-09 (`backlog/docs/meteo-verifica-modelli-analisi.md`): 171
+ * temporali osservati al METAR su 8 stazioni italiane, luglio-agosto, tolleranza ±1 ora.
+ *
+ * Prima erano 40 e 70 per chiunque. Ma la probabilita' media di ICON **nelle ore in cui
+ * il temporale c'e' davvero** vale 38,7%: l'arancione a 70 era irraggiungibile per
+ * costruzione, ed e' il motivo per cui l'app taceva sotto un temporale in corso.
+ *
+ * I due arancioni sono tarati per **avvisare allo stesso modo** — 81% dei temporali presi
+ * per ECMWF a 32%, 78% per ICON a 10% — cosi' cambiare modello dalla tendina non cambia
+ * di nascosto quanto l'app allarma. I due gialli no, e non possono: la probabilita' di
+ * ICON satura, e oltre l'83% dei temporali quel modello non arriva a nessuna soglia.
+ */
+export const SOGLIE_MODELLO: Record<ModelloMeteo, SoglieModello> = {
+  ecmwf: { giallo: 15, arancione: 32 },
+  icon: { giallo: 5, arancione: 10 },
+};
+
 // Raffiche in km/h: in cresta e su terreno esposto contano quanto la pioggia.
 const RAFFICA_ATTENZIONE = 30;
 const RAFFICA_FORTE = 50;
@@ -135,6 +170,41 @@ const CODICI_TEMPORALE: Record<number, string> = {
   95: 'temporale',
   96: 'temporale con grandine',
   99: 'temporale con grandine forte',
+};
+/**
+ * Gli **altri** codici WMO di precipitazione, col livello che meritano.
+ *
+ * Prima esisteva solo `CODICI_TEMPORALE`: la tabella WMO era completa in `cielo.ts` per
+ * **disegnare** l'iconcina, e ignorata da chi **giudica**. Il risultato, misurato il
+ * 2026-09-09 su 288 ore, erano 7 ore con la pioggia scritta nel codice e il verdetto a
+ * verde — cinque delle quali `80 = rovesci deboli`. L'unico grilletto per la pioggia era
+ * la probabilità, che è un'altra cosa: dice «se», non «cosa».
+ *
+ * La scala: pioviggine e rovesci deboli sono un fastidio (1); pioggia e neve continue
+ * bagnano e raffreddano, ed è lì che comincia l'ipotermia (2); le forme forti e **tutto
+ * ciò che gela** sono un pericolo (3) — in quota il ghiaccio non è pioggia intensa, è un
+ * altro problema.
+ */
+const CODICI_PRECIPITAZIONE: Record<number, { testo: string; livello: 1 | 2 | 3 }> = {
+  51: { testo: 'pioviggine leggera', livello: 1 },
+  53: { testo: 'pioviggine', livello: 1 },
+  55: { testo: 'pioviggine intensa', livello: 1 },
+  56: { testo: 'pioviggine che gela', livello: 3 },
+  57: { testo: 'pioviggine che gela, intensa', livello: 3 },
+  61: { testo: 'pioggia debole', livello: 2 },
+  63: { testo: 'pioggia', livello: 2 },
+  65: { testo: 'pioggia forte', livello: 3 },
+  66: { testo: 'pioggia che gela', livello: 3 },
+  67: { testo: 'pioggia che gela, forte', livello: 3 },
+  71: { testo: 'neve debole', livello: 1 },
+  73: { testo: 'neve', livello: 2 },
+  75: { testo: 'neve forte', livello: 3 },
+  77: { testo: 'granelli di neve', livello: 1 },
+  80: { testo: 'rovesci deboli', livello: 1 },
+  81: { testo: 'rovesci', livello: 2 },
+  82: { testo: 'rovesci violenti', livello: 3 },
+  85: { testo: 'rovesci di neve', livello: 2 },
+  86: { testo: 'rovesci di neve forti', livello: 3 },
 };
 
 /**
@@ -299,7 +369,7 @@ export function arrivalTimes(waypoints: Waypoint[], legs: Leg[], departure: Date
  *    d'occhio» per la convezione orografica che i modelli a maglia larga sotto-stimano;
  * 4. **raffiche**: il vento previsto è un fatto, non un potenziale → restano com'erano.
  */
-export function classifyHour(o: OraDaClassificare): Classificazione {
+export function classifyHour(o: OraDaClassificare, soglie: SoglieModello): Classificazione {
   const reasons: string[] = [];
   let level: Livello = 0;
   const alza = (l: Exclude<Livello, null>) => { if (level != null && l > level) level = l; };
@@ -316,10 +386,18 @@ export function classifyHour(o: OraDaClassificare): Classificazione {
     alza(3);
   }
 
+  // 1-bis. Le altre precipitazioni dichiarate dal codice. Il modello sta dicendo che
+  // cade qualcosa: finora lo ascoltava solo l'iconcina, non il giudizio.
+  const precipitazione = codiceNoto ? CODICI_PRECIPITAZIONE[o.weatherCode] : undefined;
+  if (precipitazione != null) {
+    reasons.push(precipitazione.testo);
+    alza(precipitazione.livello);
+  }
+
   // 2. Pioggia dal modello: la probabilità è già il «ci sarà o no».
   if (pioggiaNota) {
-    if (o.precipProb >= 70) { reasons.push(`pioggia ${Math.round(o.precipProb)}%`); alza(2); }
-    else if (o.precipProb >= 40) { reasons.push(`pioggia ${Math.round(o.precipProb)}%`); alza(1); }
+    if (o.precipProb >= soglie.arancione) { reasons.push(`pioggia ${Math.round(o.precipProb)}%`); alza(2); }
+    else if (o.precipProb >= soglie.giallo) { reasons.push(`pioggia ${Math.round(o.precipProb)}%`); alza(1); }
   }
 
   // 3. CAPE: energia, non evento.
@@ -372,6 +450,13 @@ export function defaultDeparture(now: Date, oraTipica = 7): Date {
 export interface RigaPercorso {
   waypointIndex: number;
   name: string;
+  /**
+   * Coordinate del punto. Servono alle **azioni di riga** — aprire la previsione di quel
+   * punto altrove — e per un punto inserito automaticamente non ci sarebbe altro modo di
+   * sapere dov'e': non e' un waypoint, non sta in nessuna lista.
+   */
+  lat: number;
+  lon: number;
   /** Quota del punto secondo l'itinerario, se c'e'. */
   alt: number | null;
   /**
@@ -488,6 +573,7 @@ function letturaVicina(serie: SerieOraria, quando: Date): PuntoOrario | null {
     gusts: serie.wind_gusts_10m?.[migliore] ?? Number.NaN,
     precipProb: serie.precipitation_probability?.[migliore] ?? Number.NaN,
     temp: serie.temperature_2m?.[migliore] ?? Number.NaN,
+    mm: serie.precipitation?.[migliore] ?? Number.NaN,
   };
 }
 
@@ -502,7 +588,7 @@ function letturaVicina(serie: SerieOraria, quando: Date): PuntoOrario | null {
  * temporale alle 3 veniva dichiarata tranquilla: partire di notte non e' un caso di
  * scuola, e' la partenza classica per una vetta.
  */
-function fasceCritiche(serie: SerieOraria[], da: Date, a: Date): FinestraCritica[] {
+function fasceCritiche(serie: SerieOraria[], da: Date, a: Date, soglie: SoglieModello): FinestraCritica[] {
   const istanti = new Set<number>();
   for (const s of serie) {
     if (!Array.isArray(s?.time)) continue;
@@ -516,7 +602,7 @@ function fasceCritiche(serie: SerieOraria[], da: Date, a: Date): FinestraCritica
         weatherCode: s.weather_code?.[i] ?? Number.NaN,
         gusts: s.wind_gusts_10m?.[i] ?? Number.NaN,
         precipProb: s.precipitation_probability?.[i] ?? Number.NaN,
-      });
+      }, soglie);
       if (c.level != null && c.level >= 2) istanti.add(t.getTime());
     }
   }
@@ -644,8 +730,14 @@ export function buildRouteWeather(input: {
    * (serve la rete), e dire «passa a Pianificazione» a chi ci è già è un consiglio falso.
    */
   appMode?: AppMode;
+  /**
+   * Quale modello sta parlando: decide le **soglie**, che sono diverse per ognuno.
+   * Assente vale il predefinito — le impostazioni salvate prima non hanno il campo.
+   */
+  modello?: ModelloMeteo;
 }): RouteWeatherReport {
   const { waypoints, legs, departure, punti, serie } = input;
+  const soglie = SOGLIE_MODELLO[input.modello ?? MODELLO_METEO_PREDEFINITO];
   if (punti.length === 0 || serie.length === 0) {
     return {
       rows: [], windows: [], hitWindow: null, sampled: 0,
@@ -694,10 +786,10 @@ export function buildRouteWeather(input: {
       const hour = istante != null && mia != null ? letturaVicina(mia, istante) : null;
       const motivo = istante == null ? 'orario di arrivo non stimabile' : 'dati non disponibili';
       return {
-        waypointIndex: p.waypointIndex, name: p.name, alt: p.alt, modelElevation,
+        waypointIndex: p.waypointIndex, name: p.name, lat: p.lat, lon: p.lon, alt: p.alt, modelElevation,
         arrival: istante?.toISOString() ?? null,
         hour,
-        classification: hour ? classifyHour(hour) : { level: null, reasons: [motivo] },
+        classification: hour ? classifyHour(hour, soglie) : { level: null, reasons: [motivo] },
         ...(p.intermedio != null ? { intermedio: p.intermedio } : {}),
         ...extra,
       };
@@ -726,7 +818,7 @@ export function buildRouteWeather(input: {
   const arriviNoti = arrivi.filter((a): a is Date => a != null);
   const arrivoUltimo = arriviNoti[arriviNoti.length - 1] ?? departure;
   const tempiCompleti = arrivi.length > 0 && arrivi.every((a) => a != null);
-  const windows = fasceCritiche(serie, inizioGiornoItaliano(departure), fineGiornoItaliano(arrivoUltimo));
+  const windows = fasceCritiche(serie, inizioGiornoItaliano(departure), fineGiornoItaliano(arrivoUltimo), soglie);
 
   /*
    * Il verdetto guarda il tempo in cui si CAMMINA, non gli istanti dei punti

@@ -93,7 +93,7 @@ describe('una fascia che arriva a fine giornata', () => {
       wind_gusts_10m.push(critica ? 80 : 10);
       precipitation_probability.push(critica ? 90 : 0);
     }
-    return { time, cape, weather_code, wind_gusts_10m, precipitation_probability, temperature_2m: [] };
+    return { time, cape, weather_code, wind_gusts_10m, precipitation_probability, temperature_2m: [], precipitation: [] };
   };
 
   const giorno = '2026-08-28';
@@ -166,7 +166,7 @@ describe('anche il pannello scrive la fascia per intero', () => {
         g.push(critica ? 85 : 8);
         pr.push(critica ? 95 : 0);
       }
-      return { time: t, cape: c, weather_code: w, wind_gusts_10m: g, precipitation_probability: pr, temperature_2m: [] };
+      return { time: t, cape: c, weather_code: w, wind_gusts_10m: g, precipitation_probability: pr, temperature_2m: [], precipitation: [] };
     };
     const giornoUTC = (scarto: number) => {
       const d = new Date();
@@ -184,7 +184,7 @@ describe('anche il pannello scrive la fascia per intero', () => {
       precipitation_probability: [...a.precipitation_probability, ...b.precipitation_probability],
       temperature_2m: [...a.temperature_2m, ...b.temperature_2m],
     };
-    mockFetchRouteForecast.mockResolvedValue({ serie: [serie, serie], elevations: [] });
+    mockFetchRouteForecast.mockResolvedValue({ serie: { ecmwf: [serie, serie], icon: [serie, serie] }, elevations: [] });
 
     useUIStore.setState({ weatherOpen: true });
     useItineraryStore.setState({
@@ -221,7 +221,7 @@ describe('la tabella dice perche un punto e problematico', () => {
       t.push(`${giorno}T${String(h).padStart(2, '0')}:00`);
       c.push(valori.cape); w.push(valori.code); g.push(valori.gusts); pr.push(valori.pioggia);
     }
-    return { time: t, cape: c, weather_code: w, wind_gusts_10m: g, precipitation_probability: pr, temperature_2m: [] };
+    return { time: t, cape: c, weather_code: w, wind_gusts_10m: g, precipitation_probability: pr, temperature_2m: [], precipitation: [] };
   };
 
   test('scrive le raffiche e i temporali, non solo un pallino', async () => {
@@ -246,7 +246,7 @@ describe('la tabella dice perche un punto e problematico', () => {
       precipitation_probability: [...a.precipitation_probability, ...b.precipitation_probability],
       temperature_2m: [...a.temperature_2m, ...b.temperature_2m],
     };
-    mockFetchRouteForecast.mockResolvedValue({ serie: [serie, serie], elevations: [] });
+    mockFetchRouteForecast.mockResolvedValue({ serie: { ecmwf: [serie, serie], icon: [serie, serie] }, elevations: [] });
 
     useUIStore.setState({ weatherOpen: true });
     useItineraryStore.setState({

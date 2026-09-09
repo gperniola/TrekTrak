@@ -42,7 +42,13 @@ function serieConTemporalePomeridiano(giorno: string) {
 beforeEach(() => {
   fetchRouteForecast.mockReset();
   useUIStore.setState({ weatherOpen: true });
-  useItineraryStore.setState({ waypoints: [wp(0), wp(1), wp(2)], legs: [leg(0, 180), leg(1, 240)] });
+  useItineraryStore.setState({
+    waypoints: [wp(0), wp(1), wp(2)],
+    legs: [leg(0, 180), leg(1, 240)],
+    // Il modello scelto si salva nelle impostazioni: senza azzerarlo, un test si
+    // porterebbe dietro la scelta di quello prima.
+    settings: { ...useItineraryStore.getState().settings, modelloMeteo: undefined },
+  });
 });
 
 /**
@@ -84,9 +90,53 @@ describe('Meteo del percorso', () => {
     };
   };
 
+  /**
+   * **La tendina sceglie il modello, e quel modello possiede tutto.**
+   *
+   * Due cose in una: che cambiare modello cambi davvero il verdetto (i due modelli non
+   * concordano, ed è il motivo per cui la tendina esiste), e che **non richiami la rete** —
+   * la previsione di entrambi arriva in una richiesta sola, quindi cambiare è un
+   * ricalcolo. Se un domani qualcuno rimettesse `modello` fra le dipendenze del
+   * caricamento, questo test lo prende.
+   */
+  test('cambiare modello cambia il verdetto senza una nuova richiesta', async () => {
+    const brutto = serieOggiEDomani();
+    // Stesse ore, tutte tranquille: cosi' l'unica differenza fra i due modelli e' il
+    // giudizio, e il cambio di verdetto non puo' venire da altro.
+    const buono = {
+      time: brutto.time,
+      cape: brutto.time.map(() => 40),
+      weather_code: brutto.time.map(() => 0),
+      wind_gusts_10m: brutto.time.map(() => 10),
+      precipitation_probability: brutto.time.map(() => 0),
+      temperature_2m: brutto.time.map(() => 12),
+    };
+    fetchRouteForecast.mockResolvedValue({
+      serie: { ecmwf: [brutto, brutto, brutto], icon: [buono, buono, buono] },
+      elevations: [],
+    });
+    render(<RouteWeatherPanel />);
+
+    // Il verdetto, non un testo qualsiasi: la parola compare sia nell'etichetta sia
+    // nella frase, e cercarla in tutta la pagina troverebbe due nodi.
+    const verdetto = () => screen.getAllByRole('status').map((n) => n.textContent).join(' | ');
+
+    await waitFor(() => expect(screen.getByRole('table')).toBeInTheDocument());
+    expect(fetchRouteForecast).toHaveBeenCalledTimes(1);
+    expect(screen.getByText(/vengono da/i)).toHaveTextContent('ECMWF');
+    expect(verdetto()).not.toMatch(/Nessuna criticità/);
+
+    fireEvent.change(screen.getByLabelText(/Modello di previsione/i), { target: { value: 'icon' } });
+
+    await waitFor(() => expect(screen.getByText(/vengono da/i)).toHaveTextContent('ICON'));
+    expect(verdetto()).toMatch(/Nessuna criticità/);
+    // La rete non si è mossa: è tutto ricalcolo.
+    expect(fetchRouteForecast).toHaveBeenCalledTimes(1);
+  });
+
   test('chiede la previsione per i punti del percorso e mostra una riga per punto', async () => {
     const serie = serieOggiEDomani();
-    fetchRouteForecast.mockResolvedValue({ serie: [serie, serie, serie], elevations: [2000, 2200, 2400] });
+    fetchRouteForecast.mockResolvedValue({ serie: { ecmwf: [serie, serie, serie], icon: [serie, serie, serie] }, elevations: [2000, 2200, 2400] });
     render(<RouteWeatherPanel />);
     await waitFor(() => expect(fetchRouteForecast).toHaveBeenCalled());
     const punti = fetchRouteForecast.mock.calls[0][0] as { lat: number }[];
@@ -97,7 +147,7 @@ describe('Meteo del percorso', () => {
 
   test('il verdetto dice dove sei quando la previsione peggiora', async () => {
     const serie = serieOggiEDomani();
-    fetchRouteForecast.mockResolvedValue({ serie: [serie, serie, serie], elevations: [] });
+    fetchRouteForecast.mockResolvedValue({ serie: { ecmwf: [serie, serie, serie], icon: [serie, serie, serie] }, elevations: [] });
     render(<RouteWeatherPanel />);
     await waitFor(() => expect(screen.getByRole('status')).toBeInTheDocument());
     const verdetto = screen.getByRole('status').textContent || '';
@@ -110,7 +160,7 @@ describe('Meteo del percorso', () => {
   // popup a parte: è dentro «Come si legge».
   test('caricata la previsione, mostra la tabella e «Come si legge»', async () => {
     const serie = serieOggiEDomani();
-    fetchRouteForecast.mockResolvedValue({ serie: [serie, serie, serie], elevations: [] });
+    fetchRouteForecast.mockResolvedValue({ serie: { ecmwf: [serie, serie, serie], icon: [serie, serie, serie] }, elevations: [] });
     render(<RouteWeatherPanel />);
     await waitFor(() => expect(screen.getByText('Cielo')).toBeInTheDocument());
     expect(screen.getByRole('button', { name: /come si legge/i })).toBeInTheDocument();
@@ -120,7 +170,7 @@ describe('Meteo del percorso', () => {
 
   test('cambiare ora di partenza ricalcola', async () => {
     const serie = serieOggiEDomani();
-    fetchRouteForecast.mockResolvedValue({ serie: [serie, serie, serie], elevations: [] });
+    fetchRouteForecast.mockResolvedValue({ serie: { ecmwf: [serie, serie, serie], icon: [serie, serie, serie] }, elevations: [] });
     render(<RouteWeatherPanel />);
     await waitFor(() => expect(fetchRouteForecast).toHaveBeenCalledTimes(1));
     fireEvent.change(screen.getByLabelText(/ora di partenza/i), { target: { value: '5' } });
@@ -134,7 +184,7 @@ describe('Meteo del percorso', () => {
   });
 
   test('alba, tramonto e buio sono sempre presenti (calcolo locale, nessuna rete)', async () => {
-    fetchRouteForecast.mockResolvedValue({ serie: [], elevations: [] });
+    fetchRouteForecast.mockResolvedValue({ serie: { ecmwf: [], icon: [] }, elevations: [] });
     render(<RouteWeatherPanel />);
     await waitFor(() => expect(screen.getByText(/Tramonto/)).toBeInTheDocument());
     expect(screen.getByText(/Alba/)).toBeInTheDocument();
@@ -156,7 +206,7 @@ describe('Meteo del percorso', () => {
   });
 
   test('la parte didattica spiega il CAPE e la regola 30/30', async () => {
-    fetchRouteForecast.mockResolvedValue({ serie: [], elevations: [] });
+    fetchRouteForecast.mockResolvedValue({ serie: { ecmwf: [], icon: [] }, elevations: [] });
     render(<RouteWeatherPanel />);
     fireEvent.click(screen.getByRole('button', { name: /come si legge/i }));
     expect(screen.getByText(/energia disponibile/i)).toBeInTheDocument();
@@ -164,14 +214,14 @@ describe('Meteo del percorso', () => {
   });
 
   test('dice che è una previsione e non sostituisce i canali ufficiali', async () => {
-    fetchRouteForecast.mockResolvedValue({ serie: [], elevations: [] });
+    fetchRouteForecast.mockResolvedValue({ serie: { ecmwf: [], icon: [] }, elevations: [] });
     render(<RouteWeatherPanel />);
     expect(screen.getByText(/non sostituisce i canali ufficiali/i)).toBeInTheDocument();
     expect(screen.getByText(/Open-Meteo/)).toBeInTheDocument();
   });
 
   test('chiudendo si azzera il flag nello store', async () => {
-    fetchRouteForecast.mockResolvedValue({ serie: [], elevations: [] });
+    fetchRouteForecast.mockResolvedValue({ serie: { ecmwf: [], icon: [] }, elevations: [] });
     render(<RouteWeatherPanel />);
     fireEvent.click(screen.getByRole('button', { name: /chiudi meteo/i }));
     expect(useUIStore.getState().weatherOpen).toBe(false);
@@ -210,7 +260,7 @@ describe('il cielo di ogni punto', () => {
 
   test('mostra la parola del cielo e la temperatura di quell ora', async () => {
     const serie = serieDelGiorno(3, 11.4); // coperto, 11,4 gradi
-    fetchRouteForecast.mockResolvedValue({ serie: [serie, serie, serie], elevations: [2000, 2200, 2400] });
+    fetchRouteForecast.mockResolvedValue({ serie: { ecmwf: [serie, serie, serie], icon: [serie, serie, serie] }, elevations: [2000, 2200, 2400] });
     render(<RouteWeatherPanel />);
     // La parola c'e' per i lettori di schermo: l'emoji da sola verrebbe letta come
     // "sun behind cloud", che non e' una previsione.
@@ -225,7 +275,7 @@ describe('il cielo di ogni punto', () => {
    */
   test('un codice che non si conosce diventa n/d, non sereno', async () => {
     const serie = serieDelGiorno(4, Number.NaN); // 4 non esiste nella WMO 4677
-    fetchRouteForecast.mockResolvedValue({ serie: [serie, serie, serie], elevations: [] });
+    fetchRouteForecast.mockResolvedValue({ serie: { ecmwf: [serie, serie, serie], icon: [serie, serie, serie] }, elevations: [] });
     render(<RouteWeatherPanel />);
     await waitFor(() => expect(screen.getAllByText('n/d').length).toBeGreaterThan(0));
     expect(screen.queryByText('sereno')).not.toBeInTheDocument();
@@ -233,7 +283,7 @@ describe('il cielo di ogni punto', () => {
 
   test('la legenda spiega solo le icone che si vedono', async () => {
     const serie = serieDelGiorno(0, 15); // tutto sereno
-    fetchRouteForecast.mockResolvedValue({ serie: [serie, serie, serie], elevations: [] });
+    fetchRouteForecast.mockResolvedValue({ serie: { ecmwf: [serie, serie, serie], icon: [serie, serie, serie] }, elevations: [] });
     render(<RouteWeatherPanel />);
     await waitFor(() => expect(screen.getAllByText('sereno').length).toBeGreaterThan(0));
     // "coperto" non compare da nessuna parte: la legenda non e' un manuale della WMO.
@@ -250,7 +300,7 @@ describe('il cielo di ogni punto', () => {
   test('dichiara quando il modello ha risposto per un altra quota', async () => {
     const serie = serieDelGiorno(0, 26);
     // I waypoint stanno a 2000-2400 m; il modello risponde per 1257 m.
-    fetchRouteForecast.mockResolvedValue({ serie: [serie, serie, serie], elevations: [1257, 1257, 1257] });
+    fetchRouteForecast.mockResolvedValue({ serie: { ecmwf: [serie, serie, serie], icon: [serie, serie, serie] }, elevations: [1257, 1257, 1257] });
     render(<RouteWeatherPanel />);
     await waitFor(() => expect(screen.getByText(/più\s+in basso del punto/i)).toBeInTheDocument());
     expect(screen.getByText(/1\.143 m/)).toBeInTheDocument();
@@ -258,7 +308,7 @@ describe('il cielo di ogni punto', () => {
 
   test('se le quote coincidono non avvisa di niente', async () => {
     const serie = serieDelGiorno(0, 15);
-    fetchRouteForecast.mockResolvedValue({ serie: [serie, serie, serie], elevations: [2000, 2200, 2400] });
+    fetchRouteForecast.mockResolvedValue({ serie: { ecmwf: [serie, serie, serie], icon: [serie, serie, serie] }, elevations: [2000, 2200, 2400] });
     render(<RouteWeatherPanel />);
     await waitFor(() => expect(screen.getAllByText('sereno').length).toBeGreaterThan(0));
     expect(screen.queryByText(/in basso del punto/i)).not.toBeInTheDocument();

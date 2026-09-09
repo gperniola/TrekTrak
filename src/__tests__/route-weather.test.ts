@@ -1,7 +1,7 @@
 import {
   samplePoints, arrivalTimes, classifyHour, defaultDeparture, buildRouteWeather,
   scartoQuota, scartoQuotaMassimo, SCARTO_QUOTA_RILEVANTE, SOGLIA_PAUSA_METEO, pausaDi,
-  righeVisibili, SPAZIO_MAX_KM, SOGLIA_MOSTRA_INTERMEDIO,
+  righeVisibili, SPAZIO_MAX_KM, SOGLIA_MOSTRA_INTERMEDIO, SOGLIE_MODELLO,
   type OraDaClassificare, type RigaPercorso,
 } from '@/lib/route-weather';
 import { haversineDistance } from '@/lib/calculations';
@@ -123,6 +123,9 @@ describe('orari di arrivo dai tempi Munter', () => {
  * giudice del «ci sarà o no», e il CAPE conta come aggravante di un innesco già previsto.
  */
 describe('classificazione di un\'ora', () => {
+  // Le soglie sono quelle di ECMWF, il modello predefinito: qui si provano le REGOLE,
+  // la taratura per modello ha il suo describe.
+  const soglie = SOGLIE_MODELLO.ecmwf;
   // Il tipo e' quello che `classifyHour` accetta davvero: la temperatura non entra nel
   // giudizio, e chiederla qui vorrebbe dire inventarne una in ogni caso di prova.
   const ora = (over: Partial<OraDaClassificare> = {}): OraDaClassificare => ({
@@ -130,13 +133,13 @@ describe('classificazione di un\'ora', () => {
   });
 
   test('cielo sereno e vento debole → nessun rischio', () => {
-    expect(classifyHour(ora()).level).toBe(0);
+    expect(classifyHour(ora(), soglie).level).toBe(0);
   });
 
   test.each([
     [95, 'temporale'], [96, 'temporale con grandine'], [99, 'temporale con grandine forte'],
   ])('codice %i → livello massimo', (code) => {
-    expect(classifyHour(ora({ weatherCode: code })).level).toBe(3);
+    expect(classifyHour(ora({ weatherCode: code }), soglie).level).toBe(3);
   });
 
   /**
@@ -146,42 +149,48 @@ describe('classificazione di un\'ora', () => {
   test.each([
     [300, 0], [720, 0], [1000, 0], [1500, 0], [1900, 0],
   ])('CAPE %i J/kg senza pioggia → livello %i (energia, non evento)', (cape, atteso) => {
-    expect(classifyHour(ora({ cape, precipProb: 0 })).level).toBe(atteso);
+    expect(classifyHour(ora({ cape, precipProb: 0 }), soglie).level).toBe(atteso);
   });
 
   /** Sopra la soglia estrema, una nota gialla anche senza pioggia: convezione orografica. */
   test('CAPE estremo senza pioggia → «tienila d\'occhio», non «attenzione»', () => {
-    const c = classifyHour(ora({ cape: 2500, precipProb: 5 }));
+    const c = classifyHour(ora({ cape: 2500, precipProb: 5 }), soglie);
     expect(c.level).toBe(1);
     expect(c.reasons.join(' ')).toMatch(/instabilità/i);
   });
 
   /** Con l'innesco previsto (pioggia probabile), il CAPE alto diventa aggravante forte. */
   test('pioggia probabile + CAPE alto → possibili temporali forti', () => {
-    const c = classifyHour(ora({ cape: 1000, precipProb: 50 }));
+    const c = classifyHour(ora({ cape: 1000, precipProb: 50 }), soglie);
     expect(c.level).toBe(3);
     expect(c.reasons.join(' ')).toMatch(/temporali forti/i);
   });
 
+  /**
+   * SPECIFICA CAMBIATA il 2026-09-09: le soglie della pioggia non sono più 40 e 70 per
+   * chiunque, ma quelle **misurate** del modello (ECMWF 15 e 32). L'intento del caso non
+   * cambia — con CAPE basso il livello è quello della pioggia, e nient'altro lo alza —
+   * cambiano i numeri che lo esprimono.
+   */
   test('pioggia probabile ma CAPE basso → livello della pioggia, non oltre', () => {
-    expect(classifyHour(ora({ cape: 200, precipProb: 50 })).level).toBe(1);
-    expect(classifyHour(ora({ cape: 200, precipProb: 80 })).level).toBe(2);
+    expect(classifyHour(ora({ cape: 200, precipProb: 20 }), soglie).level).toBe(1);
+    expect(classifyHour(ora({ cape: 200, precipProb: 50 }), soglie).level).toBe(2);
   });
 
   test.each([
     [20, 0], [40, 1], [60, 2], [85, 3],
   ])('raffiche %i km/h → livello %i', (gusts, atteso) => {
-    expect(classifyHour(ora({ gusts })).level).toBe(atteso);
+    expect(classifyHour(ora({ gusts }), soglie).level).toBe(atteso);
   });
 
   test('vince la lettura peggiore', () => {
-    const c = classifyHour(ora({ cape: 200, gusts: 85 }));
+    const c = classifyHour(ora({ cape: 200, gusts: 85 }), soglie);
     expect(c.level).toBe(3);
     expect(c.reasons.join(' ')).toMatch(/raffiche/i);
   });
 
   test('ogni motivo è nominato, non solo il livello', () => {
-    const c = classifyHour(ora({ cape: 1200, gusts: 55, weatherCode: 95, precipProb: 80 }));
+    const c = classifyHour(ora({ cape: 1200, gusts: 55, weatherCode: 95, precipProb: 80 }), soglie);
     expect(c.reasons.length).toBeGreaterThanOrEqual(3);
     // Motivi corti ma tutti presenti: temporale, pioggia, raffiche (il numero del CAPE
     // sta nella sua colonna, non ripetuto nel motivo).
@@ -193,8 +202,132 @@ describe('classificazione di un\'ora', () => {
   // Dati mancanti non devono diventare "nessun rischio": chi legge crederebbe di
   // sapere qualcosa che non sa.
   test('valori non numerici → si dichiara ignoto, non sereno', () => {
-    const c = classifyHour(ora({ cape: Number.NaN, weatherCode: Number.NaN, gusts: Number.NaN, precipProb: Number.NaN }));
+    const c = classifyHour(ora({ cape: Number.NaN, weatherCode: Number.NaN, gusts: Number.NaN, precipProb: Number.NaN }), soglie);
     expect(c.level).toBeNull();
+  });
+});
+
+/**
+ * **La pioggia dichiarata dal modello conta.**
+ *
+ * Segnalato dall'utente il 2026-09-09: «anche con "piogge deboli" segna verde, nessuna
+ * criticità». `classifyHour` leggeva solo i codici 95/96/99: la tabella WMO era completa
+ * in `cielo.ts` per **disegnare** l'iconcina e ignorata da chi **giudica**. Misurato su
+ * 288 ore: 7 con la pioggia scritta nel codice e il verdetto a verde, cinque delle quali
+ * `80 = rovesci deboli`. Ad Altamura, quel pomeriggio, il modello aveva in mano «rovesci
+ * deboli» e l'unico motivo scritto era il vento.
+ */
+describe('i codici di precipitazione entrano nel giudizio', () => {
+  // Qui la probabilita' e' sempre 0: le soglie non entrano in gioco, conta solo il codice.
+  const soglie = SOGLIE_MODELLO.ecmwf;
+  const ora = (weatherCode: number): OraDaClassificare => ({
+    time: '2026-09-09T15:00:00.000Z', cape: 0, weatherCode, gusts: 10, precipProb: 0,
+  });
+
+  test('rovesci deboli (80) non sono più verdi, e si chiamano per nome', () => {
+    const c = classifyHour(ora(80), soglie);
+    expect(c.level).toBe(1);
+    expect(c.reasons).toContain('rovesci deboli');
+  });
+
+  test.each([
+    [51, 1], [53, 1], [55, 1], [71, 1], [77, 1], [80, 1],
+    [61, 2], [63, 2], [73, 2], [81, 2], [85, 2],
+    [65, 3], [75, 3], [82, 3], [86, 3],
+  ])('codice %i → livello %i', (codice, atteso) => {
+    expect(classifyHour(ora(codice), soglie).level).toBe(atteso);
+  });
+
+  /** In quota il ghiaccio non è «pioggia intensa»: è un altro problema, ed è il peggiore. */
+  test.each([[56], [57], [66], [67]])('codice %i (che gela) → livello massimo', (codice) => {
+    expect(classifyHour(ora(codice), soglie).level).toBe(3);
+  });
+
+  test('un cielo senza precipitazione resta verde', () => {
+    expect(classifyHour(ora(3), soglie).level).toBe(0);
+    expect(classifyHour(ora(45), soglie).level).toBe(0);
+    expect(classifyHour(ora(0), soglie).reasons).toHaveLength(0);
+  });
+
+  test('il temporale resta il massimo e non viene sovrascritto', () => {
+    const c = classifyHour(ora(95), soglie);
+    expect(c.level).toBe(3);
+    expect(c.reasons).toContain('temporale');
+  });
+});
+
+/**
+ * **Le soglie di probabilità sono diverse per modello, e sono misurate.**
+ *
+ * Verifica del 2026-09-09 (`backlog/docs/meteo-verifica-modelli-analisi.md`): 171
+ * temporali osservati al METAR su 8 stazioni italiane. Con ICON la probabilità media
+ * **nelle ore in cui il temporale c'è davvero** vale 38,7%: una soglia dell'arancione a
+ * 70% era irraggiungibile per costruzione, ed è il motivo per cui ad Altamura, con un
+ * temporale in corso a venti chilometri, l'app era verde.
+ *
+ * I due arancioni sono tarati per **avvisare allo stesso modo** (81% dei temporali presi
+ * per ECMWF a 32%, 78% per ICON a 10%): cambiare modello dalla tendina non deve cambiare
+ * di nascosto quanto l'app allarma.
+ */
+describe('soglie di pioggia, una taratura per modello', () => {
+  const ora = (precipProb: number): OraDaClassificare => ({
+    time: '2026-09-09T15:00:00.000Z', cape: 0, weatherCode: 3, gusts: 10, precipProb,
+  });
+
+  test('ECMWF: 32% è attenzione, 31% è solo da tenere d\'occhio', () => {
+    expect(classifyHour(ora(32), SOGLIE_MODELLO.ecmwf).level).toBe(2);
+    expect(classifyHour(ora(31), SOGLIE_MODELLO.ecmwf).level).toBe(1);
+    expect(classifyHour(ora(14), SOGLIE_MODELLO.ecmwf).level).toBe(0);
+  });
+
+  test('ICON: bastano 10 punti di probabilità, perché la sua scala è più bassa', () => {
+    expect(classifyHour(ora(10), SOGLIE_MODELLO.icon).level).toBe(2);
+    expect(classifyHour(ora(5), SOGLIE_MODELLO.icon).level).toBe(1);
+    expect(classifyHour(ora(4), SOGLIE_MODELLO.icon).level).toBe(0);
+  });
+
+  /**
+   * Il caso vero: ad Altamura, alle 17:00 del 2026-09-09, ICON dava 28% mentre il
+   * temporale era in corso. Con la soglia di prima (70%) taceva.
+   */
+  test('il 28% di ICON ad Altamura non è più silenzio', () => {
+    expect(classifyHour(ora(28), SOGLIE_MODELLO.icon).level).toBe(2);
+  });
+
+  test('la stessa probabilità vale diversamente nei due modelli, ed è voluto', () => {
+    expect(classifyHour(ora(20), SOGLIE_MODELLO.icon).level).toBe(2);
+    expect(classifyHour(ora(20), SOGLIE_MODELLO.ecmwf).level).toBe(1);
+  });
+});
+
+/**
+ * **I millimetri: la probabilità dice «se», questi dicono «quanto».**
+ *
+ * Entrano nel dato mostrato, NON nel giudizio: la verifica del 2026-09-09 ha misurato
+ * soglie di **probabilità** (ECMWF 32%, ICON 10%), non di millimetri. Metterne una qui
+ * senza averla misurata sarebbe tornare al difetto che quella verifica ha corretto.
+ */
+describe('i millimetri nel dato orario', () => {
+  const conMm = (mm: number) => buildRouteWeather({
+    waypoints: [wp(0)],
+    legs: [],
+    departure: new Date('2026-09-09T15:00:00.000Z'),
+    punti: [{ waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'WP 0', alt: 2000 }],
+    serie: [{
+      time: ['2026-09-09T14:00', '2026-09-09T15:00'],
+      cape: [0, 0], weather_code: [3, 3], wind_gusts_10m: [0, 0],
+      precipitation_probability: [0, 0], temperature_2m: [10, 10],
+      precipitation: [0, mm],
+    }],
+  });
+
+  test('i mm dell\'ora scelta arrivano nella riga', () => {
+    expect(conMm(6.9).rows[0].hour?.mm).toBe(6.9);
+  });
+
+  test('i mm non spostano il livello: il metro misurato è la probabilità', () => {
+    expect(conMm(0).rows[0].classification.level)
+      .toBe(conMm(30).rows[0].classification.level);
   });
 });
 
@@ -241,7 +374,7 @@ describe('rapporto completo', () => {
       wind_gusts_10m.push(15);
       precipitation_probability.push(base[h] ?? 10);
     }
-    return { time, cape, weather_code, wind_gusts_10m, precipitation_probability, temperature_2m: [] };
+    return { time, cape, weather_code, wind_gusts_10m, precipitation_probability, temperature_2m: [], precipitation: [] };
   };
 
   test('giornata tranquilla: nessuna finestra critica', () => {
@@ -377,7 +510,7 @@ describe('quando i tempi di percorrenza non ci sono', () => {
       cape.push(0); wc.push(0); g.push(10);
       pp.push(h >= 12 && h <= 15 ? 75 : 0);
     }
-    return { time, cape, weather_code: wc, wind_gusts_10m: g, precipitation_probability: pp, temperature_2m: [] };
+    return { time, cape, weather_code: wc, wind_gusts_10m: g, precipitation_probability: pp, temperature_2m: [], precipitation: [] };
   };
   const senzaTempo = { ...leg(0, 0), estimatedTime: undefined };
 
@@ -436,7 +569,7 @@ describe('quando i tempi di percorrenza non ci sono', () => {
     const r = buildRouteWeather({
       waypoints: [wp(0), wp(1)], legs: [senzaTempo], departure: partenza,
       punti: [{ waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'Parcheggio', alt: null }],
-      serie: [{ time, cape, weather_code: wc, wind_gusts_10m: g, precipitation_probability: pp, temperature_2m: [] }],
+      serie: [{ time, cape, weather_code: wc, wind_gusts_10m: g, precipitation_probability: pp, temperature_2m: [], precipitation: [] }],
     });
     expect(r.verdict.level).toBeNull();
     expect(r.verdict.message).toMatch(/Nessuna criticità/i);
@@ -452,7 +585,7 @@ describe('quando i tempi di percorrenza non ci sono', () => {
  */
 describe('scarto fra la quota del punto e quella del modello', () => {
   const riga = (alt: number | null, modelElevation: number | null): RigaPercorso => ({
-    waypointIndex: 0, name: 'Vetta', alt, modelElevation,
+    waypointIndex: 0, name: 'Vetta', lat: 46.4, lon: 11.8, alt, modelElevation,
     arrival: null, hour: null, classification: { level: null, reasons: [] },
   });
 
@@ -537,7 +670,7 @@ describe('la temperatura nella riga', () => {
       punti: [{ waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'WP 0', alt: 2000 }],
       serie: [{
         time, cape: vuoti, weather_code: vuoti, wind_gusts_10m: vuoti,
-        precipitation_probability: vuoti, temperature_2m,
+        precipitation_probability: vuoti, temperature_2m, precipitation: vuoti,
       }],
       elevations: [2000],
     });
@@ -553,7 +686,7 @@ describe('la temperatura nella riga', () => {
       punti: [{ waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'WP 0', alt: 2000 }],
       serie: [{
         time: [`${giorno}T09:00`], cape: [0], weather_code: [0], wind_gusts_10m: [0],
-        precipitation_probability: [0], temperature_2m: [],
+        precipitation_probability: [0], temperature_2m: [], precipitation: [],
       }],
     });
     expect(Number.isFinite(r.rows[0].hour?.temp)).toBe(false);
@@ -582,7 +715,7 @@ describe('le soste nel rapporto', () => {
       cape.push(0); g.push(10); pp.push(0);
       wc.push(h === 9 ? 95 : 0);   // 09:00 UTC = temporale
     }
-    return { time, cape, weather_code: wc, wind_gusts_10m: g, precipitation_probability: pp, temperature_2m: [] };
+    return { time, cape, weather_code: wc, wind_gusts_10m: g, precipitation_probability: pp, temperature_2m: [], precipitation: [] };
   };
   const punto = (i: number) => ({ waypointIndex: i, lat: 46.4 + i / 100, lon: 11.8, name: `P${i}`, alt: null });
 
@@ -690,7 +823,7 @@ describe('punti in mezzo sui tratti lunghi (densificazione)', () => {
 
 describe('righeVisibili: gli intermedi si mostrano solo se critici', () => {
   const riga = (over: Partial<RigaPercorso>): RigaPercorso => ({
-    waypointIndex: 0, name: 'x', alt: null, modelElevation: null, arrival: null, hour: null,
+    waypointIndex: 0, name: 'x', lat: 46.4, lon: 11.8, alt: null, modelElevation: null, arrival: null, hour: null,
     classification: { level: 0, reasons: [] }, ...over,
   });
   const meta = { ibIndex: 1, frazione: 0.5, kmDaInizio: 6, traA: 'A', traB: 'B' };
@@ -723,7 +856,8 @@ describe('il meteo in mezzo nel rapporto', () => {
       wind_gusts_10m.push(over.gusts ?? 10); precipitation_probability.push(over.precip ?? 0);
       temperature_2m.push(15);
     }
-    return { time, cape, weather_code, wind_gusts_10m, precipitation_probability, temperature_2m };
+    return { time, cape, weather_code, wind_gusts_10m, precipitation_probability, temperature_2m,
+      precipitation: time.map(() => 0) };
   };
   const partenza = new Date('2026-08-28T05:00:00Z');
   const A = far(0, 46.0, 11.0), B = far(1, 46.108, 11.0); // ~12 km
