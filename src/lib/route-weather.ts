@@ -379,20 +379,28 @@ export function classifyHour(o: OraDaClassificare, soglie: SoglieModello): Class
   const raffNota = Number.isFinite(o.gusts);
   const qualcosaDiNoto = codiceNoto || pioggiaNota || capeNoto || raffNota;
 
-  // 1. La precipitazione dichiarata dal codice, temporale compreso: e' il modello che
-  // dice che cade qualcosa. Il nome lo scrive `cielo.ts`, cosi' la parola nei motivi e
-  // quella nella colonna «Cielo» non possono divergere.
+  /*
+   * 1 e 2 insieme: **il codice dà il nome, la probabilità dà il numero**.
+   *
+   * Erano due motivi separati, e a schermo si leggeva «pioggia · pioggia 70%». Con la neve
+   * era peggio che ridondante: «neve · **pioggia** 70%» diceva una cosa falsa, perché quel
+   * numero è la probabilità che cada *quello che il codice dichiara*, non che cada acqua.
+   *
+   * Il nome lo scrive `cielo.ts`, così la parola nei motivi e quella nella colonna «Cielo»
+   * non possono divergere.
+   */
   const livelloCodice = codiceNoto ? LIVELLO_PER_CODICE[o.weatherCode] : undefined;
-  if (livelloCodice != null) {
-    const nome = cielo(o.weatherCode)?.testo;
-    if (nome != null) reasons.push(nome);
-    alza(livelloCodice);
-  }
+  const nomeCodice = livelloCodice != null ? cielo(o.weatherCode)?.testo ?? null : null;
+  if (livelloCodice != null) alza(livelloCodice);
 
-  // 2. Pioggia dal modello: la probabilità è già il «ci sarà o no».
-  if (pioggiaNota) {
-    if (o.precipProb >= soglie.arancione) { reasons.push(`pioggia ${Math.round(o.precipProb)}%`); alza(2); }
-    else if (o.precipProb >= soglie.giallo) { reasons.push(`pioggia ${Math.round(o.precipProb)}%`); alza(1); }
+  // Senza un codice di precipitazione la probabilità parla comunque di pioggia: è quello
+  // che il servizio misura.
+  const cosaCade = nomeCodice ?? 'pioggia';
+  if (pioggiaNota && o.precipProb >= soglie.giallo) {
+    reasons.push(`${cosaCade} ${Math.round(o.precipProb)}%`);
+    alza(o.precipProb >= soglie.arancione ? 2 : 1);
+  } else if (nomeCodice != null) {
+    reasons.push(nomeCodice);
   }
 
   // 3. CAPE: energia, non evento.

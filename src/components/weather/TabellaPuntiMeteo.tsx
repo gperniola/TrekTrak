@@ -74,9 +74,15 @@ function classeMm(mm: number | undefined): string {
 function testoMm(mm: number | undefined): string {
   if (mm == null || !Number.isFinite(mm)) return 'n/d';
   if (mm === 0) return '—';
-  // Senza «mm»: l'unita' la porta l'intestazione della colonna. Ripeterla in ogni riga
-  // costava 25 px, e a 360 px erano quelli che spingevano fuori schermo l'ultima colonna.
-  return numero(mm, 1);
+  /*
+   * **L'unita' sta nella cella, non solo nell'intestazione.**
+   *
+   * L'avevo tolta per far stare la tabella a 360 px, e la segnalazione e' arrivata subito:
+   * «vedo 0,2 — sono 0,2 mm o 0,2 cm?». Un numero senza unita' accanto ad altri numeri con
+   * unita' non e' compatto, e' ambiguo — e su una quantita' di pioggia l'ambiguita' e' un
+   * fattore dieci. I pixel si trovano altrove.
+   */
+  return `${numero(mm, 1)} mm`;
 }
 
 /**
@@ -103,15 +109,20 @@ export function TabellaPuntiMeteo({ righe }: { righe: RigaPercorso[] }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-xs">
+        {/*
+          Gronde strette (4 px): con sette colonne su 360 px ogni pixel di spaziatura è
+          uno che manca al contenuto, e la colonna che restava fuori era quella dei
+          comandi. Misurato: 332 px di tabella in un contenitore da 326.
+        */}
         <caption className="sr-only">Previsione per punto del percorso</caption>
         <thead>
           <tr className="text-gray-400 text-left">
-            <th scope="col" className="py-1 pr-1.5 font-medium">Punto</th>
-            <th scope="col" className="py-1 pr-1.5 font-medium">Arrivo</th>
-            <th scope="col" className="py-1 pr-1.5 font-medium">Cielo</th>
-            <th scope="col" className="py-1 pr-1.5 font-medium">mm</th>
-            <th scope="col" className="py-1 pr-1.5 font-medium">Raffiche</th>
-            <th scope="col" className="py-1 pr-1.5 font-medium">Piogg.</th>
+            <th scope="col" className="py-1 pr-1 font-medium">Punto</th>
+            <th scope="col" className="py-1 pr-1 font-medium">Arrivo</th>
+            <th scope="col" className="py-1 pr-1 font-medium">Cielo</th>
+            <th scope="col" className="py-1 pr-1 font-medium">Piogg.</th>
+            <th scope="col" className="py-1 pr-1 font-medium">mm</th>
+            <th scope="col" className="py-1 pr-1 font-medium">Raffiche</th>
             <th scope="col" className="py-1 font-medium"><span className="sr-only">Azioni</span></th>
           </tr>
         </thead>
@@ -126,7 +137,7 @@ export function TabellaPuntiMeteo({ righe }: { righe: RigaPercorso[] }) {
             return (
               <Fragment key={chiaveRiga}>
             <tr className="border-t border-gray-800">
-              <td className="py-1.5 pr-1.5 text-gray-200">
+              <td className="py-1.5 pr-1 text-gray-200">
                 <span
                   className={`inline-block w-2 h-2 rounded-full mr-1.5 ${PALLINO[chiave(r.classification.level)]}`}
                   aria-hidden
@@ -135,23 +146,18 @@ export function TabellaPuntiMeteo({ righe }: { righe: RigaPercorso[] }) {
                   ? <EtichettaIntermedio intermedio={r.intermedio} />
                   : <>{r.waypointIndex + 1}. {nome}</>}
                 <EtichettaSosta fase={r.fase} pausaMin={r.pausaMin} />
-                {r.classification.reasons.length > 0 && (
-                  <div className={`text-[10px] leading-tight mt-0.5 ${COLORE_MOTIVO[chiave(r.classification.level)]}`}>
-                    {r.classification.reasons.join(' · ')}
-                  </div>
-                )}
               </td>
-              <td className="py-1.5 pr-1.5 text-gray-300 font-mono">
+              <td className="py-1.5 pr-1 text-gray-300 font-mono">
                 {r.arrival != null ? oraItaliana(r.arrival) : <span className="text-gray-400 font-sans">n/d</span>}
               </td>
-              <td className="py-1.5 pr-1.5 text-gray-300 whitespace-nowrap">
+              <td className="py-1.5 pr-1 text-gray-300 whitespace-nowrap">
                 <Iconcina codice={r.hour?.weatherCode} temp={r.hour?.temp} />
               </td>
-              <td className={`py-1.5 pr-1.5 whitespace-nowrap ${classeMm(r.hour?.mm)}`}>
+              <td className="py-1.5 pr-1 text-gray-300">{intero(r.hour?.precipProb, '%')}</td>
+              <td className={`py-1.5 pr-1 whitespace-nowrap ${classeMm(r.hour?.mm)}`}>
                 {testoMm(r.hour?.mm)}
               </td>
-              <td className="py-1.5 pr-1.5 text-gray-300">{intero(r.hour?.gusts, ' km/h')}</td>
-              <td className="py-1.5 pr-1.5 text-gray-300">{intero(r.hour?.precipProb, '%')}</td>
+              <td className="py-1.5 pr-1 text-gray-300 whitespace-nowrap">{intero(r.hour?.gusts, ' km/h')}</td>
               <td className="py-1.5 text-right align-top">
                 <BottoneAzioniPunto
                   nome={nome}
@@ -161,6 +167,25 @@ export function TabellaPuntiMeteo({ righe }: { righe: RigaPercorso[] }) {
                 />
               </td>
             </tr>
+            {/*
+              I motivi su una RIGA INTERA, non dentro la colonna del punto.
+              Li' dentro — 52 px su un telefono da 360 — «pioggia 70% · possibili temporali
+              forti · raffiche 48 km/h» andava a capo sei volte e la riga diventava alta
+              come mezzo schermo. Sono il testo piu' utile della tabella: dicono PERCHE'
+              quel punto e' arancione, e meritano la larghezza.
+            */}
+            {r.classification.reasons.length > 0 && (
+              <tr>
+                <td
+                  colSpan={7}
+                  className={`pb-1.5 pl-4 pr-1 text-[10px] leading-tight ${COLORE_MOTIVO[chiave(r.classification.level)]}`}
+                >
+                  {/* Il nome per chi ascolta: la riga da sola non direbbe di quale punto parla. */}
+                  <span className="sr-only">{nome}: </span>
+                  {r.classification.reasons.join(' · ')}
+                </td>
+              </tr>
+            )}
             {eAperta && (
               /*
                 Il dettaglio sta in una riga SOTTO, non in un riquadro sovrapposto: la
@@ -169,8 +194,8 @@ export function TabellaPuntiMeteo({ righe }: { righe: RigaPercorso[] }) {
                 riga).
               */
               <tr id={idPannello}>
-                <td colSpan={7} className="pb-2 pl-4 pr-1.5 bg-gray-800/40">
-                  <AzioniPunto lat={r.lat} lon={r.lon} nome={nome} />
+                <td colSpan={7} className="pb-2 pl-4 pr-1 bg-gray-800/40">
+                  <AzioniPunto riga={r} />
                 </td>
               </tr>
             )}

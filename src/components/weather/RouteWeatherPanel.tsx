@@ -275,14 +275,9 @@ export function RouteWeatherPanel() {
               }}
               className="w-full bg-gray-900 border border-gray-700 rounded-lg px-2 py-2 text-sm text-gray-200 max-lg:min-h-[44px]"
             >
-              <option value="ecmwf">ECMWF — il più accurato nei confronti pubblicati</option>
-              <option value="icon">ICON — avvisa un po&apos; meno spesso</option>
+              <option value="ecmwf">ECMWF</option>
+              <option value="icon">ICON</option>
             </select>
-            <p className="text-[10px] text-gray-400 mt-1">
-              I due modelli non concordano sempre. Quello scelto qui decide{' '}
-              <strong className="font-medium text-gray-300">tutta</strong> la tabella e il
-              verdetto: i numeri non si mescolano mai fra le due fonti.
-            </p>
           </div>
         )}
 

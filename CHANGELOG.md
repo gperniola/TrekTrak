@@ -4,6 +4,38 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.31.2] — 2026-09-09 — La tabella del meteo si legge meglio
+
+Segnalazioni dell'utente sul rilascio precedente, tutte su cose che si vedono.
+
+### Changed
+- **I millimetri hanno di nuovo la loro unità nella cella.** Gliel'avevo tolta per far
+  stare la tabella a 360 px, e la domanda è arrivata subito: «vedo 0,2 — sono 0,2 mm o
+  0,2 cm?». Un numero senza unità accanto ad altri numeri con unità non è compatto, è
+  ambiguo, e su una quantità di pioggia l'ambiguità è un fattore dieci. (Per la cronaca:
+  sono millimetri, e 0,2 mm in un'ora è una spruzzata che non bagna.)
+- **Ordine delle colonne**: prima la probabilità, poi i millimetri, poi le raffiche —
+  l'evento prima della sua intensità, che è l'ordine in cui si legge una previsione.
+- **I motivi stanno su una riga intera**, non più dentro la colonna del punto: là dentro,
+  52 px su un telefono, «pioggia 70% · possibili temporali forti · raffiche 48 km/h»
+  andava a capo sei volte. Sono il testo più utile della tabella — dicono *perché* un
+  punto è arancione — e meritano la larghezza.
+- **La tendina del modello non spiega più niente**: dice «ECMWF» e «ICON» e basta. Le
+  descrizioni («il più accurato nei confronti pubblicati») e il paragrafo sul fatto che i
+  modelli non concordano erano roba da chi scrive l'app, non da chi la usa.
+- **I tre puntini dicono cosa fanno**: «Leggi previsione Meteoblue per «Matera»».
+
+### Added
+- **I numeri tolti dalla tabella si trovano nel dettaglio della riga**: CAPE e quota a cui
+  ha risposto il modello. Toglierli dalla vista d'insieme non vuol dire nasconderli — chi
+  vuole capire perché un punto è arancione deve poterli vedere.
+
+### Fixed
+- **Il motivo non balbetta più.** Si leggeva «pioggia · pioggia 70%», e con la neve
+  «neve · **pioggia** 70%» — dove la seconda metà diceva una cosa falsa: quel numero è la
+  probabilità di *ciò che il codice dichiara*, non che cada acqua. Ora il codice dà il
+  nome e la probabilità dà il numero, in un motivo solo: «neve 70%», «rovesci deboli 28%».
+
 ## [0.31.1] — 2026-09-09 — Le correzioni della review sulla v0.31.0
 
 Una sessione di review sul rilascio precedente. Tre difetti gravi, tutti nella stessa
