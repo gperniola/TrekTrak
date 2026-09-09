@@ -3,7 +3,8 @@
 import { cielo } from '@/lib/cielo';
 import { numero, oraItaliana, durataMin } from '@/lib/formato';
 import { righeVisibili, type Livello, type RigaPercorso, type PuntoIntermedio } from '@/lib/route-weather';
-import { MenuRigaMeteo } from '@/components/weather/MenuRigaMeteo';
+import { Fragment, useEffect, useState } from 'react';
+import { AzioniPunto, BottoneAzioniPunto } from '@/components/weather/AzioniPunto';
 
 /**
  * Colore del testo che dice PERCHE' un punto e' problematico.
@@ -34,8 +35,20 @@ const PALLINO: Record<string, string> = {
 
 function chiave(l: Livello): string { return l == null ? 'null' : String(l); }
 
+/**
+ * Un numero intero con la sua unita', all'italiana.
+ *
+ * Il trattino era il difetto: `—` significava «manca il dato» qui e «zero» nella colonna
+ * dei millimetri, **nella stessa riga**. Chi legge non poteva distinguere un fatto da una
+ * lacuna, che e' esattamente la confusione che questo progetto si e' imposto di evitare.
+ * Ora l'assenza si dichiara `n/d` come ovunque, e `—` resta solo «non piove».
+ *
+ * La formattazione passa da `numero`, la casa dei formati: `Math.round` da solo scriveva
+ * `1200` dove il resto dell'app scrive `1.200`.
+ */
 function intero(v: number | undefined, unita = ''): string {
-  return v == null || !Number.isFinite(v) ? '—' : `${Math.round(v)}${unita}`;
+  if (v == null || !Number.isFinite(v)) return 'n/d';
+  return `${numero(v, 0)}${unita}`;
 }
 
 /**
@@ -61,7 +74,9 @@ function classeMm(mm: number | undefined): string {
 function testoMm(mm: number | undefined): string {
   if (mm == null || !Number.isFinite(mm)) return 'n/d';
   if (mm === 0) return '—';
-  return `${numero(mm, 1)} mm`;
+  // Senza «mm»: l'unita' la porta l'intestazione della colonna. Ripeterla in ogni riga
+  // costava 25 px, e a 360 px erano quelli che spingevano fuori schermo l'ultima colonna.
+  return numero(mm, 1);
 }
 
 /**
@@ -72,37 +87,53 @@ function testoMm(mm: number | undefined): string {
  * il tuo passo.
  */
 export function TabellaPuntiMeteo({ righe }: { righe: RigaPercorso[] }) {
+  /*
+    Una riga aperta per volta, come nel pannello dei layer: due dettagli aperti insieme
+    raddoppierebbero l'altezza della tabella senza servire a niente.
+  */
+  const [aperta, setAperta] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (aperta == null) return;
+    const chiudi = (e: KeyboardEvent) => { if (e.key === 'Escape') setAperta(null); };
+    document.addEventListener('keydown', chiudi);
+    return () => document.removeEventListener('keydown', chiudi);
+  }, [aperta]);
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-xs">
         <caption className="sr-only">Previsione per punto del percorso</caption>
         <thead>
           <tr className="text-gray-400 text-left">
-            <th scope="col" className="py-1 pr-2 font-medium">Punto</th>
-            <th scope="col" className="py-1 pr-2 font-medium">Arrivo</th>
-            <th scope="col" className="py-1 pr-2 font-medium">Cielo</th>
-            <th scope="col" className="py-1 pr-2 font-medium">mm</th>
-            <th scope="col" className="py-1 pr-2 font-medium">Raffiche</th>
-            <th scope="col" className="py-1 pr-2 font-medium">Piogg.</th>
+            <th scope="col" className="py-1 pr-1.5 font-medium">Punto</th>
+            <th scope="col" className="py-1 pr-1.5 font-medium">Arrivo</th>
+            <th scope="col" className="py-1 pr-1.5 font-medium">Cielo</th>
+            <th scope="col" className="py-1 pr-1.5 font-medium">mm</th>
+            <th scope="col" className="py-1 pr-1.5 font-medium">Raffiche</th>
+            <th scope="col" className="py-1 pr-1.5 font-medium">Piogg.</th>
             <th scope="col" className="py-1 font-medium"><span className="sr-only">Azioni</span></th>
           </tr>
         </thead>
         <tbody>
-          {righeVisibili(righe).map((r) => (
-            <tr
-              key={r.intermedio != null
-                ? `mezzo-${Math.round(r.intermedio.kmDaInizio * 10)}`
-                : `${r.waypointIndex}-${r.fase ?? 'x'}`}
-              className="border-t border-gray-800"
-            >
-              <td className="py-1.5 pr-2 text-gray-200">
+          {righeVisibili(righe).map((r) => {
+            const chiaveRiga = r.intermedio != null
+              ? `mezzo-${Math.round(r.intermedio.kmDaInizio * 10)}`
+              : `${r.waypointIndex}-${r.fase ?? 'x'}`;
+            const nome = r.name || 'senza nome';
+            const idPannello = `azioni-${chiaveRiga}`;
+            const eAperta = aperta === chiaveRiga;
+            return (
+              <Fragment key={chiaveRiga}>
+            <tr className="border-t border-gray-800">
+              <td className="py-1.5 pr-1.5 text-gray-200">
                 <span
                   className={`inline-block w-2 h-2 rounded-full mr-1.5 ${PALLINO[chiave(r.classification.level)]}`}
                   aria-hidden
                 />
                 {r.intermedio != null
                   ? <EtichettaIntermedio intermedio={r.intermedio} />
-                  : <>{r.waypointIndex + 1}. {r.name || 'senza nome'}</>}
+                  : <>{r.waypointIndex + 1}. {nome}</>}
                 <EtichettaSosta fase={r.fase} pausaMin={r.pausaMin} />
                 {r.classification.reasons.length > 0 && (
                   <div className={`text-[10px] leading-tight mt-0.5 ${COLORE_MOTIVO[chiave(r.classification.level)]}`}>
@@ -110,22 +141,42 @@ export function TabellaPuntiMeteo({ righe }: { righe: RigaPercorso[] }) {
                   </div>
                 )}
               </td>
-              <td className="py-1.5 pr-2 text-gray-300 font-mono">
+              <td className="py-1.5 pr-1.5 text-gray-300 font-mono">
                 {r.arrival != null ? oraItaliana(r.arrival) : <span className="text-gray-400 font-sans">n/d</span>}
               </td>
-              <td className="py-1.5 pr-2 text-gray-300 whitespace-nowrap">
+              <td className="py-1.5 pr-1.5 text-gray-300 whitespace-nowrap">
                 <Iconcina codice={r.hour?.weatherCode} temp={r.hour?.temp} />
               </td>
-              <td className={`py-1.5 pr-2 whitespace-nowrap ${classeMm(r.hour?.mm)}`}>
+              <td className={`py-1.5 pr-1.5 whitespace-nowrap ${classeMm(r.hour?.mm)}`}>
                 {testoMm(r.hour?.mm)}
               </td>
-              <td className="py-1.5 pr-2 text-gray-300">{intero(r.hour?.gusts, ' km/h')}</td>
-              <td className="py-1.5 pr-2 text-gray-300">{intero(r.hour?.precipProb, '%')}</td>
-              <td className="py-1.5 text-right">
-                <MenuRigaMeteo lat={r.lat} lon={r.lon} nome={r.name || 'senza nome'} />
+              <td className="py-1.5 pr-1.5 text-gray-300">{intero(r.hour?.gusts, ' km/h')}</td>
+              <td className="py-1.5 pr-1.5 text-gray-300">{intero(r.hour?.precipProb, '%')}</td>
+              <td className="py-1.5 text-right align-top">
+                <BottoneAzioniPunto
+                  nome={nome}
+                  aperto={eAperta}
+                  idPannello={idPannello}
+                  onToggle={() => setAperta(eAperta ? null : chiaveRiga)}
+                />
               </td>
             </tr>
-          ))}
+            {eAperta && (
+              /*
+                Il dettaglio sta in una riga SOTTO, non in un riquadro sovrapposto: la
+                tabella vive dentro un contenitore che scorre, e li' dentro qualunque cosa
+                in posizione assoluta viene ritagliata (misurato: 52 px fuori, sull'ultima
+                riga).
+              */
+              <tr id={idPannello}>
+                <td colSpan={7} className="pb-2 pl-4 pr-1.5 bg-gray-800/40">
+                  <AzioniPunto lat={r.lat} lon={r.lon} nome={nome} />
+                </td>
+              </tr>
+            )}
+              </Fragment>
+            );
+          })}
         </tbody>
       </table>
     </div>
