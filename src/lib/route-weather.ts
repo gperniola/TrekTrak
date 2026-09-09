@@ -1,6 +1,7 @@
 import { oraItaliana } from './formato';
 import { haversineDistance } from './calculations';
-import type { Waypoint, Leg, AppMode } from './types';
+import type { Waypoint, Leg, AppMode, ModelloMeteo } from './types';
+import { MODELLO_METEO_PREDEFINITO } from './types';
 
 /**
  * Incrocia l'itinerario con l'ora: **cosa incontro, e quando**.
@@ -134,6 +135,29 @@ const CAPE_INNESCO_PIOGGIA = 30;
  * e allarmarci sopra sarebbe il difetto di prima con una soglia più alta.
  */
 const CAPE_ESTREMO = 2000;
+/** Le due soglie di probabilita' di pioggia di un modello: sotto la prima e' verde. */
+export interface SoglieModello { giallo: number; arancione: number }
+
+/**
+ * Soglie **misurate**, non scelte a occhio.
+ *
+ * Verifica del 2026-09-09 (`backlog/docs/meteo-verifica-modelli-analisi.md`): 171
+ * temporali osservati al METAR su 8 stazioni italiane, luglio-agosto, tolleranza ±1 ora.
+ *
+ * Prima erano 40 e 70 per chiunque. Ma la probabilita' media di ICON **nelle ore in cui
+ * il temporale c'e' davvero** vale 38,7%: l'arancione a 70 era irraggiungibile per
+ * costruzione, ed e' il motivo per cui l'app taceva sotto un temporale in corso.
+ *
+ * I due arancioni sono tarati per **avvisare allo stesso modo** — 81% dei temporali presi
+ * per ECMWF a 32%, 78% per ICON a 10% — cosi' cambiare modello dalla tendina non cambia
+ * di nascosto quanto l'app allarma. I due gialli no, e non possono: la probabilita' di
+ * ICON satura, e oltre l'83% dei temporali quel modello non arriva a nessuna soglia.
+ */
+export const SOGLIE_MODELLO: Record<ModelloMeteo, SoglieModello> = {
+  ecmwf: { giallo: 15, arancione: 32 },
+  icon: { giallo: 5, arancione: 10 },
+};
+
 // Raffiche in km/h: in cresta e su terreno esposto contano quanto la pioggia.
 const RAFFICA_ATTENZIONE = 30;
 const RAFFICA_FORTE = 50;
@@ -345,7 +369,7 @@ export function arrivalTimes(waypoints: Waypoint[], legs: Leg[], departure: Date
  *    d'occhio» per la convezione orografica che i modelli a maglia larga sotto-stimano;
  * 4. **raffiche**: il vento previsto è un fatto, non un potenziale → restano com'erano.
  */
-export function classifyHour(o: OraDaClassificare): Classificazione {
+export function classifyHour(o: OraDaClassificare, soglie: SoglieModello): Classificazione {
   const reasons: string[] = [];
   let level: Livello = 0;
   const alza = (l: Exclude<Livello, null>) => { if (level != null && l > level) level = l; };
@@ -372,8 +396,8 @@ export function classifyHour(o: OraDaClassificare): Classificazione {
 
   // 2. Pioggia dal modello: la probabilità è già il «ci sarà o no».
   if (pioggiaNota) {
-    if (o.precipProb >= 70) { reasons.push(`pioggia ${Math.round(o.precipProb)}%`); alza(2); }
-    else if (o.precipProb >= 40) { reasons.push(`pioggia ${Math.round(o.precipProb)}%`); alza(1); }
+    if (o.precipProb >= soglie.arancione) { reasons.push(`pioggia ${Math.round(o.precipProb)}%`); alza(2); }
+    else if (o.precipProb >= soglie.giallo) { reasons.push(`pioggia ${Math.round(o.precipProb)}%`); alza(1); }
   }
 
   // 3. CAPE: energia, non evento.
@@ -557,7 +581,7 @@ function letturaVicina(serie: SerieOraria, quando: Date): PuntoOrario | null {
  * temporale alle 3 veniva dichiarata tranquilla: partire di notte non e' un caso di
  * scuola, e' la partenza classica per una vetta.
  */
-function fasceCritiche(serie: SerieOraria[], da: Date, a: Date): FinestraCritica[] {
+function fasceCritiche(serie: SerieOraria[], da: Date, a: Date, soglie: SoglieModello): FinestraCritica[] {
   const istanti = new Set<number>();
   for (const s of serie) {
     if (!Array.isArray(s?.time)) continue;
@@ -571,7 +595,7 @@ function fasceCritiche(serie: SerieOraria[], da: Date, a: Date): FinestraCritica
         weatherCode: s.weather_code?.[i] ?? Number.NaN,
         gusts: s.wind_gusts_10m?.[i] ?? Number.NaN,
         precipProb: s.precipitation_probability?.[i] ?? Number.NaN,
-      });
+      }, soglie);
       if (c.level != null && c.level >= 2) istanti.add(t.getTime());
     }
   }
@@ -699,8 +723,14 @@ export function buildRouteWeather(input: {
    * (serve la rete), e dire «passa a Pianificazione» a chi ci è già è un consiglio falso.
    */
   appMode?: AppMode;
+  /**
+   * Quale modello sta parlando: decide le **soglie**, che sono diverse per ognuno.
+   * Assente vale il predefinito — le impostazioni salvate prima non hanno il campo.
+   */
+  modello?: ModelloMeteo;
 }): RouteWeatherReport {
   const { waypoints, legs, departure, punti, serie } = input;
+  const soglie = SOGLIE_MODELLO[input.modello ?? MODELLO_METEO_PREDEFINITO];
   if (punti.length === 0 || serie.length === 0) {
     return {
       rows: [], windows: [], hitWindow: null, sampled: 0,
@@ -752,7 +782,7 @@ export function buildRouteWeather(input: {
         waypointIndex: p.waypointIndex, name: p.name, alt: p.alt, modelElevation,
         arrival: istante?.toISOString() ?? null,
         hour,
-        classification: hour ? classifyHour(hour) : { level: null, reasons: [motivo] },
+        classification: hour ? classifyHour(hour, soglie) : { level: null, reasons: [motivo] },
         ...(p.intermedio != null ? { intermedio: p.intermedio } : {}),
         ...extra,
       };
@@ -781,7 +811,7 @@ export function buildRouteWeather(input: {
   const arriviNoti = arrivi.filter((a): a is Date => a != null);
   const arrivoUltimo = arriviNoti[arriviNoti.length - 1] ?? departure;
   const tempiCompleti = arrivi.length > 0 && arrivi.every((a) => a != null);
-  const windows = fasceCritiche(serie, inizioGiornoItaliano(departure), fineGiornoItaliano(arrivoUltimo));
+  const windows = fasceCritiche(serie, inizioGiornoItaliano(departure), fineGiornoItaliano(arrivoUltimo), soglie);
 
   /*
    * Il verdetto guarda il tempo in cui si CAMMINA, non gli istanti dei punti
