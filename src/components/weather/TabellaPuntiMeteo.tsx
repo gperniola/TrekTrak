@@ -3,6 +3,7 @@
 import { cielo } from '@/lib/cielo';
 import { numero, oraItaliana, durataMin } from '@/lib/formato';
 import { righeVisibili, type Livello, type RigaPercorso, type PuntoIntermedio } from '@/lib/route-weather';
+import { MenuRigaMeteo } from '@/components/weather/MenuRigaMeteo';
 
 /**
  * Colore del testo che dice PERCHE' un punto e' problematico.
@@ -82,7 +83,8 @@ export function TabellaPuntiMeteo({ righe }: { righe: RigaPercorso[] }) {
             <th scope="col" className="py-1 pr-2 font-medium">Cielo</th>
             <th scope="col" className="py-1 pr-2 font-medium">mm</th>
             <th scope="col" className="py-1 pr-2 font-medium">Raffiche</th>
-            <th scope="col" className="py-1 font-medium">Piogg.</th>
+            <th scope="col" className="py-1 pr-2 font-medium">Piogg.</th>
+            <th scope="col" className="py-1 font-medium"><span className="sr-only">Azioni</span></th>
           </tr>
         </thead>
         <tbody>
@@ -118,7 +120,10 @@ export function TabellaPuntiMeteo({ righe }: { righe: RigaPercorso[] }) {
                 {testoMm(r.hour?.mm)}
               </td>
               <td className="py-1.5 pr-2 text-gray-300">{intero(r.hour?.gusts, ' km/h')}</td>
-              <td className="py-1.5 text-gray-300">{intero(r.hour?.precipProb, '%')}</td>
+              <td className="py-1.5 pr-2 text-gray-300">{intero(r.hour?.precipProb, '%')}</td>
+              <td className="py-1.5 text-right">
+                <MenuRigaMeteo lat={r.lat} lon={r.lon} nome={r.name || 'senza nome'} />
+              </td>
             </tr>
           ))}
         </tbody>

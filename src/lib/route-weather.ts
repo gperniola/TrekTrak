@@ -450,6 +450,13 @@ export function defaultDeparture(now: Date, oraTipica = 7): Date {
 export interface RigaPercorso {
   waypointIndex: number;
   name: string;
+  /**
+   * Coordinate del punto. Servono alle **azioni di riga** — aprire la previsione di quel
+   * punto altrove — e per un punto inserito automaticamente non ci sarebbe altro modo di
+   * sapere dov'e': non e' un waypoint, non sta in nessuna lista.
+   */
+  lat: number;
+  lon: number;
   /** Quota del punto secondo l'itinerario, se c'e'. */
   alt: number | null;
   /**
@@ -779,7 +786,7 @@ export function buildRouteWeather(input: {
       const hour = istante != null && mia != null ? letturaVicina(mia, istante) : null;
       const motivo = istante == null ? 'orario di arrivo non stimabile' : 'dati non disponibili';
       return {
-        waypointIndex: p.waypointIndex, name: p.name, alt: p.alt, modelElevation,
+        waypointIndex: p.waypointIndex, name: p.name, lat: p.lat, lon: p.lon, alt: p.alt, modelElevation,
         arrival: istante?.toISOString() ?? null,
         hour,
         classification: hour ? classifyHour(hour, soglie) : { level: null, reasons: [motivo] },

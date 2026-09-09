@@ -585,7 +585,7 @@ describe('quando i tempi di percorrenza non ci sono', () => {
  */
 describe('scarto fra la quota del punto e quella del modello', () => {
   const riga = (alt: number | null, modelElevation: number | null): RigaPercorso => ({
-    waypointIndex: 0, name: 'Vetta', alt, modelElevation,
+    waypointIndex: 0, name: 'Vetta', lat: 46.4, lon: 11.8, alt, modelElevation,
     arrival: null, hour: null, classification: { level: null, reasons: [] },
   });
 
@@ -823,7 +823,7 @@ describe('punti in mezzo sui tratti lunghi (densificazione)', () => {
 
 describe('righeVisibili: gli intermedi si mostrano solo se critici', () => {
   const riga = (over: Partial<RigaPercorso>): RigaPercorso => ({
-    waypointIndex: 0, name: 'x', alt: null, modelElevation: null, arrival: null, hour: null,
+    waypointIndex: 0, name: 'x', lat: 46.4, lon: 11.8, alt: null, modelElevation: null, arrival: null, hour: null,
     classification: { level: 0, reasons: [] }, ...over,
   });
   const meta = { ibIndex: 1, frazione: 0.5, kmDaInizio: 6, traA: 'A', traB: 'B' };

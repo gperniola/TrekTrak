@@ -11,7 +11,7 @@ import type { RigaPercorso } from '@/lib/route-weather';
  */
 
 const rigaBase = (over: Partial<RigaPercorso>): RigaPercorso => ({
-  waypointIndex: 0, name: 'Punto', alt: 1000, modelElevation: 1000,
+  waypointIndex: 0, name: 'Punto', lat: 42.2, lon: 14.28, alt: 1000, modelElevation: 1000,
   arrival: null, hour: null,
   classification: { level: 0, reasons: [] },
   ...over,
@@ -60,7 +60,7 @@ describe('TabellaPuntiMeteo e le soste', () => {
 
 describe('TabellaPuntiMeteo e i punti in mezzo', () => {
   const rigaBaseM = (over: Partial<RigaPercorso>): RigaPercorso => ({
-    waypointIndex: 0, name: 'Punto', alt: 1000, modelElevation: 1000,
+    waypointIndex: 0, name: 'Punto', lat: 42.2, lon: 14.28, alt: 1000, modelElevation: 1000,
     arrival: '2026-09-07T10:00:00Z', hour: null,
     classification: { level: 0, reasons: [] },
     ...over,
