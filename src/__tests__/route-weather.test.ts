@@ -245,6 +245,37 @@ describe('i codici di precipitazione entrano nel giudizio', () => {
   });
 });
 
+/**
+ * **I millimetri: la probabilità dice «se», questi dicono «quanto».**
+ *
+ * Entrano nel dato mostrato, NON nel giudizio: la verifica del 2026-09-09 ha misurato
+ * soglie di **probabilità** (ECMWF 32%, ICON 10%), non di millimetri. Metterne una qui
+ * senza averla misurata sarebbe tornare al difetto che quella verifica ha corretto.
+ */
+describe('i millimetri nel dato orario', () => {
+  const conMm = (mm: number) => buildRouteWeather({
+    waypoints: [wp(0)],
+    legs: [],
+    departure: new Date('2026-09-09T15:00:00.000Z'),
+    punti: [{ waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'WP 0', alt: 2000 }],
+    serie: [{
+      time: ['2026-09-09T14:00', '2026-09-09T15:00'],
+      cape: [0, 0], weather_code: [3, 3], wind_gusts_10m: [0, 0],
+      precipitation_probability: [0, 0], temperature_2m: [10, 10],
+      precipitation: [0, mm],
+    }],
+  });
+
+  test('i mm dell\'ora scelta arrivano nella riga', () => {
+    expect(conMm(6.9).rows[0].hour?.mm).toBe(6.9);
+  });
+
+  test('i mm non spostano il livello: il metro misurato è la probabilità', () => {
+    expect(conMm(0).rows[0].classification.level)
+      .toBe(conMm(30).rows[0].classification.level);
+  });
+});
+
 describe('ora di partenza suggerita', () => {
   test('la mattina presto si pianifica oggi', () => {
     const d = defaultDeparture(new Date('2026-08-28T04:30:00Z')); // 06:30 locali
@@ -288,7 +319,7 @@ describe('rapporto completo', () => {
       wind_gusts_10m.push(15);
       precipitation_probability.push(base[h] ?? 10);
     }
-    return { time, cape, weather_code, wind_gusts_10m, precipitation_probability, temperature_2m: [] };
+    return { time, cape, weather_code, wind_gusts_10m, precipitation_probability, temperature_2m: [], precipitation: [] };
   };
 
   test('giornata tranquilla: nessuna finestra critica', () => {
@@ -424,7 +455,7 @@ describe('quando i tempi di percorrenza non ci sono', () => {
       cape.push(0); wc.push(0); g.push(10);
       pp.push(h >= 12 && h <= 15 ? 75 : 0);
     }
-    return { time, cape, weather_code: wc, wind_gusts_10m: g, precipitation_probability: pp, temperature_2m: [] };
+    return { time, cape, weather_code: wc, wind_gusts_10m: g, precipitation_probability: pp, temperature_2m: [], precipitation: [] };
   };
   const senzaTempo = { ...leg(0, 0), estimatedTime: undefined };
 
@@ -483,7 +514,7 @@ describe('quando i tempi di percorrenza non ci sono', () => {
     const r = buildRouteWeather({
       waypoints: [wp(0), wp(1)], legs: [senzaTempo], departure: partenza,
       punti: [{ waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'Parcheggio', alt: null }],
-      serie: [{ time, cape, weather_code: wc, wind_gusts_10m: g, precipitation_probability: pp, temperature_2m: [] }],
+      serie: [{ time, cape, weather_code: wc, wind_gusts_10m: g, precipitation_probability: pp, temperature_2m: [], precipitation: [] }],
     });
     expect(r.verdict.level).toBeNull();
     expect(r.verdict.message).toMatch(/Nessuna criticità/i);
@@ -584,7 +615,7 @@ describe('la temperatura nella riga', () => {
       punti: [{ waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'WP 0', alt: 2000 }],
       serie: [{
         time, cape: vuoti, weather_code: vuoti, wind_gusts_10m: vuoti,
-        precipitation_probability: vuoti, temperature_2m,
+        precipitation_probability: vuoti, temperature_2m, precipitation: vuoti,
       }],
       elevations: [2000],
     });
@@ -600,7 +631,7 @@ describe('la temperatura nella riga', () => {
       punti: [{ waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'WP 0', alt: 2000 }],
       serie: [{
         time: [`${giorno}T09:00`], cape: [0], weather_code: [0], wind_gusts_10m: [0],
-        precipitation_probability: [0], temperature_2m: [],
+        precipitation_probability: [0], temperature_2m: [], precipitation: [],
       }],
     });
     expect(Number.isFinite(r.rows[0].hour?.temp)).toBe(false);
@@ -629,7 +660,7 @@ describe('le soste nel rapporto', () => {
       cape.push(0); g.push(10); pp.push(0);
       wc.push(h === 9 ? 95 : 0);   // 09:00 UTC = temporale
     }
-    return { time, cape, weather_code: wc, wind_gusts_10m: g, precipitation_probability: pp, temperature_2m: [] };
+    return { time, cape, weather_code: wc, wind_gusts_10m: g, precipitation_probability: pp, temperature_2m: [], precipitation: [] };
   };
   const punto = (i: number) => ({ waypointIndex: i, lat: 46.4 + i / 100, lon: 11.8, name: `P${i}`, alt: null });
 
@@ -770,7 +801,8 @@ describe('il meteo in mezzo nel rapporto', () => {
       wind_gusts_10m.push(over.gusts ?? 10); precipitation_probability.push(over.precip ?? 0);
       temperature_2m.push(15);
     }
-    return { time, cape, weather_code, wind_gusts_10m, precipitation_probability, temperature_2m };
+    return { time, cape, weather_code, wind_gusts_10m, precipitation_probability, temperature_2m,
+      precipitation: time.map(() => 0) };
   };
   const partenza = new Date('2026-08-28T05:00:00Z');
   const A = far(0, 46.0, 11.0), B = far(1, 46.108, 11.0); // ~12 km

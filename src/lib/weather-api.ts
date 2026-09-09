@@ -23,6 +23,7 @@ const VARIABILI = [
   'precipitation_probability',
   'wind_gusts_10m',              // le raffiche, non il vento medio: in cresta contano quelle
   'temperature_2m',              // alla quota chiesta: vedi `elevation` piu' sotto
+  'precipitation',               // i millimetri: la probabilita' dice «se», questi «quanto»
 ] as const;
 
 export const ATTRIBUZIONE_METEO = 'Previsione: Open-Meteo (modelli ICON/ECMWF)';
@@ -76,7 +77,8 @@ function serieValida(v: unknown): v is SerieOraria {
     && Array.isArray(o.weather_code)
     && Array.isArray(o.wind_gusts_10m)
     && Array.isArray(o.precipitation_probability)
-    && Array.isArray(o.temperature_2m);
+    && Array.isArray(o.temperature_2m)
+    && Array.isArray(o.precipitation);
 }
 
 export async function fetchRouteForecast(

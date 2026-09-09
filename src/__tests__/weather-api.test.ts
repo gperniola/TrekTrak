@@ -12,6 +12,7 @@ const serie = (base = 0) => ({
   precipitation_probability: [0, 5],
   wind_gusts_10m: [12, 18],
   temperature_2m: [14, 15],
+  precipitation: [0, 0.4],
 });
 
 describe('URL della previsione', () => {
@@ -25,7 +26,7 @@ describe('URL della previsione', () => {
   test('chiede le variabili che servono, e solo quelle', () => {
     const orarie = decodeURIComponent(new URL(url).searchParams.get('hourly') || '');
     expect(orarie.split(',').sort()).toEqual(
-      ['cape', 'precipitation_probability', 'temperature_2m', 'weather_code', 'wind_gusts_10m']
+      ['cape', 'precipitation', 'precipitation_probability', 'temperature_2m', 'weather_code', 'wind_gusts_10m']
     );
   });
 

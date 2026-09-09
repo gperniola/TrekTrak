@@ -71,16 +71,26 @@ export interface PuntoOrario {
   precipProb: number;
   /** Temperatura in gradi, alla quota chiesta al modello. */
   temp: number;
+  /**
+   * Millimetri di precipitazione nell'ora. La probabilità dice **se** piove, questi
+   * dicono **quanto**: 0,2 mm è una spruzzata, 9,7 è un rovescio che ti ferma.
+   */
+  mm: number;
 }
 
 /**
- * Quel che basta per **giudicare** un'ora: la temperatura non entra nel giudizio.
+ * Quel che basta per **giudicare** un'ora: temperatura e millimetri non entrano.
  *
- * Tenerla fuori non e' pignoleria: `classifyHour` e' la funzione che decide i livelli di
+ * Tenerli fuori non e' pignoleria: `classifyHour` e' la funzione che decide i livelli di
  * rischio, e chiederle un campo che non guarda vorrebbe dire inventarne un valore in ogni
  * punto che la chiama — cioe' esattamente dove nascono i dati finti.
+ *
+ * I **mm** in particolare restano fuori di proposito: la verifica del 2026-09-09 su 171
+ * temporali osservati ha misurato soglie di **probabilità** (ECMWF 32%, ICON 10%), non di
+ * millimetri. Aggiungerne una qui senza averla misurata sarebbe rimettere le soglie a
+ * occhio che quella verifica ha appena tolto.
  */
-export type OraDaClassificare = Omit<PuntoOrario, 'temp'>;
+export type OraDaClassificare = Omit<PuntoOrario, 'temp' | 'mm'>;
 
 /** Serie orarie come arrivano da Open-Meteo, un oggetto per punto. */
 export interface SerieOraria {
@@ -90,6 +100,7 @@ export interface SerieOraria {
   wind_gusts_10m: number[];
   precipitation_probability: number[];
   temperature_2m: number[];
+  precipitation: number[];
 }
 
 /**
@@ -531,6 +542,7 @@ function letturaVicina(serie: SerieOraria, quando: Date): PuntoOrario | null {
     gusts: serie.wind_gusts_10m?.[migliore] ?? Number.NaN,
     precipProb: serie.precipitation_probability?.[migliore] ?? Number.NaN,
     temp: serie.temperature_2m?.[migliore] ?? Number.NaN,
+    mm: serie.precipitation?.[migliore] ?? Number.NaN,
   };
 }
 

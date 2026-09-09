@@ -61,7 +61,7 @@ describe('review: la partenza notturna', () => {
       legs: [leg(480)],
       departure: new Date('2026-08-27T19:00:00Z'), // 21:00 italiane del 27
       punti: [{ waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'Parcheggio', alt: null }],
-      serie: [{ time, cape, weather_code, wind_gusts_10m, precipitation_probability, temperature_2m: [] }],
+      serie: [{ time, cape, weather_code, wind_gusts_10m, precipitation_probability, temperature_2m: [], precipitation: [] }],
     });
     expect(r.windows).toHaveLength(1);
     expect(r.verdict.level).toBeGreaterThanOrEqual(2);
@@ -84,7 +84,7 @@ describe('review: la partenza notturna', () => {
       legs: [leg(180)],
       departure: new Date('2026-08-28T04:00:00Z'), // 06:00 IT, rientro 09:00 IT
       punti: [{ waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'Parcheggio', alt: null }],
-      serie: [{ time, cape, weather_code, wind_gusts_10m, precipitation_probability, temperature_2m: [] }],
+      serie: [{ time, cape, weather_code, wind_gusts_10m, precipitation_probability, temperature_2m: [], precipitation: [] }],
     });
     expect(r.windows).toHaveLength(1);
     expect(r.hitWindow).toBeNull();
@@ -145,7 +145,7 @@ describe('review 2: una serie per punto, o niente', () => {
       time.push(`2026-08-28T${String(h).padStart(2, '0')}:00`);
       c.push(cape); wc.push(0); g.push(10); pp.push(0);
     }
-    return { time, cape: c, weather_code: wc, wind_gusts_10m: g, precipitation_probability: pp, temperature_2m: [] };
+    return { time, cape: c, weather_code: wc, wind_gusts_10m: g, precipitation_probability: pp, temperature_2m: [], precipitation: [] };
   };
   const punto = (i: number, nome: string) => ({ waypointIndex: i, lat: 46.4 + i / 100, lon: 11.8, name: nome, alt: null });
 
