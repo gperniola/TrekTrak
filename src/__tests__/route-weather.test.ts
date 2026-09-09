@@ -198,6 +198,53 @@ describe('classificazione di un\'ora', () => {
   });
 });
 
+/**
+ * **La pioggia dichiarata dal modello conta.**
+ *
+ * Segnalato dall'utente il 2026-09-09: «anche con "piogge deboli" segna verde, nessuna
+ * criticità». `classifyHour` leggeva solo i codici 95/96/99: la tabella WMO era completa
+ * in `cielo.ts` per **disegnare** l'iconcina e ignorata da chi **giudica**. Misurato su
+ * 288 ore: 7 con la pioggia scritta nel codice e il verdetto a verde, cinque delle quali
+ * `80 = rovesci deboli`. Ad Altamura, quel pomeriggio, il modello aveva in mano «rovesci
+ * deboli» e l'unico motivo scritto era il vento.
+ */
+describe('i codici di precipitazione entrano nel giudizio', () => {
+  const ora = (weatherCode: number): OraDaClassificare => ({
+    time: '2026-09-09T15:00:00.000Z', cape: 0, weatherCode, gusts: 10, precipProb: 0,
+  });
+
+  test('rovesci deboli (80) non sono più verdi, e si chiamano per nome', () => {
+    const c = classifyHour(ora(80));
+    expect(c.level).toBe(1);
+    expect(c.reasons).toContain('rovesci deboli');
+  });
+
+  test.each([
+    [51, 1], [53, 1], [55, 1], [71, 1], [77, 1], [80, 1],
+    [61, 2], [63, 2], [73, 2], [81, 2], [85, 2],
+    [65, 3], [75, 3], [82, 3], [86, 3],
+  ])('codice %i → livello %i', (codice, atteso) => {
+    expect(classifyHour(ora(codice)).level).toBe(atteso);
+  });
+
+  /** In quota il ghiaccio non è «pioggia intensa»: è un altro problema, ed è il peggiore. */
+  test.each([[56], [57], [66], [67]])('codice %i (che gela) → livello massimo', (codice) => {
+    expect(classifyHour(ora(codice)).level).toBe(3);
+  });
+
+  test('un cielo senza precipitazione resta verde', () => {
+    expect(classifyHour(ora(3)).level).toBe(0);
+    expect(classifyHour(ora(45)).level).toBe(0);
+    expect(classifyHour(ora(0)).reasons).toHaveLength(0);
+  });
+
+  test('il temporale resta il massimo e non viene sovrascritto', () => {
+    const c = classifyHour(ora(95));
+    expect(c.level).toBe(3);
+    expect(c.reasons).toContain('temporale');
+  });
+});
+
 describe('ora di partenza suggerita', () => {
   test('la mattina presto si pianifica oggi', () => {
     const d = defaultDeparture(new Date('2026-08-28T04:30:00Z')); // 06:30 locali

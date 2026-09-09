@@ -136,6 +136,41 @@ const CODICI_TEMPORALE: Record<number, string> = {
   96: 'temporale con grandine',
   99: 'temporale con grandine forte',
 };
+/**
+ * Gli **altri** codici WMO di precipitazione, col livello che meritano.
+ *
+ * Prima esisteva solo `CODICI_TEMPORALE`: la tabella WMO era completa in `cielo.ts` per
+ * **disegnare** l'iconcina, e ignorata da chi **giudica**. Il risultato, misurato il
+ * 2026-09-09 su 288 ore, erano 7 ore con la pioggia scritta nel codice e il verdetto a
+ * verde — cinque delle quali `80 = rovesci deboli`. L'unico grilletto per la pioggia era
+ * la probabilità, che è un'altra cosa: dice «se», non «cosa».
+ *
+ * La scala: pioviggine e rovesci deboli sono un fastidio (1); pioggia e neve continue
+ * bagnano e raffreddano, ed è lì che comincia l'ipotermia (2); le forme forti e **tutto
+ * ciò che gela** sono un pericolo (3) — in quota il ghiaccio non è pioggia intensa, è un
+ * altro problema.
+ */
+const CODICI_PRECIPITAZIONE: Record<number, { testo: string; livello: 1 | 2 | 3 }> = {
+  51: { testo: 'pioviggine leggera', livello: 1 },
+  53: { testo: 'pioviggine', livello: 1 },
+  55: { testo: 'pioviggine intensa', livello: 1 },
+  56: { testo: 'pioviggine che gela', livello: 3 },
+  57: { testo: 'pioviggine che gela, intensa', livello: 3 },
+  61: { testo: 'pioggia debole', livello: 2 },
+  63: { testo: 'pioggia', livello: 2 },
+  65: { testo: 'pioggia forte', livello: 3 },
+  66: { testo: 'pioggia che gela', livello: 3 },
+  67: { testo: 'pioggia che gela, forte', livello: 3 },
+  71: { testo: 'neve debole', livello: 1 },
+  73: { testo: 'neve', livello: 2 },
+  75: { testo: 'neve forte', livello: 3 },
+  77: { testo: 'granelli di neve', livello: 1 },
+  80: { testo: 'rovesci deboli', livello: 1 },
+  81: { testo: 'rovesci', livello: 2 },
+  82: { testo: 'rovesci violenti', livello: 3 },
+  85: { testo: 'rovesci di neve', livello: 2 },
+  86: { testo: 'rovesci di neve forti', livello: 3 },
+};
 
 /**
  * Distanza (km) oltre la quale, fra due waypoint consecutivi, si inserisce un punto in
@@ -314,6 +349,14 @@ export function classifyHour(o: OraDaClassificare): Classificazione {
   if (codiceNoto && CODICI_TEMPORALE[o.weatherCode]) {
     reasons.push(CODICI_TEMPORALE[o.weatherCode]);
     alza(3);
+  }
+
+  // 1-bis. Le altre precipitazioni dichiarate dal codice. Il modello sta dicendo che
+  // cade qualcosa: finora lo ascoltava solo l'iconcina, non il giudizio.
+  const precipitazione = codiceNoto ? CODICI_PRECIPITAZIONE[o.weatherCode] : undefined;
+  if (precipitazione != null) {
+    reasons.push(precipitazione.testo);
+    alza(precipitazione.livello);
   }
 
   // 2. Pioggia dal modello: la probabilità è già il «ci sarà o no».
