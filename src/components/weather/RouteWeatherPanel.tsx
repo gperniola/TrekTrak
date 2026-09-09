@@ -6,11 +6,11 @@ import { useUIStore } from '@/stores/uiStore';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { buildMeteoUrl } from '@/lib/meteo';
 import { sunTimes } from '@/lib/sun';
-import { ATTRIBUZIONE_METEO, fetchRouteForecast } from '@/lib/weather-api';
+import { ATTRIBUZIONE_METEO, fetchRouteForecast, type RouteForecast } from '@/lib/weather-api';
 import { cieliPresenti } from '@/lib/cielo';
 import { metri, numero, oraItaliana } from '@/lib/formato';
 import { saveSettings } from '@/lib/storage';
-import { DEFAULT_PACE } from '@/lib/types';
+import { DEFAULT_PACE, MODELLO_METEO_PREDEFINITO } from '@/lib/types';
 import {
   buildRouteWeather, defaultDeparture, samplePoints, righeVisibili,
   type Livello, type RouteWeatherReport, type SerieOraria,
@@ -76,7 +76,7 @@ export function RouteWeatherPanel() {
   const applicaPasso = useItineraryStore((s) => s.applicaPasso);
 
   const [departure, setDeparture] = useState<Date>(() => defaultDeparture(new Date()));
-  const [datiMeteo, setDatiMeteo] = useState<{ serie: SerieOraria[]; elevations?: number[] } | null>(null);
+  const [datiMeteo, setDatiMeteo] = useState<RouteForecast | null>(null);
   const [errore, setErrore] = useState<string | null>(null);
   const [caricamento, setCaricamento] = useState(false);
   const dialogRef = useModaleTastiera<HTMLDivElement>(open, () => setOpen(false));
@@ -113,7 +113,7 @@ export function RouteWeatherPanel() {
     if (datiMeteo == null || punti.length === 0) return null;
     return buildRouteWeather({
       waypoints, legs, departure, punti, appMode,
-      serie: datiMeteo.serie, elevations: datiMeteo.elevations,
+      serie: datiMeteo.serie[MODELLO_METEO_PREDEFINITO], elevations: datiMeteo.elevations,
     });
   }, [datiMeteo, waypoints, legs, departure, punti, appMode]);
   /*

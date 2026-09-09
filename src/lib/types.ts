@@ -225,6 +225,22 @@ export interface PaceSettings {
 
 export const DEFAULT_PACE: PaceSettings = { factor: 1 };
 
+/**
+ * Quale modello meteo interroga il pannello del percorso.
+ *
+ * Non e' un dettaglio da nascondere: i due dicono cose diverse, e la verifica del
+ * 2026-09-09 su 171 temporali osservati li separa (AUC 0,927 ECMWF contro 0,891 ICON).
+ * Il modello scelto possiede **tutto** — righe, motivi, verdetto, fasce: mescolare le
+ * fonti dentro una riga mostrerebbe una previsione che nessun modello ha mai fatto.
+ */
+export type ModelloMeteo = 'ecmwf' | 'icon';
+
+/**
+ * ECMWF: discrimina meglio (AUC 0,927 contro 0,891) ed e' l'unico dei due che arriva a
+ * coprire il 90% dei temporali — la probabilita' di ICON satura sotto quella soglia.
+ */
+export const MODELLO_METEO_PREDEFINITO: ModelloMeteo = 'ecmwf';
+
 export interface AppSettings {
   tolerances: ToleranceSettings;
   mapDisplay: MapDisplaySettings;

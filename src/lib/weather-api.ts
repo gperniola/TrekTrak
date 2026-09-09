@@ -1,4 +1,5 @@
 import type { PuntoInterrogato, SerieOraria } from './route-weather';
+import type { ModelloMeteo } from './types';
 
 /**
  * Previsione oraria per i punti del percorso, da **Open-Meteo**.
@@ -28,10 +29,31 @@ const VARIABILI = [
 
 export const ATTRIBUZIONE_METEO = 'Previsione: Open-Meteo (modelli ICON/ECMWF)';
 
+/**
+ * Gli identificativi veri di Open-Meteo.
+ *
+ * `ecmwf_ifs_hres` **non esiste**: l'API risponde «Cannot initialize MultiDomains from
+ * invalid String value», anche se la documentazione lo lascia intendere. Provato il
+ * 2026-09-09.
+ */
+const MODELLI_API: Record<ModelloMeteo, string> = {
+  ecmwf: 'ecmwf_ifs',
+  icon: 'icon_seamless',
+};
+
 export interface RouteForecast {
-  /** Una serie per punto, nello stesso ordine dei punti richiesti. */
-  serie: SerieOraria[];
-  /** Quota del modello per ogni punto: utile per dire quanto è grossolana la maglia. */
+  /**
+   * Una serie per punto, nello stesso ordine dei punti richiesti, **per ogni modello**.
+   *
+   * Si chiedono entrambi in una volta (misurato: ~17 KB) perche' cosi' cambiare modello
+   * dalla tendina e' un ricalcolo locale e non una nuova richiesta — la stessa regola gia'
+   * valida per il passo e le soste.
+   */
+  serie: Record<ModelloMeteo, SerieOraria[]>;
+  /**
+   * Quota del modello per ogni punto: utile per dire quanto è grossolana la maglia.
+   * Resta **un campo solo** anche con piu' modelli (verificato sulla risposta vera).
+   */
   elevations: number[];
 }
 
@@ -66,19 +88,57 @@ export function buildForecastUrl(punti: PuntoInterrogato[], giorni: number): str
   if (quote != null) u.searchParams.set('elevation', quote);
   u.searchParams.set('forecast_days', String(Math.min(GIORNI_MAX, Math.max(1, Math.round(giorni)))));
   u.searchParams.set('timezone', 'UTC');
+  u.searchParams.set('models', Object.values(MODELLI_API).join(','));
   return u.toString();
 }
 
-function serieValida(v: unknown): v is SerieOraria {
-  if (v == null || typeof v !== 'object') return false;
-  const o = v as Record<string, unknown>;
-  return Array.isArray(o.time)
-    && Array.isArray(o.cape)
-    && Array.isArray(o.weather_code)
-    && Array.isArray(o.wind_gusts_10m)
-    && Array.isArray(o.precipitation_probability)
-    && Array.isArray(o.temperature_2m)
-    && Array.isArray(o.precipitation);
+/**
+ * La serie di UN modello dentro una risposta multi-modello.
+ *
+ * Con piu' modelli il servizio **suffissa ogni variabile** col nome del modello
+ * (`weather_code_ecmwf_ifs`), mentre `time` resta unico. Verificato sulla risposta vera
+ * il 2026-09-09.
+ */
+function serieDelModello(orarie: Record<string, unknown>, api: string): SerieOraria | null {
+  const time = orarie.time;
+  if (!Array.isArray(time)) return null;
+  const v = (nome: string) => orarie[`${nome}_${api}`];
+  const campi = {
+    cape: v('cape'),
+    weather_code: v('weather_code'),
+    wind_gusts_10m: v('wind_gusts_10m'),
+    precipitation_probability: v('precipitation_probability'),
+    temperature_2m: v('temperature_2m'),
+    precipitation: v('precipitation'),
+  };
+  if (!Object.values(campi).every((x) => Array.isArray(x))) return null;
+  return { time, ...campi } as SerieOraria;
+}
+
+/**
+ * Separa la risposta nelle serie dei due modelli. Estratta dalla `fetch` per poterla
+ * provare senza rete: e' la parte dove un cambio di formato del servizio farebbe danno
+ * in silenzio.
+ */
+export function leggiRisposta(dati: unknown): RouteForecast {
+  // Con un solo punto il servizio risponde con un oggetto, con piu' punti con un
+  // array: senza gestire entrambi i casi il pannello resta vuoto proprio nel piu'
+  // semplice.
+  const elenco = Array.isArray(dati) ? dati : [dati];
+  const serie: Record<ModelloMeteo, SerieOraria[]> = { ecmwf: [], icon: [] };
+  const elevations: number[] = [];
+  for (const voce of elenco) {
+    const o = voce as Record<string, unknown> | null;
+    const orarie = o?.hourly as Record<string, unknown> | undefined;
+    if (orarie == null) throw new Error('Previsione in un formato non riconosciuto');
+    for (const modello of Object.keys(MODELLI_API) as ModelloMeteo[]) {
+      const s = serieDelModello(orarie, MODELLI_API[modello]);
+      if (s == null) throw new Error('Previsione in un formato non riconosciuto');
+      serie[modello].push(s);
+    }
+    elevations.push(typeof o?.elevation === 'number' ? o.elevation : Number.NaN);
+  }
+  return { serie, elevations };
 }
 
 export async function fetchRouteForecast(
@@ -86,25 +146,10 @@ export async function fetchRouteForecast(
   giorni: number,
   signal?: AbortSignal
 ): Promise<RouteForecast> {
-  if (punti.length === 0) return { serie: [], elevations: [] };
+  if (punti.length === 0) return { serie: { ecmwf: [], icon: [] }, elevations: [] };
 
   const res = await fetch(buildForecastUrl(punti, giorni), { signal });
   if (!res.ok) throw new Error('Previsione non disponibile in questo momento');
 
-  const dati: unknown = await res.json();
-  // Con un solo punto il servizio risponde con un oggetto, con piu' punti con un
-  // array: senza gestire entrambi i casi il pannello resta vuoto proprio nel piu'
-  // semplice.
-  const elenco = Array.isArray(dati) ? dati : [dati];
-
-  const serie: SerieOraria[] = [];
-  const elevations: number[] = [];
-  for (const voce of elenco) {
-    const o = voce as Record<string, unknown> | null;
-    const orarie = o?.hourly;
-    if (!serieValida(orarie)) throw new Error('Previsione in un formato non riconosciuto');
-    serie.push(orarie);
-    elevations.push(typeof o?.elevation === 'number' ? o.elevation : Number.NaN);
-  }
-  return { serie, elevations };
+  return leggiRisposta(await res.json());
 }

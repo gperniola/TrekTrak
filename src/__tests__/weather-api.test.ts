@@ -1,4 +1,4 @@
-import { buildForecastUrl, fetchRouteForecast } from '@/lib/weather-api';
+import { buildForecastUrl, fetchRouteForecast, leggiRisposta } from '@/lib/weather-api';
 
 const punti = [
   { waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'Rifugio', alt: null },
@@ -14,6 +14,19 @@ const serie = (base = 0) => ({
   temperature_2m: [14, 15],
   precipitation: [0, 0.4],
 });
+
+/**
+ * La forma vera della risposta con più modelli: ogni variabile è **suffissa** col nome
+ * del modello, mentre `time` resta unico. Verificato sulla risposta di Open-Meteo il
+ * 2026-09-09.
+ */
+const conModelli = (ecmwf: ReturnType<typeof serie>, icon = ecmwf) => {
+  const { time, ...resto } = ecmwf;
+  const suffissa = (s: Record<string, unknown>, api: string) =>
+    Object.fromEntries(Object.entries(s).map(([k, v]) => [`${k}_${api}`, v]));
+  const { time: _t, ...restoIcon } = icon;
+  return { time, ...suffissa(resto, 'ecmwf_ifs'), ...suffissa(restoIcon, 'icon_seamless') };
+};
 
 describe('URL della previsione', () => {
   const url = buildForecastUrl(punti, 2);
@@ -43,6 +56,14 @@ describe('URL della previsione', () => {
     expect(url).not.toMatch(/key|token|apikey/i);
   });
 
+  /**
+   * Due modelli in una richiesta sola: averli entrambi in mano permette di cambiare
+   * modello dalla tendina **senza rifare la rete**. Misurato: ~17 KB.
+   */
+  test('chiede ECMWF e ICON insieme', () => {
+    expect(decodeURIComponent(url)).toContain('models=ecmwf_ifs,icon_seamless');
+  });
+
   test('i giorni richiesti restano nei limiti del servizio', () => {
     expect(new URL(buildForecastUrl(punti, 99)).searchParams.get('forecast_days')).toBe('7');
     expect(new URL(buildForecastUrl(punti, 0)).searchParams.get('forecast_days')).toBe('1');
@@ -60,21 +81,38 @@ describe('lettura della risposta', () => {
   };
 
   test('più punti → un elemento per punto, nell\'ordine chiesto', async () => {
-    rispondi([{ elevation: 2100, hourly: serie(0) }, { elevation: 2600, hourly: serie(100) }]);
+    rispondi([
+      { elevation: 2100, hourly: conModelli(serie(0)) },
+      { elevation: 2600, hourly: conModelli(serie(100)) },
+    ]);
     const r = await fetchRouteForecast(punti, 2);
-    expect(r.serie).toHaveLength(2);
-    expect(r.serie[0].cape[0]).toBe(10);
-    expect(r.serie[1].cape[0]).toBe(110);
+    expect(r.serie.ecmwf).toHaveLength(2);
+    expect(r.serie.ecmwf[0].cape[0]).toBe(10);
+    expect(r.serie.ecmwf[1].cape[0]).toBe(110);
     expect(r.elevations).toEqual([2100, 2600]);
+  });
+
+  /**
+   * **Le serie dei due modelli non si mescolano.** È la regola della funzione: il modello
+   * scelto possiede tutta la riga, e un valore dell'uno accanto a un valore dell'altro
+   * mostrerebbe una previsione che nessuno dei due ha mai fatto.
+   */
+  test('ogni modello tiene i suoi numeri', () => {
+    const r = leggiRisposta([{
+      elevation: 2100,
+      hourly: conModelli(serie(0), { ...serie(0), weather_code: [95, 95] }),
+    }]);
+    expect(r.serie.ecmwf[0].weather_code[0]).toBe(0);
+    expect(r.serie.icon[0].weather_code[0]).toBe(95);
   });
 
   // Con un solo punto Open-Meteo restituisce un oggetto, non un array: se non lo si
   // gestisce, il pannello resta vuoto proprio nel caso più semplice.
   test('un punto solo → oggetto, non array', async () => {
-    rispondi({ elevation: 2100, hourly: serie() });
+    rispondi({ elevation: 2100, hourly: conModelli(serie()) });
     const r = await fetchRouteForecast([punti[0]], 1);
-    expect(r.serie).toHaveLength(1);
-    expect(r.serie[0].time[0]).toBe('2026-08-28T05:00');
+    expect(r.serie.ecmwf).toHaveLength(1);
+    expect(r.serie.ecmwf[0].time[0]).toBe('2026-08-28T05:00');
   });
 
   test('risposta non ok → errore in italiano', async () => {
@@ -92,7 +130,8 @@ describe('lettura della risposta', () => {
     global.fetch = spia as unknown as typeof global.fetch;
     const r = await fetchRouteForecast([], 2);
     expect(spia).not.toHaveBeenCalled();
-    expect(r.serie).toEqual([]);
+    expect(r.serie.ecmwf).toEqual([]);
+    expect(r.serie.icon).toEqual([]);
   });
 });
 

@@ -184,7 +184,7 @@ describe('anche il pannello scrive la fascia per intero', () => {
       precipitation_probability: [...a.precipitation_probability, ...b.precipitation_probability],
       temperature_2m: [...a.temperature_2m, ...b.temperature_2m],
     };
-    mockFetchRouteForecast.mockResolvedValue({ serie: [serie, serie], elevations: [] });
+    mockFetchRouteForecast.mockResolvedValue({ serie: { ecmwf: [serie, serie], icon: [serie, serie] }, elevations: [] });
 
     useUIStore.setState({ weatherOpen: true });
     useItineraryStore.setState({
@@ -246,7 +246,7 @@ describe('la tabella dice perche un punto e problematico', () => {
       precipitation_probability: [...a.precipitation_probability, ...b.precipitation_probability],
       temperature_2m: [...a.temperature_2m, ...b.temperature_2m],
     };
-    mockFetchRouteForecast.mockResolvedValue({ serie: [serie, serie], elevations: [] });
+    mockFetchRouteForecast.mockResolvedValue({ serie: { ecmwf: [serie, serie], icon: [serie, serie] }, elevations: [] });
 
     useUIStore.setState({ weatherOpen: true });
     useItineraryStore.setState({
