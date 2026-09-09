@@ -125,21 +125,19 @@ export function ComeSiLegge({ modello = MODELLO_METEO_PREDEFINITO }: { modello?:
 
           <section className="space-y-2 text-[11px] text-gray-300 leading-relaxed border-t border-gray-700/60 pt-3">
             <h4 className="text-[10px] font-semibold text-gray-200 uppercase tracking-wider">La meteorologia dietro</h4>
+            {/*
+              Corto di proposito. Il CAPE serve a capire perche' un avviso scatta o non
+              scatta, non a insegnare meteorologia: dove NON compare e come e' fatto dentro
+              non interessano a chi deve decidere se partire.
+
+              E qui NON si spiega perche' l'iconcina possa divergere dalla probabilita':
+              quello e' il nostro studio, sta in `backlog/docs/meteo-verifica-modelli-analisi.md`,
+              e all'utente basta il dettaglio della riga che glielo dice quando succede.
+            */}
             <p>
-              Il <strong className="text-gray-100">CAPE</strong> è l’energia disponibile ai moti convettivi
-              (joule per chilogrammo): la benzina, non il fuoco. Da solo — col cielo coperto ma stabile e zero
-              pioggia prevista — non fa un temporale, quindi non fa scattare l’avviso; conta come
-              <em> aggravante</em> quando la pioggia è già probabile (energia + innesco = celle forti). Non
-              compare in tabella — è un numero che a chi cammina non dice niente: quando conta, lo trovi
-              scritto a parole fra i motivi del punto.
-            </p>
-            <p>
-              <strong className="text-gray-100">L&apos;iconcina e la percentuale non sono la stessa
-              cosa.</strong> Il codice del cielo è quello di <em>una</em> corsa del modello; la
-              probabilità viene da un <em>insieme</em> di simulazioni. Possono contraddirsi — corsa
-              asciutta, maggioranza bagnata — e quando succede l&apos;iconcina segue la probabilità
-              e dice «possibile pioggia»: fra due numeri veri si mostra quello che poggia su più
-              simulazioni. Il dettaglio della riga (⋮) dice sempre cosa aveva detto la corsa.
+              Il <strong className="text-gray-100">CAPE</strong> è l’energia disponibile ai moti convettivi:
+              la benzina, non il fuoco. Da solo non fa un temporale, quindi non fa scattare l’avviso; conta
+              come <em>aggravante</em> quando la pioggia è già probabile.
             </p>
             <p>
               In montagna la convezione segue il <strong className="text-gray-100">ciclo diurno</strong>: il
