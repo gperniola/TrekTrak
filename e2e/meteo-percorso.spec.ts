@@ -103,11 +103,23 @@ test.describe('meteo del percorso', () => {
   test('ogni punto mostra il suo cielo, con la parola e la temperatura', async ({ page }) => {
     await apriIlMeteo(page);
     const tabella = page.getByRole('table');
-    await expect(tabella.getByText('sereno', { exact: true })).toBeVisible();
-    await expect(tabella.getByText('coperto', { exact: true })).toBeVisible();
-    await expect(tabella.getByText('temporale', { exact: true })).toBeVisible();
-    await expect(tabella.getByText('16°')).toBeVisible();
-    await expect(tabella.getByText('9°')).toBeVisible();
+    /*
+      La parola del cielo si cerca nella colonna «Cielo» (la terza cella della riga di
+      quel punto), non in tutta la tabella. Per un punto in fascia critica — il temporale —
+      la parola compare DUE volte: nella cella del cielo (in `sr-only`, per chi non vede
+      l'icona) e come **motivo** sotto il nome del punto, nella colonna «Punto» (il testo
+      colorato per gravità, feature della v0.13.5). Un `getByText('temporale')` su tutta la
+      tabella ne trovava due e la modalità strict di Playwright falliva — senza che ci
+      fosse nulla di rotto a schermo. Restringere alla cella del cielo è la verifica giusta.
+    */
+    const cielo = (nome: string) =>
+      tabella.getByRole('row').filter({ hasText: nome }).getByRole('cell').nth(2);
+    await expect(cielo('Fonte Tari')).toContainText('sereno');
+    await expect(cielo('Fonte Tari')).toContainText('16°');
+    await expect(cielo('Bivacco Fusco')).toContainText('coperto');
+    await expect(cielo('Bivacco Fusco')).toContainText('9°');
+    await expect(cielo('Cima delle Murelle')).toContainText('temporale');
+    await expect(cielo('Cima delle Murelle')).toContainText('8°');
   });
 
   /** La legenda spiega le icone presenti: al tocco non esiste nessun `title` da leggere. */
