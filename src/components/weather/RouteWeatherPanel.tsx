@@ -10,7 +10,7 @@ import { ATTRIBUZIONE_METEO, fetchRouteForecast, type RouteForecast } from '@/li
 import { cieliPresenti } from '@/lib/cielo';
 import { metri, numero, oraItaliana } from '@/lib/formato';
 import { saveSettings } from '@/lib/storage';
-import { DEFAULT_PACE, MODELLO_METEO_PREDEFINITO } from '@/lib/types';
+import { DEFAULT_PACE, MODELLO_METEO_PREDEFINITO, type ModelloMeteo } from '@/lib/types';
 import {
   buildRouteWeather, defaultDeparture, samplePoints, righeVisibili,
   type Livello, type RouteWeatherReport, type SerieOraria,
@@ -54,6 +54,9 @@ function chiave(l: Livello): string { return l == null ? 'null' : String(l); }
 */
 const ora = oraItaliana;
 
+/** Il nome da mostrare, non l'identificativo dell'API. */
+const NOME_MODELLO: Record<ModelloMeteo, string> = { ecmwf: 'ECMWF', icon: 'ICON' };
+
 /**
  * Meteo **del percorso**, non del posto: incrocia i waypoint con gli orari stimati
  * dalla formula di Munter e dice cosa si incontra, e quando.
@@ -74,6 +77,8 @@ export function RouteWeatherPanel() {
   const appMode = useItineraryStore((s) => s.appMode);
   const paceFactor = useItineraryStore((s) => s.settings.pace?.factor ?? DEFAULT_PACE.factor);
   const applicaPasso = useItineraryStore((s) => s.applicaPasso);
+  const modello = useItineraryStore((s) => s.settings.modelloMeteo ?? MODELLO_METEO_PREDEFINITO);
+  const updateSettings = useItineraryStore((s) => s.updateSettings);
 
   const [departure, setDeparture] = useState<Date>(() => defaultDeparture(new Date()));
   const [datiMeteo, setDatiMeteo] = useState<RouteForecast | null>(null);
@@ -113,9 +118,9 @@ export function RouteWeatherPanel() {
     if (datiMeteo == null || punti.length === 0) return null;
     return buildRouteWeather({
       waypoints, legs, departure, punti, appMode,
-      serie: datiMeteo.serie[MODELLO_METEO_PREDEFINITO], elevations: datiMeteo.elevations,
+      serie: datiMeteo.serie[modello], elevations: datiMeteo.elevations, modello,
     });
-  }, [datiMeteo, waypoints, legs, departure, punti, appMode]);
+  }, [datiMeteo, waypoints, legs, departure, punti, appMode, modello]);
   /*
     La legenda spiega SOLO le icone che si vedono in questa tabella: ventotto voci
     sarebbero un manuale, e un'iconcina senza la sua parola resta un indovinello (il
@@ -246,6 +251,39 @@ export function RouteWeatherPanel() {
           </div>
         )}
 
+        {/*
+          Il modello, come il passo, è lo STESSO delle Impostazioni: si salva e vale anche
+          fuori dal pannello. È qui perché è qui che si vede la differenza.
+
+          Cambiarlo NON richiama la rete: la previsione dei due modelli arriva in una
+          richiesta sola, e questo è solo un ricalcolo — la stessa regola del passo.
+        */}
+        {punti.length > 0 && (
+          <div className="rounded-lg border border-gray-700 bg-gray-800/60 p-3">
+            <label htmlFor="modello-meteo" className="text-xs font-medium text-gray-300 block mb-1">
+              Modello di previsione
+            </label>
+            <select
+              id="modello-meteo"
+              value={modello}
+              onChange={(e) => {
+                const scelto = e.target.value as ModelloMeteo;
+                updateSettings({ ...useItineraryStore.getState().settings, modelloMeteo: scelto });
+                saveSettings(useItineraryStore.getState().settings);
+              }}
+              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-2 py-2 text-sm text-gray-200 max-lg:min-h-[44px]"
+            >
+              <option value="ecmwf">ECMWF — il più accurato nei confronti pubblicati</option>
+              <option value="icon">ICON — avvisa un po&apos; meno spesso</option>
+            </select>
+            <p className="text-[10px] text-gray-400 mt-1">
+              I due modelli non concordano sempre. Quello scelto qui decide{' '}
+              <strong className="font-medium text-gray-300">tutta</strong> la tabella e il
+              verdetto: i numeri non si mescolano mai fra le due fonti.
+            </p>
+          </div>
+        )}
+
         {punti.length === 0 && (
           <p className="text-sm text-gray-300 bg-gray-800 rounded-lg p-3">
             Aggiungi almeno un waypoint con coordinate: la previsione si calcola sui punti del percorso.
@@ -281,6 +319,16 @@ export function RouteWeatherPanel() {
             )}
 
             <TabellaPuntiMeteo righe={report.rows} />
+
+            {/*
+              Da chi vengono i numeri si dichiara. Un altro modello, alla stessa ora e nello
+              stesso punto, ne direbbe di diversi: senza il nome, la tabella sembrerebbe «la»
+              previsione invece di «una» previsione.
+            */}
+            <p className="text-[11px] text-gray-400">
+              Tutti i valori qui sopra vengono da{' '}
+              <strong className="font-medium text-gray-300">{NOME_MODELLO[modello]}</strong>.
+            </p>
 
             {legenda.length > 0 && (
               /*

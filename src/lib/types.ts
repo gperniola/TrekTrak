@@ -251,6 +251,13 @@ export interface AppSettings {
    * tema di partenza: vedi `temaValido`).
    */
   tema?: Tema;
+  /**
+   * Quale modello meteo usa il pannello del percorso.
+   *
+   * Facoltativo: le impostazioni salvate prima di questa versione non lo hanno, e assente
+   * vale `MODELLO_METEO_PREDEFINITO`. Nessuna migrazione da scrivere.
+   */
+  modelloMeteo?: ModelloMeteo;
 }
 
 export const DEFAULT_TOLERANCES: ToleranceSettings = {

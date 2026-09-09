@@ -42,7 +42,13 @@ function serieConTemporalePomeridiano(giorno: string) {
 beforeEach(() => {
   fetchRouteForecast.mockReset();
   useUIStore.setState({ weatherOpen: true });
-  useItineraryStore.setState({ waypoints: [wp(0), wp(1), wp(2)], legs: [leg(0, 180), leg(1, 240)] });
+  useItineraryStore.setState({
+    waypoints: [wp(0), wp(1), wp(2)],
+    legs: [leg(0, 180), leg(1, 240)],
+    // Il modello scelto si salva nelle impostazioni: senza azzerarlo, un test si
+    // porterebbe dietro la scelta di quello prima.
+    settings: { ...useItineraryStore.getState().settings, modelloMeteo: undefined },
+  });
 });
 
 /**
@@ -83,6 +89,50 @@ describe('Meteo del percorso', () => {
       temperature_2m: [...oggi.temperature_2m, ...domani.temperature_2m],
     };
   };
+
+  /**
+   * **La tendina sceglie il modello, e quel modello possiede tutto.**
+   *
+   * Due cose in una: che cambiare modello cambi davvero il verdetto (i due modelli non
+   * concordano, ed è il motivo per cui la tendina esiste), e che **non richiami la rete** —
+   * la previsione di entrambi arriva in una richiesta sola, quindi cambiare è un
+   * ricalcolo. Se un domani qualcuno rimettesse `modello` fra le dipendenze del
+   * caricamento, questo test lo prende.
+   */
+  test('cambiare modello cambia il verdetto senza una nuova richiesta', async () => {
+    const brutto = serieOggiEDomani();
+    // Stesse ore, tutte tranquille: cosi' l'unica differenza fra i due modelli e' il
+    // giudizio, e il cambio di verdetto non puo' venire da altro.
+    const buono = {
+      time: brutto.time,
+      cape: brutto.time.map(() => 40),
+      weather_code: brutto.time.map(() => 0),
+      wind_gusts_10m: brutto.time.map(() => 10),
+      precipitation_probability: brutto.time.map(() => 0),
+      temperature_2m: brutto.time.map(() => 12),
+    };
+    fetchRouteForecast.mockResolvedValue({
+      serie: { ecmwf: [brutto, brutto, brutto], icon: [buono, buono, buono] },
+      elevations: [],
+    });
+    render(<RouteWeatherPanel />);
+
+    // Il verdetto, non un testo qualsiasi: la parola compare sia nell'etichetta sia
+    // nella frase, e cercarla in tutta la pagina troverebbe due nodi.
+    const verdetto = () => screen.getAllByRole('status').map((n) => n.textContent).join(' | ');
+
+    await waitFor(() => expect(screen.getByRole('table')).toBeInTheDocument());
+    expect(fetchRouteForecast).toHaveBeenCalledTimes(1);
+    expect(screen.getByText(/vengono da/i)).toHaveTextContent('ECMWF');
+    expect(verdetto()).not.toMatch(/Nessuna criticità/);
+
+    fireEvent.change(screen.getByLabelText(/Modello di previsione/i), { target: { value: 'icon' } });
+
+    await waitFor(() => expect(screen.getByText(/vengono da/i)).toHaveTextContent('ICON'));
+    expect(verdetto()).toMatch(/Nessuna criticità/);
+    // La rete non si è mossa: è tutto ricalcolo.
+    expect(fetchRouteForecast).toHaveBeenCalledTimes(1);
+  });
 
   test('chiede la previsione per i punti del percorso e mostra una riga per punto', async () => {
     const serie = serieOggiEDomani();
