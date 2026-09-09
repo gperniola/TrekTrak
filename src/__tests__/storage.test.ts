@@ -11,6 +11,7 @@ import {
   addCompletion, updateCompletion, deleteCompletion, getKnownPeople,
 } from '../lib/storage';
 import type { Itinerary, AppSettings } from '../lib/types';
+import { DEFAULT_MAP_DISPLAY, DEFAULT_TOLERANCES } from '../lib/types';
 import { installaLocalStorage } from './fixtures/finto-localstorage';
 
 const deposito = installaLocalStorage();
@@ -105,6 +106,38 @@ describe('settings', () => {
     expect(loadSettings().tolerances.altitude).toBe(30);
     expect(loadSettings().mapDisplay.coloredPath).toBe(true);
     expect(loadSettings().mapDisplay.trailRouting).toBe(true);
+  });
+
+  /**
+   * **Il modello meteo si rilegge al riavvio.**
+   *
+   * `loadSettings` ricostruisce l'oggetto da zero con un elenco fisso di campi, quindi un
+   * campo nuovo non riletto viene **scritto e buttato via**: chi sceglieva ICON ripartiva
+   * in ECMWF, in silenzio e con soglie diverse. È la stessa classe di difetto che il
+   * commento di quella funzione già elenca — `pace`, `trektrak_user_level`, `slim` — e
+   * questa volta è successo di nuovo con `modelloMeteo`.
+   */
+  test('il modello meteo scelto sopravvive al riavvio', () => {
+    const base: AppSettings = {
+      tolerances: { ...DEFAULT_TOLERANCES },
+      mapDisplay: { ...DEFAULT_MAP_DISPLAY },
+      modelloMeteo: 'icon',
+    };
+    saveSettings(base);
+    expect(loadSettings().modelloMeteo).toBe('icon');
+  });
+
+  /**
+   * Un valore fuori dall'insieme non deve arrivare al codice che ci indicizza dentro:
+   * `SOGLIE_MODELLO[qualunquecosa]` sarebbe `undefined` e la prima soglia letta
+   * lancerebbe. Si scarta, come già si fa col tema.
+   */
+  test('un modello sconosciuto si scarta invece di propagarsi', () => {
+    localStorage.setItem(
+      'trektrak_settings',
+      JSON.stringify({ tolerances: { ...DEFAULT_TOLERANCES }, mapDisplay: { ...DEFAULT_MAP_DISPLAY }, modelloMeteo: 'meteoblue' }),
+    );
+    expect(loadSettings().modelloMeteo).toBeUndefined();
   });
 });
 

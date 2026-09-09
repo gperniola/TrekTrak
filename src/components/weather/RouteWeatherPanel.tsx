@@ -394,7 +394,7 @@ export function RouteWeatherPanel() {
           </div>
         )}
 
-        <ComeSiLegge />
+        <ComeSiLegge modello={modello} />
 
         <p className="text-[11px] text-gray-400 leading-snug">
           {ATTRIBUZIONE_METEO}. È una <strong className="font-medium text-gray-400">previsione</strong>,

@@ -125,8 +125,19 @@ const CAPE_ALTO = 800;
 /**
  * Sopra questa probabilità di pioggia il modello sta prevedendo un innesco: è la
  * condizione perché il CAPE conti come aggravante («c'è energia E succederà qualcosa»).
+ *
+ * **È la soglia dell'arancione DI QUEL MODELLO, non un numero fisso.** Era 30 per
+ * chiunque, e quando le soglie della pioggia sono diventate per modello (v0.31.0) quel 30
+ * è rimasto indietro: con ICON, che dichiara l'attenzione a 10, la regola del livello 3
+ * diventava irraggiungibile proprio nella fascia che conta — ad Altamura, 28% e CAPE 1390
+ * con un temporale in corso, restava arancione mentre ECMWF andava a rosso. Ancorarla
+ * all'arancione del modello tiene il significato («il modello dice che succede qualcosa,
+ * alla sua scala») e non aggiunge nessun avviso nuovo: sposta la gravità di avvisi che
+ * scattavano già.
+ *
+ * Nota di onesta': le soglie della pioggia sono **misurate**, questo ancoraggio no.
  */
-const CAPE_INNESCO_PIOGGIA = 30;
+const capeInnesco = (soglie: SoglieModello) => soglie.arancione;
 /**
  * CAPE così alto da meritare una nota anche SENZA pioggia prevista: in montagna la
  * convezione orografica è sotto-risolta dai modelli a maglia larga, e un temporale di
@@ -403,7 +414,7 @@ export function classifyHour(o: OraDaClassificare, soglie: SoglieModello): Class
   // 3. CAPE: energia, non evento.
   if (capeNoto) {
     const c = o.cape;
-    const innescoPrevisto = pioggiaNota && o.precipProb >= CAPE_INNESCO_PIOGGIA;
+    const innescoPrevisto = pioggiaNota && o.precipProb >= capeInnesco(soglie);
     if (innescoPrevisto && c >= CAPE_ALTO) {
       reasons.push('possibili temporali forti');
       alza(3);
