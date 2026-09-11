@@ -180,12 +180,20 @@ export function InteractiveMap() {
       maxZoom={MAX_ZOOM}
       className="h-full w-full"
     >
+      {/*
+        Base e sentieri stanno nello stesso `tilePane`, e a pari `zIndex` (1 per default)
+        decide l'ordine nel DOM. La base ha `key={baseMapId}`: al cambio di mappa si
+        rimonta e Leaflet la appende IN CODA, cioè SOPRA i sentieri già montati — che
+        restavano accesi nelle impostazioni ma invisibili finché non li si riaccendeva.
+        L'ordine si dichiara, non si affida a chi è stato montato per ultimo.
+      */}
       <TileLayer
         key={baseMapId}
         attribution={baseMap.attribution}
         url={baseMap.url}
         maxNativeZoom={baseMap.maxNativeZoom}
         maxZoom={MAX_ZOOM}
+        zIndex={1}
       />
       {showHikingTrails && (
         <TileLayer
@@ -194,6 +202,7 @@ export function InteractiveMap() {
           maxNativeZoom={17}
           maxZoom={MAX_ZOOM}
           opacity={0.8}
+          zIndex={2}
         />
       )}
       {showCoordinateGrid && <CoordinateGrid />}
