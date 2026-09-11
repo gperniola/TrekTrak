@@ -1,4 +1,4 @@
-import type { PuntoInterrogato, SerieOraria } from './route-weather';
+import { chiaveLuogo, type PuntoInterrogato, type SerieOraria } from './route-weather';
 import type { ModelloMeteo } from './types';
 
 /**
@@ -82,12 +82,31 @@ function quoteDaChiedere(punti: PuntoInterrogato[]): string | null {
   return quote.map((q) => Math.round(q as number)).join(',');
 }
 
+/**
+ * **Lo stesso posto si chiede una volta sola.** Con il ritorno per la stessa strada i
+ * punti si ripetono (stesse coordinate e quota): chiederli due volte costa il doppio e
+ * non dice niente di nuovo. `indice[k]` dice a quale luogo appartiene il punto k, per
+ * riespandere la risposta.
+ */
+function luoghiDistinti(punti: PuntoInterrogato[]): { luoghi: PuntoInterrogato[]; indice: number[] } {
+  const posizione = new Map<string, number>();
+  const luoghi: PuntoInterrogato[] = [];
+  const indice = punti.map((p) => {
+    const k = chiaveLuogo(p.lat, p.lon, p.alt);
+    let j = posizione.get(k);
+    if (j == null) { j = luoghi.length; luoghi.push(p); posizione.set(k, j); }
+    return j;
+  });
+  return { luoghi, indice };
+}
+
 export function buildForecastUrl(punti: PuntoInterrogato[], giorni: number): string {
+  const { luoghi } = luoghiDistinti(punti);
   const u = new URL(BASE);
-  u.searchParams.set('latitude', punti.map((p) => p.lat).join(','));
-  u.searchParams.set('longitude', punti.map((p) => p.lon).join(','));
+  u.searchParams.set('latitude', luoghi.map((p) => p.lat).join(','));
+  u.searchParams.set('longitude', luoghi.map((p) => p.lon).join(','));
   u.searchParams.set('hourly', VARIABILI.join(','));
-  const quote = quoteDaChiedere(punti);
+  const quote = quoteDaChiedere(luoghi);
   if (quote != null) u.searchParams.set('elevation', quote);
   u.searchParams.set('forecast_days', String(Math.min(GIORNI_MAX, Math.max(1, Math.round(giorni)))));
   u.searchParams.set('timezone', 'UTC');
@@ -169,5 +188,26 @@ export async function fetchRouteForecast(
   const res = await fetch(buildForecastUrl(punti, giorni), { signal });
   if (!res.ok) throw new Error('Previsione non disponibile in questo momento');
 
-  return leggiRisposta(await res.json());
+  return perPunto(leggiRisposta(await res.json()), luoghiDistinti(punti));
+}
+
+/**
+ * Dalla risposta **per luogo** alla promessa del contratto: **una serie per punto**,
+ * nell'ordine dei punti chiesti. Due passaggi dallo stesso posto leggono la stessa serie,
+ * e chi consuma `serie[k]` non sa niente della deduplicazione.
+ *
+ * Una risposta con un numero di luoghi diverso da quello chiesto si scarta per intero,
+ * per quel modello: riespanderla per indice attribuirebbe a un posto il meteo di un
+ * altro — la classe di difetto che qui si teme di più.
+ */
+function perPunto(
+  perLuogo: RouteForecast, { luoghi, indice }: ReturnType<typeof luoghiDistinti>,
+): RouteForecast {
+  const serie = { ecmwf: [] as SerieOraria[], icon: [] as SerieOraria[] };
+  for (const modello of Object.keys(perLuogo.serie) as ModelloMeteo[]) {
+    const s = perLuogo.serie[modello];
+    serie[modello] = s.length === luoghi.length ? indice.map((j) => s[j]) : [];
+  }
+  const elevations = indice.map((j) => perLuogo.elevations[j] ?? Number.NaN);
+  return { serie, elevations };
 }

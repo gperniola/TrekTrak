@@ -214,3 +214,47 @@ describe('la quota nella richiesta', () => {
     expect(new URL(buildForecastUrl(punti, 2)).searchParams.has('elevation')).toBe(false);
   });
 });
+
+/**
+ * **Lo stesso posto si chiede una volta sola.** Con il ritorno per la stessa strada i
+ * punti del percorso si ripetono (stesse coordinate, stessa quota): chiederli due volte
+ * costa il doppio senza dire niente di nuovo. La risposta si **riespande** sui punti
+ * chiesti, cosi' chi legge `serie[k]` per il punto k non deve sapere niente della
+ * deduplicazione — e i due passaggi da uno stesso posto leggono la stessa serie.
+ */
+describe('punti ripetuti (andata e ritorno)', () => {
+  const vero = global.fetch;
+  afterEach(() => { global.fetch = vero; });
+
+  const A = { waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'Rifugio', alt: 2100 };
+  const B = { waypointIndex: 1, lat: 46.45, lon: 11.86, name: 'Forcella', alt: 2600 };
+  const ritornoA = { ...A, waypointIndex: 2 };
+  const andataRitorno = [A, B, ritornoA];
+
+  test('nell\'URL ogni luogo compare una volta, con la sua quota', () => {
+    const u = new URL(buildForecastUrl(andataRitorno, 2));
+    expect(u.searchParams.get('latitude')).toBe('46.4,46.45');
+    expect(u.searchParams.get('longitude')).toBe('11.8,11.86');
+    expect(u.searchParams.get('elevation')).toBe('2100,2600');
+  });
+
+  test('la risposta si riespande: una serie per punto chiesto, nell\'ordine dei punti', async () => {
+    global.fetch = jest.fn(() => Promise.resolve({
+      ok: true, status: 200, json: async () => [
+        { elevation: 2100, hourly: conModelli(serie(0)) },
+        { elevation: 2600, hourly: conModelli(serie(100)) },
+      ],
+    })) as unknown as typeof global.fetch;
+    const r = await fetchRouteForecast(andataRitorno, 2);
+    expect(r.serie.ecmwf).toHaveLength(3);
+    expect(r.serie.ecmwf.map((s) => s.cape[0])).toEqual([10, 110, 10]);
+    expect(r.serie.icon).toHaveLength(3);
+    expect(r.elevations).toEqual([2100, 2600, 2100]);
+  });
+
+  test('stesse coordinate ma quota diversa: sono due domande diverse', () => {
+    const u = new URL(buildForecastUrl([A, { ...A, waypointIndex: 1, alt: 2300 }], 2));
+    expect(u.searchParams.get('latitude')).toBe('46.4,46.4');
+    expect(u.searchParams.get('elevation')).toBe('2100,2300');
+  });
+});

@@ -82,3 +82,29 @@ describe('InteractiveMap', () => {
     expect(markers).toHaveLength(2); // only the two with coordinates
   });
 });
+
+/**
+ * **Cambiare mappa di base e tornare indietro spegneva i sentieri.** Segnalato
+ * dall'utente l'11/09/2026: overlay attivo, ma invisibile finché non lo si rispegneva e
+ * riaccendeva. La base è un `TileLayer` con `key={baseMapId}`: al cambio si smonta e si
+ * rimonta, e Leaflet appende il contenitore nuovo IN CODA al `tilePane`. I due layer
+ * avevano lo stesso `zIndex` (1, il predefinito), quindi vinceva l'ordine nel DOM: la
+ * base rimontata copriva i sentieri. Riaccendere l'overlay lo rimetteva in coda, e
+ * «funzionava». La regola va detta a Leaflet, non lasciata all'ordine di montaggio.
+ */
+describe('ordine dei tile layer', () => {
+  test('i sentieri hanno uno zIndex esplicito sopra la mappa di base', () => {
+    const settings = useItineraryStore.getState().settings;
+    useItineraryStore.setState({
+      settings: { ...settings, mapDisplay: { ...settings.mapDisplay, showHikingTrails: true } },
+    });
+    render(<InteractiveMap />);
+    const layers = screen.getAllByTestId('tile-layer');
+    const base = layers.find((l) => !l.getAttribute('data-url')?.includes('waymarkedtrails'));
+    const sentieri = layers.find((l) => l.getAttribute('data-url')?.includes('waymarkedtrails'));
+    expect(base).toBeDefined();
+    expect(sentieri).toBeDefined();
+    const z = (l: HTMLElement | undefined) => Number(l?.getAttribute('data-zindex') || 1);
+    expect(z(sentieri)).toBeGreaterThan(z(base));
+  });
+});

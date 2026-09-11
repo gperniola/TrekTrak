@@ -56,7 +56,11 @@ overlay aperti, profilo, `guidaAperta`, `settingsOpen`) · `emergencyStore` (i l
   non un numero fisso — fissa era irraggiungibile per ICON. Fuori dalla tabella (al suo
   posto i millimetri, **con l'unità in cella**, colorati per gravità), ma visibile nel
   **dettaglio della riga** insieme alla quota a cui ha risposto il modello. Colonne:
-  `Punto · Arrivo · Cielo · Piogg. · mm · Raffiche · ⋮`. **Due modelli** (`ecmwf_ifs` +
+  `Punto · Arrivo · Cielo · Piogg. · mm · Raffiche · ⋮`. Il tetto dei punti
+  (`MAX_PUNTI`) conta i **luoghi, non i waypoint**: col ritorno per la stessa strada i
+  waypoint raddoppiano ma i posti no, la rete chiede ogni luogo una volta sola
+  (`chiaveLuogo`) e riespande la risposta sui passaggi — contare i waypoint saltava la
+  meta (v0.31.5). **Due modelli** (`ecmwf_ifs` +
   `icon_seamless`) in **una sola richiesta**; l'utente sceglie il suo dalla tendina
   (`AppSettings.modelloMeteo`, predefinito ECMWF — e `loadSettings` deve **rileggerlo**:
   alla v0.31.0 lo scriveva e lo buttava via) e **quel modello possiede tutto** — righe,

@@ -960,3 +960,70 @@ describe('il nome della precipitazione e la sua probabilità sono un motivo solo
     expect(classifyHour(ora(3, 70), SOGLIE_MODELLO.ecmwf).reasons).toEqual(['pioggia 70%']);
   });
 });
+
+/**
+ * **Andata e ritorno: il tetto dei punti conta i LUOGHI, non i passaggi.**
+ *
+ * Segnalato dall'utente l'11/09/2026: 7 waypoint fino alla meta, sosta di 90 minuti,
+ * poi il pulsante «ritorno». L'editor mostrava 13 waypoint, il pannello meteo NON
+ * mostrava il 7 — né la sua sosta. Il ritorno copia le stesse coordinate, quindi 13
+ * waypoint sono 7 posti; ma il campionamento contava 13 ≥ 12 e downsamplava a passo
+ * fisso: `round(k·12/11)` per k = 0…11 dà 0,1,2,3,4,5,**7**,8,… — l'indice 6, la meta,
+ * era proprio quello saltato. Il punto dove ci si ferma di più era l'unico assente.
+ */
+describe('campionamento con andata e ritorno', () => {
+  const andata = Array.from({ length: 7 }, (_, i) => wp(i));
+  const ritorno: Waypoint[] = andata.slice(0, -1).reverse().map((w, k) => ({
+    ...w, id: `r${k}`, order: 7 + k,
+  }));
+  const conSosta = [...andata.slice(0, 6), { ...andata[6], pausaMin: 90 }, ...ritorno];
+
+  test('la meta con la sosta non si perde: ogni passaggio ha il suo punto', () => {
+    const p = samplePoints(conSosta);
+    const reali = p.filter((x) => x.intermedio == null).map((x) => x.waypointIndex);
+    expect(reali).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+  });
+
+  test('il tetto vale sui luoghi distinti, che qui sono 7', () => {
+    const p = samplePoints(conSosta);
+    const luoghi = new Set(p.map((x) => `${x.lat.toFixed(4)},${x.lon.toFixed(4)}`));
+    expect(luoghi.size).toBeLessThanOrEqual(12);
+    // Il pannello riceve i passaggi: più punti dei luoghi, mai meno dei waypoint validi.
+    expect(p.length).toBeGreaterThanOrEqual(13);
+  });
+
+  test('la sosta lunga della meta produce arrivo e ripartenza anche col ritorno', () => {
+    const legs = Array.from({ length: 12 }, (_, i) => leg(i, 30));
+    const punti = samplePoints(conSosta);
+    const partenza = new Date('2026-09-12T05:00:00Z');
+    const t = Array.from({ length: 24 }, (_, h) => `2026-09-12T${String(h).padStart(2, '0')}:00`);
+    const s = {
+      time: t, cape: t.map(() => 0), weather_code: t.map(() => 0),
+      precipitation_probability: t.map(() => 0), wind_gusts_10m: t.map(() => 10),
+      temperature_2m: t.map(() => 15), precipitation: t.map(() => 0),
+    };
+    const r = buildRouteWeather({
+      waypoints: conSosta, legs, departure: partenza, punti, serie: punti.map(() => s),
+    });
+    const meta = r.rows.filter((x) => x.waypointIndex === 6);
+    expect(meta.map((x) => x.fase)).toEqual(['arrivo', 'ripartenza']);
+    // Il ritorno passa di nuovo dal punto 5 (indice 7), un'ora e mezza più tardi.
+    const ritornoA5 = r.rows.find((x) => x.waypointIndex === 7);
+    expect(ritornoA5?.arrival).toBe('2026-09-12T10:00:00.000Z'); // 05:00 + 6·30 min + 90 di sosta + 30
+  });
+});
+
+/**
+ * Quando i luoghi distinti superano il tetto e si downsampla davvero, il punto con la
+ * sosta lunga è quello dove si sta di più: saltarlo in silenzio è il caso peggiore.
+ */
+describe('downsampling con soste', () => {
+  test('un waypoint con sosta lunga sopravvive al downsampling', () => {
+    const molti = Array.from({ length: 30 }, (_, i) => (i === 17 ? { ...wp(i), pausaMin: 90 } : wp(i)));
+    const p = samplePoints(molti);
+    expect(p.length).toBeLessThanOrEqual(12);
+    expect(p.map((x) => x.waypointIndex)).toContain(17);
+    expect(p[0].waypointIndex).toBe(0);
+    expect(p[p.length - 1].waypointIndex).toBe(29);
+  });
+});

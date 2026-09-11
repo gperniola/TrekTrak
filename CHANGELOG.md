@@ -4,6 +4,26 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.31.5] — 2026-09-11 — La meta del ritorno c'è, e i sentieri restano
+
+### Fixed
+- **Il meteo del percorso non perde più la meta quando si aggiunge il ritorno.**
+  Segnalato dall'utente: 7 waypoint fino alla meta, sosta di un'ora e mezza, poi il
+  pulsante «ritorno»; nell'editor 13 waypoint, nel pannello meteo il 7 non c'era — né la
+  sua sosta. Il tetto dei 12 punti contava i **waypoint**, ma il ritorno copia le stesse
+  coordinate: 13 waypoint sono 7 posti. Contandone 13 si campionava a passo fisso, e il
+  passo saltava proprio l'indice della meta. Ora il tetto conta i **luoghi**, e la rete
+  chiede ogni luogo **una volta sola** riespandendo la risposta sui passaggi: ogni
+  waypoint ha la sua riga col suo orario, l'andata e il ritorno dallo stesso posto leggono
+  la stessa previsione, e la sosta lunga produce arrivo e ripartenza come prima.
+- **Quando i luoghi sono davvero più di 12 e si campiona, un waypoint con sosta lunga non
+  si salta più:** dove ci si ferma di più è dove il meteo conta di più.
+- **Cambiare mappa di base e tornare a quella prima non spegne più i sentieri.** Segnalato
+  dall'utente: l'interruttore restava acceso ma l'overlay non si vedeva finché non lo si
+  riaccendeva. Base e sentieri stanno nello stesso pane di Leaflet, a pari `zIndex`
+  decide l'ordine nel DOM, e la base rimontata al cambio finiva **sopra**. Ora l'ordine è
+  dichiarato (base 1, sentieri 2), verificato in un browser vero col gesto dell'utente.
+
 ## [0.31.4] — 2026-09-09 — «Come si legge» dice meno
 
 ### Changed

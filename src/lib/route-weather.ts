@@ -117,8 +117,23 @@ export interface Classificazione {
   reasons: string[];
 }
 
-/** Massimo punti da interrogare: oltre, si ripete lo stesso numero di maglia. */
+/**
+ * Massimo **luoghi** da interrogare: oltre, si ripete lo stesso numero di maglia.
+ *
+ * Luoghi, non waypoint: con il ritorno per la stessa strada i waypoint raddoppiano ma i
+ * posti restano quelli, e la rete li chiede una volta sola (`weather-api.ts`).
+ */
 export const MAX_PUNTI = 12;
+
+/**
+ * La chiave con cui due punti contano come **lo stesso luogo**: coordinate a 4 decimali
+ * (~10 m) e, se data, la quota — stesse coordinate a quota diversa sono due domande
+ * diverse al modello, perché la quota cambia la risposta (vedi `weather-api.ts`).
+ */
+export function chiaveLuogo(lat: number, lon: number, alt?: number | null): string {
+  const q = alt != null && Number.isFinite(alt) ? Math.round(alt) : 'n/d';
+  return `${lat.toFixed(4)},${lon.toFixed(4)},${q}`;
+}
 
 // Soglie. CAPE in J/kg: energia disponibile alla convezione, non certezza di temporale.
 // È carburante, non fuoco: da solo non fa un temporale, serve un innesco.
@@ -220,8 +235,14 @@ export const SPAZIO_MAX_KM = 5;
  *
  * Con solo partenza e arrivo lontani, interrogare i due estremi lascia scoperto tutto il
  * mezzo: qui si spezza il tratto più lungo finché nessun buco supera la soglia, entro il
- * tetto di `max` punti (una sola chiamata, multi-punto). Se i waypoint sono già tanti si
- * fa il contrario — si downsampla — e non c'è spazio per gli intermedi.
+ * tetto di `max` **luoghi** (una sola chiamata, multi-punto). Se i luoghi sono già tanti
+ * si fa il contrario — si downsampla — e non c'è spazio per gli intermedi.
+ *
+ * **Il tetto conta i luoghi, non i passaggi.** Con il ritorno per la stessa strada
+ * (`aggiungiRitorno`) 7 waypoint diventano 13 ma i posti restano 7: contando i waypoint
+ * si downsamplava a passo fisso, e `round(k·12/11)` salta proprio l'indice 6 — la meta,
+ * l'unico punto con la sosta lunga. Nel pannello mancava lei sola (segnalato l'11/09/2026).
+ * Ogni passaggio resta un punto suo, perché ha un orario suo: la rete dedupera' i luoghi.
  *
  * I punti inseriti portano `intermedio`: la tabella li mostra solo quando sono critici,
  * ma alimentano sempre verdetto e fasce critiche (è lì che sta la sicurezza).
@@ -237,17 +258,23 @@ export function samplePoints(
   const daWaypoint = (wp: Waypoint, i: number): PuntoInterrogato => ({
     waypointIndex: i, lat: wp.lat as number, lon: wp.lon as number, name: wp.name, alt: wp.altitude,
   });
+  const contaLuoghi = (xs: { lat: number; lon: number }[]) =>
+    new Set(xs.map((p) => chiaveLuogo(p.lat, p.lon))).size;
 
-  // Troppi waypoint per il tetto: si downsampla (estremi sempre), nessuno spazio per gli
-  // intermedi.
-  if (validi.length >= max) {
-    const scelti = validi.length === max
-      ? validi
-      : Array.from({ length: max }, (_, k) => validi[Math.round((k * (validi.length - 1)) / (max - 1))]);
-    const visti = new Set<number>();
-    return scelti
-      .filter(({ i }) => (visti.has(i) ? false : (visti.add(i), true)))
-      .map(({ wp, i }) => daWaypoint(wp, i));
+  // Troppi luoghi per il tetto: si downsampla, nessuno spazio per gli intermedi.
+  if (contaLuoghi(validi.map(({ wp }) => ({ lat: wp.lat as number, lon: wp.lon as number }))) >= max) {
+    const n = validi.length;
+    /*
+      Prima gli estremi e i punti con una sosta lunga: dove ci si ferma di più è dove il
+      meteo conta di più, e un campionamento a passo fisso li saltava senza dirlo. Poi si
+      riempie a passo fisso fino al tetto. Con più protetti del tetto (undici soste
+      lunghe su un percorso solo) si tengono i primi: un caso di scuola, non un percorso.
+    */
+    const protetti = [0, n - 1, ...validi.flatMap(({ wp }, vi) => (pausaDi(wp) >= SOGLIA_PAUSA_METEO ? [vi] : []))];
+    const scelti = new Set<number>();
+    for (const vi of protetti) if (scelti.size < max) scelti.add(vi);
+    for (let k = 0; k < max && scelti.size < max; k++) scelti.add(Math.round((k * (n - 1)) / (max - 1)));
+    return Array.from(scelti).sort((a, b) => a - b).map((vi) => daWaypoint(validi[vi].wp, validi[vi].i));
   }
 
   // Distanze cumulate lungo i waypoint validi, per l'etichetta «≈ km N».
@@ -262,8 +289,9 @@ export function samplePoints(
   const pos: Pos[] = validi.map(({ wp }, vi) => ({ lat: wp.lat as number, lon: wp.lon as number, vi }));
 
   // Spezza sempre il segmento più lungo, finché supera la soglia e c'è budget: così i
-  // punti si distribuiscono da soli sui tratti che ne hanno più bisogno.
-  while (pos.length < max) {
+  // punti si distribuiscono da soli sui tratti che ne hanno più bisogno. Il budget è in
+  // luoghi: il punto medio del ritorno coincide con quello dell'andata e non costa nulla.
+  while (contaLuoghi(pos) < max) {
     let idx = -1;
     let dMax = 0;
     for (let k = 0; k < pos.length - 1; k++) {
