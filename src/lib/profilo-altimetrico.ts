@@ -45,6 +45,21 @@ export interface Profili {
  * non con la distanza che l'utente ha scritto: se lui stima 3 km su una tratta di 5, le
  * due curve andrebbero fuori registro e sembrerebbe sbagliata la quota.
  */
+/**
+ * Le tratte **con la distanza che il profilo usa per spaziarle**.
+ *
+ * In Imparo, quando esiste una distanza reale (`trackValues.distance`), la curva si
+ * spazia con quella e non con la distanza scritta dall'utente (vedi `costruisciProfilo`).
+ * Chi deve mettere un segno sulla curva — il punto della posizione — deve proiettare
+ * sulle stesse distanze, altrimenti il segno finisce su un'ascissa che la curva non usa.
+ * Trovato in review, prima che arrivasse a schermo.
+ */
+export function tratteComeNelProfilo(legs: Leg[], appMode: AppMode): Leg[] {
+  const hasRealReference = appMode === 'learn' && legs.some((l) => l.trackValues?.distance != null);
+  if (!hasRealReference) return legs;
+  return legs.map((l) => (l.trackValues?.distance != null ? { ...l, distance: l.trackValues.distance } : l));
+}
+
 export function costruisciProfilo(
   waypoints: Waypoint[],
   legs: Leg[],
@@ -55,16 +70,10 @@ export function costruisciProfilo(
 
   // TASK-29 / R2 review fix: when overlaying real-vs-estimated in Learn mode,
   // both profiles must share the same X-axis to be didactically meaningful.
-  // If trackValues.distance is available per leg, use those for spacing the
-  // user's waypoint altitudes; otherwise fall back to the user's own distance.
-  const hasRealReference = appMode === 'learn' && legs.some((l) => l.trackValues?.distance != null);
-  const spacingFor = (leg: Leg): number | null => {
-    if (hasRealReference) {
-      const td = leg.trackValues?.distance;
-      if (td != null) return td;
-    }
-    return leg.distance;
-  };
+  // La regola sta in `tratteComeNelProfilo`, cosi' chi deve proiettare qualcosa
+  // sulla curva (il punto della posizione) usa le stesse distanze.
+  const spaziate = tratteComeNelProfilo(legs, appMode);
+  const spacingFor = (leg: Leg): number | null => spaziate.find((l) => l.id === leg.id)?.distance ?? leg.distance;
 
   for (let i = 0; i < legs.length; i++) {
     const leg = legs[i];
@@ -267,4 +276,27 @@ export function messaggioProfiloVuoto(waypoints: Waypoint[], legs: Leg[] = []): 
     return 'Inserisci le distanze delle tratte nell’Editor: senza, le quote non hanno un posto sull’asse dei chilometri';
   }
   return 'Servono almeno 2 waypoint con quota e coordinate per il profilo altimetrico';
+}
+
+/**
+ * La quota del profilo a una certa distanza, interpolata in linea retta fra i due punti
+ * della spezzata che la racchiudono. Fuori dal profilo (o con un profilo vuoto) e' `null`:
+ * un punto fuori scala non ha una quota da inventare.
+ *
+ * Serve a mettere un segno **sulla curva** — il punto della posizione — senza che il
+ * segno debba coincidere con un campione.
+ */
+export function quotaA(profilo: PuntoProfilo[], distanza: number): number | null {
+  if (profilo.length === 0) return null;
+  if (distanza < profilo[0].distance || distanza > profilo[profilo.length - 1].distance) return null;
+  for (let i = 0; i < profilo.length - 1; i++) {
+    const a = profilo[i];
+    const b = profilo[i + 1];
+    if (distanza >= a.distance && distanza <= b.distance) {
+      if (b.distance === a.distance) return a.altitude;
+      const t = (distanza - a.distance) / (b.distance - a.distance);
+      return a.altitude + t * (b.altitude - a.altitude);
+    }
+  }
+  return profilo[profilo.length - 1].altitude;
 }

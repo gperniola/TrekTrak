@@ -313,6 +313,14 @@ function interpolateAlongPolyline(
   return coords[coords.length - 1];
 }
 
+/** Dove cade una posizione sul percorso: a che chilometro, e quanto ne e' lontana. */
+export interface ProiezioneSulPercorso {
+  /** Distanza cumulata dall'inizio (km) del punto del tracciato piu' vicino. */
+  distanza: number;
+  /** Quanto la posizione e' fuori dal tracciato (metri, in linea d'aria). */
+  scostamentoM: number;
+}
+
 /**
  * Given a [lat, lon] position, find the closest point on the itinerary path
  * and return its cumulative distance (km) from the start.
@@ -322,6 +330,22 @@ export function positionToDistance(
   waypoints: Waypoint[],
   legs: Leg[]
 ): number | null {
+  return proiettaSulPercorso(lat, lon, waypoints, legs)?.distanza ?? null;
+}
+
+/**
+ * Proietta una posizione sul tracciato e dice **anche quanto ne e' lontana**.
+ *
+ * La distanza cumulata da sola basta all'hover sulla mappa, che parte gia' da un punto
+ * del tracciato. Non basta a dire «sei sul percorso»: il punto piu' vicino esiste sempre,
+ * anche per chi e' a Roma — e' lo scostamento che distingue chi cammina sul sentiero da
+ * chi lo guarda da un'altra valle.
+ */
+export function proiettaSulPercorso(
+  lat: number, lon: number,
+  waypoints: Waypoint[],
+  legs: Leg[]
+): ProiezioneSulPercorso | null {
   if (waypoints.length < 2 || legs.length === 0) return null;
 
   let bestDist = Infinity;
@@ -388,7 +412,7 @@ export function positionToDistance(
     cumulative += legDist;
   }
 
-  return bestDist < Infinity ? bestCumulative : null;
+  return bestDist < Infinity ? { distanza: bestCumulative, scostamentoM: bestDist * 1000 } : null;
 }
 
 /**
