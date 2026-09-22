@@ -3,7 +3,8 @@ import { CompassOverlay } from '@/components/map/CompassTool';
 import { PosizioneUtente } from '@/components/map/PosizioneUtente';
 import { AnelloBussola, RAGGIO_MINIMO_M } from '@/components/map/AnelloBussola';
 import { usePositionStore } from '@/stores/positionStore';
-import { haversineDistance } from '@/lib/calculations';
+import { haversineDistance, forwardAzimuth, azimuthToCardinal } from '@/lib/calculations';
+import { gradi } from '@/lib/formato';
 import { __setMapBounds } from './__mocks__/react-leaflet';
 
 jest.mock('react-leaflet');
@@ -237,5 +238,25 @@ describe('l anello del compasso', () => {
   test('non porta etichette: il numero sta nel pannello', () => {
     render(<AnelloBussola lat={46.45} lon={11.85} raggioMetri={372} />);
     expect(screen.queryAllByTestId('marker')).toHaveLength(0);
+  });
+});
+
+/**
+ * **L'azimut si legge anche come direzione.** Chiesto dall'utente il 2026-09-22: accanto
+ * ai gradi, il punto cardinale — sulla carta si legge il numero, sul terreno si guarda
+ * dove andare. La rosa e' quella italiana gia' in uso nel resto dell'app (SO, non SW).
+ */
+describe('il pannello della bussola', () => {
+  test('l azimut porta gradi e punto cardinale insieme', async () => {
+    // GPS a nord-est del centro della mappa finta (45, 10): il bersaglio sta a sud-ovest.
+    fingiIlGps(46.45, 11.85);
+    render(<CompassOverlay active onDeactivate={() => {}} />);
+    await act(async () => { await new Promise((r) => setTimeout(r, 10)); });
+
+    const atteso = forwardAzimuth(46.45, 11.85, 45, 10);
+    const cardinale = azimuthToCardinal(atteso);
+    expect(cardinale).toBe('SO');
+    const valore = screen.getByText('Azimuth').previousElementSibling;
+    expect(valore).toHaveTextContent(`${gradi(atteso)} ${cardinale}`);
   });
 });

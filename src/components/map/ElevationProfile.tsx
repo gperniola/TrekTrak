@@ -9,6 +9,7 @@ import { km, metri } from '@/lib/formato';
 import {
   costruisciProfilo,
   dominioY,
+  fineAsseX,
   messaggioProfiloVuoto,
   quotaA,
   tratteComeNelProfilo,
@@ -105,6 +106,7 @@ export function ElevationProfile() {
 
   const { yMin, yMax } = dominioY(profileData, realProfileData);
   const totalDistance = profileData[profileData.length - 1].distance;
+  const fineAsse = fineAsseX(profileData, waypointDots);
 
   const stops = buildGradientStops(profileData, totalDistance);
   const hasGradient = stops.length > 0;
@@ -145,7 +147,8 @@ export function ElevationProfile() {
         )}
       </div>
       <ResponsiveContainer width="100%" height="85%" minWidth={0} minHeight={0}>
-        <AreaChart data={mergedData} onMouseMove={handleChartMouseMove} onMouseLeave={handleChartMouseLeave} onClick={handleChartClick}>
+        {/* Margine a destra: l'ultimo pallino sta sul bordo dell'asse e ha bisogno del suo raggio. */}
+        <AreaChart data={mergedData} margin={{ top: 5, right: 12, bottom: 5, left: 5 }} onMouseMove={handleChartMouseMove} onMouseLeave={handleChartMouseLeave} onClick={handleChartClick}>
           <defs>
             {hasGradient ? (
               <>
@@ -170,10 +173,11 @@ export function ElevationProfile() {
           {/*
             `domain` esplicito: senza, Recharts usa `[0, 'auto']` e allunga l'asse alla
             tacca «tonda» successiva — un percorso di 10 km stava su un asse da 12, con la
-            curva ferma a cinque sesti della larghezza. Con `'dataMax'` gli estremi sono
-            fissi e l'ultima tacca e' la lunghezza vera del percorso.
+            curva ferma a cinque sesti della larghezza. L'estremo e' la fine del percorso
+            (curva o ultimo pallino, vedi `fineAsseX`): fisso, e l'ultima tacca e' la
+            lunghezza vera.
           */}
-          <XAxis dataKey="distance" type="number" domain={[0, 'dataMax']} tick={{ fontSize: 10, fill: '#999' }} tickFormatter={(v: number) => km(v, 2)} />
+          <XAxis dataKey="distance" type="number" domain={[0, fineAsse]} tick={{ fontSize: 10, fill: '#999' }} tickFormatter={(v: number) => km(v, 2)} />
           <YAxis
             tick={{ fontSize: 10, fill: '#999' }}
             domain={[yMin, yMax]}
