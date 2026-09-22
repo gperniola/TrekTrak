@@ -3,15 +3,22 @@
 import { useId, useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceDot, ReferenceLine } from 'recharts';
 import { useItineraryStore } from '@/stores/itineraryStore';
+import { usePositionStore } from '@/stores/positionStore';
 import { buildGradientStops } from '@/lib/calculations';
 import { km, metri } from '@/lib/formato';
 import {
   costruisciProfilo,
   dominioY,
   messaggioProfiloVuoto,
+  quotaA,
+  tratteComeNelProfilo,
   uniscoProfili,
 } from '@/lib/profilo-altimetrico';
+import { posizioneSulProfilo } from '@/lib/posizione-sul-percorso';
 import { useChiudiFuori } from '@/lib/useChiudiFuori';
+
+/** Ogni minuto: una posizione invecchia anche se nessuno tocca niente. */
+const PASSO_OROLOGIO_MS = 60_000;
 
 const ESTIMATED_TOOLTIP = 'Profilo basato solo sulle quote ai waypoint: non riflette salite e discese intermedie.';
 
@@ -64,6 +71,28 @@ export function ElevationProfile() {
     [profileData, realProfileData],
   );
 
+  /*
+    **Dove sono, sul profilo.** Legge la posizione che qualcuno ha gia' ottenuto (avvio,
+    tasto, bussola): questo componente non la chiede mai. L'orologio serve perche' il
+    punto deve sparire quando la posizione invecchia, anche a schermo fermo — la stessa
+    lezione del punto sulla mappa (v0.22.0).
+  */
+  const posizione = usePositionStore((s) => s.lastKnown);
+  const [adesso, setAdesso] = useState(() => Date.now());
+  useEffect(() => {
+    if (posizione == null) return;
+    setAdesso(Date.now());
+    const t = setInterval(() => setAdesso(Date.now()), PASSO_OROLOGIO_MS);
+    return () => clearInterval(t);
+  }, [posizione]);
+  const puntoPosizione = useMemo(() => {
+    // Le stesse distanze con cui e' spaziata la curva, non per forza quelle attive.
+    const p = posizioneSulProfilo(posizione, waypoints, tratteComeNelProfilo(legs, appMode), adesso);
+    if (p == null) return null;
+    const quota = quotaA(profileData, p.distanza);
+    return quota == null ? null : { distanza: p.distanza, quota };
+  }, [posizione, waypoints, legs, appMode, adesso, profileData]);
+
   // (In vista Libreria il pannello profilo è gestito da page.tsx con
   // PreviewElevationProfile: questo componente è montato solo in vista Editor.)
   if (profileData.length < 2) {
@@ -88,6 +117,12 @@ export function ElevationProfile() {
           <span className="text-[10px] text-cyan-300 ml-1 flex items-center gap-0.5">
             <span aria-hidden className="inline-block w-3 border-t-2 border-dashed border-cyan-400" />
             reale
+          </span>
+        )}
+        {puntoPosizione && (
+          <span className="text-[10px] text-blue-300 ml-1 flex items-center gap-1">
+            <span aria-hidden className="inline-block w-2 h-2 rounded-full bg-blue-600 ring-2 ring-white" />
+            Sei qui: {km(puntoPosizione.distanza, 2)}
           </span>
         )}
         {isEstimated && (
@@ -132,7 +167,13 @@ export function ElevationProfile() {
               </linearGradient>
             )}
           </defs>
-          <XAxis dataKey="distance" type="number" tick={{ fontSize: 10, fill: '#999' }} tickFormatter={(v: number) => km(v, 2)} />
+          {/*
+            `domain` esplicito: senza, Recharts usa `[0, 'auto']` e allunga l'asse alla
+            tacca «tonda» successiva — un percorso di 10 km stava su un asse da 12, con la
+            curva ferma a cinque sesti della larghezza. Con `'dataMax'` gli estremi sono
+            fissi e l'ultima tacca e' la lunghezza vera del percorso.
+          */}
+          <XAxis dataKey="distance" type="number" domain={[0, 'dataMax']} tick={{ fontSize: 10, fill: '#999' }} tickFormatter={(v: number) => km(v, 2)} />
           <YAxis
             tick={{ fontSize: 10, fill: '#999' }}
             domain={[yMin, yMax]}
@@ -177,6 +218,26 @@ export function ElevationProfile() {
               strokeWidth={1}
             />
           ))}
+          {/*
+            Il punto della posizione: stesso blu e stesso anello bianco del punto sulla
+            mappa, cosi' l'occhio li legge come la stessa cosa. La riga verticale sotto
+            lo rende trovabile anche quando la curva e' piatta e il pallino si confonde
+            coi waypoint.
+          */}
+          {puntoPosizione && (
+            <>
+              <ReferenceLine x={puntoPosizione.distanza} stroke="#3b82f6" strokeWidth={1} strokeDasharray="2 3" />
+              <ReferenceDot
+                className="posizione-sul-profilo"
+                x={puntoPosizione.distanza}
+                y={puntoPosizione.quota}
+                r={5}
+                fill="#2563eb"
+                stroke="#fff"
+                strokeWidth={2}
+              />
+            </>
+          )}
           {profileHover && profileHover.source === 'map' && (
             <ReferenceLine
               x={profileHover.distance}

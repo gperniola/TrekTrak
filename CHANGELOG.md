@@ -4,6 +4,38 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.32.0] — 2026-09-22 — Dove sono sul profilo, e il profilo finisce dove finisce il percorso
+
+### Added
+- **Il profilo altimetrico segna dove sei.** Chiesto dall'utente: «se clicco sulla
+  geolocalizzazione e mi trovo sul percorso, sul profilo dev'esserci un indicatore che mi
+  dice dove sono». Quando la posizione nota cade sul tracciato, sulla curva compare lo
+  stesso punto blu con l'anello bianco della mappa, con una riga verticale sotto, e in
+  cima al pannello si legge «Sei qui: 2,00 km». **«Sul percorso» è deciso, non presunto**
+  (`lib/posizione-sul-percorso.ts`): il punto del tracciato più vicino esiste sempre, anche
+  per chi è a cento chilometri, quindi si disegna solo se la posizione è entro 100 m dal
+  tracciato più l'incertezza del fix, se il fix è sotto i 500 m di incertezza, e se la
+  posizione è attuale (meno di 5 minuti, la stessa regola del punto sulla mappa). La
+  proiezione riusa quella dell'hover sulla mappa, che ora restituisce anche lo scostamento
+  (`proiettaSulPercorso`). Nessuna richiesta di posizione in più: legge quella già
+  ottenuta da avvio, tasto o bussola.
+
+### Fixed
+- **I tre valori della bussola stanno su una riga anche sullo smartphone.** Segnalato
+  dall'utente: la «m» di metri andava a capo. Ogni valore è ora una parola sola
+  (`whitespace-nowrap`), il corpo è più piccolo sotto i 640 px, spaziature e separatori
+  più stretti; la Δ quota passa da `formato.ts` («+1.234 m», prima «+1234 m»). Verificato
+  a 360 px: prima «564 / m» su due righe, ora una.
+- **L'asse delle distanze del profilo altimetrico si ferma alla lunghezza del percorso.**
+  Segnalato dall'utente: con un percorso di 10 km la barra del profilo arrivava a 12 e la
+  curva si fermava a cinque sesti della larghezza. L'asse X non dichiarava un dominio, e
+  Recharts usa `[0, 'auto']`: il massimo viene **arrotondato alla tacca «tonda»
+  successiva** (10 → 12, 7,2 → 8, 12,4 → 16, 15,5 → 16), quindi l'intero disegno rimaneva
+  più corto della pagina. Ora il dominio è `[0, 'dataMax']`: gli estremi sono fissi, le
+  tacche intermedie restano tonde e **l'ultima è la lunghezza vera** («9,73 km»).
+  Verificato in un browser vero: la curva copre il 100% dell'asse, prima l'83%. Stessa
+  correzione nell'anteprima della libreria.
+
 ## [0.31.5] — 2026-09-11 — La meta del ritorno c'è, e i sentieri restano
 
 ### Fixed

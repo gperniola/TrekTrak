@@ -8,7 +8,7 @@ import { fetchElevation } from '@/lib/elevation-api';
 import { useMapOverlayGuard } from './useMapOverlayGuard';
 import { AnelloBussola } from './AnelloBussola';
 import { usePositionStore } from '@/stores/positionStore';
-import { distanza, gradi } from '@/lib/formato';
+import { distanza, gradi, metri } from '@/lib/formato';
 
 interface CompassData {
   userLat: number;
@@ -255,20 +255,28 @@ export function CompassOverlay({ active, onDeactivate }: { active: boolean; onDe
       />
 
       {/* Overlay with compass data */}
-      <div ref={guardiaPannello} className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000] bg-gray-900/90 rounded-lg px-4 py-2 flex gap-4 items-center text-sm max-w-[calc(100%-1rem)]">
-        <div className="text-center">
-          <div className="text-amber-400 font-bold text-base">{azimuth != null ? gradi(azimuth) : '--'}</div>
+      {/*
+        Tre valori, uno accanto all'altro, **su una riga sola anche su uno smartphone**.
+        Segnalato il 2026-09-22: su un telefono la «m» di «+1.234 m» andava a capo da
+        sola, perche' il riquadro si stringeva e il testo poteva spezzarsi. Ora ogni
+        valore e' `whitespace-nowrap` (un numero con la sua unita' e' una parola sola), il
+        corpo e' piu' piccolo sotto i 640 px, e spaziature e separatori sono piu' stretti.
+        `tabular-nums` tiene ferma la larghezza mentre i numeri cambiano col GPS.
+      */}
+      <div ref={guardiaPannello} className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000] bg-gray-900/90 rounded-lg px-3 sm:px-4 py-2 flex gap-3 sm:gap-4 items-center text-sm max-w-[calc(100%-1rem)] tabular-nums">
+        <div className="text-center min-w-0">
+          <div className="text-amber-400 font-bold text-sm sm:text-base whitespace-nowrap">{azimuth != null ? gradi(azimuth) : '--'}</div>
           <div className="text-gray-400 text-[10px]">Azimuth</div>
         </div>
-        <div className="w-px h-8 bg-gray-700" />
-        <div className="text-center">
-          <div className="text-green-400 font-bold text-base">{distDisplay}</div>
+        <div className="w-px h-8 bg-gray-700 shrink-0" />
+        <div className="text-center min-w-0">
+          <div className="text-green-400 font-bold text-sm sm:text-base whitespace-nowrap">{distDisplay}</div>
           <div className="text-gray-400 text-[10px]">Distanza</div>
         </div>
-        <div className="w-px h-8 bg-gray-700" />
-        <div className="text-center">
-          <div className={`font-bold text-base ${altDiff != null ? (altDiff >= 0 ? 'text-red-400' : 'text-blue-400') : 'text-gray-400'}`}>
-            {altDiff != null ? `${altDiff >= 0 ? '+' : ''}${altDiff} m` : '...'}
+        <div className="w-px h-8 bg-gray-700 shrink-0" />
+        <div className="text-center min-w-0">
+          <div className={`font-bold text-sm sm:text-base whitespace-nowrap ${altDiff != null ? (altDiff >= 0 ? 'text-red-400' : 'text-blue-400') : 'text-gray-400'}`}>
+            {altDiff != null ? `${altDiff >= 0 ? '+' : ''}${metri(altDiff)}` : '...'}
           </div>
           <div className="text-gray-400 text-[10px]">Δ Quota</div>
         </div>
