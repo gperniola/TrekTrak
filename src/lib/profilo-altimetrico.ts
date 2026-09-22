@@ -300,3 +300,19 @@ export function quotaA(profilo: PuntoProfilo[], distanza: number): number | null
   }
   return profilo[profilo.length - 1].altitude;
 }
+
+/**
+ * Dove finisce l'asse delle distanze: alla fine della curva **o dell'ultimo pallino**,
+ * quello dei due che arriva piu' in la'.
+ *
+ * Non coincidono per forza: la curva chiude alla somma dei profili campionati, i pallini
+ * alla somma delle distanze delle tratte, e i due numeri differiscono di qualche metro.
+ * Con l'asse fermo esattamente alla fine della curva (v0.32.0), un pallino un pelo oltre
+ * veniva **scartato** da Recharts (`ifOverflow: 'discard'`): l'arrivo spariva dal
+ * profilo. Segnalato dall'utente il 2026-09-22.
+ */
+export function fineAsseX(profileData: PuntoProfilo[], waypointDots: PuntoProfilo[]): number {
+  const fineCurva = profileData.length > 0 ? profileData[profileData.length - 1].distance : 0;
+  const ultimoPallino = waypointDots.length > 0 ? waypointDots[waypointDots.length - 1].distance : 0;
+  return Math.max(fineCurva, ultimoPallino);
+}

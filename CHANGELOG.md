@@ -4,6 +4,21 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.32.1] — 2026-09-22 — L'arrivo torna sul profilo, e la bussola dice anche «NE»
+
+### Fixed
+- **Il pallino dell'arrivo non sparisce più dal profilo altimetrico.** Segnalato
+  dall'utente dopo la 0.32.0. La curva chiude alla somma dei profili campionati, i
+  pallini alla somma delle distanze delle tratte, e i due numeri differiscono di qualche
+  metro: con l'asse fermo esattamente alla fine della curva, un pallino un pelo oltre
+  veniva **scartato** da Recharts (`ifOverflow: 'discard'`). Ora l'asse finisce al più
+  lontano fra fine curva e ultimo pallino (`fineAsseX`), e il grafico ha un margine a
+  destra per il raggio del pallino.
+
+### Changed
+- **La bussola scrive anche il punto cardinale accanto ai gradi** («45,0° NE»), con la
+  rosa italiana già usata nel resto dell'app (N, NE, E, SE, S, SO, O, NO).
+
 ## [0.32.0] — 2026-09-22 — Dove sono sul profilo, e il profilo finisce dove finisce il percorso
 
 ### Added
