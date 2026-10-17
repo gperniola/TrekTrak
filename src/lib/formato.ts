@@ -181,10 +181,48 @@ const MESI_LUNGHI = [
  * giorno torna cosi' com'e': meglio mostrare cio' che c'e' che inventare una data.
  */
 export function giornoMeseLungo(giorno: string): string {
+  const d = leggiGiorno(giorno);
+  return d ? `${d.g} ${MESI_LUNGHI[d.mese - 1]}` : giorno;
+}
+
+function leggiGiorno(giorno: string): { g: number; mese: number } | null {
   const m = /^\d{4}-(\d{2})-(\d{2})$/.exec(giorno);
-  if (!m) return giorno;
+  if (!m) return null;
   const mese = Number(m[1]);
   const g = Number(m[2]);
-  if (mese < 1 || mese > 12 || g < 1 || g > 31) return giorno;
-  return `${g} ${MESI_LUNGHI[mese - 1]}`;
+  if (mese < 1 || mese > 12 || g < 1 || g > 31) return null;
+  return { g, mese };
+}
+
+export type Preposizione = 'da' | 'di' | 'a' | 'il';
+
+/** Per ogni preposizione: la forma davanti a consonante, e quella elisa davanti a vocale. */
+const ARTICOLATE: Record<Preposizione, readonly [string, string]> = {
+  da: ['dal ', "dall'"],
+  di: ['del ', "dell'"],
+  a: ['al ', "all'"],
+  il: ['il ', "l'"],
+};
+
+/**
+ * Un giorno `YYYY-MM-DD` con la sua preposizione articolata: «dal 2 ottobre», «dall'8
+ * ottobre», «dell'11 ottobre», «il 1° ottobre».
+ *
+ * Si leggeva «dal 8», «del 11», «il 8»: 8 e 11 sono gli unici giorni che cominciano per
+ * vocale («otto», «undici»), e l'articolo si elide. Il primo del mese si scrive «1°» (si
+ * legge «primo»). Con `mese: false` solo il giorno («dall'8»), per il primo estremo di un
+ * intervallo dentro un mese solo. Una stringa che non e' un giorno resta com'e', come in
+ * `giornoMeseLungo`.
+ */
+export function conPreposizione(
+  prep: Preposizione,
+  giorno: string,
+  { mese = true }: { mese?: boolean } = {},
+): string {
+  const [davantiConsonante, davantiVocale] = ARTICOLATE[prep];
+  const d = leggiGiorno(giorno);
+  if (!d) return `${davantiConsonante}${giorno}`;
+  const articolo = d.g === 8 || d.g === 11 ? davantiVocale : davantiConsonante;
+  const numero = d.g === 1 ? '1°' : String(d.g);
+  return `${articolo}${numero}${mese ? ` ${MESI_LUNGHI[d.mese - 1]}` : ''}`;
 }

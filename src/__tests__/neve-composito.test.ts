@@ -158,6 +158,20 @@ describe('testi', () => {
     expect(testoPunto({ stato: 'ignoto', guasto: false })).toBe('Nessuna immagine per questo punto negli ultimi 3 giorni')
   })
 
+  test('testoViste: dall 8, dell 11, al 1°', () => {
+    expect(testoViste(rv({ da: '2026-10-08', a: '2026-10-11', sensori: ['terra'] }))).toBe("Viste dall'8 all'11 ottobre · MODIS Terra")
+    expect(testoViste(rv({ da: '2026-10-11', a: '2026-10-11', sensori: ['terra'] }))).toBe("Viste dell'11 ottobre · MODIS Terra")
+    expect(testoViste(rv({ da: '2026-09-30', a: '2026-10-01', sensori: ['terra'] }))).toBe('Viste dal 30 settembre al 1° ottobre · MODIS Terra')
+  })
+
+  test('testoPunto: l 8, dal 1° all 11', () => {
+    expect(testoPunto({ stato: 'neve', ndsi: 45, giorno: '2026-10-08', sensore: 'terra' })).toBe("Neve (indice 45) · vista l'8 ottobre da MODIS Terra")
+    expect(testoPunto({ stato: 'senza', giorno: '2026-10-11', sensore: 'aqua' })).toBe("Senza neve · vista l'11 ottobre da MODIS Aqua")
+    expect(testoPunto({ stato: 'acqua', giorno: '2026-10-01', sensore: 'aqua' })).toBe('Acqua o mare · vista il 1° ottobre da MODIS Aqua')
+    expect(testoPunto({ stato: 'nonVisto', giorni: ['2026-10-11', '2026-10-01'], guasto: false })).toBe("Non visto: nubi in tutti i passaggi dal 1° all'11 ottobre")
+    expect(testoPunto({ stato: 'nonVisto', giorni: ['2026-10-08'], guasto: false })).toBe("Non visto: nubi in tutti i passaggi dell'8 ottobre")
+  })
+
   test('testoPunto: un guasto non si racconta come un assenza', () => {
     expect(testoPunto({ stato: 'ignoto', guasto: true })).toBe('Immagini non arrivate per questo punto (rete o servizio NASA)')
     expect(testoPunto({ stato: 'nonVisto', giorni: ['2026-10-14', '2026-10-16'], guasto: true }))

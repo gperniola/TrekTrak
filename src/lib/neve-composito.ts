@@ -2,7 +2,7 @@
 // passaggi dei sensori sui giorni della finestra. Modulo puro (niente Leaflet, DOM, store):
 // il componente della mappa importa `L.GridLayer`, che nel finto Leaflet dei test non c'e',
 // quindi tutto cio' che si vuole provare sta qui.
-import { giornoMeseLungo } from '@/lib/formato';
+import { conPreposizione } from '@/lib/formato';
 import type { EsitoPassaggio } from '@/lib/neve-rete';
 import {
   ACQUA, NON_VISTO, SENSORI_NEVE, SENZA_NEVE, classificaTavolozza, type SensoreNeve,
@@ -196,14 +196,11 @@ function nomeSensore(id: SensoreNeve): string {
   return d ? `${d.famiglia} ${d.nome}` : id;
 }
 
-/** `14 al 16 ottobre` / `30 settembre al 2 ottobre`, con «dal» davanti; un giorno solo: «del». */
+/** `dal 14 al 16 ottobre` / `dal 30 settembre al 2 ottobre` / `dall'8 all'11 ottobre`; un giorno solo: `del 16 ottobre`. */
 function intervallo(da: string, a: string): string {
-  if (da === a) return `del ${giornoMeseLungo(da)}`;
-  const l1 = giornoMeseLungo(da);
-  const l2 = giornoMeseLungo(a);
-  const [g1, mese1] = l1.split(' ');
-  const mese2 = l2.split(' ')[1];
-  return mese1 === mese2 && da.slice(0, 7) === a.slice(0, 7) ? `dal ${g1} al ${l2}` : `dal ${l1} al ${l2}`;
+  if (da === a) return conPreposizione('di', da);
+  const stessoMese = da.slice(0, 7) === a.slice(0, 7);
+  return `${conPreposizione('da', da, { mese: !stessoMese })} ${conPreposizione('a', a)}`;
 }
 
 export function testoViste(r: RiassuntoVista): string {
@@ -224,11 +221,11 @@ export function testoViste(r: RiassuntoVista): string {
 export function testoPunto(s: StatoPunto): string {
   switch (s.stato) {
     case 'neve':
-      return `Neve (indice ${s.ndsi}) · vista il ${giornoMeseLungo(s.giorno)} da ${nomeSensore(s.sensore)}`;
+      return `Neve (indice ${s.ndsi}) · vista ${conPreposizione('il', s.giorno)} da ${nomeSensore(s.sensore)}`;
     case 'senza':
-      return `Senza neve · vista il ${giornoMeseLungo(s.giorno)} da ${nomeSensore(s.sensore)}`;
+      return `Senza neve · vista ${conPreposizione('il', s.giorno)} da ${nomeSensore(s.sensore)}`;
     case 'acqua':
-      return `Acqua o mare · vista il ${giornoMeseLungo(s.giorno)} da ${nomeSensore(s.sensore)}`;
+      return `Acqua o mare · vista ${conPreposizione('il', s.giorno)} da ${nomeSensore(s.sensore)}`;
     case 'nonVisto': {
       const g = [...s.giorni].sort();
       const nubi = `Non visto: nubi in tutti i passaggi ${intervallo(g[0], g[g.length - 1])}`;
