@@ -71,8 +71,11 @@ describe('il layer neve sulla mappa', () => {
   const imageDataOriginale = (globalThis as { ImageData?: unknown }).ImageData;
 
   beforeAll(() => {
-    // jsdom non ha la tela 2D ne' `ImageData`: si finge quel tanto che basta per contare i disegni.
-    HTMLCanvasElement.prototype.getContext = (() => ({ putImageData })) as unknown as typeof getContextOriginale;
+    // jsdom non ha la tela 2D ne' `ImageData`: si finge quel tanto che basta per contare i
+    // disegni, e per sapere su quale tela (`canvas`, come nel contesto vero).
+    HTMLCanvasElement.prototype.getContext = function (this: HTMLCanvasElement) {
+      return { canvas: this, putImageData };
+    } as unknown as typeof getContextOriginale;
     (globalThis as { ImageData?: unknown }).ImageData = class {
       constructor(public data: Uint8ClampedArray, public width: number, public height: number) {}
     };
@@ -83,9 +86,12 @@ describe('il layer neve sulla mappa', () => {
     (globalThis as { ImageData?: unknown }).ImageData = imageDataOriginale;
   });
 
+  /** La tela su cui e' stato fatto l'i-esimo disegno. */
+  const telaDelDisegno = (i: number) => (putImageData.mock.contexts[i] as { canvas: HTMLCanvasElement }).canvas;
+
   beforeEach(() => {
     __resetGridLayers();
-    putImageData.mockClear();
+    putImageData.mockReset();
     const s = useEmergencyStore.getState();
     s.stopLayer('snow-cover');
     s.startLayer('snow-cover');
@@ -168,6 +174,88 @@ describe('il layer neve sulla mappa', () => {
     expect(neve).toMatchObject({ da: '2026-10-16', a: '2026-10-16', sensori: ['aqua'] });
     // Disegnata solo B: la tela di A non e' piu' a schermo.
     expect(putImageData).toHaveBeenCalledTimes(1);
+  });
+
+  /**
+   * Se il disegno lancia (una tela persa, memoria finita), Leaflet deve saperlo lo stesso:
+   * senza `done` aspetterebbe questa mattonella per sempre.
+   */
+  test('se il disegno lancia, Leaflet riceve comunque done con l errore', async () => {
+    const f = sorgenteFinta();
+    render(<EmergencyNeveLayer sorgente={f.sorgente} />);
+    const done = jest.fn();
+    let tile: HTMLElement;
+    act(() => { tile = strato().__crea(B, done); });
+    putImageData.mockImplementationOnce(() => { throw new Error('tela persa'); });
+
+    f.risolvi('8/138/94', DI_B());
+    await svuota();
+
+    expect(done).toHaveBeenCalledTimes(1);
+    expect(done).toHaveBeenCalledWith(expect.any(Error), tile!);
+  });
+
+  /**
+   * L'aggiornamento orario si fa **sul posto**. Con `redraw()` Leaflet toglieva tutte le tele
+   * insieme e le nuove restavano nascoste fino al loro `done`: ogni ora la neve spariva
+   * dalla mappa per secondi (decine, su una rete di montagna) col pannello che diceva «pronto».
+   */
+  describe('aggiornamento orario', () => {
+    const ORA = 60 * 60 * 1000;
+    beforeEach(() => { jest.useFakeTimers(); });
+    afterEach(() => { jest.useRealTimers(); });
+
+    test('ridipinge le stesse tele senza toglierle, dopo aver chiesto dati nuovi', async () => {
+      const f = sorgenteFinta();
+      render(<EmergencyNeveLayer sorgente={f.sorgente} />);
+      let tileB: HTMLElement;
+      act(() => { tileB = strato().__crea(B); });
+      f.risolvi('8/138/94', DI_B());
+      await svuota();
+      expect(putImageData).toHaveBeenCalledTimes(1);
+      const scaricate = jest.fn();
+      strato().on('tileunload', scaricate);
+
+      act(() => { jest.advanceTimersByTime(ORA); });
+      expect(f.sorgente.rinnova).toHaveBeenCalledTimes(1);
+      // Prima di ricomporre: le tele restano a schermo col disegno di prima.
+      expect(scaricate).not.toHaveBeenCalled();
+
+      const piuTardi = COMPOSTA_ALLE + ORA;
+      f.risolvi('8/138/94', composito('2026-10-17', 'terra', piuTardi));
+      await svuota();
+
+      expect(scaricate).not.toHaveBeenCalled();
+      expect(strato().mattonelle.map((m) => m.tile)).toEqual([tileB!]);
+      expect(putImageData).toHaveBeenCalledTimes(2);
+      expect(telaDelDisegno(1)).toBe(tileB!);
+      // Il riassunto si aggiorna con la stessa chiave: descrive la mattonella una volta sola.
+      const st = useEmergencyStore.getState();
+      expect(st.neve).toMatchObject({ da: '2026-10-17', a: '2026-10-17', sensori: ['terra'], alle: piuTardi });
+      expect(st.layers['snow-cover'].lastFetch).toBe(piuTardi);
+    });
+
+    test('una mattonella che esce durante l aggiornamento non si ridipinge e non rientra nel riassunto', async () => {
+      const f = sorgenteFinta();
+      render(<EmergencyNeveLayer sorgente={f.sorgente} />);
+      let tileA: HTMLElement;
+      act(() => { tileA = strato().__crea(A); strato().__crea(B); });
+      f.risolvi('8/137/94', DI_A());
+      f.risolvi('8/138/94', DI_B());
+      await svuota();
+      expect(putImageData).toHaveBeenCalledTimes(2);
+
+      act(() => { jest.advanceTimersByTime(ORA); });
+      act(() => { strato().__togli(tileA); });
+      // La composizione condivisa arriva lo stesso, dopo che la mattonella e' uscita.
+      f.risolvi('8/137/94', DI_A());
+      f.risolvi('8/138/94', DI_B());
+      await svuota();
+
+      expect(putImageData).toHaveBeenCalledTimes(3);
+      expect(telaDelDisegno(2)).not.toBe(tileA!);
+      expect(useEmergencyStore.getState().neve).toMatchObject({ da: '2026-10-16', a: '2026-10-16', sensori: ['aqua'] });
+    });
   });
 
   /**

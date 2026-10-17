@@ -111,7 +111,8 @@ const popup = jest.fn(() => {
  * `__togli`). Riproduce le due cose del `GridLayer.js` vero su cui il layer conta:
  * `tileunload` con l'elemento della mattonella, e `remove()`/`redraw()` che tolgono
  * **tutte** le mattonelle a schermo, nell'ordine in cui sono state create, sparando
- * `tileunload` per ciascuna.
+ * `tileunload` per ciascuna. Il layer non usa piu' `redraw()` (l'aggiornamento orario e'
+ * sul posto): resta perche' rimetterlo nel layer deve far diventare rosso il suo test.
  */
 type Gestore = (e: Record<string, unknown>) => void;
 interface Coordinate { x: number; y: number; z: number }
