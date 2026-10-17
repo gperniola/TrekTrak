@@ -122,6 +122,21 @@ describe('EmergencyFeatureInfo', () => {
       expect(lastPopupContent().indexOf(frase)).toBeLessThan(lastPopupContent().indexOf('2026-07-06'));
     });
 
+    /*
+      Un grigio scritto a mano (`#374151`, il gray-700 del tema scuro) spariva o pesava a
+      seconda del tema: i divisori del popup seguono la stessa variabile del testo tenue.
+    */
+    test('i divisori del popup seguono il tema', async () => {
+      global.fetch = jest.fn().mockResolvedValue({ ok: true, text: async () => REAL_HTML });
+      // Due WMS e la neve: il divisore fra neve e WMS e quello fra due risultati WMS.
+      render(<EmergencyFeatureInfo defs={[burned, burned]} neve={neveCon(jest.fn().mockResolvedValue(visto))} />);
+      __fireMapEvent('contextmenu', { latlng });
+      await waitFor(() => expect(lastPopupContent()).toContain('2026-07-06'));
+      const html = lastPopupContent();
+      expect(html).not.toContain('#374151');
+      expect(html.match(/<hr style="border:0;border-top:1px solid var\(--tenue\);margin:6px 0">/g)).toHaveLength(2);
+    });
+
     test('neve che fallisce non spegne il WMS', async () => {
       global.fetch = jest.fn().mockResolvedValue({ ok: true, text: async () => REAL_HTML });
       render(<EmergencyFeatureInfo defs={[burned]} neve={neveCon(jest.fn().mockRejectedValue(new Error('x')))} />);

@@ -11,8 +11,9 @@ import { testoPunto } from '@/lib/neve-composito';
 import { wmsTimeParam } from './EmergencyWmsLayer';
 
 /**
- * Rende interrogabili i layer WMS di emergenza con una **pressione lunga** sulla mappa
- * (click destro su desktop).
+ * Rende interrogabili con una **pressione lunga** sulla mappa (click destro su desktop) i
+ * layer WMS di emergenza che rispondono a GetFeatureInfo, e la copertura nevosa: per quella
+ * il popup dice cosa ha visto il satellite nel punto, e quando.
  *
  * Perché non il click normale: sulla mappa il click significa già "aggiungi waypoint",
  * ed è il gesto centrale dell'app. Sovraccaricarlo ricreerebbe esattamente il difetto
@@ -91,6 +92,12 @@ export function EmergencyFeatureInfo({
   return null;
 }
 
+/*
+  Il divisore segue il tema, come il testo tenue: un grigio scritto a mano (`#374151`, il
+  gray-700 del tema scuro) andava bene su un tema solo.
+*/
+const DIVISORE = '<hr style="border:0;border-top:1px solid var(--tenue);margin:6px 0">';
+
 function renderContent(
   results: Array<{ def: EmergencyLayerDef; result: FeatureInfoResult }>,
   failed: boolean,
@@ -103,7 +110,7 @@ function renderContent(
   const wms = renderWms(results, failed, haWms);
   if (!riga) return wms;
   if (!wms) return riga;
-  return riga + '<hr style="border:0;border-top:1px solid #374151;margin:6px 0">' + wms;
+  return riga + DIVISORE + wms;
 }
 
 function renderWms(
@@ -135,5 +142,5 @@ function renderWms(
         .join('')
       + '</div>'
     ))
-    .join('<hr style="border:0;border-top:1px solid #374151;margin:6px 0">');
+    .join(DIVISORE);
 }

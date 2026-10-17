@@ -42,17 +42,22 @@ export function EmergencyLayers() {
     rimonta da capo. E' la garanzia del `retryTick` per i WMS. Le composizioni in corso
     della vecchia non si fermano: si abbandonano, finiscono per conto loro (ogni passaggio
     ha il suo timeout) e il layer smontato ne ignora l'esito.
+
+    E nessuna sorgente a layer spento: la sua memoria arriva a ~26 MB di passaggi
+    decodificati, e legata solo al «Riprova» restava piena per tutta la sessione.
   */
+  const neveAccesa = activeIds.includes('snow-cover');
   const sorgenteNeve = useMemo(
     () => {
       void tentativoNeve; // la chiave del «Riprova»: non entra nella sorgente, la rifa'
+      if (!neveAccesa) return null;
       return creaSorgenteNeve({
         fetch: (url, init) => fetch(url, init),
         inflate: inflateDelBrowser,
         adesso: () => new Date(),
       });
     },
-    [tentativoNeve],
+    [tentativoNeve, neveAccesa],
   );
 
   // Pane dedicato: sopra i tile (200), sotto i tracciati (overlayPane 400).
@@ -93,8 +98,6 @@ export function EmergencyLayers() {
   // sulla mappa può interrogare.
   const queryableDefs = activeIds.map(getEmergencyLayer).filter((d) => d.wms?.queryable);
 
-  const neveAccesa = activeIds.includes('snow-cover');
-
   if (!paneReady) return null;
 
   return (
@@ -105,7 +108,7 @@ export function EmergencyLayers() {
         if (def.kind === 'points' && fires) return <EmergencyPointsLayer key={id} points={fires.points} />;
         if (def.kind === 'tiles' && radar) return <EmergencyRadarLayer key={id} radar={radar} />;
         if (def.kind === 'viewport') return <EmergencyShelterLayer key={id} shelters={shelters} />;
-        if (def.kind === 'neve') return <EmergencyNeveLayer key={id} sorgente={sorgenteNeve} />;
+        if (def.kind === 'neve' && sorgenteNeve) return <EmergencyNeveLayer key={id} sorgente={sorgenteNeve} />;
         if (def.kind === 'quakes' && quakes) return <EmergencyQuakeLayer key={id} quakes={quakes} />;
         // Il layer valanghe si monta SEMPRE, anche senza dati: e' lui che interroga la
         // vista, quindi senza montarlo non arriverebbe mai niente da mostrare.
@@ -115,8 +118,8 @@ export function EmergencyLayers() {
         }
         return null;
       })}
-      {(queryableDefs.length > 0 || neveAccesa) && (
-        <EmergencyFeatureInfo defs={queryableDefs} neve={neveAccesa ? sorgenteNeve : null} />
+      {(queryableDefs.length > 0 || sorgenteNeve) && (
+        <EmergencyFeatureInfo defs={queryableDefs} neve={sorgenteNeve} />
       )}
     </>
   );
