@@ -20,7 +20,8 @@ const mostra = (runtime: LayerRuntime) => render(
 );
 
 const riassunto = (over: Partial<RiassuntoVista> = {}): RiassuntoVista => ({
-  stato: 'ready', da: '2026-10-15', a: '2026-10-17', sensori: ['aqua', 'terra'], parziale: false, ...over,
+  stato: 'ready', da: '2026-10-15', a: '2026-10-17', sensori: ['aqua', 'terra'], parziale: false,
+  alle: Date.parse('2026-10-17T10:00:00Z'), ...over,
 });
 
 describe('la riga della neve nel pannello', () => {

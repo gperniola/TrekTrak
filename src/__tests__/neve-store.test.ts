@@ -8,8 +8,13 @@ import type { RiassuntoVista } from '@/lib/neve-composito';
  * che arriva a layer spento non riaccende niente, e «Riprova» riparte da zero.
  */
 
+/** Quando le mattonelle a schermo sono state composte: ore prima di «adesso», di proposito. */
+const COMPOSTE_ALLE = Date.parse('2026-10-17T06:00:00Z');
+const ADESSO = Date.parse('2026-10-17T11:00:00Z');
+
 const pronto = (over: Partial<RiassuntoVista> = {}): RiassuntoVista => ({
-  stato: 'ready', da: '2026-10-15', a: '2026-10-17', sensori: ['terra', 'aqua'], parziale: false, ...over,
+  stato: 'ready', da: '2026-10-15', a: '2026-10-17', sensori: ['terra', 'aqua'], parziale: false,
+  alle: COMPOSTE_ALLE, ...over,
 });
 
 describe('lo store della neve', () => {
@@ -37,11 +42,49 @@ describe('lo store della neve', () => {
     expect(st.layers['snow-cover'].partial).toBe(false);
   });
 
+  /**
+   * «Aggiornato alle» e `isStale` devono dire quando si e' guardato GIBS. Con `Date.now()`
+   * ogni spostamento della mappa (che riferisce di nuovo) dichiarava «adesso» su mattonelle
+   * composte ore prima, e il layer non diventava mai «vecchio».
+   */
+  describe('lastFetch e l istante della composizione, non quello del riassunto', () => {
+    afterEach(() => jest.restoreAllMocks());
+
+    test('ready: lastFetch = r.alle', () => {
+      jest.spyOn(Date, 'now').mockReturnValue(ADESSO);
+      const s = useEmergencyStore.getState();
+      s.startLayer('snow-cover');
+      s.reportNeve(pronto());
+      expect(useEmergencyStore.getState().layers['snow-cover'].lastFetch).toBe(COMPOSTE_ALLE);
+    });
+
+    test('nodata: lastFetch = r.alle', () => {
+      jest.spyOn(Date, 'now').mockReturnValue(ADESSO);
+      const s = useEmergencyStore.getState();
+      s.startLayer('snow-cover');
+      s.reportNeve(pronto({ stato: 'nodata', da: null, a: null, sensori: [] }));
+      expect(useEmergencyStore.getState().layers['snow-cover'].lastFetch).toBe(COMPOSTE_ALLE);
+    });
+
+    test('un riassunto ripetuto piu tardi (la mappa si e spostata) non porta lastFetch in avanti', () => {
+      const ora = jest.spyOn(Date, 'now').mockReturnValue(ADESSO);
+      const s = useEmergencyStore.getState();
+      s.startLayer('snow-cover');
+      s.reportNeve(pronto());
+      ora.mockReturnValue(ADESSO + 3 * 3_600_000);
+      s.reportNeve(pronto());
+      expect(useEmergencyStore.getState().layers['snow-cover'].lastFetch).toBe(COMPOSTE_ALLE);
+      // E dopo sei ore dalla composizione (2 x refreshMinutes) il layer e' dichiarato vecchio.
+      ora.mockReturnValue(COMPOSTE_ALLE + 6 * 3_600_000 + 1);
+      expect(useEmergencyStore.getState().isStale('snow-cover')).toBe(true);
+    });
+  });
+
   test('nodata e error con i loro messaggi', () => {
     const s = useEmergencyStore.getState();
     s.startLayer('snow-cover');
 
-    s.reportNeve({ stato: 'nodata', da: null, a: null, sensori: [], parziale: false });
+    s.reportNeve({ stato: 'nodata', da: null, a: null, sensori: [], parziale: false, alle: COMPOSTE_ALLE });
     let rt = useEmergencyStore.getState().layers['snow-cover'];
     expect(rt.status).toBe('nodata');
     expect(rt.error).toBe('Nessuna immagine negli ultimi 3 giorni');
@@ -50,7 +93,7 @@ describe('lo store della neve', () => {
       404 ovunque non e' un cielo vuoto: GIBS non riconosce piu' i layer, o non risponde.
       Va detto come guasto, col «Riprova», non come «nessun dato».
     */
-    s.reportNeve({ stato: 'error', da: null, a: null, sensori: [], parziale: false });
+    s.reportNeve({ stato: 'error', da: null, a: null, sensori: [], parziale: false, alle: COMPOSTE_ALLE });
     rt = useEmergencyStore.getState().layers['snow-cover'];
     expect(rt.status).toBe('error');
     expect(rt.error).toBe('Il servizio NASA non risponde o non riconosce i layer della neve');
@@ -91,7 +134,7 @@ describe('lo store della neve', () => {
   test('Riprova ricomincia da capo', () => {
     const s = useEmergencyStore.getState();
     s.startLayer('snow-cover');
-    s.reportNeve({ stato: 'error', da: null, a: null, sensori: [], parziale: false });
+    s.reportNeve({ stato: 'error', da: null, a: null, sensori: [], parziale: false, alle: COMPOSTE_ALLE });
     const prima = useEmergencyStore.getState().retryTick['snow-cover'];
 
     s.retryLayer('snow-cover');

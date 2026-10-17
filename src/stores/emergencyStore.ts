@@ -386,6 +386,12 @@ export const useEmergencyStore = create<EmergencyState>((set, get) => {
         non descrivono nessuna mappa.
       */
       if (get().layers['snow-cover'].status === 'idle') return;
+      /*
+        `lastFetch` e' quando si e' guardato GIBS (la composizione piu' vecchia a schermo),
+        non `Date.now()`: ogni spostamento della mappa riferisce di nuovo, e dopo il
+        risveglio del telefono si leggeva «Aggiornato alle <adesso>» su mattonelle composte
+        ore prima, con `isStale` che non scattava mai.
+      */
       set((s) => ({
         neve: r,
         layers: {
@@ -393,10 +399,10 @@ export const useEmergencyStore = create<EmergencyState>((set, get) => {
           'snow-cover': r.stato === 'ready'
             // `parziale` = un passaggio tentato e' finito in errore (5xx, rete): poteva
             // cambiare qualche pixel, quindi la mappa va presa con riserva.
-            ? { status: 'ready', error: null, lastFetch: Date.now(), partial: r.parziale }
+            ? { status: 'ready', error: null, lastFetch: r.alle, partial: r.parziale }
             : r.stato === 'nodata'
               // GIBS ha risposto e non ha pubblicato niente: un'informazione, non un guasto.
-              ? { status: 'nodata', error: 'Nessuna immagine negli ultimi 3 giorni', lastFetch: Date.now() }
+              ? { status: 'nodata', error: 'Nessuna immagine negli ultimi 3 giorni', lastFetch: r.alle }
               /*
                 Nessun passaggio disponibile e ogni risposta un 404 o un errore: almeno un
                 sensore ha sempre pubblicato ieri, quindi GIBS non riconosce piu' i layer o

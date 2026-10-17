@@ -10,8 +10,11 @@ const carica = async (nome: string) => {
   return png
 }
 
+/** L'istante della composizione: al disegno non serve, ma il riassunto lo porta. */
+const ALLE = Date.parse('2026-10-16T12:00:00Z')
+
 const compositoFixture = async () => {
-  const c = creaComposizione()
+  const c = creaComposizione(ALLE)
   c.aggiungi({ giorno: '2026-10-16', sensore: 'terra', esito: { tipo: 'dati', png: await carica('terra-2026-10-16-8-94-138.png') } })
   c.aggiungi({ giorno: '2026-10-13', sensore: 'terra', esito: { tipo: 'dati', png: await carica('terra-2026-10-13-8-94-138.png') } })
   return c
@@ -55,7 +58,7 @@ describe('pixelDellaMattonella', () => {
   })
 
   test('rete giu: niente velo', () => {
-    const c = creaComposizione()
+    const c = creaComposizione(ALLE)
     c.aggiungi({ giorno: '2026-10-16', sensore: 'terra', esito: { tipo: 'errore', motivo: 'rete' } })
     c.aggiungi({ giorno: '2026-10-15', sensore: 'terra', esito: { tipo: 'errore', motivo: 'rete' } })
     const p = pixelDellaMattonella(c.risultato(), IDENTITA)
@@ -107,7 +110,7 @@ describe('ritaglioPer', () => {
     const tavolozza = new Uint8Array(303)
     for (let k = 0; k < 101; k++) { tavolozza[k * 3] = k; tavolozza[k * 3 + 1] = 255 - k; tavolozza[k * 3 + 2] = k * 2 }
     return decodificaPngTavolozza(pngTavolozza({ larghezza: lato, altezza: lato, indici, tavolozza }), inflateNode).then((png) => {
-      const c = creaComposizione()
+      const c = creaComposizione(ALLE)
       c.aggiungi({ giorno: '2026-10-16', sensore: 'terra', esito: { tipo: 'dati', png: png! } })
       const rit = ritaglioPer(12, 138 * 16 + 5, 94 * 16 + 9)
       expect(rit.lato).toBe(16)

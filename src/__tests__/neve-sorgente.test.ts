@@ -72,6 +72,12 @@ describe('sorgente neve', () => {
     expect(MONTE_AMARO.x).toBe(138);
   });
 
+  it('il riassunto porta l istante della composizione, da adesso()', async () => {
+    const { f } = finto({ [url(TERRA, '2026-10-16')]: () => dati(NUBE) });
+    const c = await sorgente(f).mattonella(8, 138, 94);
+    expect(c.riassunto.alle).toBe(ADESSO().getTime());
+  });
+
   it('ci si ferma quando ogni pixel ha una vista', async () => {
     const verde = pngTavolozza({
       larghezza: 256, altezza: 256,

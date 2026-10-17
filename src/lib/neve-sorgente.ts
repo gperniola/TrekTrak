@@ -101,8 +101,9 @@ export function creaSorgenteNeve(deps: DipendenzeSorgente): SorgenteNeve {
     );
 
   async function componi(z: number, x: number, y: number): Promise<CompositoMattonella> {
-    const candidati = giorniCandidati(deps.adesso()); // letto una volta sola
-    const composizione = creaComposizione();
+    const adesso = deps.adesso(); // letto una volta sola: giorni e orario della stessa occhiata
+    const candidati = giorniCandidati(adesso);
+    const composizione = creaComposizione(adesso.getTime());
     // I passaggi di oggi si aggiungono sempre, anche se oggi esce dalla finestra: contano nel riassunto.
     const oggi = await giornata(candidati[0], z, x, y);
     oggi.forEach((p) => composizione.aggiungi(p));

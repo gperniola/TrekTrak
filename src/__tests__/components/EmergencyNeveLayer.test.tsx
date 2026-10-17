@@ -33,9 +33,12 @@ function sorgenteFinta() {
   return { sorgente, risolvi: (chiave: string, c: CompositoMattonella) => attese.get(chiave)!.risolvi(c) };
 }
 
-function composito(giorno: string, sensore: 'terra' | 'aqua'): CompositoMattonella {
+/** Quando si e' guardato GIBS per comporre le mattonelle del test. */
+const COMPOSTA_ALLE = Date.parse('2026-10-16T06:00:00Z');
+
+function composito(giorno: string, sensore: 'terra' | 'aqua', alle = COMPOSTA_ALLE): CompositoMattonella {
   const riassunto: RiassuntoMattonella = {
-    giorni: [giorno], sensori: [sensore], dati: 1, nessunDato: 0, nonPubblicati: 0, errori: 0,
+    giorni: [giorno], sensori: [sensore], dati: 1, nessunDato: 0, nonPubblicati: 0, errori: 0, alle,
   };
   return {
     codici: new Int8Array(256 * 256).fill(SENZA_NEVE),
@@ -121,6 +124,31 @@ describe('il layer neve sulla mappa', () => {
     act(() => { strato().__togli(tileA); });
 
     expect(useEmergencyStore.getState().neve).toMatchObject({ da: '2026-10-16', a: '2026-10-16', sensori: ['aqua'] });
+  });
+
+  /**
+   * Ogni uscita riferisce di nuovo il riassunto: se lo store ci scrivesse `Date.now()`, dopo
+   * il risveglio del telefono uno spostamento della mappa direbbe «Aggiornato alle <adesso>»
+   * su mattonelle composte ore prima, e il layer non diventerebbe mai «vecchio».
+   */
+  test('una mattonella che esce non porta «Aggiornato alle» ad adesso', async () => {
+    const ora = jest.spyOn(Date, 'now');
+    try {
+      const f = sorgenteFinta();
+      render(<EmergencyNeveLayer sorgente={f.sorgente} />);
+      let tileA: HTMLElement;
+      act(() => { strato().__crea(B); tileA = strato().__crea(A); });
+      f.risolvi('8/138/94', DI_B());
+      await svuota();
+      expect(useEmergencyStore.getState().layers['snow-cover'].lastFetch).toBe(COMPOSTA_ALLE);
+
+      ora.mockReturnValue(COMPOSTA_ALLE + 3 * 3_600_000);
+      act(() => { strato().__togli(tileA); }); // A carica ancora: lo spostamento la toglie
+
+      expect(useEmergencyStore.getState().layers['snow-cover'].lastFetch).toBe(COMPOSTA_ALLE);
+    } finally {
+      ora.mockRestore();
+    }
   });
 
   /** Review Focus 5: uscita **durante il caricamento**. */

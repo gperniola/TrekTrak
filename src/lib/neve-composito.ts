@@ -22,6 +22,11 @@ export interface RiassuntoMattonella {
   nessunDato: number;
   nonPubblicati: number;
   errori: number;
+  /**
+   * Quando si e' guardato GIBS per questa composizione (ms epoch, da `adesso()` all'inizio).
+   * Non quando la mattonella e' arrivata a schermo: e' l'orario che il pannello dichiara.
+   */
+  alle: number;
 }
 
 export interface CompositoMattonella {
@@ -48,7 +53,7 @@ function ordinaSensori(s: SensoreNeve[]): SensoreNeve[] {
   return ORDINE_STAMPA.filter((id) => set.has(id));
 }
 
-export function creaComposizione(lato = 256): Composizione {
+export function creaComposizione(alle: number, lato = 256): Composizione {
   const n = lato * lato;
   const codici = new Int8Array(n).fill(NON_VISTO);
   const origine = new Int8Array(n).fill(-1);
@@ -93,7 +98,7 @@ export function creaComposizione(lato = 256): Composizione {
       const vinc = Array.from(vincitori);
       const giorni = Array.from(new Set(vinc.map((k) => passaggi[k].giorno))).sort();
       const sensori = ordinaSensori(vinc.map((k) => passaggi[k].sensore));
-      return { codici, origine, passaggi, colori, riassunto: { giorni, sensori, ...conteggi } };
+      return { codici, origine, passaggi, colori, riassunto: { giorni, sensori, ...conteggi, alle } };
     },
   };
 }
@@ -135,6 +140,11 @@ export interface RiassuntoVista {
   a: string | null;
   sensori: SensoreNeve[];
   parziale: boolean;
+  /**
+   * La composizione **piu' vecchia** fra le mattonelle a schermo: «Aggiornato alle» e
+   * `isStale` non possono spacciare per fresca una mattonella composta ore fa.
+   */
+  alle: number | null;
 }
 
 export function riassumiVista(r: RiassuntoMattonella[]): RiassuntoVista | null {
@@ -150,6 +160,7 @@ export function riassumiVista(r: RiassuntoMattonella[]): RiassuntoVista | null {
     sensori: ordinaSensori(r.flatMap((m) => m.sensori)),
     // Un 404 e' «non pubblicato», non un guasto: solo gli errori veri rendono parziale.
     parziale: somma('errori') > 0,
+    alle: Math.min(...r.map((m) => m.alle)),
   };
 }
 

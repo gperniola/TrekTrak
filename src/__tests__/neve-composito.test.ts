@@ -12,23 +12,26 @@ const carica = async (nome: string) => {
   return png
 }
 
+/** L'istante di una composizione: quando si e' guardato GIBS. */
+const ALLE = Date.parse('2026-10-16T12:00:00Z')
+
 const rm = (o: Partial<RiassuntoMattonella> = {}): RiassuntoMattonella => ({
-  giorni: [], sensori: [], dati: 0, nessunDato: 0, nonPubblicati: 0, errori: 0, ...o,
+  giorni: [], sensori: [], dati: 0, nessunDato: 0, nonPubblicati: 0, errori: 0, alle: ALLE, ...o,
 })
 const rv = (o: Partial<RiassuntoVista> = {}): RiassuntoVista => ({
-  stato: 'ready', da: '2026-10-14', a: '2026-10-16', sensori: ['terra'], parziale: false, ...o,
+  stato: 'ready', da: '2026-10-14', a: '2026-10-16', sensori: ['terra'], parziale: false, alle: ALLE, ...o,
 })
 
 describe('composito', () => {
   test('vince il passaggio piu recente che ha visto il suolo', async () => {
-    const c = creaComposizione()
+    const c = creaComposizione(ALLE)
     c.aggiungi({ giorno: '2026-10-16', sensore: 'terra', esito: { tipo: 'dati', png: await carica('terra-2026-10-16-8-94-138.png') } })
     c.aggiungi({ giorno: '2026-10-13', sensore: 'terra', esito: { tipo: 'dati', png: await carica('terra-2026-10-13-8-94-138.png') } })
     expect(statoNelPunto(c.risultato(), 4, 243)).toEqual({ stato: 'neve', ndsi: 82, giorno: '2026-10-13', sensore: 'terra' })
   })
 
   test('la nube si scavalca, l assente non diventa senza neve', async () => {
-    const c = creaComposizione()
+    const c = creaComposizione(ALLE)
     c.aggiungi({ giorno: '2026-10-16', sensore: 'aqua', esito: { tipo: 'errore', motivo: 'rete' } })
     c.aggiungi({ giorno: '2026-10-16', sensore: 'noaa20', esito: { tipo: 'nonPubblicato' } })
     c.aggiungi({ giorno: '2026-10-16', sensore: 'terra', esito: { tipo: 'dati', png: await carica('terra-2026-10-16-8-94-138.png') } })
@@ -36,13 +39,13 @@ describe('composito', () => {
   })
 
   test('nessun passaggio con dati: ignoto', () => {
-    const c = creaComposizione()
+    const c = creaComposizione(ALLE)
     c.aggiungi({ giorno: '2026-10-16', sensore: 'terra', esito: { tipo: 'nessunDato' } })
     expect(statoNelPunto(c.risultato(), 4, 243)).toEqual({ stato: 'ignoto' })
   })
 
   test('completa quando ogni pixel ha una vista', async () => {
-    const c = creaComposizione(2)
+    const c = creaComposizione(ALLE, 2)
     expect(c.completa()).toBe(false)
     const bytes = pngTavolozza({
       larghezza: 2, altezza: 2, indici: new Uint8Array([0, 0, 0, 0]),
@@ -54,8 +57,12 @@ describe('composito', () => {
     expect(c.risultato().codici[0]).toBe(SENZA_NEVE)
   })
 
+  test('il riassunto dice quando si e guardato GIBS', () => {
+    expect(creaComposizione(ALLE).risultato().riassunto.alle).toBe(ALLE)
+  })
+
   test('un indice oltre la tavolozza e non visto, mai senza neve', async () => {
-    const c = creaComposizione(2)
+    const c = creaComposizione(ALLE, 2)
     const bytes = pngTavolozza({
       larghezza: 2, altezza: 2, indici: new Uint8Array([0, 7, 0, 0]),
       tavolozza: new Uint8Array([0, 255, 0]),
@@ -84,6 +91,15 @@ describe('finestra e riassunto', () => {
     expect(riassumiVista([rm({ nonPubblicati: 3 })])?.stato).toBe('error')
     expect(riassumiVista([rm({ nessunDato: 1 })])?.stato).toBe('nodata')
     expect(riassumiVista([rm({ dati: 1 })])?.stato).toBe('ready')
+  })
+
+  /*
+    «Aggiornato alle» dice quando si e' guardato GIBS: con mattonelle composte in momenti
+    diversi, vale la piu' vecchia. Dire la piu' recente spaccerebbe per fresca quella di ore fa.
+  */
+  test('alle: la mattonella composta per prima', () => {
+    const r = riassumiVista([rm({ dati: 1, alle: ALLE + 3_600_000 }), rm({ dati: 1, alle: ALLE }), rm({ dati: 1, alle: ALLE + 60_000 })])
+    expect(r?.alle).toBe(ALLE)
   })
 
   test('da e a', () => {
