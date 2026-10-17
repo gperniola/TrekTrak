@@ -1,6 +1,6 @@
 import { test, expect, apriApp } from './supporto';
 import type { Page } from '@playwright/test';
-import { leggiFixture, pngRgba } from '../src/__tests__/fixtures/gibs/png-sintetico';
+import { leggiFixture, pngRgba, pngTavolozza } from '../src/__tests__/fixtures/gibs/png-sintetico';
 
 /**
  * **Il layer della neve sullo schermo vero**, con un GIBS finto ma fedele.
@@ -16,9 +16,19 @@ import { leggiFixture, pngRgba } from '../src/__tests__/fixtures/gibs/png-sintet
  * - Terra del 16/10 sulla mattonella `8/94/138` -> nubi su Monte Amaro (passaggio vero);
  * - Terra del 15/10 sulla stessa mattonella -> la neve del 13/10 (passaggio vero, il giorno
  *   e' finto: serve una giornata di sole dentro la finestra);
- * - tutto il resto -> **200 senza header**, con un PNG rosso pieno. E' cosi' che GIBS dice
- *   «nessun passaggio»: un 200 con un corpo che e' rumore. La regola che questo file prova
- *   e' che il rumore non arrivi mai a schermo.
+ * - Aqua del 16/10 sulla stessa mattonella -> **200 senza header** con un PNG **a
+ *   tavolozza** valido, tutto neve rossa (NDSI 100);
+ * - tutto il resto -> **200 senza header**, con un PNG RGBA rosso pieno.
+ *
+ * E' cosi' che GIBS dice «nessun passaggio»: un 200 senza `layer-identifier-actual`, con un
+ * corpo che a volte e' rumore e a volte una tavolozza (la risposta vuota da ~935 B). I due
+ * corpi provano due regole diverse, e servono entrambi:
+ * - il rumore RGBA lo respinge gia' il **decodificatore** (non e' a tavolozza), anche senza
+ *   guardare l'header;
+ * - il corpo a tavolozza si decodifica benissimo: lo ferma **solo la regola dell'header**.
+ *   Aqua e' il primo passaggio del giorno, quindi senza quella regola vincerebbe ogni pixel
+ *   e la mattonella diventerebbe tutta rossa. Verificato per mutazione: tolto il controllo
+ *   dell'header in `neve-rete.ts`, il primo scenario va in rosso.
  */
 
 /** Mezzogiorno UTC: «oggi» per GIBS e' il 16, in qualunque fuso giri il test. */
@@ -35,6 +45,23 @@ const NEVE = Buffer.from(leggiFixture('terra-2026-10-13-8-94-138.png'));
 /** Il rumore dei «nessun dato»: rosso pieno, cosi' una sua traccia a schermo non si confonde. */
 const RUMORE = Buffer.from(pngRgba(256, 256, [255, 0, 0, 255]));
 
+/**
+ * Un «nessun dato» a tavolozza: ogni pixel e' la voce 100, che nella tavolozza di GIBS e'
+ * il rosso puro (255,0,0) e per il composito sarebbe neve. Opaca nel `tRNS`, perche' una
+ * voce trasparente varrebbe «non visto» e la mutazione non si vedrebbe.
+ */
+const TAVOLOZZA_SENZA_HEADER = (() => {
+  const tavolozza = new Uint8Array(256 * 3);
+  tavolozza.set([255, 0, 0], 100 * 3);
+  return Buffer.from(pngTavolozza({
+    larghezza: 256,
+    altezza: 256,
+    indici: new Uint8Array(256 * 256).fill(100),
+    tavolozza,
+    alfa: new Uint8Array(256).fill(255),
+  }));
+})();
+
 /*
   Il GIBS vero manda `access-control-allow-origin: *` su ogni risposta, 404 compresi. Senza,
   il browser trasformerebbe il rumore in un errore di rete — cioe' in «errore», riprovato —
@@ -49,19 +76,27 @@ const CON_DATI = {
 };
 
 const TERRA = '/MODIS_Terra_NDSI_Snow_Cover/default/';
+const AQUA = '/MODIS_Aqua_NDSI_Snow_Cover/default/';
 /** Nell'URL di GIBS la `y` viene prima della `x`: z/y/x. */
 const MATTONELLA = '/GoogleMapsCompatible_Level8/8/94/138.png';
 
 async function gibsFinto(page: Page): Promise<void> {
   await page.route(/gibs\.earthdata\.nasa\.gov/, (r) => {
     const url = r.request().url();
-    const terraQui = url.includes(TERRA) && url.endsWith(MATTONELLA);
+    const qui = url.endsWith(MATTONELLA);
+    const terraQui = qui && url.includes(TERRA);
     const corpo = terraQui && url.includes('/2026-10-16/') ? NUBE
       : terraQui && url.includes('/2026-10-15/') ? NEVE
         : null;
-    return corpo
-      ? r.fulfill({ status: 200, contentType: 'image/png', headers: CON_DATI, body: corpo })
-      : r.fulfill({ status: 200, contentType: 'image/png', headers: CORS, body: RUMORE });
+    if (corpo) return r.fulfill({ status: 200, contentType: 'image/png', headers: CON_DATI, body: corpo });
+    // Senza l'header, come ogni «nessun dato»: solo il corpo e' diverso dal rumore.
+    const aquaQui = qui && url.includes(AQUA) && url.includes('/2026-10-16/');
+    return r.fulfill({
+      status: 200,
+      contentType: 'image/png',
+      headers: CORS,
+      body: aquaQui ? TAVOLOZZA_SENZA_HEADER : RUMORE,
+    });
   });
 }
 
@@ -173,13 +208,17 @@ test.describe('il layer neve sullo schermo', () => {
     }, { timeout: 20_000 }).toBe(true);
 
     const c = await contaPixel(page);
-    expect(c.neveAVista, 'pixel di neve (alfa 235) su una tela a schermo').toBeGreaterThan(0);
-    expect(c.velo, 'pixel col velo «non visto»').toBeGreaterThan(0);
+    // `soft`: le tre misure si leggono insieme. Un «nessun dato» disegnato porta via il velo
+    // e accende il rosso nello stesso colpo, e il primo dei due nasconderebbe il secondo.
+    expect.soft(c.neveAVista, 'pixel di neve (alfa 235) su una tela a schermo').toBeGreaterThan(0);
+    expect.soft(c.velo, 'pixel col velo «non visto»').toBeGreaterThan(0);
     /*
-      Nella tavolozza di GIBS l'NDSI 100 e' rosso puro anche lui: qui il valore piu' alto
-      della neve e' 86, quindi un rosso pieno a schermo puo' venire solo dal rumore.
+      Nella tavolozza di GIBS l'NDSI 100 e' rosso puro: nei passaggi veri il valore piu'
+      alto della neve e' 86, quindi un rosso pieno a schermo puo' venire solo da un «nessun
+      dato» disegnato — il rumore RGBA (lo ferma il decodificatore) o il corpo a tavolozza
+      di Aqua (lo ferma solo la regola dell'header).
     */
-    expect(c.rosso, 'pixel rossi del rumore').toBe(0);
+    expect.soft(c.rosso, 'pixel rossi di un «nessun dato»').toBe(0);
   });
 
   test('il pannello dice di che giorni sono le viste', async ({ page }) => {
