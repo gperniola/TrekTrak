@@ -88,7 +88,18 @@ overlay aperti, profilo, `guidaAperta`, `settingsOpen`) · `emergencyStore` (i l
   EFFIS, allerta DPC, valanghe EAWS, neve GIBS, terremoti INGV, rifugi Overpass, radar
   RainViewer, instabilità Meteosat). Definiti in `emergency-layers.ts` (registry
   `kind → renderer`). Il layer DPC legge la **criticità idrogeologica** (allerta
-  ufficiale), **non** la vigilanza meteo. Dati **esclusi dalla cache** del service worker.
+  ufficiale), **non** la vigilanza meteo. La **neve** (v0.33.0) è un **composito di 5
+  sensori** (MODIS Terra/Aqua, VIIRS NOAA-20/NOAA-21/S-NPP): per pixel l'ultima vista
+  senza nubi degli ultimi 3 giorni con dati, velo grigio dove nessuno ha visto il suolo,
+  pressione lunga = stato ed età della vista. Mattonelle via **`fetch`** (da un `<img>` gli
+  header non si leggono) e PNG **decodificati a mano** (`png-tavolozza.ts`: un canvas
+  perde l'RGB dei pixel trasparenti, cioè nube contro «senza neve»). Il **«nessun dato» di
+  GIBS è un 200 senza `layer-identifier-actual`**, non un errore; il 404 è «non
+  pubblicato», normale; solo 5xx/rete sono guasti. Catena pura `neve-rete` →
+  `neve-composito` → `neve-sorgente`, disegno in `EmergencyNeveLayer` (GridLayer su
+  canvas), ricomposizione oraria sul posto. Dati **esclusi dalla cache** del service
+  worker (`NetworkOnly`, GIBS compreso) — tranne, ancora, valanghe (`/api/avalanche`) e
+  terremoti INGV, che cadono nelle regole di `defaultCache`.
 - **Libreria condivisa** (Supabase, invito/magic-link, RLS): **SPENTA** dietro
   `LIBRERIA_DISPONIBILE = false` in `lib/funzioni-spente.ts` — il flusso di accesso non
   funziona. Il codice resta; per riaccenderla si rimette `true`. Ingressi gated da
