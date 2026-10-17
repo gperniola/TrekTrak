@@ -64,10 +64,24 @@ export async function fingiLaRete(page: Page): Promise<void> {
 /** Stato di partenza: guida già vista, nessun popup, profilo scelto. */
 export async function apriApp(
   page: Page,
-  opzioni: { profilo?: 'imparo' | 'montagna'; guidaDaVedere?: boolean; hash?: string } = {},
+  opzioni: {
+    profilo?: 'imparo' | 'montagna';
+    guidaDaVedere?: boolean;
+    hash?: string;
+    /**
+     * Risposte finte dello scenario, che sostituiscono quelle comuni per gli stessi
+     * indirizzi. Si registrano qui, dopo `fingiLaRete` e prima della navigazione:
+     * Playwright prova per prima la route registrata per ultima, quindi vincono sui 503
+     * comuni; registrate dopo `apriApp` arriverebbero tardi, perche' un layer acceso
+     * nelle impostazioni chiede i suoi dati mentre la pagina si apre, e le prime
+     * richieste troverebbero ancora il 503.
+     */
+    rete?: (page: Page) => Promise<void>;
+  } = {},
 ): Promise<void> {
-  const { profilo = 'montagna', guidaDaVedere = false, hash = '' } = opzioni;
+  const { profilo = 'montagna', guidaDaVedere = false, hash = '', rete } = opzioni;
   await fingiLaRete(page);
+  if (rete) await rete(page);
   await page.addInitScript(
     ({ profilo, guidaDaVedere }) => {
       /*
