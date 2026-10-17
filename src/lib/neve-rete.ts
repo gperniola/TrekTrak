@@ -52,8 +52,11 @@ export async function scaricaPassaggio(
         }
         return { tipo: 'nessunDato' }
       }
+      // La lettura del corpo sta FUORI dal try di decodifica: un trasferimento interrotto e' un
+      // guasto (errore), non un passaggio senza dati.
+      const corpo = new Uint8Array(await r.arrayBuffer())
       try {
-        const png = await decodificaPngTavolozza(new Uint8Array(await r.arrayBuffer()), deps.inflate)
+        const png = await decodificaPngTavolozza(corpo, deps.inflate)
         return png ? { tipo: 'dati', png } : { tipo: 'nessunDato' }
       } catch {
         // Corpo non decodificabile (deflate corrotto): vale come assente, non come guasto.

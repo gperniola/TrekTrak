@@ -62,6 +62,13 @@ describe('scaricaPassaggio', () => {
     expect(e.tipo).toBe('nessunDato')
   })
 
+  it('200 con l header ma il trasferimento del corpo si interrompe: errore, non nessun dato', async () => {
+    const r = risposta({ header: true })
+    r.arrayBuffer.mockRejectedValue(new TypeError('network'))
+    const e = await scaricaPassaggio(URL_PROVA, { fetch: fetchDi(r), inflate: inflateNode })
+    expect(e.tipo).toBe('errore')
+  })
+
   it('404: non pubblicato', async () => {
     const e = await scaricaPassaggio(URL_PROVA, { fetch: fetchDi(risposta({ status: 404 })), inflate: inflateNode })
     expect(e.tipo).toBe('nonPubblicato')
