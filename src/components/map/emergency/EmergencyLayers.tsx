@@ -89,6 +89,8 @@ export function EmergencyLayers() {
   // sulla mappa può interrogare.
   const queryableDefs = activeIds.map(getEmergencyLayer).filter((d) => d.wms?.queryable);
 
+  const neveAccesa = activeIds.includes('snow-cover');
+
   if (!paneReady) return null;
 
   return (
@@ -109,7 +111,9 @@ export function EmergencyLayers() {
         }
         return null;
       })}
-      {queryableDefs.length > 0 && <EmergencyFeatureInfo defs={queryableDefs} />}
+      {(queryableDefs.length > 0 || neveAccesa) && (
+        <EmergencyFeatureInfo defs={queryableDefs} neve={neveAccesa ? sorgenteNeve : null} />
+      )}
     </>
   );
 }
