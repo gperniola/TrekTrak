@@ -17,11 +17,11 @@ sparita, ma il layer non poteva dirlo, e aveva quattro difetti veri. Il layer è
   e Aqua, VIIRS NOAA-20, NOAA-21 e S-NPP: in ogni punto la mappa mostra **l'ultima vista
   senza nubi** degli ultimi 3 giorni, dal passaggio più recente. Un passaggio al giorno
   lasciava quasi ogni versante dietro le nubi; con cinque sensori e tre giorni, sulle
-  quattro cime della misura, la zona «non vista» era lo 0% il 14 e il 16 ottobre (il 94%
-  nei tre giorni di pioggia dell'8-10). I giorni sono quelli UTC di GIBS, e se per una zona
-  nessun sensore ha ancora pubblicato oggi i tre giorni sono ieri e i due prima: altrimenti
-  al mattino, prima che arrivi Terra, sarebbero stati due — proprio quando si guarda prima
-  di partire.
+  quattro cime della misura, la zona «non vista» era lo 0% il 14 e il 16 ottobre (l'87%,
+  281 pixel su 324, nei tre giorni di pioggia dell'8-10). I giorni sono quelli UTC di
+  GIBS, e se per una zona nessun sensore ha ancora pubblicato oggi i tre giorni sono ieri e
+  i due prima: altrimenti al mattino, prima che arrivi Terra, sarebbero stati due —
+  proprio quando si guarda prima di partire.
 - **Il grigio dice dove il satellite non ha visto il suolo.** Nube e «niente neve» erano
   tutte e due trasparenti, cioè identiche a schermo: un versante innevato sotto un fronte
   sembrava spoglio. Ora dove nessun passaggio ha visto il suolo c'è un velo grigio, e la
