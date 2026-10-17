@@ -1,4 +1,4 @@
-import { scaricaPassaggio, TIMEOUT_PASSAGGIO_MS, type FetchMinimo, type RispostaMinima } from '../lib/neve-rete'
+import { ATTESA_NUOVO_TENTATIVO_MS, scaricaPassaggio, TIMEOUT_PASSAGGIO_MS, type FetchMinimo, type RispostaMinima } from '../lib/neve-rete'
 import { inflateNode, leggiFixture, pngRgba, pngTavolozza } from './fixtures/gibs/png-sintetico'
 
 function risposta(o: {
@@ -65,8 +65,10 @@ describe('scaricaPassaggio', () => {
   it('200 con l header ma il trasferimento del corpo si interrompe: errore, non nessun dato', async () => {
     const r = risposta({ header: true })
     r.arrayBuffer.mockRejectedValue(new TypeError('network'))
-    const e = await scaricaPassaggio(URL_PROVA, { fetch: fetchDi(r), inflate: inflateNode })
-    expect(e.tipo).toBe('errore')
+    jest.useFakeTimers() // anche il secondo tentativo fallisce: si salta l'attesa fra i due
+    const p = scaricaPassaggio(URL_PROVA, { fetch: fetchDi(r), inflate: inflateNode })
+    await jest.advanceTimersByTimeAsync(ATTESA_NUOVO_TENTATIVO_MS)
+    expect((await p).tipo).toBe('errore')
   })
 
   it('404: non pubblicato', async () => {
@@ -75,14 +77,103 @@ describe('scaricaPassaggio', () => {
   })
 
   it('500: errore', async () => {
-    const e = await scaricaPassaggio(URL_PROVA, { fetch: fetchDi(risposta({ status: 500 })), inflate: inflateNode })
-    expect(e.tipo).toBe('errore')
+    jest.useFakeTimers() // il 500 si ripete anche al secondo tentativo
+    const p = scaricaPassaggio(URL_PROVA, { fetch: fetchDi(risposta({ status: 500 })), inflate: inflateNode })
+    await jest.advanceTimersByTimeAsync(ATTESA_NUOVO_TENTATIVO_MS)
+    expect((await p).tipo).toBe('errore')
   })
 
   it('rete giu: errore', async () => {
+    jest.useFakeTimers()
     const f: FetchMinimo = () => Promise.reject(new TypeError('Failed to fetch'))
-    const e = await scaricaPassaggio(URL_PROVA, { fetch: f, inflate: inflateNode })
-    expect(e.tipo).toBe('errore')
+    const p = scaricaPassaggio(URL_PROVA, { fetch: f, inflate: inflateNode })
+    await jest.advanceTimersByTimeAsync(ATTESA_NUOVO_TENTATIVO_MS)
+    expect((await p).tipo).toBe('errore')
+  })
+
+  describe('secondo tentativo', () => {
+    const dai = (...r: RispostaMinima[]) => {
+      let i = 0
+      return jest.fn<ReturnType<FetchMinimo>, Parameters<FetchMinimo>>(async () => r[Math.min(i++, r.length - 1)])
+    }
+    const buona = () => risposta({ header: true, corpo: leggiFixture('terra-2026-10-13-8-94-138.png') })
+
+    it('un 500 seguito da un 200 con dati: dati, con due richieste', async () => {
+      jest.useFakeTimers()
+      const f = dai(risposta({ status: 500 }), buona())
+      const p = scaricaPassaggio(URL_PROVA, { fetch: f, inflate: inflateNode })
+      await jest.advanceTimersByTimeAsync(ATTESA_NUOVO_TENTATIVO_MS)
+      expect((await p).tipo).toBe('dati')
+      expect(f).toHaveBeenCalledTimes(2)
+    })
+
+    it('due 500 di fila: errore, e non si insiste oltre', async () => {
+      jest.useFakeTimers()
+      const f = dai(risposta({ status: 503 }))
+      const p = scaricaPassaggio(URL_PROVA, { fetch: f, inflate: inflateNode })
+      await jest.advanceTimersByTimeAsync(ATTESA_NUOVO_TENTATIVO_MS * 10)
+      expect(await p).toEqual({ tipo: 'errore', motivo: 'HTTP 503' })
+      expect(f).toHaveBeenCalledTimes(2)
+    })
+
+    it('rete giu poi dati: dati', async () => {
+      jest.useFakeTimers()
+      let n = 0
+      const f = jest.fn<ReturnType<FetchMinimo>, Parameters<FetchMinimo>>(async () => {
+        if (n++ === 0) throw new TypeError('Failed to fetch')
+        return buona()
+      })
+      const p = scaricaPassaggio(URL_PROVA, { fetch: f, inflate: inflateNode })
+      await jest.advanceTimersByTimeAsync(ATTESA_NUOVO_TENTATIVO_MS)
+      expect((await p).tipo).toBe('dati')
+      expect(f).toHaveBeenCalledTimes(2)
+    })
+
+    it('non si riprova prima dell attesa', async () => {
+      jest.useFakeTimers()
+      const f = dai(risposta({ status: 500 }), buona())
+      const p = scaricaPassaggio(URL_PROVA, { fetch: f, inflate: inflateNode })
+      await jest.advanceTimersByTimeAsync(ATTESA_NUOVO_TENTATIVO_MS - 1)
+      expect(f).toHaveBeenCalledTimes(1)
+      await jest.advanceTimersByTimeAsync(1)
+      await p
+      expect(f).toHaveBeenCalledTimes(2)
+    })
+
+    it('un 404 non si riprova', async () => {
+      const f = dai(risposta({ status: 404 }), buona())
+      expect((await scaricaPassaggio(URL_PROVA, { fetch: f, inflate: inflateNode })).tipo).toBe('nonPubblicato')
+      expect(f).toHaveBeenCalledTimes(1)
+    })
+
+    it('un 403 non si riprova', async () => {
+      const f = dai(risposta({ status: 403 }), buona())
+      expect((await scaricaPassaggio(URL_PROVA, { fetch: f, inflate: inflateNode })).tipo).toBe('errore')
+      expect(f).toHaveBeenCalledTimes(1)
+    })
+
+    it('il timeout non si riprova', async () => {
+      jest.useFakeTimers()
+      const f = jest.fn<ReturnType<FetchMinimo>, Parameters<FetchMinimo>>(() => new Promise<RispostaMinima>(() => undefined))
+      const p = scaricaPassaggio(URL_PROVA, { fetch: f, inflate: inflateNode })
+      await jest.advanceTimersByTimeAsync(TIMEOUT_PASSAGGIO_MS + ATTESA_NUOVO_TENTATIVO_MS * 2)
+      expect(await p).toEqual({ tipo: 'errore', motivo: 'tempo scaduto' })
+      expect(f).toHaveBeenCalledTimes(1)
+    })
+
+    it('annullato durante l attesa: AbortError e niente secondo tentativo', async () => {
+      jest.useFakeTimers()
+      const c = new AbortController()
+      const f = dai(risposta({ status: 500 }), buona())
+      const p = scaricaPassaggio(URL_PROVA, { fetch: f, inflate: inflateNode, signal: c.signal })
+      const atteso = expect(p).rejects.toMatchObject({ name: 'AbortError' })
+      await jest.advanceTimersByTimeAsync(ATTESA_NUOVO_TENTATIVO_MS / 2)
+      c.abort()
+      await atteso
+      await jest.advanceTimersByTimeAsync(ATTESA_NUOVO_TENTATIVO_MS * 2)
+      expect(f).toHaveBeenCalledTimes(1)
+      expect(jest.getTimerCount()).toBe(0)
+    })
   })
 
   it('oltre 20 secondi: errore', async () => {

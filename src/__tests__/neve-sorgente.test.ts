@@ -88,9 +88,15 @@ describe('sorgente neve', () => {
     const buono = url(TERRA, '2026-10-16');
     const { f, richieste } = finto({ [guasto]: () => stato(500), [buono]: () => dati(NUBE) });
     const s = sorgente(f);
-    await s.mattonella(8, 138, 94);
-    await s.mattonella(8, 138, 94);
-    expect(richieste.filter((u) => u === guasto)).toHaveLength(2);
+    jest.useFakeTimers(); // ogni chiamata prova il guasto due volte, con un'attesa fra i due
+    for (let i = 0; i < 2; i++) {
+      const p = s.mattonella(8, 138, 94);
+      await jest.advanceTimersByTimeAsync(5000);
+      await p;
+    }
+    jest.useRealTimers();
+    // 2 chiamate x 2 tentativi: l'errore non si ricorda (si richiede la volta dopo), i dati si'
+    expect(richieste.filter((u) => u === guasto)).toHaveLength(4);
     expect(richieste.filter((u) => u === buono)).toHaveLength(1);
   });
 
