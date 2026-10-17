@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { AvvisiLayer } from '@/components/map/emergency/AvvisiLayer';
+import { DettaglioLayer } from '@/components/map/emergency/DettaglioLayer';
 import { useEmergencyStore, type LayerRuntime } from '@/stores/emergencyStore';
 import { getEmergencyLayer } from '@/lib/emergency-layers';
 import type { RiassuntoVista } from '@/lib/neve-composito';
@@ -54,5 +55,16 @@ describe('la riga della neve nel pannello', () => {
     useEmergencyStore.setState({ neve: riassunto() });
     const { container } = mostra({ status: 'loading', error: null, lastFetch: null });
     expect(container.textContent).not.toMatch(/Viste/);
+  });
+});
+
+/*
+  La pressione lunga sulla neve dice cosa ha visto il satellite in quel punto, e quando: ma
+  una pressione lunga non si scopre da sola, e il suggerimento c'era solo per i WMS.
+*/
+describe('il dettaglio della neve nel pannello', () => {
+  test('dice il gesto della pressione lunga', () => {
+    render(<DettaglioLayer def={def} id="dettaglio-neve" attivo runtime={pronto} finestraFocolai={null} />);
+    expect(screen.getByText("Tieni premuto sulla mappa per i dettagli dell'area")).toBeInTheDocument();
   });
 });
