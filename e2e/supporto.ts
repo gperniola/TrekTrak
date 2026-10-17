@@ -56,7 +56,7 @@ export async function fingiLaRete(page: Page): Promise<void> {
   );
 
   // Overpass (rifugi e punti del quiz) e i layer di emergenza: fuori dai casi in prova.
-  await page.route(/overpass|firms|effis|eumetsat|pcm-dpc|open-meteo/, (r) =>
+  await page.route(/overpass|firms|effis|eumetsat|pcm-dpc|open-meteo|gibs/, (r) =>
     r.fulfill({ status: 503, contentType: 'application/json', body: '{}' }),
   );
 }

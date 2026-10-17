@@ -79,6 +79,13 @@ describe('ordine delle regole del service worker', () => {
     expect(prima).toMatch(/pcm-dpc/);
   });
 
+  test('la neve di GIBS non si serve mai da cache', () => {
+    const righe = righeRegole();
+    const iDefault = righe.findIndex((r) => r.includes('...defaultCache'));
+    const riga = righe.slice(0, iDefault).find((r) => /gibs/i.test(r)) ?? '';
+    expect(riga).toContain('NetworkOnly');
+  });
+
   /**
    * Le porte di Overpass sono un elenco (`lib/overpass.ts`) perche' su una normale rete
    * domestica italiana `overpass-api.de` viene risolto a 127.0.0.1. La regola del worker
