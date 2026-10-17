@@ -27,6 +27,7 @@ function sorgenteFinta() {
       attese.set(`${z}/${x}/${y}`, { risolvi });
     }),
     punto: () => Promise.reject(new Error('non usato')),
+    rinnova: jest.fn(),
     dimensioneCache: () => 0,
   };
   return { sorgente, risolvi: (chiave: string, c: CompositoMattonella) => attese.get(chiave)!.risolvi(c) };

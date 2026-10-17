@@ -33,11 +33,15 @@ export function EmergencyLayers() {
   const tentativoNeve = useEmergencyStore((s) => s.retryTick['snow-cover'] ?? 0);
 
   /*
-    La sorgente della neve vive qui e non nel layer: la pressione lunga interroga la stessa,
-    cosi' il popup legge il composito gia' scaricato invece di richiederlo.
+    La sorgente della neve vive qui e non nel layer: la pressione lunga interroga la stessa.
+    Il popup non legge il composito disegnato a schermo: ricompone la mattonella z8 del
+    punto, ma dalla memoria della sorgente (passaggi con dati e assenti ricordati), quindi
+    di solito senza tornare in rete.
 
-    Una sorgente nuova a ogni «Riprova»: svuota la cache e le composizioni in corso, e il
-    layer, che dipende da lei, si rimonta da capo. E' la garanzia del `retryTick` per i WMS.
+    Una sorgente nuova a ogni «Riprova»: memoria vuota, e il layer, che dipende da lei, si
+    rimonta da capo. E' la garanzia del `retryTick` per i WMS. Le composizioni in corso
+    della vecchia non si fermano: si abbandonano, finiscono per conto loro (ogni passaggio
+    ha il suo timeout) e il layer smontato ne ignora l'esito.
   */
   const sorgenteNeve = useMemo(
     () => {

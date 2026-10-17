@@ -42,7 +42,7 @@ function finto(risposte: Record<string, () => RispostaMinima>, predefinita: () =
   };
   return { f, richieste };
 }
-const sorgente = (f: FetchMinimo, extra: { maxPassaggiInCache?: number } = {}) =>
+const sorgente = (f: FetchMinimo, extra: { maxPassaggiInCache?: number; maxAssentiInCache?: number } = {}) =>
   creaSorgenteNeve({ fetch: f, inflate: inflateNode, adesso: ADESSO, ...extra });
 
 describe('sorgente neve', () => {
@@ -98,6 +98,71 @@ describe('sorgente neve', () => {
     // 2 chiamate x 2 tentativi: l'errore non si ricorda (si richiede la volta dopo), i dati si'
     expect(richieste.filter((u) => u === guasto)).toHaveLength(4);
     expect(richieste.filter((u) => u === buono)).toHaveLength(1);
+  });
+
+  /**
+   * Gli assenti si richiedono «al prossimo aggiornamento» (spec), non a ogni mattonella:
+   * a zoom >= 9 ogni figlia nuova di un genitore z8 gia' composto rifaceva la composizione,
+   * e riscaricava ogni «nessun dato» (fino a 152 KB di rumore, misurato su Aqua) e ogni 404.
+   */
+  describe('gli assenti si ricordano fino a rinnova()', () => {
+    const AQUA = 'MODIS_Aqua_NDSI_Snow_Cover';
+    const NOAA20 = 'VIIRS_NOAA20_NDSI_Snow_Cover';
+    const NESSUN_DATO = url(AQUA, '2026-10-16');
+    const NON_PUBBLICATO = url(NOAA20, '2026-10-16');
+    const DATI_OGGI = url(TERRA, '2026-10-16');
+    const DATI_IERI = url(TERRA, '2026-10-15');
+    const scenario = () => finto({
+      [DATI_OGGI]: () => dati(NUBE),
+      [DATI_IERI]: () => dati(NEVE),
+      [NESSUN_DATO]: vuoto,
+    });
+
+    it('la seconda volta nessun «nessun dato» e nessun 404 torna in rete', async () => {
+      const { f, richieste } = scenario();
+      const s = sorgente(f);
+      await s.mattonella(8, 138, 94);
+      expect(richieste).toContain(NESSUN_DATO);
+      expect(richieste).toContain(NON_PUBBLICATO);
+      const prima = richieste.length;
+
+      await s.mattonella(8, 138, 94);
+
+      const dopo = richieste.slice(prima);
+      expect(dopo).not.toContain(NESSUN_DATO);
+      expect(dopo).not.toContain(NON_PUBBLICATO);
+      expect(dopo).toEqual([]);
+    });
+
+    it('dopo rinnova si richiedono gli assenti e i dati di oggi, non quelli di ieri', async () => {
+      const { f, richieste } = scenario();
+      const s = sorgente(f);
+      await s.mattonella(8, 138, 94);
+      const prima = richieste.length;
+
+      s.rinnova();
+      await s.mattonella(8, 138, 94);
+
+      const dopo = richieste.slice(prima);
+      expect(dopo).toContain(NESSUN_DATO);
+      expect(dopo).toContain(NON_PUBBLICATO);
+      // GIBS pubblica a pezzi: i passaggi di oggi possono essere cambiati, quelli di ieri no.
+      expect(dopo).toContain(DATI_OGGI);
+      expect(dopo).not.toContain(DATI_IERI);
+    });
+
+    it('gli assenti ricordati hanno un tetto loro', async () => {
+      const { f, richieste } = finto({}); // tutto 404: 5 sensori x 4 giorni = 20 assenti
+      const s = sorgente(f, { maxAssentiInCache: 5 });
+      await s.mattonella(8, 138, 94);
+      const prima = richieste.length;
+      expect(prima).toBe(20);
+
+      await s.mattonella(8, 138, 94);
+
+      // Restano gli ultimi 5 (l'ultimo giorno): quelli di oggi sono usciti, e tornano in rete.
+      expect(richieste.slice(prima)).toContain(NON_PUBBLICATO);
+    });
   });
 
   it('la cache ha un tetto', async () => {
