@@ -114,12 +114,24 @@ export function classificaTavolozza(t: PngTavolozza): Int8Array {
   return out;
 }
 
+/** Il limite di latitudine della proiezione delle mattonelle (EPSG:3857). */
+const LAT_MAX_MERCATORE = 85.05112878;
+
 /** La mattonella z8 che contiene il punto e il pixel (0-255) dentro di essa. */
 export function pixelZ8(lat: number, lon: number): { x: number; y: number; px: number; py: number } {
   const n = 256; // mattonelle per lato a z8
-  const fx = ((lon + 180) / 360) * n;
-  const rad = (lat * Math.PI) / 180;
-  const fy = ((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) * n;
+  /*
+    `e.latlng` di Leaflet non e' riportato nel mondo principale: una pressione lunga su una
+    copia del mondo chiedeva una mattonella fuori griglia. La longitudine si riporta in
+    [-180, 180) (solo se ne esce: dentro, il conto resta quello di sempre, bit per bit), la
+    latitudine si ferma al limite della proiezione.
+  */
+  const lonMondo = lon >= -180 && lon < 180 ? lon : ((((lon + 180) % 360) + 360) % 360) - 180;
+  const latMondo = Math.max(-LAT_MAX_MERCATORE, Math.min(LAT_MAX_MERCATORE, lat));
+  const fx = ((lonMondo + 180) / 360) * n;
+  const rad = (latMondo * Math.PI) / 180;
+  // Al limite la proiezione puo' dare un soffio meno di 0 o piu' di n: si resta dentro la griglia.
+  const fy = Math.min(Math.max(((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) * n, 0), n - 1e-9);
   const x = Math.floor(fx);
   const y = Math.floor(fy);
   return { x, y, px: Math.floor((fx - x) * 256), py: Math.floor((fy - y) * 256) };

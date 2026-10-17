@@ -137,6 +137,27 @@ describe('copertura nevosa', () => {
       expect(pixelZ8(42.4692, 13.5658)).toEqual({ x: 137, y: 94, px: 165, py: 148 });
     });
 
+    /*
+      `e.latlng` di Leaflet non e' riportato nel mondo principale: una pressione lunga su una
+      copia del mondo (zoom bassi, mappa trascinata) chiedeva una mattonella fuori griglia.
+    */
+    test('su una copia del mondo, lo stesso pixel', () => {
+      const amaro = pixelZ8(42.0858, 14.0858);
+      expect(pixelZ8(42.0858, 14.0858 + 360)).toEqual(amaro);
+      expect(pixelZ8(42.0858, 14.0858 - 720)).toEqual(amaro);
+      // 180 e -180 sono lo stesso meridiano: la colonna 0, non la 256 che non esiste.
+      expect(pixelZ8(0, 180).x).toBe(0);
+    });
+
+    test('oltre il limite della proiezione, la prima o l ultima riga', () => {
+      expect(pixelZ8(89, 14)).toMatchObject({ y: 0, py: 0 });
+      expect(pixelZ8(85.05112878, 14)).toMatchObject({ y: 0, py: 0 });
+      expect(pixelZ8(-89, 14)).toMatchObject({ y: 255, py: 255 });
+      expect(pixelZ8(-90, 14)).toMatchObject({ y: 255, py: 255 });
+      // Oltre i poli la proiezione darebbe NaN (logaritmo di un negativo), non una riga.
+      expect(pixelZ8(95, 14)).toMatchObject({ y: 0, py: 0 });
+    });
+
     test('la prima voce della legenda dice anche incerta', () => {
       expect(LEGENDA_NEVE[0].label).toBe('~1-20: poca neve o incerta');
     });
