@@ -93,10 +93,16 @@ async function tentativo(
       const corpo = new Uint8Array(await r.arrayBuffer())
       try {
         const png = await decodificaPngTavolozza(corpo, deps.inflate)
+        // `null` = corpo che non e' un PNG a tavolozza: per la spec vale «nessun dato».
         return fine(png ? { tipo: 'dati', png } : { tipo: 'nessunDato' })
       } catch {
-        // Corpo non decodificabile (deflate corrotto): vale come assente, non come guasto.
-        return fine({ tipo: 'nessunDato' })
+        /*
+          Un inflate che lancia o rifiuta (deflate rotto, `DecompressionStream` assente, un
+          errore del nostro decodificatore) e' un guasto, non un'assenza: con l'header il
+          passaggio c'e', e non sappiamo aprirlo. Senza `DecompressionStream` tutta la mappa
+          diceva «Nessuna immagine». Non si riprova: lo stesso corpo darebbe lo stesso errore.
+        */
+        return fine({ tipo: 'errore', motivo: 'corpo illeggibile' })
       }
     } catch (e) {
       if (signal?.aborted) throw erroreDiAnnullamento()

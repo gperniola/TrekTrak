@@ -1,4 +1,4 @@
-import { decodificaPngTavolozza } from '@/lib/png-tavolozza'
+import { decodificaPngTavolozza, inflateDelBrowser } from '@/lib/png-tavolozza'
 import { inflateNode, leggiFixture, pngRgba, pngTavolozza } from './fixtures/gibs/png-sintetico'
 
 function conta(indici: Uint8Array, v: number): number {
@@ -59,5 +59,23 @@ describe('decodificaPngTavolozza', () => {
 
   it('quello che non e un PNG non e un dato', async () => {
     expect(await decodificaPngTavolozza(new Uint8Array(Buffer.from('<html>')), inflateNode)).toBeNull()
+  })
+})
+
+/*
+  Safari < 16.4 non ha `DecompressionStream('deflate')`: senza un errore che lo dica, il
+  guasto si leggeva come «DecompressionStream is not defined» o peggio come un altro errore
+  qualunque, e nessuno avrebbe capito che era il browser.
+*/
+describe('inflateDelBrowser', () => {
+  const g = globalThis as { DecompressionStream?: unknown }
+  const originale = g.DecompressionStream
+  afterEach(() => { g.DecompressionStream = originale })
+
+  it('senza DecompressionStream rifiuta con un errore che dice cosa manca', async () => {
+    g.DecompressionStream = undefined
+    await expect(inflateDelBrowser(new Uint8Array([0x78, 0x9c]))).rejects.toThrow(
+      'DecompressionStream assente: questo browser non sa aprire le immagini della neve (serve Safari 16.4 o successivo)',
+    )
   })
 })

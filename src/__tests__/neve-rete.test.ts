@@ -49,7 +49,15 @@ describe('scaricaPassaggio', () => {
     expect(e.tipo).toBe('nessunDato')
   })
 
-  it('200 con l header e deflate corrotto (inflate che rifiuta): nessun dato, non errore', async () => {
+  /*
+    Regola cambiata di proposito (revisione finale, ruling del controller sul R9): prima un
+    inflate che rifiutava valeva «nessun dato». Ma con l'header il passaggio c'e', e un corpo
+    che non sappiamo aprire (deflate rotto, `DecompressionStream` assente, un errore del
+    nostro decodificatore) e' un guasto nostro o della rete, non un'assenza: senza
+    `DecompressionStream` tutta la mappa diceva «Nessuna immagine negli ultimi 3 giorni».
+    Non si riprova: lo stesso corpo darebbe lo stesso errore.
+  */
+  it('200 con l header e deflate corrotto (inflate che rifiuta): errore, e non si riprova', async () => {
     const png = pngTavolozza({
       larghezza: 2,
       altezza: 2,
@@ -57,9 +65,18 @@ describe('scaricaPassaggio', () => {
       tavolozza: new Uint8Array([0, 0, 0, 255, 255, 255]),
     })
     const r = risposta({ header: true, corpo: png })
+    const f = jest.fn(fetchDi(r))
     const inflateRotto = () => Promise.reject(new Error('incorrect header check'))
-    const e = await scaricaPassaggio(URL_PROVA, { fetch: fetchDi(r), inflate: inflateRotto })
-    expect(e.tipo).toBe('nessunDato')
+    const e = await scaricaPassaggio(URL_PROVA, { fetch: f, inflate: inflateRotto, attesa: async () => undefined })
+    expect(e).toEqual({ tipo: 'errore', motivo: 'corpo illeggibile' })
+    expect(f).toHaveBeenCalledTimes(1)
+  })
+
+  it('200 con l header e un inflate che lancia (non rifiuta): errore anche cosi', async () => {
+    const r = risposta({ header: true, corpo: leggiFixture('terra-2026-10-13-8-94-138.png') })
+    const inflateCheLancia = () => { throw new Error('DecompressionStream assente') }
+    const e = await scaricaPassaggio(URL_PROVA, { fetch: fetchDi(r), inflate: inflateCheLancia, attesa: async () => undefined })
+    expect(e).toEqual({ tipo: 'errore', motivo: 'corpo illeggibile' })
   })
 
   it('200 con l header ma il trasferimento del corpo si interrompe: errore, non nessun dato', async () => {

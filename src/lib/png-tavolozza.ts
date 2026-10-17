@@ -115,6 +115,12 @@ export async function decodificaPngTavolozza(
 
 /** Inflate del browser (Safari >= 16.4). Il PNG usa zlib, cioe' il formato «deflate». */
 export const inflateDelBrowser: Inflate = async (compressi) => {
+  // Senza, il guasto si sarebbe letto come un errore qualunque: deve dire che e' il browser.
+  if (typeof DecompressionStream === 'undefined') {
+    throw new Error(
+      'DecompressionStream assente: questo browser non sa aprire le immagini della neve (serve Safari 16.4 o successivo)',
+    )
+  }
   const flusso = new Blob([compressi as BlobPart]).stream().pipeThrough(new DecompressionStream('deflate'))
   return new Uint8Array(await new Response(flusso).arrayBuffer())
 }
