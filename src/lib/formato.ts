@@ -167,3 +167,24 @@ export function durataMin(minuti: number): string {
   if (m === 0) return `${h} h`;
   return `${h} h ${m} min`;
 }
+
+const MESI_LUNGHI = [
+  'gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno',
+  'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre',
+];
+
+/**
+ * Un giorno `YYYY-MM-DD` scritto a parole: `2026-10-01` → `1 ottobre`.
+ *
+ * Si legge la stringa e non si passa da `Date`: i giorni della neve sono UTC e un getter
+ * locale sposterebbe la data di uno vicino alla mezzanotte. Una stringa che non e' un
+ * giorno torna cosi' com'e': meglio mostrare cio' che c'e' che inventare una data.
+ */
+export function giornoMeseLungo(giorno: string): string {
+  const m = /^\d{4}-(\d{2})-(\d{2})$/.exec(giorno);
+  if (!m) return giorno;
+  const mese = Number(m[1]);
+  const g = Number(m[2]);
+  if (mese < 1 || mese > 12 || g < 1 || g > 31) return giorno;
+  return `${g} ${MESI_LUNGHI[mese - 1]}`;
+}

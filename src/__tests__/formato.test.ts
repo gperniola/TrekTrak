@@ -1,4 +1,4 @@
-import { dislivello, distanza, gradi, km, metri, numero, percento } from '@/lib/formato';
+import { giornoMeseLungo, dislivello, distanza, gradi, km, metri, numero, percento } from '@/lib/formato';
 import { parseDecimale } from '@/components/shared/NumberInput';
 
 describe('numeri scritti in italiano', () => {
@@ -96,5 +96,17 @@ describe('dislivello', () => {
   test('il segno e quello tipografico, non il trattino', () => {
     expect(dislivello(12, '−')).not.toContain('-');
     expect(dislivello(12, '−').charCodeAt(0)).toBe(0x2212);
+  });
+});
+
+describe('giornoMeseLungo', () => {
+  test('giorno e mese a parole, senza zero davanti', () => {
+    expect(giornoMeseLungo('2026-10-14')).toBe('14 ottobre');
+    expect(giornoMeseLungo('2026-09-30')).toBe('30 settembre');
+    expect(giornoMeseLungo('2026-10-01')).toBe('1 ottobre');
+  });
+
+  test('una stringa non valida torna com\'e\'', () => {
+    expect(giornoMeseLungo('boh')).toBe('boh');
   });
 });
