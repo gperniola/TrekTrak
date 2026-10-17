@@ -119,12 +119,14 @@ export function EmergencyNeveLayer({ sorgente }: { sorgente: SorgenteNeve }): nu
     return () => {
       // Prima di togliere il layer: lo sgombero delle mattonelle non deve arrivare allo
       // store. Al «Riprova» lo stato e' gia' 'loading' e un riassunto vecchio lo
-      // dichiarerebbe pronto con le date di prima.
+      // dichiarerebbe pronto con le date di prima. Due guardie, ciascuna basta da sola
+      // (provato per mutazione): `chiuso`, e `aSchermo` svuotato prima di `remove()`, cosi'
+      // il `tileunload` dello sgombero non trova piu' niente da togliere.
       chiuso = true;
       clearInterval(timer);
       aSchermo.forEach((v) => v.annullo.abort());
       aSchermo.clear();
-      map.removeLayer(strato);
+      strato.remove();
     };
   }, [map, sorgente, reportNeve]);
 

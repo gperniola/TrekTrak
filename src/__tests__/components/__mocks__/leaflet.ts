@@ -105,6 +105,96 @@ const popup = jest.fn(() => {
   return api;
 });
 
+/**
+ * `GridLayer` minimo, per il layer della neve: `extend` tiene `createTile`, e il test fa
+ * da Leaflet decidendo quali mattonelle entrano ed escono dallo schermo (`__crea`,
+ * `__togli`). Riproduce le due cose del `GridLayer.js` vero su cui il layer conta:
+ * `tileunload` con l'elemento della mattonella, e `remove()`/`redraw()` che tolgono
+ * **tutte** le mattonelle a schermo, nell'ordine in cui sono state create, sparando
+ * `tileunload` per ciascuna.
+ */
+type Gestore = (e: Record<string, unknown>) => void;
+interface Coordinate { x: number; y: number; z: number }
+type Fatto = (errore?: Error, tile?: HTMLElement) => void;
+
+const gridLayers: GridLayer[] = [];
+
+/** I `GridLayer` aggiunti alla mappa, dal primo. */
+export function __gridLayers(): ReadonlyArray<GridLayer> {
+  return gridLayers;
+}
+
+export function __resetGridLayers(): void {
+  gridLayers.length = 0;
+}
+
+class GridLayer {
+  options: Record<string, unknown>;
+  /** Le mattonelle a schermo, nell'ordine di creazione. */
+  mattonelle: Array<{ tile: HTMLElement; coords: Coordinate }> = [];
+  private gestori = new Map<string, Gestore[]>();
+
+  constructor(options: Record<string, unknown> = {}) {
+    this.options = options;
+  }
+
+  static extend(props: Record<string, unknown>) {
+    const Sotto = class extends GridLayer {};
+    Object.assign(Sotto.prototype, props);
+    return Sotto;
+  }
+
+  on(type: string, fn: Gestore) {
+    this.gestori.set(type, [...(this.gestori.get(type) ?? []), fn]);
+    return this;
+  }
+
+  off(type: string, fn?: Gestore) {
+    this.gestori.set(type, fn ? (this.gestori.get(type) ?? []).filter((g) => g !== fn) : []);
+    return this;
+  }
+
+  fire(type: string, dati: Record<string, unknown> = {}) {
+    (this.gestori.get(type) ?? []).slice().forEach((fn) => fn({ type, target: this, ...dati }));
+    return this;
+  }
+
+  addTo() {
+    gridLayers.push(this);
+    return this;
+  }
+
+  /** Come `_addTile`: Leaflet chiede la mattonella per una coordinata a schermo. */
+  __crea(coords: Coordinate, done: Fatto = () => {}): HTMLElement {
+    const crea = (this as unknown as { createTile(c: Coordinate, d: Fatto): HTMLElement }).createTile;
+    const tile = crea.call(this, coords, done);
+    this.mattonelle.push({ tile, coords });
+    return tile;
+  }
+
+  /** Come `_removeTile`: la mattonella esce dallo schermo. */
+  __togli(tile: HTMLElement): void {
+    const i = this.mattonelle.findIndex((m) => m.tile === tile);
+    if (i < 0) return;
+    const [m] = this.mattonelle.splice(i, 1);
+    this.fire('tileunload', { tile: m.tile, coords: m.coords });
+  }
+
+  redraw() {
+    const prima = this.mattonelle.slice();
+    prima.forEach((m) => this.__togli(m.tile));
+    prima.forEach((m) => this.__crea(m.coords));
+    return this;
+  }
+
+  remove() {
+    this.mattonelle.slice().forEach((m) => this.__togli(m.tile));
+    const i = gridLayers.indexOf(this);
+    if (i >= 0) gridLayers.splice(i, 1);
+    return this;
+  }
+}
+
 const L = {
   divIcon,
   icon,
@@ -113,7 +203,8 @@ const L = {
   DomEvent,
   canvas,
   popup,
+  GridLayer,
 };
 
 export default L;
-export { divIcon, icon, DivIcon, latLngBounds, DomEvent, canvas, popup };
+export { divIcon, icon, DivIcon, latLngBounds, DomEvent, canvas, popup, GridLayer };
