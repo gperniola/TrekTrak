@@ -81,6 +81,16 @@ body {
   --tenue: rgb(var(--grigio-400));
 }
 
+/*
+ * La neve da satellite: pixel nitidi a ogni zoom. Il «problema di visibilita'» del layer
+ * di prima non era il colore ma la resa sfocata — il livello 8 stirato con interpolazione.
+ * Vale anche sugli schermi ad alta densita' (la tela da 256 si allarga di 2-3 volte) e
+ * durante l'animazione dello zoom, quando Leaflet scala le mattonelle con una trasformata.
+ */
+.strato-neve canvas {
+  image-rendering: pixelated;
+}
+
 @keyframes badge-pop {
   0% { transform: scale(0); opacity: 0; }
   70% { transform: scale(1.2); }

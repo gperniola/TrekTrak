@@ -6,7 +6,7 @@ import {
   semplificaGeometria, tolleranzaPerZoom,
 } from '@/lib/avalanche';
 import { chiaveQuake, parseQuakes } from '@/lib/quakes-api';
-import { templateNeve } from '@/lib/snow-cover';
+import { SENSORI_NEVE, urlMattonellaNeve } from '@/lib/snow-cover';
 
 /**
  * Terzo giro di review sulla fase 2: **invarianti e ingressi ostili**.
@@ -33,10 +33,21 @@ describe('invarianti del registro, per ogni layer', () => {
     }
   });
 
-  test('ogni voce di legenda ha un colore esadecimale vero', () => {
+  /*
+    Esadecimale, oppure `rgba(...)` con canali veri: il velo «non visto (nubi)» della neve
+    e' semitrasparente sulla mappa, e la legenda lo mostra cosi' com'e', dalla stessa
+    costante del disegno (`COLORE_VELO_CSS`). Un rgba scritto male resta rosso qui.
+  */
+  test('ogni voce di legenda ha un colore vero', () => {
+    const RGBA = /^rgba\((\d{1,3}),(\d{1,3}),(\d{1,3}),(0|1|0?\.\d+)\)$/;
     for (const l of EMERGENCY_LAYERS) {
       for (const v of l.legend) {
-        expect(v.color).toMatch(/^#[0-9a-f]{3,8}$/i);
+        const rgba = RGBA.exec(v.color);
+        if (rgba) {
+          expect([rgba[1], rgba[2], rgba[3]].every((c) => Number(c) <= 255)).toBe(true);
+        } else {
+          expect(v.color).toMatch(/^#[0-9a-f]{3,8}$/i);
+        }
         expect(v.label.trim().length).toBeGreaterThan(0);
       }
     }
@@ -236,7 +247,9 @@ describe('i giorni, ai bordi del calendario', () => {
 
   test('l URL della neve regge qualunque giorno', () => {
     for (const g of ['2026-01-01', '2026-12-31', '2028-02-29']) {
-      expect(templateNeve(g)).toContain(`/${g}/`);
+      for (const s of SENSORI_NEVE) {
+        expect(urlMattonellaNeve(s.layer, g, 8, 138, 94)).toContain(`/${g}/`);
+      }
     }
   });
 });

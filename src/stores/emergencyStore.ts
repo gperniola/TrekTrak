@@ -5,6 +5,7 @@ import { fetchRadarIndex, type RadarIndex } from '@/lib/radar-api';
 import type { Riparo } from '@/lib/shelters-api';
 import { fetchQuakes, type Quake } from '@/lib/quakes-api';
 import type { BollettinoValanghe } from '@/lib/avalanche-api';
+import type { RiassuntoVista } from '@/lib/neve-composito';
 import { NoDataError } from '@/lib/no-data-error';
 import { defaultDpcDate, toYmd } from '@/lib/dpc';
 import { toast } from '@/stores/notificationStore';
@@ -41,8 +42,12 @@ interface EmergencyState {
   quakes: Quake[] | null;
   /** Bollettino valanghe della vista: come i ripari, lo chiede il componente. */
   avalanche: BollettinoValanghe | null;
-  /** Giorno effettivamente usato dai layer a mattonelle con data (neve). */
-  xyzGiorno: Partial<Record<EmergencyLayerId, string>>;
+  /**
+   * Cosa descrivono le mattonelle della neve a schermo: giorni, sensori, e se qualche
+   * immagine non e' arrivata. Lo scrive il layer sulla mappa, l'unico che sa quali
+   * mattonelle si vedono.
+   */
+  neve: RiassuntoVista | null;
   /**
    * Contatore di tentativi per layer. Entra nella chiave dei layer WMS: senza, il
    * "Riprova" non li rimontava, nessun tile veniva richiesto e il layer restava in
@@ -75,26 +80,15 @@ interface EmergencyState {
     esito: { bollettino: BollettinoValanghe } | { error: string } | { nodata: string }
   ) => void;
   /**
-   * Quale giorno stanno mostrando le mattonelle con data.
-   *
-   * Serve a dichiararlo nel pannello: un'immagine di ieri presentata come di oggi e' la
-   * classe di difetto piu' ripetuta di questo progetto.
+   * Il riassunto delle mattonelle della neve a schermo, dopo ogni mattonella composta o
+   * uscita. Serve a dichiarare nel pannello di che giorni e' la mappa: un'immagine di ieri
+   * presentata come di oggi e' la classe di difetto piu' ripetuta di questo progetto.
    */
-  reportXyzTile: (
-    id: EmergencyLayerId,
-    esito: { giorno: string } | { esaurito: true },
-  ) => void;
+  reportNeve: (r: RiassuntoVista) => void;
   isStale: (id: EmergencyLayerId) => boolean;
 }
 
 const IDLE: LayerRuntime = { status: 'idle', error: null, lastFetch: null };
-
-/** Una copia senza quella chiave: `delete` su una copia, per non mutare lo stato. */
-function senza<T>(mappa: Partial<Record<EmergencyLayerId, T>>, id: EmergencyLayerId): Partial<Record<EmergencyLayerId, T>> {
-  const fuori = { ...mappa };
-  delete fuori[id];
-  return fuori;
-}
 
 const initialLayers = Object.fromEntries(
   EMERGENCY_LAYERS.map((l) => [l.id, { ...IDLE }])
@@ -146,7 +140,7 @@ export const useEmergencyStore = create<EmergencyState>((set, get) => {
     shelters: null,
     quakes: null,
     avalanche: null,
-    xyzGiorno: {},
+    neve: null,
     retryTick: Object.fromEntries(EMERGENCY_LAYERS.map((l) => [l.id, 0])) as Record<EmergencyLayerId, number>,
     nowTick: Date.now(),
 
@@ -155,11 +149,11 @@ export const useEmergencyStore = create<EmergencyState>((set, get) => {
       if (get().layers[id].status !== 'idle') return; // idempotente
 
       /*
-        Le mattonelle con data (neve) si comportano come il WMS: non c'e' niente da
-        chiedere via fetch, il layer e' pronto quando le mattonelle arrivano. Lo stato lo
-        dichiara il componente con `reportXyzTile`.
+        La neve si comporta come il WMS: non c'e' niente da chiedere qui, il layer e'
+        pronto quando le mattonelle a schermo sono composte. Lo stato lo dichiara il
+        componente con `reportNeve`.
       */
-      if (def.kind === 'wms' || def.kind === 'xyz') {
+      if (def.kind === 'wms' || def.kind === 'neve') {
         // Non più 'ready' a scatola chiusa: lo stato lo decidono i tile, via
         // reportWmsTile. Prima un'interruzione EFFIS dava tile bianchi con il
         // pannello che dichiarava il layer funzionante.
@@ -197,16 +191,11 @@ export const useEmergencyStore = create<EmergencyState>((set, get) => {
         ...(id === 'earthquakes' ? { quakes: null } : {}),
         ...(id === 'avalanche-danger' ? { avalanche: null } : {}),
         /*
-          Anche l'etichetta del giorno se ne va col layer: e' un pezzo del payload, e
-          tenerla vorrebbe dire lasciare in giro una data che non descrive piu' niente.
-
-          Si toglie **solo la sua**, e la condizione guarda il KIND e non un id scritto a
-          mano: `xyzGiorno: {}` azzerava la mappa intera — oggi non si vede perche' di
-          layer a mattonelle con data ce n'e' uno, ma il campo e' indicizzato per layer
-          proprio perche' ce ne saranno altri, e un secondo layer si sarebbe spento
-          insieme al primo. Il commento diceva "questo layer", il codice diceva "tutti".
+          Anche il riassunto della neve se ne va col layer: e' un pezzo del payload, e
+          tenerlo vorrebbe dire, alla riaccensione, dichiarare le date di prima prima che
+          le mattonelle nuove arrivino. Solo col SUO layer, come gli altri payload.
         */
-        ...(getEmergencyLayer(id).kind === 'xyz' ? { xyzGiorno: senza(get().xyzGiorno, id) } : {}),
+        ...(id === 'snow-cover' ? { neve: null } : {}),
       }));
       syncTick();
     },
@@ -390,30 +379,35 @@ export const useEmergencyStore = create<EmergencyState>((set, get) => {
       }
     },
 
-    reportXyzTile: (id, esito) => {
-      if (get().layers[id].status === 'idle') return;
-      if ('esaurito' in esito) {
-        /*
-          Nessuno dei giorni provati ha immagini. Prima questo caso non esisteva: il
-          componente passava un flag `ultimoTentativo` che lo store **ignorava**, quindi
-          il layer restava 'ready' con una mappa vuota — assenza di dati indistinguibile
-          da "niente neve". E' la stessa classe di difetto di `slim` e del livello utente,
-          valori scritti e riletti da nessuno.
-        */
-        set((s) => ({
-          // La chiave si toglie, non si mette a `undefined`: una chiave presente col
-          // valore vuoto e' la stessa cosa per chi legge, ma non per `Object.keys`.
-          xyzGiorno: senza(s.xyzGiorno, id),
-          layers: {
-            ...s.layers,
-            [id]: { status: 'nodata', error: 'Nessuna immagine disponibile negli ultimi giorni', lastFetch: Date.now() },
-          },
-        }));
-        return;
-      }
+    reportNeve: (r) => {
+      /*
+        Le mattonelle scaricano ancora quando il layer si spegne, e il loro riassunto
+        arriva dopo: accettarlo riaccenderebbe nel pannello un layer spento, con date che
+        non descrivono nessuna mappa.
+      */
+      if (get().layers['snow-cover'].status === 'idle') return;
       set((s) => ({
-        xyzGiorno: { ...s.xyzGiorno, [id]: esito.giorno },
-        layers: { ...s.layers, [id]: { status: 'ready', error: null, lastFetch: Date.now() } },
+        neve: r,
+        layers: {
+          ...s.layers,
+          'snow-cover': r.stato === 'ready'
+            // `parziale` = un passaggio tentato e' finito in errore (5xx, rete): poteva
+            // cambiare qualche pixel, quindi la mappa va presa con riserva.
+            ? { status: 'ready', error: null, lastFetch: Date.now(), partial: r.parziale }
+            : r.stato === 'nodata'
+              // GIBS ha risposto e non ha pubblicato niente: un'informazione, non un guasto.
+              ? { status: 'nodata', error: 'Nessuna immagine negli ultimi 3 giorni', lastFetch: Date.now() }
+              /*
+                Nessun passaggio disponibile e ogni risposta un 404 o un errore: almeno un
+                sensore ha sempre pubblicato ieri, quindi GIBS non riconosce piu' i layer o
+                non risponde. E' un guasto, col «Riprova», non un cielo vuoto.
+              */
+              : {
+                status: 'error',
+                error: 'Il servizio NASA non risponde o non riconosce i layer della neve',
+                lastFetch: s.layers['snow-cover'].lastFetch,
+              },
+        },
       }));
     },
 

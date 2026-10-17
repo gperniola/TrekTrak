@@ -1,6 +1,6 @@
 import {
-  ACQUA, COLORE_VELO_CSS, GIORNI_INDIETRO_MAX, LEGENDA_NEVE, NON_VISTO, SENSORI_NEVE, SENZA_NEVE,
-  VELO_NON_VISTO, ZOOM_NATIVO_MASSIMO_NEVE, classificaTavolozza, giorniCandidati, giorniDaProvare,
+  ACQUA, COLORE_VELO_CSS, LEGENDA_NEVE, NON_VISTO, SENSORI_NEVE, SENZA_NEVE,
+  VELO_NON_VISTO, classificaTavolozza, giorniCandidati,
   giornoUTC, pixelZ8, urlMattonellaNeve,
 } from '@/lib/snow-cover';
 import { decodificaPngTavolozza } from '@/lib/png-tavolozza';
@@ -44,32 +44,25 @@ describe('copertura nevosa', () => {
   });
 
   /**
-   * Il tetto non è prudenza: il set di mattonelle dichiarato dal capabilities si chiama
-   * `GoogleMapsCompatible_Level8`, quindi **oltre lo zoom 8 non esistono**.
+   * Il set di mattonelle dichiarato dal capabilities si chiama
+   * `GoogleMapsCompatible_Level8`, quindi **oltre lo zoom 8 non esistono**: sopra, il
+   * disegno ingrandisce un quadrante della mattonella z8 (`neve-disegno.ts`).
    */
-  test('il set di mattonelle e il tetto di zoom coincidono', () => {
-    expect(ZOOM_NATIVO_MASSIMO_NEVE).toBe(8);
+  test('il set di mattonelle arriva al livello 8', () => {
     expect(templateNeve('2026-02-15')).toContain('GoogleMapsCompatible_Level8');
   });
 
+  /*
+    I giorni da provare per tutto il layer (`giorniDaProvare`) se ne sono andati col
+    vecchio ripiego: la finestra ora si sceglie per mattonella, dai `giorniCandidati`
+    provati qui sotto e in `neve-sorgente.test.ts`.
+  */
   describe('quale giorno', () => {
-    test('si prova oggi per primo, poi indietro', () => {
-      const g = giorniDaProvare(new Date('2026-02-15T10:00:00Z'));
-      expect(g[0]).toBe('2026-02-15');
-      expect(g[1]).toBe('2026-02-14');
-      expect(g).toHaveLength(GIORNI_INDIETRO_MAX + 1);
-    });
-
     // I giorni GIBS sono indicizzati in UTC: usare il giorno locale sposterebbe di uno
     // per due ore ogni sera, in estate.
     test('il giorno è quello UTC', () => {
       expect(giornoUTC(new Date('2026-02-15T23:30:00Z'))).toBe('2026-02-15');
       expect(giornoUTC(new Date('2026-02-16T00:30:00Z'))).toBe('2026-02-16');
-    });
-
-    test('il ripiego copre qualche giorno, non un mese', () => {
-      expect(GIORNI_INDIETRO_MAX).toBeGreaterThanOrEqual(2);
-      expect(GIORNI_INDIETRO_MAX).toBeLessThanOrEqual(7);
     });
   });
 

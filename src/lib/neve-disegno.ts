@@ -39,7 +39,8 @@ export function ritaglioPer(z: number, x: number, y: number): Ritaglio {
   return { z: Z_MAX_GIBS, x: gx, y: gy, x0: Math.floor(rx / d), y0: Math.floor(ry / d), lato: 1 }
 }
 
-export function pixelDellaMattonella(c: CompositoMattonella, r: Ritaglio): Uint8ClampedArray {
+// `<ArrayBuffer>`: e' quello che `new ImageData(...)` accetta, e la tela si crea qui.
+export function pixelDellaMattonella(c: CompositoMattonella, r: Ritaglio): Uint8ClampedArray<ArrayBuffer> {
   const out = new Uint8ClampedArray(LATO * LATO * 4)
   // Il velo dice «visto, ma coperto»: con la rete giu' nessun pixel e' stato visto da
   // nessuno, e dipingerlo da nube fingerebbe un cielo coperto durante un guasto.

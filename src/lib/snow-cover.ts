@@ -5,8 +5,9 @@ import type { PngTavolozza } from './png-tavolozza';
  * Aqua e Terra, VIIRS S-NPP, NOAA-20 e NOAA-21 — su una finestra di tre giorni: un solo
  * passaggio al giorno lascia scoperta quasi ogni mattonella dietro le nubi.
  *
- * Mattonelle WMTS statiche, senza chiave: viaggiano come `<img>`, quindi il CORS non
- * conta. Un layer da inverno — a settembre sulle Alpi il tile misurato conteneva **0,5%
+ * Mattonelle WMTS statiche, senza chiave, chieste con `fetch` e non come `<img>`: il
+ * «nessun dato» di GIBS si riconosce solo da un header, e da un `<img>` gli header non si
+ * leggono. Un layer da inverno — a settembre sulle Alpi il tile misurato conteneva **0,5%
  * di pixel dipinti** — ma è quello che dice se la neve è già arrivata, e a che quota.
  *
  * ## Quello che NON dipinge, e perché conta
@@ -18,6 +19,8 @@ import type { PngTavolozza } from './png-tavolozza';
  * conseguenza va detta a schermo, perché è controintuitiva — **dove non c'è colore, può
  * non esserci neve oppure può esserci una nuvola sopra**. Il satellite non vede sotto le
  * nubi, e un versante nevoso sotto un fronte risulta identico a un versante spoglio.
+ * Per questo la composizione non lascia trasparente la nube: dove nessun passaggio ha
+ * visto il suolo stende un velo grigio (`VELO_NON_VISTO`).
  *
  * ## La scala è gialla-rossa, non bianca
  *
@@ -29,17 +32,9 @@ import type { PngTavolozza } from './png-tavolozza';
  */
 
 const BASE = 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best';
-const LAYER = 'MODIS_Terra_NDSI_Snow_Cover';
 
-/**
- * Il set di mattonelle si chiama `GoogleMapsCompatible_Level8`: **otto livelli**, cioè
- * zoom 8 e non oltre. Non è una stima nostra, lo dichiara il `WMTSCapabilities` — e oltre
- * quel livello Leaflet stira l'ultimo disponibile invece di chiedere mattonelle che non
- * esistono.
- */
-export const ZOOM_NATIVO_MASSIMO_NEVE = 8;
-
-export const ATTRIBUZIONE_NEVE = 'Neve: <a href="https://worldview.earthdata.nasa.gov/">NASA GIBS</a> / MODIS Terra';
+/** Tutti i sensori della composizione, non solo Terra: l'attribuzione nomina le due famiglie. */
+export const ATTRIBUZIONE_NEVE = 'Neve: <a href="https://worldview.earthdata.nasa.gov/">NASA GIBS</a> / MODIS, VIIRS';
 
 export type SensoreNeve = 'aqua' | 'noaa20' | 'snpp' | 'noaa21' | 'terra';
 
@@ -136,35 +131,9 @@ export const VELO_NON_VISTO = [71, 85, 105, 115] as const;
 export const COLORE_VELO_CSS =
   `rgba(${VELO_NON_VISTO[0]},${VELO_NON_VISTO[1]},${VELO_NON_VISTO[2]},${(VELO_NON_VISTO[3] / 255).toFixed(2)})`;
 
-/** Quanti giorni indietro si può arrivare cercando un giorno con dati. */
-export const GIORNI_INDIETRO_MAX = 4;
-
 /** Giorno in forma `YYYY-MM-DD`, in UTC: è il fuso in cui GIBS indicizza i suoi giorni. */
 export function giornoUTC(d: Date): string {
   return d.toISOString().slice(0, 10);
-}
-
-/**
- * I giorni da provare, dal più recente.
- *
- * Il capabilities dichiara **oggi** come default, quindi oggi si prova per primo: ma il
- * passaggio del satellite copre una fascia alla volta, e nelle prime ore il mosaico
- * globale è incompleto. Un elenco di ripieghi costa niente e evita di mostrare un layer
- * vuoto quando i dati di ieri ci sono.
- */
-export function giorniDaProvare(adesso: Date): string[] {
-  return Array.from({ length: GIORNI_INDIETRO_MAX + 1 }, (_, i) =>
-    giornoUTC(new Date(adesso.getTime() - i * 86_400_000)));
-}
-
-/**
- * Il template per Leaflet. **Attenzione all'ordine: `{y}` prima di `{x}`** — è la
- * convenzione REST del WMTS, l'opposto di quella XYZ a cui somiglia. Con l'ordine
- * scambiato le mattonelle arrivano tutte (200, PNG validi) ma di un altro posto: un
- * errore che non si vede negli errori di rete, solo guardando la mappa.
- */
-export function templateNeve(giorno: string): string {
-  return `${BASE}/${LAYER}/default/${giorno}/GoogleMapsCompatible_Level8/{z}/{y}/{x}.png`;
 }
 
 /**
