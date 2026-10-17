@@ -108,30 +108,36 @@ export function giorniDellaFinestra(candidati: string[], oggiHaDati: boolean): s
   return oggiHaDati ? candidati.slice(0, 3) : candidati.slice(1, 4);
 }
 
+/**
+ * `guasto` = qualche passaggio della mattonella e' finito in errore (rete, 5xx, corpo
+ * illeggibile): quello che manca puo' mancare per colpa nostra, non perche' la NASA non
+ * l'ha pubblicato o perche' c'erano nubi. Il testo lo deve dire.
+ */
 export type StatoPunto =
   | { stato: 'neve'; ndsi: number; giorno: string; sensore: SensoreNeve }
   | { stato: 'senza' | 'acqua'; giorno: string; sensore: SensoreNeve }
-  | { stato: 'nonVisto'; giorni: string[] }
-  | { stato: 'ignoto' };
+  | { stato: 'nonVisto'; giorni: string[]; guasto: boolean }
+  | { stato: 'ignoto'; guasto: boolean };
 
 export function statoNelPunto(c: CompositoMattonella, px: number, py: number): StatoPunto {
+  const guasto = c.riassunto.errori > 0;
   const lato = Math.round(Math.sqrt(c.codici.length));
   if (!Number.isInteger(px) || !Number.isInteger(py) || px < 0 || py < 0 || px >= lato || py >= lato) {
-    return { stato: 'ignoto' };
+    return { stato: 'ignoto', guasto };
   }
   const i = py * lato + px;
   const o = c.origine[i];
   if (o === -1) {
     // Senza nemmeno un passaggio con dati non c'e' nulla da dire: «ignoto», non «nubi».
     const giorni = Array.from(new Set(c.passaggi.filter((p) => p.esito.tipo === 'dati').map((p) => p.giorno))).sort();
-    return giorni.length > 0 ? { stato: 'nonVisto', giorni } : { stato: 'ignoto' };
+    return giorni.length > 0 ? { stato: 'nonVisto', giorni, guasto } : { stato: 'ignoto', guasto };
   }
   const { giorno, sensore } = c.passaggi[o];
   const codice = c.codici[i];
   if (codice >= 1) return { stato: 'neve', ndsi: codice, giorno, sensore };
   if (codice === ACQUA) return { stato: 'acqua', giorno, sensore };
   if (codice === SENZA_NEVE) return { stato: 'senza', giorno, sensore };
-  return { stato: 'ignoto' };
+  return { stato: 'ignoto', guasto };
 }
 
 export interface RiassuntoVista {
@@ -150,8 +156,15 @@ export interface RiassuntoVista {
 export function riassumiVista(r: RiassuntoMattonella[]): RiassuntoVista | null {
   if (r.length === 0) return null;
   const somma = (k: 'dati' | 'nessunDato' | 'errori') => r.reduce((s, m) => s + m[k], 0);
-  // Tutti 404 e nessun dato e' un guasto da dire («error»), non un cielo vuoto («nodata»).
-  const stato = somma('dati') > 0 ? 'ready' : somma('nessunDato') > 0 ? 'nodata' : 'error';
+  /*
+    Senza nessun dato, un errore vince sul «nessun dato»: al mattino, se la rete cade
+    durante il blocco di ieri, i «nessun dato» di oggi (non ancora pubblicato) non dicono
+    che negli ultimi 3 giorni non c'e' niente. E' un guasto, col «Riprova». Tutti 404 e
+    nessun dato e' anch'esso un guasto da dire, non un cielo vuoto («nodata»).
+  */
+  const stato = somma('dati') > 0
+    ? 'ready'
+    : somma('errori') > 0 ? 'error' : somma('nessunDato') > 0 ? 'nodata' : 'error';
   const giorni = r.flatMap((m) => m.giorni).sort();
   return {
     stato,
@@ -218,9 +231,13 @@ export function testoPunto(s: StatoPunto): string {
       return `Acqua o mare · vista il ${giornoMeseLungo(s.giorno)} da ${nomeSensore(s.sensore)}`;
     case 'nonVisto': {
       const g = [...s.giorni].sort();
-      return `Non visto: nubi in tutti i passaggi ${intervallo(g[0], g[g.length - 1])}`;
+      const nubi = `Non visto: nubi in tutti i passaggi ${intervallo(g[0], g[g.length - 1])}`;
+      return s.guasto ? `${nubi} · alcune immagini non sono arrivate` : nubi;
     }
     default:
-      return 'Nessuna immagine per questo punto negli ultimi 3 giorni';
+      // Offline la pressione lunga diceva che la NASA non aveva pubblicato niente.
+      return s.guasto
+        ? 'Immagini non arrivate per questo punto (rete o servizio NASA)'
+        : 'Nessuna immagine per questo punto negli ultimi 3 giorni';
   }
 }

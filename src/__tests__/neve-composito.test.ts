@@ -35,13 +35,26 @@ describe('composito', () => {
     c.aggiungi({ giorno: '2026-10-16', sensore: 'aqua', esito: { tipo: 'errore', motivo: 'rete' } })
     c.aggiungi({ giorno: '2026-10-16', sensore: 'noaa20', esito: { tipo: 'nonPubblicato' } })
     c.aggiungi({ giorno: '2026-10-16', sensore: 'terra', esito: { tipo: 'dati', png: await carica('terra-2026-10-16-8-94-138.png') } })
-    expect(statoNelPunto(c.risultato(), 4, 243)).toEqual({ stato: 'nonVisto', giorni: ['2026-10-16'] })
+    // Il passaggio di Aqua e' finito in errore: lo si dice insieme alle nubi.
+    expect(statoNelPunto(c.risultato(), 4, 243)).toEqual({ stato: 'nonVisto', giorni: ['2026-10-16'], guasto: true })
   })
 
   test('nessun passaggio con dati: ignoto', () => {
     const c = creaComposizione(ALLE)
     c.aggiungi({ giorno: '2026-10-16', sensore: 'terra', esito: { tipo: 'nessunDato' } })
-    expect(statoNelPunto(c.risultato(), 4, 243)).toEqual({ stato: 'ignoto' })
+    expect(statoNelPunto(c.risultato(), 4, 243)).toEqual({ stato: 'ignoto', guasto: false })
+  })
+
+  /*
+    Offline, o con la rete che cade a meta': nessun passaggio con dati non vuol dire che la
+    NASA non abbia pubblicato niente. Il punto lo deve sapere, per non raccontarlo come
+    un'assenza.
+  */
+  test('nessun passaggio con dati e qualcuno in errore: ignoto per guasto', () => {
+    const c = creaComposizione(ALLE)
+    c.aggiungi({ giorno: '2026-10-16', sensore: 'aqua', esito: { tipo: 'errore', motivo: 'rete' } })
+    c.aggiungi({ giorno: '2026-10-16', sensore: 'terra', esito: { tipo: 'nessunDato' } })
+    expect(statoNelPunto(c.risultato(), 4, 243)).toEqual({ stato: 'ignoto', guasto: true })
   })
 
   test('completa quando ogni pixel ha una vista', async () => {
@@ -94,6 +107,18 @@ describe('finestra e riassunto', () => {
   })
 
   /*
+    Al mattino, se la rete cade durante il blocco di ieri, ci sono dei «nessun dato» (oggi
+    non ancora pubblicato) e degli errori, e nessun dato: e' un guasto, col «Riprova», non
+    «Nessuna immagine negli ultimi 3 giorni».
+  */
+  test('nessun dato e almeno un errore: error, anche con dei «nessun dato»', () => {
+    expect(riassumiVista([rm({ nessunDato: 5, errori: 2 })])?.stato).toBe('error')
+    expect(riassumiVista([rm({ nessunDato: 5 }), rm({ errori: 1, nonPubblicati: 4 })])?.stato).toBe('error')
+    // Con dati resta pronto (parziale), come prima.
+    expect(riassumiVista([rm({ dati: 1, nessunDato: 5, errori: 2 })])).toMatchObject({ stato: 'ready', parziale: true })
+  })
+
+  /*
     «Aggiornato alle» dice quando si e' guardato GIBS: con mattonelle composte in momenti
     diversi, vale la piu' vecchia. Dire la piu' recente spaccerebbe per fresca quella di ore fa.
   */
@@ -128,8 +153,14 @@ describe('testi', () => {
     expect(testoPunto({ stato: 'neve', ndsi: 45, giorno: '2026-10-15', sensore: 'terra' })).toBe('Neve (indice 45) · vista il 15 ottobre da MODIS Terra')
     expect(testoPunto({ stato: 'senza', giorno: '2026-10-16', sensore: 'noaa20' })).toBe('Senza neve · vista il 16 ottobre da VIIRS NOAA-20')
     expect(testoPunto({ stato: 'acqua', giorno: '2026-10-16', sensore: 'aqua' })).toBe('Acqua o mare · vista il 16 ottobre da MODIS Aqua')
-    expect(testoPunto({ stato: 'nonVisto', giorni: ['2026-10-16', '2026-10-14', '2026-10-15'] })).toBe('Non visto: nubi in tutti i passaggi dal 14 al 16 ottobre')
-    expect(testoPunto({ stato: 'nonVisto', giorni: ['2026-10-16'] })).toBe('Non visto: nubi in tutti i passaggi del 16 ottobre')
-    expect(testoPunto({ stato: 'ignoto' })).toBe('Nessuna immagine per questo punto negli ultimi 3 giorni')
+    expect(testoPunto({ stato: 'nonVisto', giorni: ['2026-10-16', '2026-10-14', '2026-10-15'], guasto: false })).toBe('Non visto: nubi in tutti i passaggi dal 14 al 16 ottobre')
+    expect(testoPunto({ stato: 'nonVisto', giorni: ['2026-10-16'], guasto: false })).toBe('Non visto: nubi in tutti i passaggi del 16 ottobre')
+    expect(testoPunto({ stato: 'ignoto', guasto: false })).toBe('Nessuna immagine per questo punto negli ultimi 3 giorni')
+  })
+
+  test('testoPunto: un guasto non si racconta come un assenza', () => {
+    expect(testoPunto({ stato: 'ignoto', guasto: true })).toBe('Immagini non arrivate per questo punto (rete o servizio NASA)')
+    expect(testoPunto({ stato: 'nonVisto', giorni: ['2026-10-14', '2026-10-16'], guasto: true }))
+      .toBe('Non visto: nubi in tutti i passaggi dal 14 al 16 ottobre · alcune immagini non sono arrivate')
   })
 })
