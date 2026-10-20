@@ -1,6 +1,13 @@
 import {
-  GIORNI_INDIETRO_MAX, LEGENDA_NEVE, ZOOM_NATIVO_MASSIMO_NEVE, giorniDaProvare, giornoUTC, templateNeve,
+  ACQUA, COLORE_VELO_CSS, LEGENDA_NEVE, NON_VISTO, SENSORI_NEVE, SENZA_NEVE,
+  VELO_NON_VISTO, classificaTavolozza, giorniCandidati,
+  giornoUTC, pixelZ8, urlMattonellaNeve,
 } from '@/lib/snow-cover';
+import { decodificaPngTavolozza } from '@/lib/png-tavolozza';
+import { inflateNode, leggiFixture, pngTavolozza } from './fixtures/gibs/png-sintetico';
+
+const LAYER_TERRA = 'MODIS_Terra_NDSI_Snow_Cover';
+const templateNeve = (giorno: string) => urlMattonellaNeve(LAYER_TERRA, giorno, 8, 138, 94);
 
 /**
  * Copertura nevosa da NASA GIBS (task-51).
@@ -16,9 +23,14 @@ describe('copertura nevosa', () => {
    * vede solo guardando la mappa.
    */
   test('l URL mette y prima di x, come vuole il WMTS', () => {
-    const t = templateNeve('2026-02-15');
-    expect(t).toContain('/{z}/{y}/{x}.png');
-    expect(t.indexOf('{y}')).toBeLessThan(t.indexOf('{x}'));
+    const t = urlMattonellaNeve(LAYER_TERRA, '2026-02-15', 8, 138, 94);
+    expect(t).toContain('/8/94/138.png');
+    expect(t.indexOf('/94/')).toBeLessThan(t.indexOf('/138.'));
+  });
+
+  test('l URL ha la riga prima della colonna', () => {
+    expect(urlMattonellaNeve(LAYER_TERRA, '2026-10-13', 8, 138, 94)).toMatch(
+      /\/2026-10-13\/GoogleMapsCompatible_Level8\/8\/94\/138\.png$/);
   });
 
   test('la data sta nel percorso, non fra i parametri', () => {
@@ -32,32 +44,25 @@ describe('copertura nevosa', () => {
   });
 
   /**
-   * Il tetto non è prudenza: il set di mattonelle dichiarato dal capabilities si chiama
-   * `GoogleMapsCompatible_Level8`, quindi **oltre lo zoom 8 non esistono**.
+   * Il set di mattonelle dichiarato dal capabilities si chiama
+   * `GoogleMapsCompatible_Level8`, quindi **oltre lo zoom 8 non esistono**: sopra, il
+   * disegno ingrandisce un quadrante della mattonella z8 (`neve-disegno.ts`).
    */
-  test('il set di mattonelle e il tetto di zoom coincidono', () => {
-    expect(ZOOM_NATIVO_MASSIMO_NEVE).toBe(8);
+  test('il set di mattonelle arriva al livello 8', () => {
     expect(templateNeve('2026-02-15')).toContain('GoogleMapsCompatible_Level8');
   });
 
+  /*
+    I giorni da provare per tutto il layer (`giorniDaProvare`) se ne sono andati col
+    vecchio ripiego: la finestra ora si sceglie per mattonella, dai `giorniCandidati`
+    provati qui sotto e in `neve-sorgente.test.ts`.
+  */
   describe('quale giorno', () => {
-    test('si prova oggi per primo, poi indietro', () => {
-      const g = giorniDaProvare(new Date('2026-02-15T10:00:00Z'));
-      expect(g[0]).toBe('2026-02-15');
-      expect(g[1]).toBe('2026-02-14');
-      expect(g).toHaveLength(GIORNI_INDIETRO_MAX + 1);
-    });
-
     // I giorni GIBS sono indicizzati in UTC: usare il giorno locale sposterebbe di uno
     // per due ore ogni sera, in estate.
     test('il giorno è quello UTC', () => {
       expect(giornoUTC(new Date('2026-02-15T23:30:00Z'))).toBe('2026-02-15');
       expect(giornoUTC(new Date('2026-02-16T00:30:00Z'))).toBe('2026-02-16');
-    });
-
-    test('il ripiego copre qualche giorno, non un mese', () => {
-      expect(GIORNI_INDIETRO_MAX).toBeGreaterThanOrEqual(2);
-      expect(GIORNI_INDIETRO_MAX).toBeLessThanOrEqual(7);
     });
   });
 
@@ -87,6 +92,82 @@ describe('copertura nevosa', () => {
         expect(v.label).toMatch(/\d/);
         expect(v.color).toMatch(/^#[0-9a-f]{6}$/i);
       }
+    });
+  });
+
+  describe('sensori, giorni e classi', () => {
+    test('quattro giorni candidati, in UTC, oggi per primo', () => {
+      expect(giorniCandidati(new Date('2026-10-16T05:00:00Z'))).toEqual(
+        ['2026-10-16', '2026-10-15', '2026-10-14', '2026-10-13']);
+      expect(giorniCandidati(new Date('2026-10-16T23:30:00Z'))[0]).toBe('2026-10-16');
+    });
+
+    test('cinque sensori, dal passaggio piu tardo', () => {
+      expect(SENSORI_NEVE.map((s) => s.id)).toEqual(['aqua', 'noaa20', 'snpp', 'noaa21', 'terra']);
+      expect(SENSORI_NEVE.map((s) => s.nome)).toEqual(['Aqua', 'NOAA-20', 'S-NPP', 'NOAA-21', 'Terra']);
+      expect(SENSORI_NEVE.map((s) => s.layer)).toEqual([
+        'MODIS_Aqua_NDSI_Snow_Cover', 'VIIRS_NOAA20_NDSI_Snow_Cover', 'VIIRS_SNPP_NDSI_Snow_Cover',
+        'VIIRS_NOAA21_NDSI_Snow_Cover', 'MODIS_Terra_NDSI_Snow_Cover']);
+    });
+
+    test('le classi vengono dalla tavolozza vera', async () => {
+      const t = await decodificaPngTavolozza(leggiFixture('terra-2026-10-13-8-94-138.png'), inflateNode);
+      expect(t).not.toBeNull();
+      const c = classificaTavolozza(t!);
+      expect(c[106]).toBe(NON_VISTO);
+      expect(c[105]).toBe(ACQUA);
+      expect(c[0]).toBe(SENZA_NEVE);
+      expect(c[82]).toBe(82);
+    });
+
+    // Mutazione: far restituire SENZA_NEVE qui dichiarerebbe «senza neve» un dato che non
+    // sappiamo leggere.
+    test('un trasparente sconosciuto non diventa senza neve', async () => {
+      const tavolozza = new Uint8Array(121 * 3);
+      tavolozza.set([1, 2, 3], 120 * 3);
+      const alfa = new Uint8Array(121).fill(255);
+      alfa[120] = 0;
+      const png = pngTavolozza({ larghezza: 1, altezza: 1, indici: new Uint8Array([120]), tavolozza, alfa });
+      const t = await decodificaPngTavolozza(png, inflateNode);
+      expect(classificaTavolozza(t!)[120]).toBe(NON_VISTO);
+    });
+
+    test('Monte Amaro cade nel pixel giusto', () => {
+      expect(pixelZ8(42.0858, 14.0858)).toEqual({ x: 138, y: 94, px: 4, py: 243 });
+      expect(pixelZ8(42.4692, 13.5658)).toEqual({ x: 137, y: 94, px: 165, py: 148 });
+    });
+
+    /*
+      `e.latlng` di Leaflet non e' riportato nel mondo principale: una pressione lunga su una
+      copia del mondo (zoom bassi, mappa trascinata) chiedeva una mattonella fuori griglia.
+    */
+    test('su una copia del mondo, lo stesso pixel', () => {
+      const amaro = pixelZ8(42.0858, 14.0858);
+      expect(pixelZ8(42.0858, 14.0858 + 360)).toEqual(amaro);
+      expect(pixelZ8(42.0858, 14.0858 - 720)).toEqual(amaro);
+      // 180 e -180 sono lo stesso meridiano: la colonna 0, non la 256 che non esiste.
+      expect(pixelZ8(0, 180).x).toBe(0);
+    });
+
+    test('oltre il limite della proiezione, la prima o l ultima riga', () => {
+      expect(pixelZ8(89, 14)).toMatchObject({ y: 0, py: 0 });
+      expect(pixelZ8(85.05112878, 14)).toMatchObject({ y: 0, py: 0 });
+      expect(pixelZ8(-89, 14)).toMatchObject({ y: 255, py: 255 });
+      expect(pixelZ8(-90, 14)).toMatchObject({ y: 255, py: 255 });
+      // Oltre i poli la proiezione darebbe NaN (logaritmo di un negativo), non una riga.
+      expect(pixelZ8(95, 14)).toMatchObject({ y: 0, py: 0 });
+    });
+
+    test('la prima voce della legenda dice anche incerta', () => {
+      expect(LEGENDA_NEVE[0].label).toBe('~1-20: poca neve o incerta');
+    });
+
+    test('il velo della legenda e quello disegnato sono lo stesso', () => {
+      expect(COLORE_VELO_CSS).toBe('rgba(71,85,105,0.45)');
+      const m = /^rgba\((\d+),(\d+),(\d+),([\d.]+)\)$/.exec(COLORE_VELO_CSS);
+      expect(m).not.toBeNull();
+      expect([Number(m![1]), Number(m![2]), Number(m![3])]).toEqual([...VELO_NON_VISTO].slice(0, 3));
+      expect(m![4]).toBe((VELO_NON_VISTO[3] / 255).toFixed(2));
     });
   });
 });

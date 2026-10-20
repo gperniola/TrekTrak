@@ -35,16 +35,16 @@ describe('EMERGENCY_LAYERS registry', () => {
         // dalla vista allo stesso modo.
         expect(l.wms).toBeUndefined();
         expect(l.refreshMinutes).toBeNull();
-      } else if (l.kind === 'xyz') {
+      } else if (l.kind === 'neve') {
         /*
-          Mattonelle con la data nell'URL: serve la configurazione, e serve
-          `refreshMinutes` — non per un timer (le mattonelle non si richiedono da sole) ma
-          perche' `isStale` possa dichiarare vecchio un layer che ha smesso di aggiornarsi.
+          La neve composta da GIBS: niente configurazione WMS (le mattonelle le chiede la
+          sorgente), ma serve `refreshMinutes` — non per un timer (il layer ridisegna da
+          solo) ma perche' `isStale` possa dichiarare vecchio un layer che ha smesso di
+          aggiornarsi. L'attribuzione nomina la fonte vera, non un sensore solo.
         */
         expect(l.wms).toBeUndefined();
-        expect(l.xyz).toBeDefined();
-        expect(l.xyz!.zoomNativoMassimo).toBeGreaterThan(0);
-        expect(l.xyz!.template('2026-02-15')).toMatch(/2026-02-15/);
+        expect(l.attribution).toContain('NASA GIBS');
+        expect(l.attribution).toMatch(/MODIS.*VIIRS/);
         expect(l.refreshMinutes).toBeGreaterThan(0);
       } else {
         expect(l.wms).toBeUndefined();

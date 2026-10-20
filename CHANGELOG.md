@@ -4,6 +4,97 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.33.0] — 2026-10-17 — La neve vista da 5 satelliti, e quello che non hanno visto
+
+Nasce da una segnalazione dell'utente: dopo la prima neve su Maiella e Gran Sasso ha acceso
+«Copertura nevosa» e non ha potuto capire **se il layer fosse rotto o se la neve non ci
+fosse**. La misura (`backlog/docs/neve-satellite-analisi.md`, con lo script accanto per
+rifarla) ha dato ragione a tutte e due le letture: la neve del 13/10 il 15 era quasi
+sparita, ma il layer non poteva dirlo, e aveva quattro difetti veri. Il layer è rifatto.
+
+### Added
+- **Cinque satelliti invece di uno, e tre giorni invece di un'immagine sola.** MODIS Terra
+  e Aqua, VIIRS NOAA-20, NOAA-21 e S-NPP: in ogni punto la mappa mostra **l'ultima vista
+  senza nubi** degli ultimi 3 giorni, dal passaggio più recente. Un passaggio al giorno
+  lasciava quasi ogni versante dietro le nubi; con cinque sensori e tre giorni, sulle
+  quattro cime della misura, la zona «non vista» era lo 0% il 14 e il 16 ottobre (l'87%,
+  281 pixel su 324, nei tre giorni di pioggia dell'8-10). I giorni sono quelli UTC di
+  GIBS, e se per una zona nessun sensore ha ancora pubblicato oggi i tre giorni sono ieri e
+  i due prima: altrimenti al mattino, prima che arrivi Terra, sarebbero stati due —
+  proprio quando si guarda prima di partire.
+- **Il grigio dice dove il satellite non ha visto il suolo.** Nube e «niente neve» erano
+  tutte e due trasparenti, cioè identiche a schermo: un versante innevato sotto un fronte
+  sembrava spoglio. Ora dove nessun passaggio ha visto il suolo c'è un velo grigio, e la
+  legenda ha la voce «non visto (nubi)» presa dalla stessa costante del disegno.
+- **Il pannello dice di che giorni e di quali satelliti è la mappa**: «Viste dal 15 al 17
+  ottobre · MODIS Terra, Aqua · VIIRS NOAA-20, NOAA-21, S-NPP», al posto di «Immagine del
+  …». Solo i sensori che hanno dato davvero almeno un pixel, e solo le mattonelle a schermo.
+- **Pressione lunga su un punto: cosa ha visto il satellite lì, e quando.** «Neve (indice
+  54) · vista il 16 ottobre da MODIS Aqua», «Senza neve · vista il 17 ottobre da VIIRS
+  NOAA-20», «Non visto: nubi in tutti i passaggi dal 15 al 17 ottobre». Fra il 13 e il 15
+  ottobre la neve della Maiella è passata da 60 pixel a 6: l'età della vista conta, e qui
+  si legge pixel per pixel. Il pannello dice il gesto, e con un layer WMS interrogabile acceso
+  insieme il popup resta uno solo.
+- **Aggiornamento ogni ora, sul posto.** GIBS pubblica i passaggi uno alla volta durante il
+  giorno (Terra circa un'ora dopo il passaggio, VIIRS fra 2 e 8 ore): ogni ora si chiedono
+  di nuovo solo quelli che mancavano e quelli di oggi, e ogni mattonella tiene il suo
+  disegno finché il nuovo non è pronto: la neve non sparisce dalla mappa mentre si
+  aggiorna. «Aggiornato alle» è l'ora della composizione più vecchia a schermo, così una
+  mattonella composta ore fa non passa per fresca.
+
+### Fixed
+- **«Nessun dato» arrivava come un 200, e a volte come rumore disegnato.** Per un passaggio
+  non ancora pubblicato GIBS non risponde con un errore: risponde 200 senza l'header
+  `layer-identifier-actual`, con un corpo che cambia a ogni richiesta — vuoto, oppure fino
+  a ~170 KB di strisce colorate che Leaflet disegnava. Il ripiego sul giorno prima non
+  partiva e il pannello dichiarava la data di oggi. Ora le mattonelle si chiedono con
+  `fetch`, perché da un `<img>` gli header non si leggono, e un 200 senza quell'header è
+  un'assenza: il corpo non si legge nemmeno.
+- **Una mattonella in errore faceva scendere di un giorno tutto il layer**, mentre GIBS
+  pubblica a pezzi (404 che diventano 200 qualche ora dopo). Ora ogni mattonella compone i
+  suoi passaggi, e un buco in una non tocca le altre.
+- **La neve si vede.** Il «problema di visibilità» segnalato non era il colore: oltre lo
+  zoom 8 l'immagine veniva stirata con l'interpolazione, sfocata, e mostrata al 60%. Ora
+  ogni pixel (~450 m) è un quadrato netto a qualunque zoom, coi colori ufficiali della
+  scala NASA (giallo → rosso) al 92%.
+- **GIBS passava dalla cache del service worker**: le sue richieste cadevano
+  nell'acchiappatutto di Serwist (un'ora), contro la regola dei dati di emergenza. Ora
+  `NetworkOnly`, come focolai, allerte, radar e meteo.
+
+### Changed
+- **Quando le immagini non arrivano, il layer lo dice, e dice quale dei due casi è.** Un
+  passaggio finito in errore (rete, 5xx) accende «⚠ alcune immagini non sono arrivate»; un
+  404 no, perché è la risposta normale di un passaggio non ancora pubblicato o di un
+  sensore spento (S-NPP smette il 2/11/2026, Terra e Aqua fra fine 2026 e inizio 2027: il
+  composito va avanti con gli altri, senza date di spegnimento scritte nel codice). Se non
+  arriva nessuna immagine ed è colpa della rete, o tutto risponde 404, è un guasto col
+  «Riprova», non un cielo vuoto; «Nessuna immagine negli ultimi 3 giorni» solo quando GIBS
+  ha risposto e non ha pubblicato niente. La pressione lunga distingue allo stesso modo
+  «Immagini non arrivate per questo punto (rete o servizio NASA)» da «Nessuna immagine per
+  questo punto». Un 500 passeggero si riprova una volta, dopo un secondo, prima di
+  contarlo: il 17/10 sono stati 5 su 316 richieste, tutti rientrati al secondo tentativo.
+- **La descrizione avverte dei pixel spuri** in pianura e sui versanti ripidi. Sono a
+  gruppi, quasi tutti di indice 1-20, e nessun filtro li separa bene dalla neve vera:
+  togliere l'indice 1-20 cancellava 98 dei 219 pixel di neve vera sopra i 2000 m del
+  12-14/10. Si disegnano tutti con la stessa forza, e la legenda dice «~1-20: poca neve o
+  incerta».
+- **I PNG di GIBS si decodificano a mano.** Nube e «niente neve» hanno la stessa
+  trasparenza e si distinguono solo dall'RGB della tavolozza, che un canvas perde (provato
+  in Chromium e WebKit: 65.438 pixel trasparenti su 65.438 senza colore). La
+  decompressione usa `DecompressionStream`, cioè Safari dalla 16.4.
+
+### Note
+- **Verificato sui dati veri il 17/10**, sulla build di produzione col service worker
+  attivo, contro `neve-satellite.py composito` dello stesso momento. Sulle quattro cime
+  (Monte Amaro, Corno Grande, Velino, Vettore) la pressione lunga dà lo stato, il giorno e
+  il sensore dello script, e la finestra 9×9 attorno a ciascuna coincide pixel per pixel:
+  324 su 324. Ogni richiesta a GIBS della pagina è passata dal worker alla rete, nessuna è
+  finita nella Cache Storage, e l'header si legge anche attraverso il worker.
+- **Tre minuti di spostamenti a zoom 12** dentro la stessa mattonella z8 (322 mattonelle
+  nuove a schermo) hanno fatto **zero** richieste a GIBS: i passaggi con dati restano in
+  memoria, e gli assenti si ricordano fino al giro orario invece di essere richiesti a ogni
+  mattonella.
+
 ## [0.32.1] — 2026-09-22 — L'arrivo torna sul profilo, e la bussola dice anche «NE»
 
 ### Fixed

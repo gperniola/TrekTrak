@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import EmergencyLayers from '@/components/map/emergency/EmergencyLayers';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { useEmergencyStore } from '@/stores/emergencyStore';
@@ -29,6 +29,13 @@ jest.mock('@/lib/emergency-api', () => ({
     }],
   }),
 }));
+
+// La sorgente vera, contata: chi la crea e quando dice se la sua memoria si libera.
+jest.mock('@/lib/neve-sorgente', () => {
+  const vera = jest.requireActual('@/lib/neve-sorgente');
+  return { ...vera, creaSorgenteNeve: jest.fn(vera.creaSorgenteNeve) };
+});
+const creaSorgenteNeve = jest.requireMock('@/lib/neve-sorgente').creaSorgenteNeve as jest.Mock;
 
 function setActive(ids: string[]) {
   const settings = useItineraryStore.getState().settings;
@@ -99,5 +106,28 @@ describe('EmergencyLayers', () => {
     render(<EmergencyLayers />);
     await waitFor(() => expect(screen.getByTestId('geojson-layer')).toBeInTheDocument());
     expectPaneReadyAtMount();
+  });
+
+  /*
+    La sorgente della neve tiene fino a ~26 MB di passaggi decodificati. Legata solo al
+    «Riprova», restava viva (e piena) anche a layer spento, per tutta la sessione.
+  */
+  describe('la sorgente della neve vive col suo layer', () => {
+    beforeEach(() => { creaSorgenteNeve.mockClear(); });
+    afterEach(() => { useEmergencyStore.getState().stopLayer('snow-cover'); });
+
+    test('a layer spento non c e, e riaccenderlo ne crea una nuova', () => {
+      render(<EmergencyLayers />);
+      expect(creaSorgenteNeve).not.toHaveBeenCalled();
+
+      act(() => { setActive(['snow-cover']); });
+      expect(creaSorgenteNeve).toHaveBeenCalledTimes(1);
+      const prima = creaSorgenteNeve.mock.results[0].value;
+
+      act(() => { setActive([]); });
+      act(() => { setActive(['snow-cover']); });
+      expect(creaSorgenteNeve).toHaveBeenCalledTimes(2);
+      expect(creaSorgenteNeve.mock.results[1].value).not.toBe(prima);
+    });
   });
 });

@@ -1,8 +1,13 @@
+import type { PngTavolozza } from './png-tavolozza';
+
 /**
- * Copertura nevosa da **NASA GIBS** (MODIS Terra, indice NDSI).
+ * Copertura nevosa da **NASA GIBS** (indice NDSI), composta da cinque sensori — MODIS
+ * Aqua e Terra, VIIRS S-NPP, NOAA-20 e NOAA-21 — su una finestra di tre giorni: un solo
+ * passaggio al giorno lascia scoperta quasi ogni mattonella dietro le nubi.
  *
- * Mattonelle WMTS statiche, senza chiave: viaggiano come `<img>`, quindi il CORS non
- * conta. Un layer da inverno — a settembre sulle Alpi il tile misurato conteneva **0,5%
+ * Mattonelle WMTS statiche, senza chiave, chieste con `fetch` e non come `<img>`: il
+ * «nessun dato» di GIBS si riconosce solo da un header, e da un `<img>` gli header non si
+ * leggono. Un layer da inverno — a settembre sulle Alpi il tile misurato conteneva **0,5%
  * di pixel dipinti** — ma è quello che dice se la neve è già arrivata, e a che quota.
  *
  * ## Quello che NON dipinge, e perché conta
@@ -14,6 +19,8 @@
  * conseguenza va detta a schermo, perché è controintuitiva — **dove non c'è colore, può
  * non esserci neve oppure può esserci una nuvola sopra**. Il satellite non vede sotto le
  * nubi, e un versante nevoso sotto un fronte risulta identico a un versante spoglio.
+ * Per questo la composizione non lascia trasparente la nube: dove nessun passaggio ha
+ * visto il suolo stende un velo grigio (`VELO_NON_VISTO`).
  *
  * ## La scala è gialla-rossa, non bianca
  *
@@ -25,47 +32,120 @@
  */
 
 const BASE = 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best';
-const LAYER = 'MODIS_Terra_NDSI_Snow_Cover';
 
-/**
- * Il set di mattonelle si chiama `GoogleMapsCompatible_Level8`: **otto livelli**, cioè
- * zoom 8 e non oltre. Non è una stima nostra, lo dichiara il `WMTSCapabilities` — e oltre
- * quel livello Leaflet stira l'ultimo disponibile invece di chiedere mattonelle che non
- * esistono.
- */
-export const ZOOM_NATIVO_MASSIMO_NEVE = 8;
+/** Tutti i sensori della composizione, non solo Terra: l'attribuzione nomina le due famiglie. */
+export const ATTRIBUZIONE_NEVE = 'Neve: <a href="https://worldview.earthdata.nasa.gov/">NASA GIBS</a> / MODIS, VIIRS';
 
-export const ATTRIBUZIONE_NEVE = 'Neve: <a href="https://worldview.earthdata.nasa.gov/">NASA GIBS</a> / MODIS Terra';
+export type SensoreNeve = 'aqua' | 'noaa20' | 'snpp' | 'noaa21' | 'terra';
 
-/** Quanti giorni indietro si può arrivare cercando un giorno con dati. */
-export const GIORNI_INDIETRO_MAX = 4;
-
-/** Giorno in forma `YYYY-MM-DD`, in UTC: è il fuso in cui GIBS indicizza i suoi giorni. */
-export function giornoUTC(d: Date): string {
-  return d.toISOString().slice(0, 10);
+export interface DefSensore {
+  id: SensoreNeve;
+  layer: string;
+  famiglia: 'MODIS' | 'VIIRS';
+  nome: string;
 }
 
 /**
- * I giorni da provare, dal più recente.
- *
- * Il capabilities dichiara **oggi** come default, quindi oggi si prova per primo: ma il
- * passaggio del satellite copre una fascia alla volta, e nelle prime ore il mosaico
- * globale è incompleto. Un elenco di ripieghi costa niente e evita di mostrare un layer
- * vuoto quando i dati di ieri ci sono.
+ * Nell'ordine dei passaggi dentro un giorno, **dal piu tardo**: il primo che ha visto il
+ * terreno e' il piu fresco, e in composizione vince. Nessuna data di spegnimento qui: un
+ * sensore che smette di pubblicare lo dice il servizio (404), non il codice.
  */
-export function giorniDaProvare(adesso: Date): string[] {
-  return Array.from({ length: GIORNI_INDIETRO_MAX + 1 }, (_, i) =>
+export const SENSORI_NEVE: readonly DefSensore[] = [
+  { id: 'aqua', layer: 'MODIS_Aqua_NDSI_Snow_Cover', famiglia: 'MODIS', nome: 'Aqua' },
+  { id: 'noaa20', layer: 'VIIRS_NOAA20_NDSI_Snow_Cover', famiglia: 'VIIRS', nome: 'NOAA-20' },
+  { id: 'snpp', layer: 'VIIRS_SNPP_NDSI_Snow_Cover', famiglia: 'VIIRS', nome: 'S-NPP' },
+  { id: 'noaa21', layer: 'VIIRS_NOAA21_NDSI_Snow_Cover', famiglia: 'VIIRS', nome: 'NOAA-21' },
+  { id: 'terra', layer: 'MODIS_Terra_NDSI_Snow_Cover', famiglia: 'MODIS', nome: 'Terra' },
+];
+
+/** Quanti giorni la composizione usa davvero: oggi, ieri e l'altro ieri (o i tre prima di oggi). */
+export const GIORNI_FINESTRA = 3;
+
+/**
+ * Oggi piu i `GIORNI_FINESTRA` precedenti, in UTC. Quattro candidati e non tre: oggi puo'
+ * non essere ancora pubblicato per una mattonella, e allora serve un giorno in piu.
+ */
+export function giorniCandidati(adesso: Date): string[] {
+  return Array.from({ length: GIORNI_FINESTRA + 1 }, (_, i) =>
     giornoUTC(new Date(adesso.getTime() - i * 86_400_000)));
 }
 
 /**
- * Il template per Leaflet. **Attenzione all'ordine: `{y}` prima di `{x}`** — è la
- * convenzione REST del WMTS, l'opposto di quella XYZ a cui somiglia. Con l'ordine
- * scambiato le mattonelle arrivano tutte (200, PNG validi) ma di un altro posto: un
- * errore che non si vede negli errori di rete, solo guardando la mappa.
+ * L'URL di **una** mattonella. Attenzione all'ordine: riga (`y`) prima della colonna
+ * (`x`), la convenzione REST del WMTS, l'opposto di XYZ. Scambiati, le mattonelle
+ * arrivano tutte (200, PNG validi) ma di un altro posto: si vede solo guardando la mappa.
  */
-export function templateNeve(giorno: string): string {
-  return `${BASE}/${LAYER}/default/${giorno}/GoogleMapsCompatible_Level8/{z}/{y}/{x}.png`;
+export function urlMattonellaNeve(layer: string, giorno: string, z: number, x: number, y: number): string {
+  return `${BASE}/${layer}/default/${giorno}/GoogleMapsCompatible_Level8/${z}/${y}/${x}.png`;
+}
+
+/** Codici di pixel della composizione: neve e' 1..100 (l'NDSI stesso). */
+export const SENZA_NEVE = 0;
+export const ACQUA = -1;
+export const NON_VISTO = -2;
+
+const chiave = (r: number, g: number, b: number) => (r << 16) | (g << 8) | b;
+const COLORI_ACQUA = new Set([chiave(0, 0, 255), chiave(35, 35, 117)]);
+const COLORI_NON_VISTO = new Set([
+  chiave(0, 191, 255), chiave(189, 0, 189), chiave(255, 200, 255),
+  chiave(200, 200, 200), chiave(170, 0, 0), chiave(255, 255, 255),
+]);
+
+/**
+ * Un codice per ogni voce della tavolozza (una tavolozza puo' avere meno di 256 voci:
+ * gli indici oltre la fine sono affare di chi legge i pixel, non di questa funzione).
+ *
+ * Il verde puro e' l'unico «senza neve». Una voce trasparente che non riconosciamo e'
+ * `NON_VISTO`, **mai** `SENZA_NEVE`: un colore nuovo del servizio non deve diventare, in
+ * silenzio, la dichiarazione che li' la neve non c'e'.
+ */
+export function classificaTavolozza(t: PngTavolozza): Int8Array {
+  const n = t.tavolozza.length / 3;
+  const out = new Int8Array(n);
+  for (let i = 0; i < n; i++) {
+    const k = chiave(t.tavolozza[i * 3], t.tavolozza[i * 3 + 1], t.tavolozza[i * 3 + 2]);
+    const alfa = t.alfa[i] ?? 255;
+    if (k === chiave(0, 255, 0)) out[i] = SENZA_NEVE;
+    else if (COLORI_ACQUA.has(k)) out[i] = ACQUA;
+    else if (COLORI_NON_VISTO.has(k)) out[i] = NON_VISTO;
+    else if (i >= 1 && i <= 100 && alfa > 0) out[i] = i;
+    else out[i] = NON_VISTO;
+  }
+  return out;
+}
+
+/** Il limite di latitudine della proiezione delle mattonelle (EPSG:3857). */
+const LAT_MAX_MERCATORE = 85.05112878;
+
+/** La mattonella z8 che contiene il punto e il pixel (0-255) dentro di essa. */
+export function pixelZ8(lat: number, lon: number): { x: number; y: number; px: number; py: number } {
+  const n = 256; // mattonelle per lato a z8
+  /*
+    `e.latlng` di Leaflet non e' riportato nel mondo principale: una pressione lunga su una
+    copia del mondo chiedeva una mattonella fuori griglia. La longitudine si riporta in
+    [-180, 180) (solo se ne esce: dentro, il conto resta quello di sempre, bit per bit), la
+    latitudine si ferma al limite della proiezione.
+  */
+  const lonMondo = lon >= -180 && lon < 180 ? lon : ((((lon + 180) % 360) + 360) % 360) - 180;
+  const latMondo = Math.max(-LAT_MAX_MERCATORE, Math.min(LAT_MAX_MERCATORE, lat));
+  const fx = ((lonMondo + 180) / 360) * n;
+  const rad = (latMondo * Math.PI) / 180;
+  // Al limite la proiezione puo' dare un soffio meno di 0 o piu' di n: si resta dentro la griglia.
+  const fy = Math.min(Math.max(((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) * n, 0), n - 1e-9);
+  const x = Math.floor(fx);
+  const y = Math.floor(fy);
+  return { x, y, px: Math.floor((fx - x) * 256), py: Math.floor((fy - y) * 256) };
+}
+
+/** Opacita' della neve (su 255) e velo «non visto»: un'unica costante per disegno e legenda. */
+export const OPACITA_NEVE = 235;
+export const VELO_NON_VISTO = [71, 85, 105, 115] as const;
+export const COLORE_VELO_CSS =
+  `rgba(${VELO_NON_VISTO[0]},${VELO_NON_VISTO[1]},${VELO_NON_VISTO[2]},${(VELO_NON_VISTO[3] / 255).toFixed(2)})`;
+
+/** Giorno in forma `YYYY-MM-DD`, in UTC: è il fuso in cui GIBS indicizza i suoi giorni. */
+export function giornoUTC(d: Date): string {
+  return d.toISOString().slice(0, 10);
 }
 
 /**
@@ -76,7 +156,7 @@ export function templateNeve(giorno: string): string {
  * in questo progetto, con le legende EFFIS della v0.11.6.
  */
 export const LEGENDA_NEVE = [
-  { color: '#f0f080', label: 'Indice neve ~1-20 (poca)' },
+  { color: '#f0f080', label: '~1-20: poca neve o incerta' },
   { color: '#f0d283', label: '~21-40' },
   { color: '#f0b488', label: '~41-60' },
   { color: '#f0968d', label: '~61-80' },

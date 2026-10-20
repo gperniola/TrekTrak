@@ -97,4 +97,69 @@ describe('EmergencyFeatureInfo', () => {
     expect(lastPopupContent()).toContain('&lt;b&gt;');
     expect(lastPopupContent()).toContain('&quot;c&quot;');
   });
+
+  describe('neve', () => {
+    const visto = { stato: 'neve', ndsi: 45, giorno: '2026-10-15', sensore: 'terra' } as const;
+    const frase = 'Neve (indice 45) · vista il 15 ottobre da MODIS Terra';
+    const neveCon = (punto: jest.Mock) => ({ punto, mattonella: jest.fn(), dimensioneCache: () => 0 }) as never;
+
+    test('col solo layer neve, la pressione lunga dice cosa ha visto il satellite', async () => {
+      global.fetch = jest.fn();
+      render(<EmergencyFeatureInfo defs={[]} neve={neveCon(jest.fn().mockResolvedValue(visto))} />);
+      __fireMapEvent('contextmenu', { latlng });
+      await waitFor(() => expect(lastPopupContent()).toContain(frase));
+      expect(global.fetch).not.toHaveBeenCalled();
+      expect(lastPopupContent()).not.toContain('Nessun dato di emergenza');
+    });
+
+    test('neve e WMS insieme: un popup solo', async () => {
+      global.fetch = jest.fn().mockResolvedValue({ ok: true, text: async () => REAL_HTML });
+      render(<EmergencyFeatureInfo defs={[burned]} neve={neveCon(jest.fn().mockResolvedValue(visto))} />);
+      __fireMapEvent('contextmenu', { latlng });
+      await waitFor(() => expect(lastPopupContent()).toContain('2026-07-06'));
+      expect(__openedPopups()).toHaveLength(1);
+      expect(lastPopupContent()).toContain(frase);
+      expect(lastPopupContent().indexOf(frase)).toBeLessThan(lastPopupContent().indexOf('2026-07-06'));
+    });
+
+    /*
+      Un grigio scritto a mano (`#374151`, il gray-700 del tema scuro) spariva o pesava a
+      seconda del tema: i divisori del popup seguono la stessa variabile del testo tenue.
+    */
+    test('i divisori del popup seguono il tema', async () => {
+      global.fetch = jest.fn().mockResolvedValue({ ok: true, text: async () => REAL_HTML });
+      // Due WMS e la neve: il divisore fra neve e WMS e quello fra due risultati WMS.
+      render(<EmergencyFeatureInfo defs={[burned, burned]} neve={neveCon(jest.fn().mockResolvedValue(visto))} />);
+      __fireMapEvent('contextmenu', { latlng });
+      await waitFor(() => expect(lastPopupContent()).toContain('2026-07-06'));
+      const html = lastPopupContent();
+      expect(html).not.toContain('#374151');
+      expect(html.match(/<hr style="border:0;border-top:1px solid var\(--tenue\);margin:6px 0">/g)).toHaveLength(2);
+    });
+
+    test('neve che fallisce non spegne il WMS', async () => {
+      global.fetch = jest.fn().mockResolvedValue({ ok: true, text: async () => REAL_HTML });
+      render(<EmergencyFeatureInfo defs={[burned]} neve={neveCon(jest.fn().mockRejectedValue(new Error('x')))} />);
+      __fireMapEvent('contextmenu', { latlng });
+      await waitFor(() => expect(lastPopupContent()).toContain('2026-07-06'));
+      expect(lastPopupContent()).toContain('Neve: dettagli non disponibili');
+    });
+
+    test('una pressione lunga vecchia non riscrive il popup di quella nuova', async () => {
+      global.fetch = jest.fn();
+      let vecchia!: (v: unknown) => void;
+      const punto = jest.fn()
+        .mockImplementationOnce(() => new Promise((r) => { vecchia = r; }))
+        .mockResolvedValueOnce({ stato: 'senza', giorno: '2026-10-14', sensore: 'aqua' });
+      render(<EmergencyFeatureInfo defs={[]} neve={neveCon(punto)} />);
+      __fireMapEvent('contextmenu', { latlng });
+      __fireMapEvent('contextmenu', { latlng });
+      await waitFor(() => expect(lastPopupContent()).toContain('Senza neve'));
+      vecchia(visto);
+      await new Promise((r) => setTimeout(r, 0));
+      expect(lastPopupContent()).toContain('Senza neve');
+      // Il popup vecchio e' un oggetto a parte: si guardano tutti, non solo l'ultimo.
+      expect(__openedPopups().map((x) => x.content).join('')).not.toContain(frase);
+    });
+  });
 });

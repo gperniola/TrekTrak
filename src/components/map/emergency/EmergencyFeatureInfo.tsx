@@ -1,15 +1,19 @@
 'use client';
 
+import { useRef } from 'react';
 import L from 'leaflet';
 import { useMap, useMapEvents } from 'react-leaflet';
 import type { EmergencyLayerDef } from '@/lib/emergency-layers';
 import { queryFeatureInfo, type FeatureInfoResult } from '@/lib/wms-featureinfo';
 import { escapeMarkup } from '@/lib/escape-markup';
+import type { SorgenteNeve } from '@/lib/neve-sorgente';
+import { testoPunto } from '@/lib/neve-composito';
 import { wmsTimeParam } from './EmergencyWmsLayer';
 
 /**
- * Rende interrogabili i layer WMS di emergenza con una **pressione lunga** sulla mappa
- * (click destro su desktop).
+ * Rende interrogabili con una **pressione lunga** sulla mappa (click destro su desktop) i
+ * layer WMS di emergenza che rispondono a GetFeatureInfo, e la copertura nevosa: per quella
+ * il popup dice cosa ha visto il satellite nel punto, e quando.
  *
  * Perché non il click normale: sulla mappa il click significa già "aggiungi waypoint",
  * ed è il gesto centrale dell'app. Sovraccaricarlo ricreerebbe esattamente il difetto
@@ -20,13 +24,26 @@ import { wmsTimeParam } from './EmergencyWmsLayer';
  * Leaflet fa già `preventDefault` sul contextmenu, quindi il menu del browser non
  * compare.
  */
-export function EmergencyFeatureInfo({ defs }: { defs: EmergencyLayerDef[] }) {
+export function EmergencyFeatureInfo({
+  defs,
+  neve = null,
+}: {
+  defs: EmergencyLayerDef[];
+  neve?: SorgenteNeve | null;
+}) {
   const map = useMap();
+  // Una pressione lunga che ne segue un'altra ancora in corso la sostituisce: la
+  // vecchia non deve riaprire un popup (o riscriverlo) quando la sua risposta arriva tardi.
+  const richiestaRef = useRef<AbortController | null>(null);
 
   useMapEvents({
     contextmenu: (e) => {
       const queryable = defs.filter((d) => d.wms?.queryable);
-      if (queryable.length === 0) return;
+      if (queryable.length === 0 && !neve) return;
+
+      richiestaRef.current?.abort();
+      const richiesta = new AbortController();
+      richiestaRef.current = richiesta;
 
       const popup = L.popup({ className: 'emergency-featureinfo-popup' })
         .setLatLng(e.latlng)
@@ -40,6 +57,14 @@ export function EmergencyFeatureInfo({ defs }: { defs: EmergencyLayerDef[] }) {
       const point = map.latLngToContainerPoint(e.latlng);
 
       void (async () => {
+        // La neve parte subito e corre in parallelo al WMS. `punto` non rifiuta se non
+        // per l'abort nostro: qualunque altro guasto diventa «dettagli non disponibili».
+        const rigaNeve: Promise<string | null> = neve
+          ? neve.punto(e.latlng.lat, e.latlng.lng, richiesta.signal).then(
+              (stato) => testoPunto(stato),
+              () => 'Neve: dettagli non disponibili',
+            )
+          : Promise.resolve(null);
         const results: Array<{ def: EmergencyLayerDef; result: FeatureInfoResult }> = [];
         let failed = false;
         for (const def of queryable) {
@@ -57,7 +82,9 @@ export function EmergencyFeatureInfo({ defs }: { defs: EmergencyLayerDef[] }) {
             failed = true;
           }
         }
-        popup.setContent(renderContent(results, failed));
+        const testoNeve = await rigaNeve;
+        if (richiesta.signal.aborted) return;
+        popup.setContent(renderContent(results, failed, testoNeve, queryable.length > 0));
       })();
     },
   });
@@ -65,10 +92,34 @@ export function EmergencyFeatureInfo({ defs }: { defs: EmergencyLayerDef[] }) {
   return null;
 }
 
+/*
+  Il divisore segue il tema, come il testo tenue: un grigio scritto a mano (`#374151`, il
+  gray-700 del tema scuro) andava bene su un tema solo.
+*/
+const DIVISORE = '<hr style="border:0;border-top:1px solid var(--tenue);margin:6px 0">';
+
 function renderContent(
   results: Array<{ def: EmergencyLayerDef; result: FeatureInfoResult }>,
-  failed: boolean
+  failed: boolean,
+  testoNeve: string | null,
+  haWms: boolean
 ): string {
+  const riga = testoNeve === null
+    ? ''
+    : `<div style="font-size:12px;font-weight:600">${escapeMarkup(testoNeve)}</div>`;
+  const wms = renderWms(results, failed, haWms);
+  if (!riga) return wms;
+  if (!wms) return riga;
+  return riga + DIVISORE + wms;
+}
+
+function renderWms(
+  results: Array<{ def: EmergencyLayerDef; result: FeatureInfoResult }>,
+  failed: boolean,
+  haWms: boolean
+): string {
+  // Col solo layer neve non c'e' nessun WMS da interrogare: niente riga «nessun dato».
+  if (!haWms) return '';
   if (results.length === 0) {
     // "Qui non c'è nulla" è un'informazione, non un errore: va detta come tale.
     const msg = failed
@@ -91,5 +142,5 @@ function renderContent(
         .join('')
       + '</div>'
     ))
-    .join('<hr style="border:0;border-top:1px solid #374151;margin:6px 0">');
+    .join(DIVISORE);
 }

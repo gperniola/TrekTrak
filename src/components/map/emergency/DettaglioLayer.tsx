@@ -36,8 +36,11 @@ export function DettaglioLayer(
           </span>
         ))}
       </div>
-      {/* Il gesto va detto: una pressione lunga non si scopre da sola. */}
-      {def.wms?.queryable && (
+      {/*
+        Il gesto va detto: una pressione lunga non si scopre da sola. Anche per la neve, che
+        non e' un WMS ma risponde allo stesso gesto (cosa ha visto il satellite, e quando).
+      */}
+      {(def.wms?.queryable || def.kind === 'neve') && (
         <div className="text-[10px] text-gray-400">
           Tieni premuto sulla mappa per i dettagli dell&apos;area
         </div>

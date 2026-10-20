@@ -3,6 +3,7 @@
 import { useEmergencyStore } from '@/stores/emergencyStore';
 import { dataBollettino } from '@/lib/avalanche-api';
 import { descriviEta, type FinestraRilevazioni } from '@/lib/eta-focolai';
+import { testoViste } from '@/lib/neve-composito';
 import type { EmergencyLayerDef } from '@/lib/emergency-layers';
 import type { LayerRuntime } from '@/stores/emergencyStore';
 
@@ -34,7 +35,10 @@ export function AvvisiLayer(
 ) {
   const retryLayer = useEmergencyStore((s) => s.retryLayer);
   const avalanche = useEmergencyStore((s) => s.avalanche);
-  const xyzGiorno = useEmergencyStore((s) => s.xyzGiorno);
+  const neve = useEmergencyStore((s) => s.neve);
+  // Tutte le mattonelle a schermo coperte da nubi: nessun giorno ha contribuito, e una riga
+  // «Viste» vuota non direbbe niente. Lo dicono gia' il velo e la legenda.
+  const viste = def.id === 'snow-cover' && neve != null ? testoViste(neve) : '';
 
   return (
     <div className="space-y-0.5 pb-1.5">
@@ -73,7 +77,10 @@ export function AvvisiLayer(
               ? '⚠ molti eventi in corso: ne vedi solo i primi 300'
               : def.id === 'avalanche-danger'
                 ? '⚠ bollettino incompleto: qualche servizio regionale non ha risposto'
-                : '⚠ dati parziali: alcune fonti non hanno risposto'}
+                : def.id === 'snow-cover'
+                  // Un passaggio tentato e' finito in errore: poteva cambiare qualche pixel.
+                  ? '⚠ alcune immagini non sono arrivate'
+                  : '⚠ dati parziali: alcune fonti non hanno risposto'}
         </div>
       )}
       {/* Prima questo avviso stava attaccato all'orario; ora che l'orario è materiale di
@@ -96,10 +103,10 @@ export function AvvisiLayer(
 
         Vale per i due layer che mostrano una giornata precisa e non "adesso": il
         bollettino valanghe (uno al giorno, e in stagione quello del pomeriggio vale per
-        il giorno dopo) e l'immagine satellitare della neve (un passaggio al giorno, e col
-        ripiego puo' essere di ieri). L'orario in cui li abbiamo CHIESTI non dice niente
-        su quale giornata stiano descrivendo: e' la distinzione che in questo progetto e'
-        gia' costata due rilasci.
+        il giorno dopo) e la neve da satellite (un composito degli ultimi giorni: la riga
+        dice da quali giorni e da quali sensori). L'orario in cui li abbiamo CHIESTI non
+        dice niente su quale giornata stiano descrivendo: e' la distinzione che in questo
+        progetto e' gia' costata due rilasci.
       */}
       {def.id === 'avalanche-danger' && avalanche?.bulletinDate != null && runtime.status === 'ready' && (
         <div className="text-[10px] text-gray-300">
@@ -107,10 +114,8 @@ export function AvvisiLayer(
           {avalanche.zones.length === 1 ? ' zona' : ' zone'} in questa vista
         </div>
       )}
-      {def.id === 'snow-cover' && xyzGiorno['snow-cover'] != null && runtime.status === 'ready' && (
-        <div className="text-[10px] text-gray-300">
-          Immagine del {dataBollettino(xyzGiorno['snow-cover'] as string)}
-        </div>
+      {viste !== '' && runtime.status === 'ready' && (
+        <div className="text-[10px] text-gray-300">{viste}</div>
       )}
       {/* Giornata calma: senza questa riga un layer acceso su una mappa vuota è
           indistinguibile da un layer rotto, e sono la maggioranza dei giorni. */}

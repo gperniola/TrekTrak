@@ -1,4 +1,4 @@
-import { dislivello, distanza, gradi, km, metri, numero, percento } from '@/lib/formato';
+import { conPreposizione, giornoMeseLungo, dislivello, distanza, gradi, km, metri, numero, percento } from '@/lib/formato';
 import { parseDecimale } from '@/components/shared/NumberInput';
 
 describe('numeri scritti in italiano', () => {
@@ -96,5 +96,48 @@ describe('dislivello', () => {
   test('il segno e quello tipografico, non il trattino', () => {
     expect(dislivello(12, '−')).not.toContain('-');
     expect(dislivello(12, '−').charCodeAt(0)).toBe(0x2212);
+  });
+});
+
+describe('giornoMeseLungo', () => {
+  test('giorno e mese a parole, senza zero davanti', () => {
+    expect(giornoMeseLungo('2026-10-14')).toBe('14 ottobre');
+    expect(giornoMeseLungo('2026-09-30')).toBe('30 settembre');
+    expect(giornoMeseLungo('2026-10-01')).toBe('1 ottobre');
+  });
+
+  test('una stringa non valida torna com\'e\'', () => {
+    expect(giornoMeseLungo('boh')).toBe('boh');
+  });
+});
+
+/*
+  «Viste dal 8», «del 11 ottobre», «vista il 8 ottobre» non sono italiano: 8 e 11 cominciano
+  per vocale («otto», «undici») e l'articolo si elide; il primo del mese si scrive «1°».
+*/
+describe('conPreposizione', () => {
+  test.each([
+    ['da', ['dal 1° ottobre', 'dal 2 ottobre', "dall'8 ottobre", "dall'11 ottobre"]],
+    ['di', ['del 1° ottobre', 'del 2 ottobre', "dell'8 ottobre", "dell'11 ottobre"]],
+    ['a', ['al 1° ottobre', 'al 2 ottobre', "all'8 ottobre", "all'11 ottobre"]],
+    ['il', ['il 1° ottobre', 'il 2 ottobre', "l'8 ottobre", "l'11 ottobre"]],
+  ] as const)('%s', (prep, attesi) => {
+    const giorni = ['2026-10-01', '2026-10-02', '2026-10-08', '2026-10-11'];
+    expect(giorni.map((g) => conPreposizione(prep, g))).toEqual(attesi);
+  });
+
+  test('i giorni che non cominciano per vocale restano col loro articolo', () => {
+    expect(conPreposizione('da', '2026-10-18')).toBe('dal 18 ottobre');
+    expect(conPreposizione('di', '2026-10-21')).toBe('del 21 ottobre');
+    expect(conPreposizione('il', '2026-09-30')).toBe('il 30 settembre');
+  });
+
+  test('senza mese, per il primo giorno di un intervallo nello stesso mese', () => {
+    expect(conPreposizione('da', '2026-10-08', { mese: false })).toBe("dall'8");
+    expect(conPreposizione('da', '2026-10-01', { mese: false })).toBe('dal 1°');
+  });
+
+  test('una stringa che non e un giorno resta com e, con la preposizione', () => {
+    expect(conPreposizione('di', 'boh')).toBe('del boh');
   });
 });

@@ -147,6 +147,10 @@ const serwist = new Serwist({
     { matcher: /^https:\/\/(api|tilecache)\.rainviewer\.com\//i, handler: new NetworkOnly() },
     { matcher: /^https:\/\/api\.open-meteo\.com\//i, handler: new NetworkOnly() },
     { matcher: /^https:\/\/view\.eumetsat\.int\//i, handler: new NetworkOnly() },
+    // Neve (GIBS): un «nessun dato» o un passaggio di ieri serviti da cache come se fossero
+    // attuali sono il difetto che questa regola esiste per evitare; senza, cadrebbero
+    // nell'acchiappatutto `defaultCache`.
+    { matcher: /^https:\/\/gibs\.earthdata\.nasa\.gov\//i, handler: new NetworkOnly() },
     /*
      * Ripari: nessun taglio a 10 secondi. Overpass e' un servizio pubblico che mette
      * in coda le richieste, la nostra query gli concede 20 secondi, e la risposta non

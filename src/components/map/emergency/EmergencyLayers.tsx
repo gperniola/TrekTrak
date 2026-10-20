@@ -1,18 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMap } from 'react-leaflet';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { useEmergencyStore } from '@/stores/emergencyStore';
 import { EMERGENCY_PANE, getEmergencyLayer } from '@/lib/emergency-layers';
 import { dayOptions } from '@/lib/dpc';
+import { creaSorgenteNeve } from '@/lib/neve-sorgente';
+import { inflateDelBrowser } from '@/lib/png-tavolozza';
 import { EmergencyWmsLayer } from './EmergencyWmsLayer';
 import { EmergencyPointsLayer } from './EmergencyPointsLayer';
 import { EmergencyZonesLayer } from './EmergencyZonesLayer';
 import { EmergencyRadarLayer } from './EmergencyRadarLayer';
 import { EmergencyShelterLayer } from './EmergencyShelterLayer';
 import { EmergencyQuakeLayer } from './EmergencyQuakeLayer';
-import { EmergencyXyzLayer } from './EmergencyXyzLayer';
+import { EmergencyNeveLayer } from './EmergencyNeveLayer';
 import { EmergencyAvalancheLayer } from './EmergencyAvalancheLayer';
 import { EmergencyFeatureInfo } from './EmergencyFeatureInfo';
 
@@ -28,6 +30,35 @@ export function EmergencyLayers() {
   const quakes = useEmergencyStore((s) => s.quakes);
   const avalanche = useEmergencyStore((s) => s.avalanche);
   const dpcSelectedDate = useEmergencyStore((s) => s.dpcSelectedDate);
+  const tentativoNeve = useEmergencyStore((s) => s.retryTick['snow-cover'] ?? 0);
+
+  /*
+    La sorgente della neve vive qui e non nel layer: la pressione lunga interroga la stessa.
+    Il popup non legge il composito disegnato a schermo: ricompone la mattonella z8 del
+    punto, ma dalla memoria della sorgente (passaggi con dati e assenti ricordati), quindi
+    di solito senza tornare in rete.
+
+    Una sorgente nuova a ogni «Riprova»: memoria vuota, e il layer, che dipende da lei, si
+    rimonta da capo. E' la garanzia del `retryTick` per i WMS. Le composizioni in corso
+    della vecchia non si fermano: si abbandonano, finiscono per conto loro (ogni passaggio
+    ha il suo timeout) e il layer smontato ne ignora l'esito.
+
+    E nessuna sorgente a layer spento: la sua memoria arriva a ~26 MB di passaggi
+    decodificati, e legata solo al «Riprova» restava piena per tutta la sessione.
+  */
+  const neveAccesa = activeIds.includes('snow-cover');
+  const sorgenteNeve = useMemo(
+    () => {
+      void tentativoNeve; // la chiave del «Riprova»: non entra nella sorgente, la rifa'
+      if (!neveAccesa) return null;
+      return creaSorgenteNeve({
+        fetch: (url, init) => fetch(url, init),
+        inflate: inflateDelBrowser,
+        adesso: () => new Date(),
+      });
+    },
+    [tentativoNeve, neveAccesa],
+  );
 
   // Pane dedicato: sopra i tile (200), sotto i tracciati (overlayPane 400).
   // ATTENZIONE all'ordine: React esegue gli effetti dei FIGLI prima di quelli del padre,
@@ -77,7 +108,7 @@ export function EmergencyLayers() {
         if (def.kind === 'points' && fires) return <EmergencyPointsLayer key={id} points={fires.points} />;
         if (def.kind === 'tiles' && radar) return <EmergencyRadarLayer key={id} radar={radar} />;
         if (def.kind === 'viewport') return <EmergencyShelterLayer key={id} shelters={shelters} />;
-        if (def.kind === 'xyz') return <EmergencyXyzLayer key={id} def={def} />;
+        if (def.kind === 'neve' && sorgenteNeve) return <EmergencyNeveLayer key={id} sorgente={sorgenteNeve} />;
         if (def.kind === 'quakes' && quakes) return <EmergencyQuakeLayer key={id} quakes={quakes} />;
         // Il layer valanghe si monta SEMPRE, anche senza dati: e' lui che interroga la
         // vista, quindi senza montarlo non arriverebbe mai niente da mostrare.
@@ -87,7 +118,9 @@ export function EmergencyLayers() {
         }
         return null;
       })}
-      {queryableDefs.length > 0 && <EmergencyFeatureInfo defs={queryableDefs} />}
+      {(queryableDefs.length > 0 || sorgenteNeve) && (
+        <EmergencyFeatureInfo defs={queryableDefs} neve={sorgenteNeve} />
+      )}
     </>
   );
 }

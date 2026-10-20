@@ -1,14 +1,12 @@
 import { render, screen, act } from '@testing-library/react';
 import { EmergencyQuakeLayer } from '@/components/map/emergency/EmergencyQuakeLayer';
-import { EmergencyXyzLayer } from '@/components/map/emergency/EmergencyXyzLayer';
 import { EmergencyAvalancheLayer } from '@/components/map/emergency/EmergencyAvalancheLayer';
 import { stileZona } from '@/components/map/emergency/EmergencyAvalancheLayer';
 import { useEmergencyStore } from '@/stores/emergencyStore';
-import { getEmergencyLayer } from '@/lib/emergency-layers';
 import { SCALA_EAWS } from '@/lib/avalanche';
 import type { Quake } from '@/lib/quakes-api';
 import type { BollettinoValanghe } from '@/lib/avalanche-api';
-import { __setMapZoom, __setMapBounds, __tileHandlers, __resetTileHandlers } from './__mocks__/react-leaflet';
+import { __setMapZoom, __setMapBounds } from './__mocks__/react-leaflet';
 
 jest.mock('react-leaflet');
 
@@ -61,89 +59,14 @@ describe('terremoti sulla mappa', () => {
   });
 });
 
-describe('copertura nevosa sulla mappa', () => {
-  const def = getEmergencyLayer('snow-cover');
-
-  beforeEach(() => {
-    __resetTileHandlers();
-    useEmergencyStore.setState({
-      layers: { ...useEmergencyStore.getState().layers, 'snow-cover': { status: 'loading', error: null, lastFetch: null } },
-      xyzGiorno: {},
-    });
-  });
-
-  test('mostra le mattonelle del giorno più recente, col tetto di zoom dichiarato', () => {
-    render(<EmergencyXyzLayer def={def} />);
-    const el = screen.getByTestId('tile-layer');
-    expect(el.getAttribute('data-maxnativezoom')).toBe('8');
-    expect(el.getAttribute('data-url')).toContain(new Date().toISOString().slice(0, 10));
-  });
-
-  /**
-   * **Il giorno usato va dichiarato.** Un'immagine di ieri presentata come di oggi è la
-   * classe di difetto più ripetuta di questo progetto: qui il pannello legge il giorno
-   * dallo store, e chi lo scrive è il componente che sa quale ha davvero funzionato.
-   */
-  test('dichiara allo store di che giorno è l immagine', () => {
-    render(<EmergencyXyzLayer def={def} />);
-    expect(useEmergencyStore.getState().xyzGiorno['snow-cover'])
-      .toBe(new Date().toISOString().slice(0, 10));
-    expect(useEmergencyStore.getState().layers['snow-cover'].status).toBe('ready');
-  });
-
-  /**
-   * Il passaggio del satellite copre una fascia alla volta: nelle prime ore il mosaico
-   * globale è incompleto. Senza il ripiego il layer sarebbe vuoto proprio la mattina,
-   * quando lo si guarda per decidere se partire.
-   */
-  /**
-   * **Se non c'e' nessun giorno con immagini, si dice.**
-   *
-   * Prima il componente passava allo store un flag `ultimoTentativo` che lo store
-   * **ignorava**: esaurito l'elenco, il layer restava 'ready' su un giorno che non
-   * risponde, con la mappa vuota — assenza di dati indistinguibile da "niente neve". E'
-   * la stessa classe di difetto di `slim` e del livello utente: valori scritti e riletti
-   * da nessuno.
-   */
-  test('esauriti tutti i giorni, dichiara che immagini non ce ne sono', () => {
-    render(<EmergencyXyzLayer def={def} />);
-    // Un errore per ogni giorno dell'elenco, piu' uno.
-    for (let i = 0; i < 8; i++) {
-      act(() => { __tileHandlers()[0]?.tileerror?.(); });
-    }
-    const runtime = useEmergencyStore.getState().layers['snow-cover'];
-    expect(runtime.status).toBe('nodata');
-    expect(runtime.error).toMatch(/nessuna immagine/i);
-    // E il giorno dichiarato sparisce: non si tiene un'etichetta che non descrive niente.
-    expect(useEmergencyStore.getState().xyzGiorno['snow-cover']).toBeUndefined();
-  });
-
-  /**
-   * Il payload va buttato col layer: e' la regola che lo store dichiara per focolai,
-   * radar e ripari, e l'etichetta del giorno e' payload come gli altri. Tenerla
-   * significherebbe lasciare in giro una data che non descrive piu' niente.
-   */
-  test('spegnere il layer butta anche l etichetta del giorno', () => {
-    render(<EmergencyXyzLayer def={def} />);
-    expect(useEmergencyStore.getState().xyzGiorno['snow-cover']).toBeTruthy();
-    act(() => { useEmergencyStore.getState().stopLayer('snow-cover'); });
-    expect(useEmergencyStore.getState().xyzGiorno['snow-cover']).toBeUndefined();
-  });
-
-  test('se le mattonelle del giorno non ci sono, scende di un giorno', () => {
-    render(<EmergencyXyzLayer def={def} />);
-    const oggi = new Date().toISOString().slice(0, 10);
-    const ieri = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
-    expect(screen.getByTestId('tile-layer').getAttribute('data-url')).toContain(oggi);
-
-    // `tileerror` come lo emette Leaflet quando una mattonella non arriva.
-    act(() => { __tileHandlers()[0]?.tileerror?.(); });
-
-    expect(screen.getByTestId('tile-layer').getAttribute('data-url')).toContain(ieri);
-    // E il giorno dichiarato allo store segue: il pannello deve dire quello vero.
-    expect(useEmergencyStore.getState().xyzGiorno['snow-cover']).toBe(ieri);
-  });
-});
+/*
+  Il `describe('copertura nevosa sulla mappa')` che stava qui provava il ripiego del vecchio
+  layer: una mattonella in errore faceva scendere di un giorno **tutto il layer**. E' il
+  difetto 2 della spec del layer composito (la pubblicazione di GIBS arriva a pezzi, e una
+  mattonella mancante non dice niente delle altre), tolto di proposito: ora la finestra dei
+  giorni si sceglie per mattonella (`neve-sorgente.test.ts`), e lo stato del pannello e' in
+  `neve-store.test.ts` e `neve-composito.test.ts`.
+*/
 
 describe('valanghe sulla mappa', () => {
   beforeEach(() => {

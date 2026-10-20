@@ -2,7 +2,7 @@ import { ATTRIBUZIONE_RADAR } from './radar-api';
 import { ATTRIBUZIONE_RIPARI } from './shelters-api';
 import { ATTRIBUZIONE_VALANGHE } from './avalanche-api';
 import { SCALA_EAWS } from './avalanche';
-import { ATTRIBUZIONE_NEVE, LEGENDA_NEVE, ZOOM_NATIVO_MASSIMO_NEVE, giorniDaProvare as giorniNeve, templateNeve } from './snow-cover';
+import { ATTRIBUZIONE_NEVE, COLORE_VELO_CSS, LEGENDA_NEVE } from './snow-cover';
 import { ATTRIBUZIONE_SISMI } from './quakes-api';
 
 export type EmergencyLayerId = 'fires-hotspots' | 'fires-burned' | 'fires-fwi' | 'dpc-alerts'
@@ -20,7 +20,7 @@ export type EmergencyLayerId = 'fires-hotspots' | 'fires-burned' | 'fires-fwi' |
   due verita' sulla stessa cosa.
 */
 export type EmergencyLayerKind = 'wms' | 'points' | 'zones' | 'tiles' | 'viewport'
-  | 'xyz' | 'quakes' | 'avalanche';
+  | 'neve' | 'quakes' | 'avalanche';
 export type EmergencyCategory = 'incendi' | 'alluvioni' | 'temporali' | 'ripari'
   | 'neve' | 'sismi';
 
@@ -88,22 +88,6 @@ export interface WmsConfig {
   queryable?: boolean;
 }
 
-/**
- * Mattonelle XYZ statiche con una **data** nel percorso (e' il caso di GIBS).
- *
- * Diverso da `wms`: non c'e' nessun `GetMap`, e la data non e' un parametro ma un pezzo
- * dell'URL. `zoomNativoMassimo` qui non e' prudenza — il set di mattonelle si chiama
- * `GoogleMapsCompatible_Level8`, e sopra l'8 le mattonelle non esistono affatto.
- */
-export interface XyzConfig {
-  /** Da costruire col giorno: vedi `templateNeve`. */
-  template: (giorno: string) => string;
-  /** I giorni da provare, dal piu' recente. */
-  giorni: (adesso: Date) => string[];
-  opacity: number;
-  zoomNativoMassimo: number;
-}
-
 export interface EmergencyLayerDef {
   id: EmergencyLayerId;
   category: EmergencyCategory;
@@ -114,7 +98,6 @@ export interface EmergencyLayerDef {
   refreshMinutes: number | null;
   legend: LegendEntry[];
   wms?: WmsConfig;
-  xyz?: XyzConfig;
 }
 
 /** Pane Leaflet dedicato: sopra i tile (200), sotto overlayPane dei tracciati (400). */
@@ -344,25 +327,22 @@ export const EMERGENCY_LAYERS: EmergencyLayerDef[] = [
     category: 'neve',
     label: 'Copertura nevosa (satellite)',
     /*
-      La riga che conta e' l'ultima: **dove non c'e' colore puo' esserci una nuvola**.
-      Misurato su un tile vero il 2026-09-03: il 59,8% dei pixel era classe "nube", ed e'
-      trasparente. Senza dirlo, un versante nevoso sotto un fronte si legge come spoglio.
+      Composito di cinque sensori su tre giorni: la data non e' piu' una sola, e la dice la
+      riga «Viste dal …» del pannello. La descrizione dice le due cose che cambiano la
+      lettura della mappa: il grigio e' una nube, non un versante spoglio, e i pixel spuri
+      esistono — nessun filtro li separa bene dalla neve vera, quindi si disegnano tutti
+      e si avverte.
     */
-    description: 'Indice di neve MODIS, un passaggio al giorno. Dettaglio ~500 m, '
-      + 'oltre lo zoom 8 l\u2019immagine \u00e8 stirata. Dove non c\u2019\u00e8 colore pu\u00f2 esserci una nuvola: '
-      + 'il satellite non vede sotto le nubi',
-    kind: 'xyz',
+    description: 'Neve vista dai satelliti MODIS e VIIRS: per ogni punto, l’ultima vista '
+      + 'senza nubi degli ultimi 3 giorni. Dettaglio ~450 m. Grigio = non visto per le nubi. '
+      + 'In pianura e sui versanti ripidi possono comparire pixel spuri',
+    kind: 'neve',
     attribution: ATTRIBUZIONE_NEVE,
-    // Un passaggio al giorno: chiedere piu' spesso non cambia l'immagine. Serve pero' a
-    // `isStale`, come per gli altri layer a mattonelle.
+    // Il componente ridisegna ogni ora; questo serve solo a `isStale`, che dichiara vecchio
+    // un layer le cui mattonelle hanno smesso di riferire.
     refreshMinutes: 180,
-    legend: LEGENDA_NEVE.map((v) => ({ color: v.color, label: v.label })),
-    xyz: {
-      template: templateNeve,
-      giorni: giorniNeve,
-      opacity: 0.6,
-      zoomNativoMassimo: ZOOM_NATIVO_MASSIMO_NEVE,
-    },
+    // Colori della legenda e del disegno dalle stesse costanti: non possono divergere.
+    legend: [...LEGENDA_NEVE, { color: COLORE_VELO_CSS, label: 'non visto (nubi)' }],
   },
   {
     id: 'earthquakes',
