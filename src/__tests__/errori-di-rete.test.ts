@@ -1,16 +1,19 @@
 import { fetchAvalanche } from '@/lib/avalanche-api';
 import { fetchQuakes } from '@/lib/quakes-api';
+import { fetchRadarIndex } from '@/lib/radar-api';
 import { CLIENT_TIMEOUT_MS } from '@/lib/safe-json';
+import { fetchRouteForecast } from '@/lib/weather-api';
 
 /**
  * **Senza rete, il messaggio è in italiano.**
  *
  * Una `fetch` che non parte rifiuta con il `TypeError` del browser — «Failed to fetch» su
  * Chrome, «Load failed» su Safari — e un corpo che non è JSON (il portale di un Wi-Fi che
- * risponde con una pagina HTML) con un `SyntaxError`, anch'esso in inglese. Valanghe e
- * terremoti mettevano quel testo a schermo così com'era: «Terremoti (48 h): Failed to
- * fetch», visto il 2026-11-04 a rete spenta su una build di produzione. Gli altri dati di
- * emergenza lo traducevano già (`safeJson`, ora in `safe-json.ts` e usata da tutti).
+ * risponde con una pagina HTML) con un `SyntaxError`, anch'esso in inglese. Valanghe,
+ * terremoti, radar e meteo del percorso mettevano quel testo a schermo così com'era:
+ * «Terremoti (48 h): Failed to fetch», visto il 2026-11-04 a rete spenta su una build di
+ * produzione. Focolai e DPC lo traducevano già, con `safeJson` (ora in `safe-json.ts` e
+ * usata da tutti).
  *
  * Per le valanghe è diventato più frequente dopo la v0.33.1: prima, a rete spenta, il
  * service worker restituiva il bollettino conservato; ora la richiesta fallisce, come
@@ -106,5 +109,56 @@ describe('valanghe senza rete', () => {
     const p = fetchAvalanche(VISTA, 10, ac.signal);
     ac.abort();
     await expect(p).rejects.toThrow();
+  });
+});
+
+/** Il percorso di due punti dei test del meteo: basta che la rete venga chiamata. */
+const PUNTI = [
+  { waypointIndex: 0, lat: 46.4, lon: 11.8, name: 'Rifugio', alt: null },
+  { waypointIndex: 3, lat: 46.45, lon: 11.86, name: 'Forcella', alt: null },
+];
+
+/**
+ * Radar e meteo si chiamano dal browser, verso servizi altrui: come per INGV, quando la
+ * risposta non arriva non si sa quale dei due lati manchi, e il messaggio li dice entrambi.
+ */
+describe.each([
+  ['radar', () => fetchRadarIndex(), 'Rete assente o servizio radar non raggiungibile'],
+  ['meteo del percorso', () => fetchRouteForecast(PUNTI, 2), 'Rete assente o servizio meteo non raggiungibile'],
+])('%s senza rete', (_nome, chiedi, messaggio) => {
+  test.each([
+    ['Chrome', 'Failed to fetch'],
+    ['Safari', 'Load failed'],
+  ])('la fetch che non parte (%s) dice «rete», non il testo del browser', async (_b, testo) => {
+    global.fetch = jest.fn().mockRejectedValue(new TypeError(testo));
+    await expect(chiedi()).rejects.toThrow(messaggio);
+  });
+
+  test('un corpo che non è JSON dice la stessa cosa, non l\'errore del parser', async () => {
+    global.fetch = jest.fn().mockResolvedValue(rispostaNonJson());
+    await expect(chiedi()).rejects.toThrow(messaggio);
+  });
+
+  test('una risposta che non arriva finisce dopo il tempo massimo, con lo stesso messaggio', async () => {
+    jest.useFakeTimers();
+    global.fetch = rispostaCheNonArriva();
+    await finisceDopoIlTempoMassimo(chiedi(), messaggio);
+  });
+});
+
+/**
+ * Il messaggio `{ error }` nel corpo di un errore lo scrivono, in italiano, solo le nostre
+ * route. Quello di un servizio altrui è nella sua lingua: a schermo va il nostro.
+ */
+describe.each([
+  ['terremoti', () => fetchQuakes(new Date()), 'Terremoti non disponibili in questo momento'],
+  ['radar', () => fetchRadarIndex(), 'Radar precipitazioni non raggiungibile'],
+  ['meteo del percorso', () => fetchRouteForecast(PUNTI, 2), 'Previsione non disponibile in questo momento'],
+])('%s: l\'errore di un servizio altrui', (_nome, chiedi, messaggio) => {
+  test('non arriva a schermo nella sua lingua', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false, status: 429, json: async () => ({ error: 'Too Many Requests' }),
+    });
+    await expect(chiedi()).rejects.toThrow(messaggio);
   });
 });

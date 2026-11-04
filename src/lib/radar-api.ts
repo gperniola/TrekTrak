@@ -7,6 +7,8 @@
  * direzione si muove, non a sapere dove sarà.
  */
 
+import { safeJson } from './safe-json';
+
 const INDICE = 'https://api.rainviewer.com/public/weather-maps.json';
 
 export const ATTRIBUZIONE_RADAR = 'Radar precipitazioni: <a href="https://www.rainviewer.com/">RainViewer</a>';
@@ -48,10 +50,14 @@ function frameValido(v: unknown): v is { time: number; path: string } {
 }
 
 export async function fetchRadarIndex(signal?: AbortSignal): Promise<RadarIndex> {
-  const res = await fetch(INDICE, { signal });
-  if (!res.ok) throw new Error('Radar precipitazioni non raggiungibile');
-
-  const d: unknown = await res.json();
+  // Tempo massimo, e un messaggio italiano al posto del testo del browser («Failed to
+  // fetch»), che finiva nell'avviso così com'era. Servizio altrui chiamato dal browser:
+  // il messaggio nomina entrambi i lati.
+  const d = await safeJson(INDICE, {
+    signal,
+    senzaRisposta: 'Rete assente o servizio radar non raggiungibile',
+    nonDisponibile: 'Radar precipitazioni non raggiungibile',
+  });
   const o = d as Record<string, unknown> | null;
   const host = typeof o?.host === 'string' ? o.host : null;
   const radar = o?.radar as Record<string, unknown> | undefined;

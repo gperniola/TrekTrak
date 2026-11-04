@@ -18,7 +18,10 @@ export interface OpzioniJson {
    * nominato il servizio: non si sa quale dei due lati manchi.
    */
   senzaRisposta?: string;
-  /** Una risposta d'errore che non porta un messaggio suo (`{ error }` nel corpo). */
+  /**
+   * Una risposta d'errore senza un messaggio nostro. Il `{ error }` nel corpo lo scrivono
+   * in italiano solo le nostre route: quello di un servizio altrui è nella sua lingua.
+   */
   nonDisponibile?: string;
 }
 
@@ -62,7 +65,8 @@ export async function safeJson(input: string, opzioni: OpzioniJson = {}): Promis
       // Spec §6: 404 = "nessun dato disponibile", non errore. Il pattern serve già
       // ora e la fase 2 ci si appoggia per la stagionalità delle valanghe.
       if (res.status === 404 && nonTrovato) throw new NoDataError(nonTrovato);
-      const body = await res.json().catch(() => null);
+      // Una URL che comincia con «/» è una nostra route.
+      const body = input.startsWith('/') ? await res.json().catch(() => null) : null;
       const upstream = (body as { error?: string } | null)?.error;
       throw new Error(typeof upstream === 'string' && upstream ? upstream : nonDisponibile);
     }
