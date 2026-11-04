@@ -330,12 +330,14 @@ export const EMERGENCY_LAYERS: EmergencyLayerDef[] = [
       Composito di cinque sensori su tre giorni: la data non e' piu' una sola, e la dice la
       riga «Viste dal …» del pannello. La descrizione dice le due cose che cambiano la
       lettura della mappa: il grigio e' una nube, non un versante spoglio, e i pixel spuri
-      esistono — nessun filtro li separa bene dalla neve vera, quindi si disegnano tutti
-      e si avverte.
+      esistono. L'ordine dei sensori (`SENSORI_NEVE`) ne toglie tre quarti; il resto nasce
+      sotto nubi di piu' giorni, e nessun filtro misurato lo separa dalla neve vera senza
+      cancellarne (`backlog/docs/neve-satellite-analisi.md`, «Neve falsa»): si disegna e si
+      avverte.
     */
-    description: 'Neve vista dai satelliti MODIS e VIIRS: per ogni punto, l’ultima vista '
-      + 'senza nubi degli ultimi 3 giorni. Dettaglio ~450 m. Grigio = non visto per le nubi. '
-      + 'In pianura e sui versanti ripidi possono comparire pixel spuri',
+    description: 'Neve vista dai satelliti MODIS e VIIRS: per ogni punto, la vista senza nubi '
+      + 'del giorno più recente, negli ultimi 3. Dettaglio ~450 m. Grigio = non visto per le nubi. '
+      + 'Dove le nubi durano giorni possono restare pixel spuri, anche in pianura',
     kind: 'neve',
     attribution: ATTRIBUZIONE_NEVE,
     // Il componente ridisegna ogni ora; questo serve solo a `isStale`, che dichiara vecchio

@@ -100,9 +100,12 @@ header. Tutte le mattonelle passano da `fetch`.
   da ~935 B è **anch'essa a tavolozza**, e la riconosce solo la regola dell'header.
 - **Cache in memoria** delle mattonelle valide decodificate (per sessione, limitata).
   Nessuna cache persistente: sono dati di emergenza.
-- **Ordine dei passaggi**: dal giorno più recente; dentro un giorno, dal passaggio più
-  tardo (Aqua ~13-15 UTC, VIIRS ~10-13 UTC, Terra ~07-09 UTC). Si scaricano **solo
-  finché servono**: appena ogni pixel della mattonella ha una vista, ci si ferma.
+- **Ordine dei passaggi**: dal giorno più recente; dentro un giorno, ~~dal passaggio più
+  tardo (Aqua ~13-15 UTC, VIIRS ~10-13 UTC, Terra ~07-09 UTC)~~ **prima i VIIRS, poi
+  Terra, poi Aqua** (cambiato il 4/11/2026: con Aqua per primo le nubi prese per neve dai
+  MODIS vincevano sul «senza neve» dei VIIRS; misurato contro Sentinel-2, vedi
+  `backlog/docs/neve-satellite-analisi.md`, «Neve falsa»). Si scaricano **solo finché
+  servono**: appena ogni pixel della mattonella ha una vista, ci si ferma.
 
 ### Decodifica — PNG a mano, non canvas
 

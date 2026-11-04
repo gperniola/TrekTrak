@@ -72,6 +72,66 @@ describe('sorgente neve', () => {
     expect(MONTE_AMARO.x).toBe(138);
   });
 
+  /*
+    Chi vince fra i passaggi dello stesso giorno e' misurato contro Sentinel-2 (13 giornate,
+    `backlog/docs/neve-satellite-analisi.md`, «Neve falsa»): i MODIS dicono neve dove non c'e'
+    10-30 volte piu' dei VIIRS, i VIIRS chiamano nube meta' della neve vera. Con Aqua per
+    primo una nube presa per neve vinceva sul «senza neve» visto da un VIIRS lo stesso
+    giorno.
+  */
+  describe('chi vince nello stesso giorno', () => {
+    const OGGI = '2026-10-16';
+    const AQUA = 'MODIS_Aqua_NDSI_Snow_Cover';
+    const VIIRS = ['VIIRS_NOAA20_NDSI_Snow_Cover', 'VIIRS_SNPP_NDSI_Snow_Cover', 'VIIRS_NOAA21_NDSI_Snow_Cover'];
+    const SENZA = 0;
+    const NUBE_SINTETICA = 101;
+
+    /** Una mattonella tutta di una classe: 0 senza neve, 1-100 neve con quell'indice, 101 nube. */
+    function uniforme(indice: number): Uint8Array {
+      const tavolozza = new Uint8Array(102 * 3);
+      tavolozza.set([0, 255, 0], 0);
+      for (let i = 1; i <= 100; i++) tavolozza.set([240, 240, 128], i * 3);
+      tavolozza.set([0, 191, 255], NUBE_SINTETICA * 3);
+      const alfa = new Uint8Array(102).fill(255);
+      alfa[SENZA] = 0;
+      alfa[NUBE_SINTETICA] = 0;
+      return pngTavolozza({
+        larghezza: 256, altezza: 256, indici: new Uint8Array(256 * 256).fill(indice), tavolozza, alfa,
+      });
+    }
+
+    it('un VIIRS che vede il suolo senza neve vince sulla neve di Aqua', async () => {
+      const { f } = finto({
+        [url(AQUA, OGGI)]: () => dati(uniforme(56)),
+        [url(VIIRS[0], OGGI)]: () => dati(uniforme(SENZA)),
+      });
+      expect(await sorgente(f).punto(42.0858, 14.0858)).toMatchObject({ stato: 'senza', sensore: 'noaa20', giorno: OGGI });
+    });
+
+    // Ogni VIIRS, non solo il primo: un ordine che mettesse Terra davanti a uno di loro
+    // riporterebbe i falsi di Terra sul «senza neve» che quel VIIRS ha visto.
+    it.each([
+      [VIIRS[0], 'noaa20'], [VIIRS[1], 'snpp'], [VIIRS[2], 'noaa21'],
+    ])('il «senza neve» di %s vince sulla neve di Terra e di Aqua', async (layer, sensore) => {
+      const { f } = finto({
+        [url(layer, OGGI)]: () => dati(uniforme(SENZA)),
+        [url(TERRA, OGGI)]: () => dati(uniforme(60)),
+        [url(AQUA, OGGI)]: () => dati(uniforme(56)),
+      });
+      expect(await sorgente(f).punto(42.0858, 14.0858)).toMatchObject({ stato: 'senza', sensore, giorno: OGGI });
+    });
+
+    it('dove i VIIRS vedono nube decide un MODIS, e Terra prima di Aqua', async () => {
+      const nube = () => dati(uniforme(NUBE_SINTETICA));
+      const { f } = finto({
+        ...Object.fromEntries(VIIRS.map((l) => [url(l, OGGI), nube])),
+        [url(TERRA, OGGI)]: () => dati(uniforme(60)),
+        [url(AQUA, OGGI)]: () => dati(uniforme(SENZA)),
+      });
+      expect(await sorgente(f).punto(42.0858, 14.0858)).toMatchObject({ stato: 'neve', ndsi: 60, sensore: 'terra' });
+    });
+  });
+
   it('il riassunto porta l istante della composizione, da adesso()', async () => {
     const { f } = finto({ [url(TERRA, '2026-10-16')]: () => dati(NUBE) });
     const c = await sorgente(f).mattonella(8, 138, 94);

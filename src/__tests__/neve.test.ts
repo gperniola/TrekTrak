@@ -102,12 +102,14 @@ describe('copertura nevosa', () => {
       expect(giorniCandidati(new Date('2026-10-16T23:30:00Z'))[0]).toBe('2026-10-16');
     });
 
-    test('cinque sensori, dal passaggio piu tardo', () => {
-      expect(SENSORI_NEVE.map((s) => s.id)).toEqual(['aqua', 'noaa20', 'snpp', 'noaa21', 'terra']);
-      expect(SENSORI_NEVE.map((s) => s.nome)).toEqual(['Aqua', 'NOAA-20', 'S-NPP', 'NOAA-21', 'Terra']);
+    // L'ordine e' quello in cui i passaggi di un giorno vincono nel composito: misurato
+    // contro Sentinel-2, non per orario (vedi `neve-sorgente.test.ts`, «chi vince»).
+    test('cinque sensori: prima i VIIRS, poi Terra, poi Aqua', () => {
+      expect(SENSORI_NEVE.map((s) => s.id)).toEqual(['noaa20', 'snpp', 'noaa21', 'terra', 'aqua']);
+      expect(SENSORI_NEVE.map((s) => s.nome)).toEqual(['NOAA-20', 'S-NPP', 'NOAA-21', 'Terra', 'Aqua']);
       expect(SENSORI_NEVE.map((s) => s.layer)).toEqual([
-        'MODIS_Aqua_NDSI_Snow_Cover', 'VIIRS_NOAA20_NDSI_Snow_Cover', 'VIIRS_SNPP_NDSI_Snow_Cover',
-        'VIIRS_NOAA21_NDSI_Snow_Cover', 'MODIS_Terra_NDSI_Snow_Cover']);
+        'VIIRS_NOAA20_NDSI_Snow_Cover', 'VIIRS_SNPP_NDSI_Snow_Cover', 'VIIRS_NOAA21_NDSI_Snow_Cover',
+        'MODIS_Terra_NDSI_Snow_Cover', 'MODIS_Aqua_NDSI_Snow_Cover']);
     });
 
     test('le classi vengono dalla tavolozza vera', async () => {
