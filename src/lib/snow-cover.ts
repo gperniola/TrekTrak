@@ -46,16 +46,29 @@ export interface DefSensore {
 }
 
 /**
- * Nell'ordine dei passaggi dentro un giorno, **dal piu tardo**: il primo che ha visto il
- * terreno e' il piu fresco, e in composizione vince. Nessuna data di spegnimento qui: un
- * sensore che smette di pubblicare lo dice il servizio (404), non il codice.
+ * Nell'ordine in cui i passaggi di **uno stesso giorno** vincono in composizione (fra i
+ * giorni vince sempre il piu recente): **prima i VIIRS, poi Terra, poi Aqua**. Non e'
+ * l'ordine degli orari: e' misurato contro Sentinel-2 su 13 giornate
+ * (`backlog/docs/neve-satellite-analisi.md`, «Neve falsa»).
+ *
+ * - I MODIS dicono neve dove non c'e' 10-30 volte piu dei VIIRS (Aqua 4,6% dei pixel senza
+ *   neve, Terra 3,5%, i VIIRS 0,15-0,33%): nubi prese per neve, anche in pianura. Con Aqua
+ *   per primo — l'ordine «dal passaggio piu tardo» — vinceva sul «senza neve» visto da un
+ *   VIIRS poche ore prima: cosi' il 3/11/2026 c'era neve sopra Chieti.
+ * - I VIIRS chiamano «nube» quasi meta' della neve vera, soprattutto quella sottile: dove
+ *   lo fanno il pixel ricade su Terra e poi su Aqua, che la vedono. Terra prima di Aqua
+ *   perche' sbaglia meno in entrambi i sensi.
+ *
+ * Risultato: neve vera mostrata dall'87,8% all'89,6%, neve falsa -77%.
+ * Nessuna data di spegnimento qui: un sensore che smette di pubblicare lo dice il servizio
+ * (404), non il codice.
  */
 export const SENSORI_NEVE: readonly DefSensore[] = [
-  { id: 'aqua', layer: 'MODIS_Aqua_NDSI_Snow_Cover', famiglia: 'MODIS', nome: 'Aqua' },
   { id: 'noaa20', layer: 'VIIRS_NOAA20_NDSI_Snow_Cover', famiglia: 'VIIRS', nome: 'NOAA-20' },
   { id: 'snpp', layer: 'VIIRS_SNPP_NDSI_Snow_Cover', famiglia: 'VIIRS', nome: 'S-NPP' },
   { id: 'noaa21', layer: 'VIIRS_NOAA21_NDSI_Snow_Cover', famiglia: 'VIIRS', nome: 'NOAA-21' },
   { id: 'terra', layer: 'MODIS_Terra_NDSI_Snow_Cover', famiglia: 'MODIS', nome: 'Terra' },
+  { id: 'aqua', layer: 'MODIS_Aqua_NDSI_Snow_Cover', famiglia: 'MODIS', nome: 'Aqua' },
 ];
 
 /** Quanti giorni la composizione usa davvero: oggi, ieri e l'altro ieri (o i tre prima di oggi). */

@@ -16,7 +16,7 @@ import { leggiFixture, pngRgba, pngTavolozza } from '../src/__tests__/fixtures/g
  * - Terra del 16/10 sulla mattonella `8/94/138` -> nubi su Monte Amaro (passaggio vero);
  * - Terra del 15/10 sulla stessa mattonella -> la neve del 13/10 (passaggio vero, il giorno
  *   e' finto: serve una giornata di sole dentro la finestra);
- * - Aqua del 16/10 sulla stessa mattonella -> **200 senza header** con un PNG **a
+ * - NOAA-20 del 16/10 sulla stessa mattonella -> **200 senza header** con un PNG **a
  *   tavolozza** valido, tutto neve rossa (NDSI 100);
  * - tutto il resto -> **200 senza header**, con un PNG RGBA rosso pieno.
  *
@@ -26,9 +26,11 @@ import { leggiFixture, pngRgba, pngTavolozza } from '../src/__tests__/fixtures/g
  * - il rumore RGBA lo respinge gia' il **decodificatore** (non e' a tavolozza), anche senza
  *   guardare l'header;
  * - il corpo a tavolozza si decodifica benissimo: lo ferma **solo la regola dell'header**.
- *   Aqua e' il primo passaggio del giorno, quindi senza quella regola vincerebbe ogni pixel
- *   e la mattonella diventerebbe tutta rossa. Verificato per mutazione: tolto il controllo
- *   dell'header in `neve-rete.ts`, il primo scenario va in rosso.
+ *   NOAA-20 e' il primo passaggio del giorno in composizione (`SENSORI_NEVE`), quindi senza
+ *   quella regola vincerebbe ogni pixel e la mattonella diventerebbe tutta rossa. Va tenuto
+ *   sul primo: su un sensore che viene dopo, i pixel gia' visti da Terra non lo
+ *   lascerebbero vincere, e la prova si indebolirebbe. Verificato per mutazione: tolto il
+ *   controllo dell'header in `neve-rete.ts`, il primo scenario va in rosso.
  */
 
 /** Mezzogiorno UTC: «oggi» per GIBS e' il 16, in qualunque fuso giri il test. */
@@ -76,7 +78,7 @@ const CON_DATI = {
 };
 
 const TERRA = '/MODIS_Terra_NDSI_Snow_Cover/default/';
-const AQUA = '/MODIS_Aqua_NDSI_Snow_Cover/default/';
+const NOAA20 = '/VIIRS_NOAA20_NDSI_Snow_Cover/default/';
 /** Nell'URL di GIBS la `y` viene prima della `x`: z/y/x. */
 const MATTONELLA = '/GoogleMapsCompatible_Level8/8/94/138.png';
 
@@ -90,12 +92,12 @@ async function gibsFinto(page: Page): Promise<void> {
         : null;
     if (corpo) return r.fulfill({ status: 200, contentType: 'image/png', headers: CON_DATI, body: corpo });
     // Senza l'header, come ogni «nessun dato»: solo il corpo e' diverso dal rumore.
-    const aquaQui = qui && url.includes(AQUA) && url.includes('/2026-10-16/');
+    const primoQui = qui && url.includes(NOAA20) && url.includes('/2026-10-16/');
     return r.fulfill({
       status: 200,
       contentType: 'image/png',
       headers: CORS,
-      body: aquaQui ? TAVOLOZZA_SENZA_HEADER : RUMORE,
+      body: primoQui ? TAVOLOZZA_SENZA_HEADER : RUMORE,
     });
   });
 }
@@ -216,7 +218,7 @@ test.describe('il layer neve sullo schermo', () => {
       Nella tavolozza di GIBS l'NDSI 100 e' rosso puro: nei passaggi veri il valore piu'
       alto della neve e' 86, quindi un rosso pieno a schermo puo' venire solo da un «nessun
       dato» disegnato — il rumore RGBA (lo ferma il decodificatore) o il corpo a tavolozza
-      di Aqua (lo ferma solo la regola dell'header).
+      di NOAA-20 (lo ferma solo la regola dell'header).
     */
     expect.soft(c.rosso, 'pixel rossi di un «nessun dato»').toBe(0);
   });
