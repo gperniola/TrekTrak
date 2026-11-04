@@ -199,12 +199,130 @@ decodifica i colori li sceglie l'app.
 
 ---
 
+## Neve falsa: misure del 3-4 novembre 2026
+
+Il 3/11 il layer (composito a 5 sensori, v0.33.0) mostrava neve sopra **Chieti** (330 m).
+Non c'era. Lo script di questa misura è `neve-falsi.py`, nella stessa cartella: tutti i
+numeri qui sotto vengono da lui.
+
+### Il caso: una nube presa per neve, tenuta tre giorni
+
+- La lettura dell'app è giusta. Il mare della mattonella coincide con quello delle quote
+  Terrarium; nella tavolozza l'indice *i* è l'NDSI *i* (1 = `240,240,128`, 100 =
+  `255,0,0`, 0 = verde «senza neve»).
+- Dei 75 pixel di neve entro ~7 km da Chieti, **44 vengono da Aqua del 2/11** (indice
+  55-60). In quel passaggio Aqua vede nube su tutta la terraferma della mattonella, tranne
+  363 pixel di «neve», tutti sotto i 600 m, e **zero** «senza neve». L'immagine a colori
+  veri dello stesso passaggio (`MODIS_Aqua_CorrectedReflectance_TrueColor`) è tutta
+  coperta; in 7-2-1 la nube è azzurra, cioè di ghiaccio.
+- Il composito lo amplifica in due modi. Dentro il giorno vinceva **Aqua**, il primo
+  dell'ordine «dal passaggio più tardo». E una vista sbagliata resta a schermo per tutta la
+  finestra di tre giorni.
+
+### Le regole che **non** funzionano (misurate prima della verità di terreno)
+
+Senza un riferimento, sul solo criterio «sotto i 600 m in autunno è falsa»:
+
+- **Soglia sull'indice.** La spec del layer l'aveva già scartata: la neve fresca e sottile
+  ha indice basso. Con la verità di terreno: soglia 40 = −76% di falsi ma neve vera
+  mostrata dall'87,8% al 73,3%.
+- **Quota relativa** (neve implausibile se il terreno più alto nei dintorni è visto senza
+  neve): −6% di falsi. Le nubi prese per neve stanno a tutte le quote, quindi sporcano
+  anche il terreno di confronto.
+- **Niente neve fra le nubi** (una neve circondata da nube nello stesso passaggio vale come
+  nube): −3% di falsi. Dopo una nevicata le cime restano fra le nubi, e la neve vera si vede
+  negli stessi squarci di quella falsa.
+
+I modelli meteo non bastano come riferimento: sotto i 1000 m sono affidabili (Chieti,
+L'Aquila, Venezia: zero neve, minime +4/+11 °C), ma in quota non vedono la neve (vedi
+sopra).
+
+### La verità di terreno: Sentinel-2
+
+Per ogni pixel GIBS, la classe SCL di Sentinel-2 L2A dello **stesso giorno** (36 campioni
+a 80 m dalla panoramica a 40 m del COG). Il pixel è «neve» se almeno metà dei campioni
+chiari è neve, «senza» se al massimo uno lo è; non si giudica con meno dell'80% di
+campioni chiari. **13 giornate** quasi serene, 2 mosaici 2×2 di mattonelle z8 (Appennino
+centrale; Dolomiti-Veneto-Friuli), tutte le stagioni: neve sottile d'autunno (13/10, 26/10,
+31/10), dopo la fusione (16/10), inverno (10/12, 27/12, 1/1, 25/2, 7/3), primavera (4/4,
+25/4), estate come controllo (5/7, 14/8). In totale 74.130 pixel di neve vera e 1.236.859
+senza neve. Registrazione delle due griglie: l'F1 della neve è massimo a spostamento zero
+o col composito spostato di un pixel verso sud (differenze di 0,01-0,02): allineate entro
+un pixel.
+
+**Per sensore** (solo il passaggio del giorno della scena):
+
+| Sensore | Neve vera vista come neve / nube / senza | Senza neve detta neve |
+|---|---|---|
+| MODIS Aqua | 61% / 29% / 10% | **4,6%** |
+| MODIS Terra | 68% / 28% / 4% | **3,5%** |
+| VIIRS NOAA-20 | 48% / 45% / 8% | 0,33% |
+| VIIRS S-NPP | 44% / 49% / 8% | 0,15% |
+| VIIRS NOAA-21 (in GIBS solo da ottobre 2026: 4 date) | 23% / 75% / 2% | 0,32% |
+
+Le due facce del problema. **I MODIS fanno 10-30 volte i falsi dei VIIRS**: in alcune
+giornate (Dolomiti 26/10, 31/10, 27/12; Appennino 1/1) Aqua e Terra dicono neve sull'11-20%
+dei pixel senza neve, e il 14/8 Aqua da solo dipinge 2.841 pixel di neve sulle Dolomiti.
+**I VIIRS chiamano «nube» quasi metà della neve vera**, soprattutto quella sottile (il
+13/10, 119 pixel quasi tutti sulla Maiella: S-NPP 96%, NOAA-21 86%). La vecchia
+osservazione del 13/10 è quindi confermata: è la maschera nubi di VIIRS.
+
+**Per regola** (composito del giorno della scena, contro Sentinel-2):
+
+| Regola | Neve vera mostrata | Neve vera detta «senza» | Falsi |
+|---|---|---|---|
+| attuale (Aqua, NOAA-20, S-NPP, NOAA-21, Terra) | 87,8% | 11,4% | 48.419 |
+| soglia indice 20 | 84,9% | 14,2% | −38% |
+| soglia indice 40 | 73,3% | 25,9% | −76% |
+| conferma da 2 passaggi | 78,8% | 12,3% | −49% |
+| conferma solo per i MODIS | 79,4% | 12,2% | −48% |
+| VIIRS prima di MODIS (Aqua, poi Terra) | 88,1% | 11,1% | −77% |
+| **VIIRS, poi Terra, poi Aqua** | **89,6%** | **9,6%** | **−77%** |
+| VIIRS prima + conferma per i MODIS | 80,3% | 11,3% | −86% |
+| VIIRS, Terra, Aqua + conferma per Aqua | 87,4% | 9,7% | −78% |
+| solo VIIRS (dopo lo spegnimento dei MODIS) | 66,5% | 8,5% | −89% |
+| niente neve fra le nubi | 87,4% | 11,4% | −3% |
+| quota relativa | 87,8% | 11,4% | −6% |
+
+**«VIIRS, poi Terra, poi Aqua»** dentro lo stesso giorno (l'ordine fra i giorni resta: oggi
+prima di ieri) funziona perché sfrutta i due difetti a incastro. Dove un VIIRS vede il
+suolo senza neve, la sua vista vince sul falso dei MODIS; dove un VIIRS chiama nube la neve
+sottile, il pixel ricade sui MODIS, che la vedono. Terra prima di Aqua perché sbaglia meno
+in entrambi i sensi. Per data, la neve vera mostrata cambia fra −6 punti (Dolomiti 31/10) e
++9 (Appennino 4/4, dove oggi Aqua dice «senza» sul 21% della neve vera e vince per primo);
+il 14/8 sale di 14, ma su 14 pixel. I falsi calano in tutte le 13 date tranne il controllo
+del 5/7 (13 pixel, Aqua senza dati).
+
+### Cosa resta fuori dalla misura
+
+- **Il caso di Chieti.** Sentinel-2 serve cielo sereno, e i falsi peggiori nascono sotto
+  coperture di giorni, dove nessun sensore vede il suolo. Il 3/11, attorno a Chieti, la
+  regola vincente porta i pixel di neve da 75 a 60; la variante con la conferma per Aqua a
+  28, ma costa 2,2 punti di neve vera nel complesso (Dolomiti 27/12: dal 93,3% all'87,8%).
+- **Lo spegnimento dei MODIS** (fine 2026 - inizio 2027): con i soli VIIRS i falsi calano
+  dell'89%, ma la neve vera mostrata scende al 66,5%, e la neve sottile al 27% (13/10) e al
+  36% (4/4). Il layer vedrà meno neve fresca, e lo dovrà dire.
+- La classe neve di Sentinel-2 ha i suoi errori; i pixel «misti» (fra 1 campione e metà) e
+  quelli in ombra (classe 2) non si giudicano.
+
+---
+
 ## Come si rifà la misura
 
 ```
 python3 neve-satellite.py misura --sensori terra,aqua 2026-10-13 2026-10-15
 python3 neve-satellite.py composito --sensori terra,aqua,noaa20,noaa21 2026-10-16 3
 python3 neve-satellite.py vuote "<url di una mattonella di un giorno non pubblicato>" 8
+```
+
+Neve falsa (gira con la sola libreria standard; la prima volta scarica circa 400 MB, quasi
+tutti nei 201 file SCL di Sentinel-2, poi lavora dalla cache):
+
+```
+python3 -I neve-falsi.py regole  apennini 2026-11-03
+python3 -I neve-falsi.py sensori apennini 2026-11-03 2026-11-02 2026-11-01 2026-10-31
+python3 -I neve-falsi.py verita  apennini 2026-10-13 2026-10-16 2025-12-10 2026-01-01 2026-02-25 2026-04-04 2026-07-05
+python3 -I neve-falsi.py verita  dolomiti 2026-10-26 2026-10-31 2025-12-27 2026-03-07 2026-04-25 2026-08-14
 ```
 
 Sentinel-2:
