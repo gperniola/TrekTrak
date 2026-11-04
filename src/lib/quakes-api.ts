@@ -20,6 +20,8 @@
  * puntini che non aiuta a decidere niente.
  */
 
+import { safeJson } from './safe-json';
+
 const BASE = 'https://webservices.ingv.it/fdsnws/event/1/query';
 
 export const ATTRIBUZIONE_SISMI = 'Terremoti: <a href="https://terremoti.ingv.it/">INGV</a> (CC-BY 4.0)';
@@ -139,9 +141,16 @@ export function parseQuakes(dati: unknown): QuakesResult {
 }
 
 export async function fetchQuakes(adesso: Date, signal?: AbortSignal): Promise<QuakesResult> {
-  const res = await fetch(buildQuakesUrl(adesso), { signal });
-  if (!res.ok) throw new Error('Terremoti non disponibili in questo momento');
-  return parseQuakes(await res.json());
+  /*
+    Come gli altri dati di emergenza: tempo massimo, e un messaggio italiano al posto del
+    testo del browser («Failed to fetch»), che finiva a schermo così com'era. Il servizio
+    si chiama dal browser, quindi non si sa quale dei due lati manchi: li dice entrambi.
+  */
+  return parseQuakes(await safeJson(buildQuakesUrl(adesso), {
+    signal,
+    senzaRisposta: 'Rete assente o servizio INGV non raggiungibile',
+    nonDisponibile: 'Terremoti non disponibili in questo momento',
+  }));
 }
 
 /**

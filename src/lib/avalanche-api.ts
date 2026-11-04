@@ -1,4 +1,5 @@
 import type { BBoxGeo, Pericolo } from './avalanche';
+import { safeJson } from './safe-json';
 
 /**
  * Il lato client del pericolo valanghe: chiede alla **nostra** route.
@@ -52,12 +53,14 @@ export async function fetchAvalanche(
   zoom: number,
   signal?: AbortSignal,
 ): Promise<BollettinoValanghe> {
-  const res = await fetch(buildAvalancheUrl(vista, zoom), { signal });
-  if (!res.ok) {
-    const corpo = await res.json().catch(() => null) as { error?: string } | null;
-    throw new Error(corpo?.error ?? 'Bollettino valanghe non disponibile');
-  }
-  const dati = await res.json() as BollettinoValanghe;
+  /*
+    Come gli altri dati di emergenza: tempo massimo, e a schermo un messaggio italiano al
+    posto del testo del browser («Failed to fetch»), che usciva così com'era. Il messaggio
+    della route (`{ error }`) arriva intero.
+  */
+  const dati = await safeJson(buildAvalancheUrl(vista, zoom), {
+    signal, nonDisponibile: 'Bollettino valanghe non disponibile',
+  }) as BollettinoValanghe;
   if (!Array.isArray(dati?.zones)) throw new Error('Bollettino valanghe in un formato non riconosciuto');
   return dati;
 }
