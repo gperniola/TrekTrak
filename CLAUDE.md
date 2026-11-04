@@ -101,8 +101,11 @@ overlay aperti, profilo, `guidaAperta`, `settingsOpen`) · `emergencyStore` (i l
   pubblicato», normale; solo 5xx/rete sono guasti. Catena pura `neve-rete` →
   `neve-composito` → `neve-sorgente`, disegno in `EmergencyNeveLayer` (GridLayer su
   canvas), ricomposizione oraria sul posto. Dati **esclusi dalla cache** del service
-  worker (`NetworkOnly`, GIBS compreso) — tranne, ancora, valanghe (`/api/avalanche`) e
-  terremoti INGV, che cadono nelle regole di `defaultCache`.
+  worker (`NetworkOnly`: tutti i dati di emergenza, meteo e radar). Una fonte dal vivo
+  **nuova** vuole la sua riga in `sw.ts`: senza, cade in `defaultCache`, che la conserva e
+  la restituisce a rete spenta come appena arrivata (il bollettino valanghe fino alla
+  v0.33.1). Va aggiunta anche all'elenco di `service-worker-ordine.test.ts`; il worker vero
+  lo prova `e2e-offline/dati-dal-vivo.spec.ts`.
 - **Libreria condivisa** (Supabase, invito/magic-link, RLS): **SPENTA** dietro
   `LIBRERIA_DISPONIBILE = false` in `lib/funzioni-spente.ts` — il flusso di accesso non
   funziona. Il codice resta; per riaccenderla si rimette `true`. Ingressi gated da

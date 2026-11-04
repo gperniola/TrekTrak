@@ -1,6 +1,8 @@
-import { readFileSync } from 'fs';
+import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { ENDPOINT_OVERPASS } from '@/lib/overpass';
+import { buildQuakesUrl } from '@/lib/quakes-api';
+import { SENSORI_NEVE, urlMattonellaNeve } from '@/lib/snow-cover';
 import { CACHE_TESSERE, TETTO_TESSERE } from '@/lib/tile-offline';
 
 /**
@@ -31,6 +33,104 @@ function righeRegole(): string[] {
     .split('\n')
     .filter((r) => !r.trim().startsWith('*') && !r.trim().startsWith('//') && !r.trim().startsWith('/*'));
 }
+
+interface Regola { re: RegExp; handler: string }
+
+/**
+ * Le regole con un'espressione regolare, nell'ordine, ciascuna col nome del suo gestore
+ * (`NetworkOnly`, `tileHandler`…). Le regole scritte come funzione (Overpass) non si
+ * possono valutare da qui e restano fuori: riguardano solo i loro host.
+ */
+function regoleInOrdine(): Regola[] {
+  const righe = righeRegole();
+  const iDefault = righe.findIndex((r) => r.includes('...defaultCache'));
+  const out: Regola[] = [];
+  righe.slice(0, iDefault).forEach((r, i, tutte) => {
+    const m = r.match(/matcher:\s*\/(.+)\/([a-z]*),/);
+    if (!m) return;
+    const conHandler = r.includes('handler:') ? r : tutte[i + 1] ?? '';
+    const h = conHandler.match(/handler:\s*(?:new\s+)?(\w+)/);
+    out.push({ re: new RegExp(m[1], m[2]), handler: h ? h[1] : '?' });
+  });
+  return out;
+}
+
+const ORIGINE = 'https://trektrak.example';
+
+/**
+ * Chi risponde a una URL: il gestore della **prima** regola che la prende, o
+ * `defaultCache` se nessuna delle nostre la prende. Riproduce la regola del router di
+ * Serwist (e di Workbox) per le espressioni regolari: per un altro sito l'espressione
+ * deve corrispondere **dall'inizio** della URL, altrimenti la regola non vale.
+ */
+function chiRisponde(url: string): string {
+  const u = new URL(url);
+  const stessoSito = u.origin === ORIGINE;
+  for (const { re, handler } of regoleInOrdine()) {
+    re.lastIndex = 0;
+    const m = re.exec(u.href);
+    if (!m) continue;
+    if (!stessoSito && m.index !== 0) continue;
+    return handler;
+  }
+  return 'defaultCache';
+}
+
+/**
+ * **I dati che dichiarano la propria età non si servono mai da cache.**
+ *
+ * Quello che resta fuori da queste regole cade in `defaultCache`, che non è innocuo: le
+ * route `/api/*` vanno in `NetworkFirst` con 24 ore di cache (e la scadenza si conta
+ * dall'ultimo uso, quindi chi apre l'app ogni giorno senza campo non la vede mai
+ * scadere); gli altri siti in `NetworkFirst` per un'ora. Basta la rete spenta, o un
+ * servizio che ci mette più di 10 secondi, e il worker restituisce la copia vecchia: il
+ * pannello scrive «Aggiornato alle» con l'ora di adesso sopra il bollettino di ieri.
+ *
+ * Fino alla v0.33.1 valanghe e terremoti stavano fuori da queste regole, per una svista:
+ * gli altri dati di emergenza c'erano tutti.
+ */
+describe('i dati dal vivo vanno sempre in rete', () => {
+  test('il controllo sa leggere le regole: una mattonella va alla sua cache, un indirizzo qualunque in fondo', () => {
+    expect(chiRisponde('https://a.tile.openstreetmap.org/12/2190/1490.png')).toBe('tileHandler');
+    expect(chiRisponde('https://nominatim.openstreetmap.org/search?q=Chieti')).toBe('defaultCache');
+  });
+
+  test.each([
+    ['focolai', `${ORIGINE}/api/fires?bbox=6.6,35.4,18.6,47.2`],
+    ['allerta DPC', `${ORIGINE}/api/dpc-alerts`],
+    ['valanghe', `${ORIGINE}/api/avalanche?south=42.0000&west=13.0000&north=43.0000&east=14.0000&zoom=9`],
+    ['terremoti', buildQuakesUrl(new Date('2026-11-04T10:00:00Z'))],
+    ['aree bruciate e FWI', 'https://maps.effis.emergency.copernicus.eu/effis?service=WMS&request=GetMap'],
+    ['bollettino DPC', 'https://raw.githubusercontent.com/pcm-dpc/DPC-Bollettini-Criticita-Idrogeologica-Idraulica/master/files/preview/x.json'],
+    ['radar', 'https://api.rainviewer.com/public/weather-maps.json'],
+    ['previsione', 'https://api.open-meteo.com/v1/forecast?latitude=42.35&longitude=14.17'],
+    ['instabilità', 'https://view.eumetsat.int/geoserver/wms?service=WMS&request=GetMap'],
+    ['neve', urlMattonellaNeve(SENSORI_NEVE[0].layer, '2026-11-04', 8, 137, 95)],
+  ])('%s: NetworkOnly', (_, url) => {
+    expect(chiRisponde(url)).toBe('NetworkOnly');
+  });
+
+  /**
+   * L'elenco qui sopra è scritto a mano, e una fonte nuova si può dimenticare in due posti
+   * insieme. Per le **nostre** route no: si leggono dalla cartella, e ognuna deve essere
+   * esclusa dalla cache oppure stare qui sotto con il motivo. Una route aggiunta senza
+   * deciderlo fa fallire il test — è la svista che ha lasciato fuori le valanghe.
+   */
+  const ROUTE_CHE_SI_POSSONO_CONSERVARE: Record<string, string> = {
+    elevation: 'quote del terreno: non cambiano nel tempo, una copia conservata non è mai vecchia',
+    shared: 'solo POST, che il worker non intercetta (e la libreria è spenta)',
+  };
+
+  test('ogni route /api è esclusa dalla cache, o è scritto perché no', () => {
+    const route = readdirSync(join(process.cwd(), 'src', 'app', 'api'), { withFileTypes: true })
+      .filter((v) => v.isDirectory())
+      .map((v) => v.name);
+    expect(route.length).toBeGreaterThan(0);
+    const scoperte = route.filter((nome) => !(nome in ROUTE_CHE_SI_POSSONO_CONSERVARE)
+      && chiRisponde(`${ORIGINE}/api/${nome}?x=1`) !== 'NetworkOnly');
+    expect(scoperte).toEqual([]);
+  });
+});
 
 describe('ordine delle regole del service worker', () => {
   test('`...defaultCache` e la ultima regola dell elenco', () => {

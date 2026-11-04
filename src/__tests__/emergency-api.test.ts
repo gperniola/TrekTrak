@@ -33,6 +33,16 @@ describe('fetchFiresClient', () => {
     global.fetch = jest.fn().mockRejectedValue(new TypeError('Failed to fetch'));
     await expect(fetchFiresClient()).rejects.toThrow('Rete non disponibile');
   });
+
+  /**
+   * Safari non dice «Failed to fetch» ma «Load failed»: il riconoscimento per parole del
+   * messaggio lo lasciava passare, e su iPhone il pannello scriveva il testo inglese. Un
+   * errore di rete della `fetch` è un `TypeError` in ogni browser: si guarda il tipo.
+   */
+  test('fetch di rete fallita su Safari («Load failed») → messaggio in italiano', async () => {
+    global.fetch = jest.fn().mockRejectedValue(new TypeError('Load failed'));
+    await expect(fetchFiresClient()).rejects.toThrow('Rete non disponibile');
+  });
 });
 
 describe('fetchDpcClient', () => {

@@ -1,4 +1,5 @@
 import { chiaveLuogo, type PuntoInterrogato, type SerieOraria } from './route-weather';
+import { safeJson } from './safe-json';
 import type { ModelloMeteo } from './types';
 
 /**
@@ -185,10 +186,17 @@ export async function fetchRouteForecast(
 ): Promise<RouteForecast> {
   if (punti.length === 0) return { serie: { ecmwf: [], icon: [] }, elevations: [] };
 
-  const res = await fetch(buildForecastUrl(punti, giorni), { signal });
-  if (!res.ok) throw new Error('Previsione non disponibile in questo momento');
-
-  return perPunto(leggiRisposta(await res.json()), luoghiDistinti(punti));
+  /*
+    Tempo massimo, e un messaggio italiano al posto del testo del browser («Failed to
+    fetch»), che il pannello mostrava così com'era. 12 secondi bastano: il caso peggiore
+    (12 luoghi, 7 giorni, due modelli) pesa 12 KB compressi, misurato il 2026-11-04.
+  */
+  const dati = await safeJson(buildForecastUrl(punti, giorni), {
+    signal,
+    senzaRisposta: 'Rete assente o servizio meteo non raggiungibile',
+    nonDisponibile: 'Previsione non disponibile in questo momento',
+  });
+  return perPunto(leggiRisposta(dati), luoghiDistinti(punti));
 }
 
 /**
