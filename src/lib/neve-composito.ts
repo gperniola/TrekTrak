@@ -1,5 +1,6 @@
-// Il composito della copertura nevosa: per ogni pixel, l'ultima vista libera da nubi fra i
-// passaggi dei sensori sui giorni della finestra. Modulo puro (niente Leaflet, DOM, store):
+// Il composito della copertura nevosa: per ogni pixel, una vista libera da nubi del giorno
+// piu' recente che ne ha una, fra i giorni della finestra (dentro il giorno, nell'ordine di
+// `SENSORI_NEVE`: non e' l'ultima in orario, e' la piu' affidabile). Modulo puro (niente Leaflet, DOM, store):
 // il componente della mappa importa `L.GridLayer`, che nel finto Leaflet dei test non c'e',
 // quindi tutto cio' che si vuole provare sta qui.
 import { conPreposizione } from '@/lib/formato';

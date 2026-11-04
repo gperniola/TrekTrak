@@ -203,7 +203,14 @@ decodifica i colori li sceglie l'app.
 
 Il 3/11 il layer (composito a 5 sensori, v0.33.0) mostrava neve sopra **Chieti** (330 m).
 Non c'era. Lo script di questa misura è `neve-falsi.py`, nella stessa cartella: tutti i
-numeri qui sotto vengono da lui.
+numeri qui sotto vengono da lui, e tutte le regole sono misurate sopra l'ordine della
+v0.33.0, che nello script è la base.
+
+Attenzione a rifarla. Le misure del 1-3/11 (e le giornate Sentinel-2 del 26 e 31/10) sono
+state fatte il 3-4/11, su dati GIBS in parte **provvisori (NRT)**. GIBS li sostituisce con i
+definitivi (STD), e il 4/11 alcuni passaggi già serviti rispondevano 404 (NOAA-20 del 2 e
+3/11). Rifatte più tardi, quelle date danno numeri un po' diversi; le altre giornate erano
+già chiuse.
 
 ### Il caso: una nube presa per neve, tenuta tre giorni
 
@@ -271,7 +278,7 @@ osservazione del 13/10 è quindi confermata: è la maschera nubi di VIIRS.
 
 | Regola | Neve vera mostrata | Neve vera detta «senza» | Falsi |
 |---|---|---|---|
-| attuale (Aqua, NOAA-20, S-NPP, NOAA-21, Terra) | 87,8% | 11,4% | 48.419 |
+| v0.33.0 (Aqua, NOAA-20, S-NPP, NOAA-21, Terra) | 87,8% | 11,4% | 48.419 |
 | soglia indice 20 | 84,9% | 14,2% | −38% |
 | soglia indice 40 | 73,3% | 25,9% | −76% |
 | conferma da 2 passaggi | 78,8% | 12,3% | −49% |
@@ -288,8 +295,9 @@ osservazione del 13/10 è quindi confermata: è la maschera nubi di VIIRS.
 prima di ieri) funziona perché sfrutta i due difetti a incastro. Dove un VIIRS vede il
 suolo senza neve, la sua vista vince sul falso dei MODIS; dove un VIIRS chiama nube la neve
 sottile, il pixel ricade sui MODIS, che la vedono. Terra prima di Aqua perché sbaglia meno
-in entrambi i sensi. Per data, la neve vera mostrata cambia fra −6 punti (Dolomiti 31/10) e
-+9 (Appennino 4/4, dove oggi Aqua dice «senza» sul 21% della neve vera e vince per primo);
+in entrambi i sensi. Per data, la neve vera mostrata cambia rispetto alla v0.33.0 fra −6 punti
+(Dolomiti 31/10) e +9 (Appennino 4/4, dove Aqua dice «senza» sul 21% della neve vera e nella
+v0.33.0 vinceva per primo);
 il 14/8 sale di 14, ma su 14 pixel. I falsi calano in tutte le 13 date tranne il controllo
 del 5/7 (13 pixel, Aqua senza dati).
 

@@ -39,12 +39,15 @@ in autunno) e sopra quella alta. `regole`: ogni regola, pixel di neve per fascia
 (e attorno a Chieti). `verita`: ogni regola e ogni sensore contro Sentinel-2 dello stesso
 giorno.
 
-Cache: --cache (predefinita ~/.cache/trektrak-neve). Il «nessun dato» di GIBS si ricorda
-solo per i giorni chiusi da piu' di 7 giorni: prima puo' ancora arrivare.
+Cache: --cache (predefinita ~/.cache/trektrak-neve). Di GIBS (dati, «nessun dato» ed elenco
+delle scene) si tengono solo i giorni chiusi da piu' di 7 giorni, in UTC: prima i passaggi
+possono ancora arrivare, o essere sostituiti dal definitivo (NRT -> STD). Per lo stesso
+motivo una misura su giorni recenti, rifatta piu' tardi, puo' dare numeri diversi.
 """
 
 import argparse
 import datetime as dt
+import http.client
 import json
 import math
 import os
@@ -65,8 +68,13 @@ LAYER = {
     'snpp': 'VIIRS_SNPP_NDSI_Snow_Cover', 'noaa21': 'VIIRS_NOAA21_NDSI_Snow_Cover',
     'terra': 'MODIS_Terra_NDSI_Snow_Cover',
 }
-ORDINE_APP = ('aqua', 'noaa20', 'snpp', 'noaa21', 'terra')  # SENSORI_NEVE in snow-cover.ts
+# L'ordine della v0.33.0 (Aqua per primo, «dal passaggio piu' tardo»): la base su cui sono
+# misurate tutte le regole candidate, quindi il predefinito del composito qui. Dalla
+# correzione del 4/11/2026 l'app usa ORDINE_APP (`SENSORI_NEVE` in snow-cover.ts).
+ORDINE_V033 = ('aqua', 'noaa20', 'snpp', 'noaa21', 'terra')
+ORDINE_APP = ('noaa20', 'snpp', 'noaa21', 'terra', 'aqua')
 MODIS = {'aqua', 'terra'}
+BASE = 'v0.33.0 (Aqua per primo)'
 
 MOSAICI = {
     'apennini': {'origine': (137, 94), 'bassa': 600, 'alta': 2000,
@@ -86,16 +94,17 @@ V_NEVE, V_SENZA, V_MISTO, V_ACQUA, V_IGNOTO = 1, 0, 2, -1, -2
 
 # Regole candidate. Ognuna dice quali viste di neve contano.
 REGOLE = {
-    'attuale': {},
+    BASE: {},
     'soglia indice 20': {'soglia': 20},
     'soglia indice 40': {'soglia': 40},
     # `conferma`: i sensori la cui neve conta solo se un'altra vista della finestra vede neve.
-    'conferma 2 passaggi': {'conferma': set(ORDINE_APP)},
+    'conferma 2 passaggi': {'conferma': set(ORDINE_V033)},
     'conferma solo MODIS': {'conferma': MODIS},
     'VIIRS prima di MODIS': {'ordine': ('noaa20', 'snpp', 'noaa21', 'aqua', 'terra')},
-    'VIIRS, Terra, Aqua': {'ordine': ('noaa20', 'snpp', 'noaa21', 'terra', 'aqua')},
+    # La vincente, e l'ordine dell'app dalla correzione del 4/11/2026.
+    'VIIRS, Terra, Aqua': {'ordine': ORDINE_APP},
     'VIIRS prima + conferma MODIS': {'ordine': ('noaa20', 'snpp', 'noaa21', 'aqua', 'terra'), 'conferma': MODIS},
-    'VIIRS, Terra, Aqua + conferma Aqua': {'ordine': ('noaa20', 'snpp', 'noaa21', 'terra', 'aqua'), 'conferma': {'aqua'}},
+    'VIIRS, Terra, Aqua + conferma Aqua': {'ordine': ORDINE_APP, 'conferma': {'aqua'}},
     # Quello che resta quando Terra e Aqua si spengono (avviso Earthdata: fine 2026 - inizio 2027).
     'solo VIIRS': {'ordine': ('noaa20', 'snpp', 'noaa21')},
     'niente neve fra le nubi': {'nube': (12, 0.5)},
@@ -105,40 +114,56 @@ REGOLE = {
 
 # ---------------------------------------------------------------- rete e cache
 
+def giorno_chiuso(giorno):
+    """Piu' di 7 giorni fa, in UTC: il fuso in cui GIBS e Sentinel-2 contano i giorni."""
+    return (dt.datetime.now(dt.timezone.utc).date() - dt.date.fromisoformat(giorno)).days > 7
+
+
 def scarica(url, percorso, gibs=False, giorno=None):
-    """Bytes, oppure None per il «nessun dato» di GIBS (200 senza header) e per i 404."""
+    """Bytes, oppure None per il «nessun dato» di GIBS (200 senza header) e per i 404.
+
+    Di GIBS si tiene in cache solo un giorno chiuso: prima puo' ancora cambiare. I passaggi
+    arrivano a pezzi, e il provvisorio (NRT) viene sostituito dal definitivo (STD): il
+    4/11/2026 NOAA-20 del 2 e del 3/11, servito il giorno prima, rispondeva 404. Una cache
+    dei giorni recenti congelerebbe una versione che GIBS non serve piu'.
+    """
     vuoto = percorso + '.nessuno'
+    chiuso = not giorno or giorno_chiuso(giorno)
     if os.path.exists(percorso):
-        return open(percorso, 'rb').read()
+        with open(percorso, 'rb') as f:
+            return f.read()
     if os.path.exists(vuoto):
         return None
     for tentativo in range(3):
         try:
             with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=120) as r:
                 if gibs and not r.headers.get('layer-identifier-actual'):
-                    _ricorda_vuoto(vuoto, giorno)
+                    if gibs and giorno and chiuso:
+                        _salva(vuoto, b'')
                     return None
                 dati = r.read()
-            tmp = percorso + '.tmp'
-            open(tmp, 'wb').write(dati)
-            os.replace(tmp, percorso)
+            if chiuso:
+                _salva(percorso, dati)
             return dati
         except urllib.error.HTTPError as e:
             if e.code == 404:
-                _ricorda_vuoto(vuoto, giorno)
+                if gibs and giorno and chiuso:
+                    _salva(vuoto, b'')
                 return None
             if e.code < 500 or tentativo == 2:
                 raise
-        except urllib.error.URLError:
+        except (OSError, http.client.HTTPException):
+            # Rete, timeout, connessione chiusa a meta' lettura: si riprova.
             if tentativo == 2:
                 raise
         time.sleep(1 + tentativo)
 
 
-def _ricorda_vuoto(percorso, giorno):
-    # Un giorno recente puo' ancora essere pubblicato: si ricorda l'assenza solo dei giorni chiusi.
-    if giorno and (dt.date.today() - dt.date.fromisoformat(giorno)).days > 7:
-        open(percorso, 'wb').close()
+def _salva(percorso, dati):
+    tmp = percorso + '.tmp'
+    with open(tmp, 'wb') as f:
+        f.write(dati)
+    os.replace(tmp, percorso)
 
 
 # ---------------------------------------------------------------- PNG
@@ -219,6 +244,7 @@ class Mosaico:
         self.nome, self.cache, self.conf = nome, cache, MOSAICI[nome]
         self.ox, self.oy = self.conf['origine']
         self._passaggi = {}
+        self._composti = {}
         self.quota = [0.0] * (L * L)
         for dx in (0, 1):
             for dy in (0, 1):
@@ -237,7 +263,10 @@ class Mosaico:
             tx, ty = self.ox + dx, self.oy + dy
             url = f'{GIBS}/{LAYER[sensore]}/default/{giorno}/GoogleMapsCompatible_Level8/8/{ty}/{tx}.png'
             d = scarica(url, os.path.join(self.cache, f'{sensore}_{giorno}_{tx}_{ty}.png'), gibs=True, giorno=giorno)
-            if d is None:
+            # Come l'app (`decodificaPngTavolozza` -> null -> «nessun dato»): un corpo con
+            # l'header che non e' un PNG a tavolozza da 8 bit non si legge come neve. Byte 24 e
+            # 25 = profondita' e tipo colore dell'IHDR.
+            if d is None or len(d) < 26 or d[24] != 8 or d[25] != 3:
                 self._passaggi[k] = None
             else:
                 _, _, _, idx, plte, trns = png(d)
@@ -245,8 +274,9 @@ class Mosaico:
                 self._passaggi[k] = [cl[v] if v < len(cl) else NONVISTO for v in idx]
         return self._passaggi[k]
 
-    def viste(self, oggi, dx, dy, ordine=ORDINE_APP):
-        """Le viste della mattonella nell'ordine del composito dell'app: [(giorno, sensore, codici)]."""
+    def viste(self, oggi, dx, dy, ordine=ORDINE_V033):
+        """Le viste della mattonella nell'ordine del composito dell'app: [(giorno, sensore, codici)].
+        Dentro il giorno, l'ordine dei sensori `ordine` (predefinito: quello della v0.33.0)."""
         candidati = [giorno_prima(oggi, n) for n in range(4)]
         di_oggi = [(oggi, s, self.passaggio(s, oggi, dx, dy)) for s in ordine]
         di_oggi = [v for v in di_oggi if v[2] is not None]
@@ -340,11 +370,15 @@ def componi_mattonella(viste, regola, implausibili=frozenset()):
 
 
 def componi(m, oggi, nome_regola):
-    """Il composito del mosaico (L*L codici) con una regola."""
+    """Il composito del mosaico (L*L codici) con una regola. Calcolato una volta per giorno
+    e regola: la base serve anche alla registrazione e alla quota relativa."""
+    chiave = (oggi, nome_regola)
+    if chiave in m._composti:
+        return m._composti[chiave]
     regola = REGOLE[nome_regola]
-    ordine = regola.get('ordine', ORDINE_APP)
+    ordine = regola.get('ordine', ORDINE_V033)
     if 'quota' in regola:
-        base = componi(m, oggi, 'attuale')
+        base = componi(m, oggi, BASE)
         implaus = implausibili_per_quota(m, base, *regola['quota'])
     out = [NONVISTO] * (L * L)
     for dx in (0, 1):
@@ -355,6 +389,7 @@ def componi(m, oggi, nome_regola):
             mat = componi_mattonella(m.viste(oggi, dx, dy, ordine), regola, imp)
             for i in range(65536):
                 out[m.indice(dx, dy, i)] = mat[i]
+    m._composti[chiave] = out
     return out
 
 
@@ -405,14 +440,31 @@ def utm(lat, lon, zona):
     return x, y
 
 
-def scene(m, giorno):
-    """Le scene L2A del giorno sul mosaico, dalla meno nuvolosa."""
-    lat_n, lon_o = m.latlon(0)
-    lat_s, lon_e = m.latlon(L * L - 1)
-    corpo = {'collections': ['sentinel-2-l2a'], 'bbox': [lon_o, lat_s, lon_e, lat_n],
-             'datetime': f'{giorno}T00:00:00Z/{giorno}T23:59:59Z', 'limit': 200}
-    req = urllib.request.Request(STAC, data=json.dumps(corpo).encode(), headers={**UA, 'Content-Type': 'application/json'})
-    d = json.load(urllib.request.urlopen(req, timeout=120))
+def scene(m, giorno, cache):
+    """Le scene L2A del giorno sul mosaico, dalla meno nuvolosa. L'elenco si tiene in cache
+    per i giorni chiusi (con le stesse regole delle mattonelle)."""
+    percorso = os.path.join(cache, f'stac_{m.nome}_{giorno}.json')
+    if os.path.exists(percorso):
+        with open(percorso, encoding='utf-8') as f:
+            d = json.load(f)
+    else:
+        lat_n, lon_o = m.latlon(0)
+        lat_s, lon_e = m.latlon(L * L - 1)
+        corpo = {'collections': ['sentinel-2-l2a'], 'bbox': [lon_o, lat_s, lon_e, lat_n],
+                 'datetime': f'{giorno}T00:00:00Z/{giorno}T23:59:59Z', 'limit': 200}
+        for tentativo in range(3):
+            try:
+                req = urllib.request.Request(STAC, data=json.dumps(corpo).encode(),
+                                             headers={**UA, 'Content-Type': 'application/json'})
+                with urllib.request.urlopen(req, timeout=120) as r:
+                    d = json.load(r)
+                break
+            except (OSError, http.client.HTTPException, ValueError):
+                if tentativo == 2:
+                    raise
+                time.sleep(1 + tentativo)
+        if giorno_chiuso(giorno):
+            _salva(percorso, json.dumps(d).encode())
     out = []
     if d.get('numberMatched', 0) > len(d['features']):
         print(f'  attenzione: {d["numberMatched"]} scene, lette {len(d["features"])}')
@@ -482,7 +534,7 @@ def verita_s2(m, giorno, cache):
     centri = [m.latlon(j) for j in range(L * L)]
     per_zona = {}
     usate = []
-    for sc in scene(m, giorno):
+    for sc in scene(m, giorno, cache):
         dati = scarica(sc['href'], os.path.join(cache, sc['id'] + '_SCL.tif'))
         if dati is None:
             continue
@@ -596,7 +648,7 @@ def cmd_verita(m, giorno, cache):
     nm = sum(1 for j in terra if ver[j] == V_MISTO)
     print(f'{m.nome}, {giorno}: Sentinel-2 su {len(usate)} scene; pixel di terra giudicati: '
           f'neve {nv}, senza neve {ns}, misti {nm}, non giudicati {len(terra) - nv - ns - nm}')
-    reg = controllo_registrazione(ver, componi(m, giorno, 'attuale'))
+    reg = controllo_registrazione(ver, componi(m, giorno, BASE))
     print('  registrazione (F1 della neve, composito spostato di un pixel):',
           ', '.join(f'{k}: {v:.3f}' for k, v in reg.items()))
 
@@ -656,6 +708,8 @@ def main():
     ap.add_argument('giorni', nargs='+')
     ap.add_argument('--cache', default=os.path.expanduser('~/.cache/trektrak-neve'))
     a = ap.parse_args()
+    if a.comando == 'regole' and len(a.giorni) != 1:
+        ap.error('regole vuole un giorno solo: quello in cui si guarda la mappa')
     os.makedirs(a.cache, exist_ok=True)
     m = Mosaico(a.mosaico, a.cache)
     if a.comando == 'sensori':

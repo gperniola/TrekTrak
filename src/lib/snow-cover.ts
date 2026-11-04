@@ -53,13 +53,17 @@ export interface DefSensore {
  *
  * - I MODIS dicono neve dove non c'e' 10-30 volte piu dei VIIRS (Aqua 4,6% dei pixel senza
  *   neve, Terra 3,5%, i VIIRS 0,15-0,33%): nubi prese per neve, anche in pianura. Con Aqua
- *   per primo — l'ordine «dal passaggio piu tardo» — vinceva sul «senza neve» visto da un
- *   VIIRS poche ore prima: cosi' il 3/11/2026 c'era neve sopra Chieti.
+ *   per primo — l'ordine «dal passaggio piu tardo» — il suo falso vinceva sul «senza neve»
+ *   visto da un VIIRS lo stesso giorno.
  * - I VIIRS chiamano «nube» quasi meta' della neve vera, soprattutto quella sottile: dove
  *   lo fanno il pixel ricade su Terra e poi su Aqua, che la vedono. Terra prima di Aqua
  *   perche' sbaglia meno in entrambi i sensi.
  *
- * Risultato: neve vera mostrata dall'87,8% all'89,6%, neve falsa -77%.
+ * Risultato: neve vera mostrata dall'87,8% all'89,6%, neve falsa -77%. Quello che l'ordine
+ * NON cura: dove per giorni nessun sensore vede il suolo, la vista falsa di un solo MODIS
+ * resta per tutta la finestra. E' il caso che ha fatto partire la misura (neve sopra Chieti
+ * il 3/11/2026, da Aqua del 2/11): da 75 pixel a 60, non a zero.
+ *
  * Nessuna data di spegnimento qui: un sensore che smette di pubblicare lo dice il servizio
  * (404), non il codice.
  */

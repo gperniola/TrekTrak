@@ -89,8 +89,8 @@ overlay aperti, profilo, `guidaAperta`, `settingsOpen`) · `emergencyStore` (i l
   RainViewer, instabilità Meteosat). Definiti in `emergency-layers.ts` (registry
   `kind → renderer`). Il layer DPC legge la **criticità idrogeologica** (allerta
   ufficiale), **non** la vigilanza meteo. La **neve** (v0.33.0) è un **composito di 5
-  sensori** (MODIS Terra/Aqua, VIIRS NOAA-20/NOAA-21/S-NPP): per pixel l'ultima vista
-  senza nubi degli ultimi 3 giorni con dati, velo grigio dove nessuno ha visto il suolo,
+  sensori** (MODIS Terra/Aqua, VIIRS NOAA-20/NOAA-21/S-NPP): per pixel la vista senza
+  nubi del giorno più recente, negli ultimi 3 giorni con dati, velo grigio dove nessuno ha visto il suolo,
   pressione lunga = stato ed età della vista. Dentro lo stesso giorno vincono **prima i
   VIIRS, poi Terra, poi Aqua** (`SENSORI_NEVE`): **misurato** contro Sentinel-2, non per
   orario — i MODIS prendono le nubi per neve 10-30 volte più dei VIIRS, i VIIRS chiamano

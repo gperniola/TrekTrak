@@ -76,8 +76,8 @@ describe('sorgente neve', () => {
     Chi vince fra i passaggi dello stesso giorno e' misurato contro Sentinel-2 (13 giornate,
     `backlog/docs/neve-satellite-analisi.md`, «Neve falsa»): i MODIS dicono neve dove non c'e'
     10-30 volte piu' dei VIIRS, i VIIRS chiamano nube meta' della neve vera. Con Aqua per
-    primo una nube presa per neve vinceva sul «senza neve» visto da un VIIRS poche ore prima:
-    la neve sopra Chieti del 3/11/2026.
+    primo una nube presa per neve vinceva sul «senza neve» visto da un VIIRS lo stesso
+    giorno.
   */
   describe('chi vince nello stesso giorno', () => {
     const OGGI = '2026-10-16';
@@ -106,6 +106,19 @@ describe('sorgente neve', () => {
         [url(VIIRS[0], OGGI)]: () => dati(uniforme(SENZA)),
       });
       expect(await sorgente(f).punto(42.0858, 14.0858)).toMatchObject({ stato: 'senza', sensore: 'noaa20', giorno: OGGI });
+    });
+
+    // Ogni VIIRS, non solo il primo: un ordine che mettesse Terra davanti a uno di loro
+    // riporterebbe i falsi di Terra sul «senza neve» che quel VIIRS ha visto.
+    it.each([
+      [VIIRS[0], 'noaa20'], [VIIRS[1], 'snpp'], [VIIRS[2], 'noaa21'],
+    ])('il «senza neve» di %s vince sulla neve di Terra e di Aqua', async (layer, sensore) => {
+      const { f } = finto({
+        [url(layer, OGGI)]: () => dati(uniforme(SENZA)),
+        [url(TERRA, OGGI)]: () => dati(uniforme(60)),
+        [url(AQUA, OGGI)]: () => dati(uniforme(56)),
+      });
+      expect(await sorgente(f).punto(42.0858, 14.0858)).toMatchObject({ stato: 'senza', sensore, giorno: OGGI });
     });
 
     it('dove i VIIRS vedono nube decide un MODIS, e Terra prima di Aqua', async () => {
