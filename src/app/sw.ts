@@ -139,9 +139,15 @@ const serwist = new Serwist({
      */
 
     // Dati di emergenza: MAI serviti da cache (dati stantii = rischio, non feature).
-    { matcher: /\/api\/(fires|dpc-alerts)/, handler: new NetworkOnly() },
+    // Valanghe fino alla v0.33.1 mancava: cadeva in `defaultCache` (route `/api/*`,
+    // NetworkFirst, 24 ore dall'ultimo uso), e a rete spenta tornava il bollettino conservato.
+    { matcher: /\/api\/(fires|dpc-alerts|avalanche)/, handler: new NetworkOnly() },
     { matcher: /^https:\/\/maps\.effis\.emergency\.copernicus\.eu\//i, handler: new NetworkOnly() },
     { matcher: /^https:\/\/raw\.githubusercontent\.com\/pcm-dpc\//i, handler: new NetworkOnly() },
+    // Terremoti INGV, chiamati dal browser: fino alla v0.33.1 finivano nell'acchiappatutto
+    // cross-origin. Da li' non tornavano mai (la URL cambia a ogni secondo, `starttime`), ma
+    // ogni aggiornamento occupava uno dei 32 posti della cache condivisa con gli altri siti.
+    { matcher: /^https:\/\/webservices\.ingv\.it\//i, handler: new NetworkOnly() },
     // Radar e previsione meteo: un fotogramma di due ore fa servito dalla cache come se
     // fosse l'ultimo e' esattamente il difetto che questa regola esiste per evitare.
     { matcher: /^https:\/\/(api|tilecache)\.rainviewer\.com\//i, handler: new NetworkOnly() },
