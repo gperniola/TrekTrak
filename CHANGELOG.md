@@ -4,6 +4,42 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.33.2] — 2026-11-04 — Senza rete, i dati vecchi non si spacciano per nuovi
+
+### Fixed
+- **A rete spenta il bollettino valanghe conservato tornava come appena arrivato.** Al
+  service worker mancava la regola che esclude dalla cache `/api/avalanche` (e il servizio
+  dei terremoti INGV): cadevano nelle regole predefinite di Serwist, che conservano le
+  route `/api/*` per 24 ore dall'ultimo uso e gli altri siti per un'ora, e le restituiscono
+  quando la rete manca o tarda più di 10 secondi. Riprodotto su una build di produzione: a
+  rete spenta il worker rispondeva 200 con la copia. I terremoti finivano in cache ma da lì
+  non tornavano (la loro URL cambia a ogni secondo). Ora entrambi vanno sempre in rete,
+  come gli altri dati di emergenza.
+- **Senza rete, l'avviso diceva «Failed to fetch».** Terremoti, valanghe, radar e meteo
+  del percorso mettevano a schermo il testo inglese del browser. Ora: «Rete assente o
+  servizio INGV non raggiungibile» (e così per il radar e il meteo, servizi chiamati dal
+  telefono: non si sa quale dei due lati manchi), «Rete non disponibile» per le nostre
+  route. Visto a schermo a rete spenta, su una build di produzione.
+- **Su iPhone anche focolai e allerta DPC mostravano il testo inglese.** Il controllo
+  riconosceva l'errore di rete dalle parole «fetch» o «network», ma Safari scrive «Load
+  failed». Ora guarda il tipo dell'errore, che è lo stesso in ogni browser.
+- **Una richiesta senza risposta lasciava il layer in caricamento per sempre** (valanghe,
+  terremoti, radar, meteo del percorso): ora c'è il tempo massimo di 12 secondi degli
+  altri dati di emergenza. Misurato che basta: la route delle valanghe risponde in 0,5 s a
+  freddo, la previsione più pesante (12 punti, 7 giorni, due modelli) pesa 12 KB compressi.
+- **Il messaggio d'errore di un servizio altrui non arriva più a schermo nella sua
+  lingua**: il `{ error }` nel corpo si mostra solo se lo scrive una nostra route.
+
+### Test
+- Le regole del service worker si provano **calcolando quale regola prende ogni fonte dal
+  vivo** (come fa Serwist, che per un altro sito vuole la corrispondenza dall'inizio della
+  URL), non cercando un testo nel file. Ogni route `/api` deve essere esclusa dalla cache o
+  dichiarare perché si può conservare: una route nuova senza la decisione fa fallire il test.
+- Nuovo scenario `e2e-offline/dati-dal-vivo.spec.ts` sul worker vero: rosso col `sw.ts`
+  precedente, verde dopo.
+- Errori di rete (Chrome e Safari), corpo non JSON, tempo massimo, annullo: un file solo,
+  `errori-di-rete.test.ts`, per le quattro fonti. Ogni correzione verificata per mutazione.
+
 ## [0.33.1] — 2026-11-04 — Prima i satelliti che sbagliano meno
 
 ### Fixed
