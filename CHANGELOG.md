@@ -4,6 +4,46 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.33.1] — 2026-11-04 — Prima i satelliti che sbagliano meno
+
+### Fixed
+- **Tre quarti della neve falsa non si disegnano più.** Segnalato dall'utente: il layer
+  mostrava neve sopra Chieti (330 m), che non c'era. Era una nube di ghiaccio che MODIS
+  Aqua aveva preso per neve il 2/11. La misura contro **Sentinel-2** (13 giornate,
+  Appennino e Dolomiti, tutte le stagioni; `backlog/docs/neve-satellite-analisi.md`, con
+  lo script `neve-falsi.py` accanto per rifarla) ha trovato la causa generale: i due MODIS
+  dicono neve dove non c'è **10-30 volte più dei VIIRS**, e il composito dava la
+  precedenza proprio ad Aqua, primo nell'ordine «dal passaggio più tardo». Il 14 agosto,
+  sulle Dolomiti, Aqua da solo avrebbe dipinto 2.841 pixel di neve. Ora, dentro lo stesso
+  giorno, vincono **prima i VIIRS, poi Terra, poi Aqua**: dove un VIIRS vede il suolo
+  senza neve vince lui; dove chiama nube la neve sottile (succede su metà della neve vera)
+  decidono i MODIS, che la vedono. Neve falsa **−77%**, neve vera mostrata dall'87,8%
+  all'**89,6%**. Fra i giorni non cambia nulla: oggi vince su ieri.
+- **La descrizione del layer non promette più «l'ultima vista»**: dentro il giorno vince la
+  vista più affidabile, non la più tarda. Dice anche dove restano i pixel spuri: dove le
+  nubi durano giorni, anche in pianura.
+
+### Noto, non ancora corretto
+- **Il caso che ha fatto partire la misura resta in parte.** Sotto nubi di più giorni
+  nessun sensore vede il suolo, e la vista falsa di un solo passaggio MODIS resta per tutta
+  la finestra: attorno a Chieti, il 3/11, da 75 pixel a 60, non a zero. Le regole provate
+  per toglierla (soglia sull'indice, conferma da due passaggi, quota relativa, «niente neve
+  fra le nubi») cancellano anche neve vera, o non tolgono quasi niente: i numeri sono nel
+  documento.
+- **GIBS a volte ritira un passaggio già pubblicato.** Il 4/11 NOAA-20 del 2 e del 3/11
+  rispondeva 404, probabilmente mentre il provvisorio (NRT) veniva sostituito dal
+  definitivo (STD): per qualche ora il composito di quei giorni cambia.
+- **Quando i MODIS si spegneranno** (fine 2026 - inizio 2027) i soli VIIRS mostreranno
+  meno neve vera (66,5% nella misura), e quella sottile molto meno.
+
+### Test
+- Chi vince nello stesso giorno: il «senza neve» di ognuno dei tre VIIRS batte la neve di
+  Terra e di Aqua, e dove i VIIRS vedono nube decide Terra prima di Aqua. Verificati per
+  mutazione con l'ordine vecchio e con «Terra davanti ai VIIRS».
+- Lo scenario e2e del «nessun dato» a tavolozza legge il primo sensore del giorno da
+  `SENSORI_NEVE[0]`: un riordino non può più indebolirlo in silenzio (verificato per
+  mutazione dell'header: senza, la mattonella diventa tutta rossa).
+
 ## [0.33.0] — 2026-10-17 — La neve vista da 5 satelliti, e quello che non hanno visto
 
 Nasce da una segnalazione dell'utente: dopo la prima neve su Maiella e Gran Sasso ha acceso
