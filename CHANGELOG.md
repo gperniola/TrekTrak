@@ -4,6 +4,33 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.33.3] — 2026-11-05 — Il guasto dice di chi è, la tabella ci sta
+
+### Fixed
+- **Senza campo, il layer neve non dà più la colpa alla NASA.** Un solo messaggio — «Il
+  servizio NASA non risponde o non riconosce i layer della neve» — copriva due casi. Ora,
+  se le richieste falliscono (può mancare la rete del telefono): «Rete assente o servizio
+  NASA non raggiungibile», come per gli altri servizi chiamati dal telefono; se arrivano
+  solo 404, la NASA ha risposto: «Il servizio NASA non riconosce i layer della neve».
+  Visto a schermo con le richieste a GIBS fatte fallire a rete accesa, il caso di una
+  tacca in montagna.
+- **A 360 px i tre puntini della tabella meteo restano sullo schermo, anche con un nome
+  lungo.** La colonna del punto non poteva essere più stretta della parola più lunga del
+  nome, e spingeva fuori l'unico comando della riga: 6 px di troppo con i nomi dei test,
+  32 con «Pescasseroli», su qualunque telefono stretto. Ora il nome va a capo anche dentro
+  la parola, col trattino della sillabazione italiana dove il browser la conosce; l'ora
+  d'arrivo usa cifre tabulari invece del carattere monospaziato. A 360 px «Bivacco» può
+  diventare «Bivac-co»: è il prezzo di non perdere il comando.
+
+### Documentazione
+- Nella spec del layer neve il «94%» di zona non vista dell'8-10 ottobre diventa l'87%
+  (281 pixel su 324), la cifra che lo script rifà e che il CHANGELOG riportava già.
+
+### Test
+- Nuovo e2e con un nome lungo a 360 px. Il test della tabella a 360 px, rosso da prima di
+  questa versione, torna verde su Chromium e WebKit: delle due regole che fanno andare a
+  capo il nome ognuna basta da sola, verificato togliendole una per volta.
+
 ## [0.33.2] — 2026-11-04 — Senza rete, i dati vecchi non si spacciano per nuovi
 
 ### Fixed
