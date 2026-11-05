@@ -56,7 +56,9 @@ contro la regola del progetto «i dati di emergenza non si servono mai da cache�
   giorni diventerebbero di fatto 2: proprio quando si guarda prima di partire. Più giorni
   coprono meglio le nubi ma mostrano neve forse già sciolta (fra il 13 e il 15 la Maiella
   è passata da 60 pixel di neve a 6). Con 3 giorni e 5 sensori, il 14/10 e il 16/10 la
-  zona «non vista» era lo 0%; nei tre giorni di pioggia 8-10/10, il 94%.
+  zona «non vista» era lo 0%; nei tre giorni di pioggia 8-10/10, ~~il 94%~~ l'87% (281
+  pixel su 324 sulle quattro cime; il 94% non era riproducibile — corretto il 2026-11-05,
+  `neve-satellite.py composito --sensori terra,aqua,noaa20,noaa21,snpp 2026-10-10 3`).
 - **Cinque sensori**: MODIS Terra e Aqua, VIIRS NOAA-20, NOAA-21, S-NPP. Stessa color map,
   stesso schema di URL, stesso livello 8. Quando uno si spegne, le sue risposte diventano
   «nessun dato» o 404 e il composito va avanti con gli altri, **senza date di spegnimento

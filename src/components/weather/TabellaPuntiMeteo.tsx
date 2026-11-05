@@ -112,7 +112,8 @@ export function TabellaPuntiMeteo({ righe, soglie }: { righe: RigaPercorso[]; so
         {/*
           Gronde strette (4 px): con sette colonne su 360 px ogni pixel di spaziatura è
           uno che manca al contenuto, e la colonna che restava fuori era quella dei
-          comandi. Misurato: 332 px di tabella in un contenitore da 326.
+          comandi. Le gronde da sole non bastavano: il 2026-11-05 si misuravano di nuovo
+          332 px in 326, e 358 con un nome lungo. Ora cede la colonna del punto (vedi sotto).
         */}
         <caption className="sr-only">Previsione per punto del percorso</caption>
         <thead>
@@ -137,7 +138,16 @@ export function TabellaPuntiMeteo({ righe, soglie }: { righe: RigaPercorso[]; so
             return (
               <Fragment key={chiaveRiga}>
             <tr className="border-t border-gray-800">
-              <td className="py-1.5 pr-1 text-gray-200">
+              {/*
+                Una parola lunga del nome («Pescasseroli») può andare a capo: senza, la
+                colonna non poteva essere più stretta di lei, e a 360 px spingeva fuori i
+                tre puntini — 32 px di troppo, misurato. Due regole, ognuna basta da sola
+                (provato togliendole): la sillabazione italiana spezza col trattino dove il
+                browser ha il dizionario, `overflow-wrap: anywhere` spezza comunque dove
+                non ce l'ha. `anywhere` e non `break-word`: solo il primo conta nella
+                larghezza minima di una cella.
+              */}
+              <td className="py-1.5 pr-1 text-gray-200 [overflow-wrap:anywhere] hyphens-auto">
                 <span
                   className={`inline-block w-2 h-2 rounded-full mr-1.5 ${PALLINO[chiave(r.classification.level)]}`}
                   aria-hidden
@@ -147,8 +157,9 @@ export function TabellaPuntiMeteo({ righe, soglie }: { righe: RigaPercorso[]; so
                   : <>{r.waypointIndex + 1}. {nome}</>}
                 <EtichettaSosta fase={r.fase} pausaMin={r.pausaMin} />
               </td>
-              <td className="py-1.5 pr-1 text-gray-300 font-mono">
-                {r.arrival != null ? oraItaliana(r.arrival) : <span className="text-gray-400 font-sans">n/d</span>}
+              {/* Cifre tabulari e non monospaziate: restano in colonna e occupano meno. */}
+              <td className="py-1.5 pr-1 text-gray-300 tabular-nums">
+                {r.arrival != null ? oraItaliana(r.arrival) : <span className="text-gray-400">n/d</span>}
               </td>
               <td className="py-1.5 pr-1 text-gray-300 whitespace-nowrap">
                 <Iconcina cielo={cieloDellOra(r.hour?.weatherCode, r.hour?.precipProb, soglie.arancione)} temp={r.hour?.temp} />

@@ -406,11 +406,16 @@ export const useEmergencyStore = create<EmergencyState>((set, get) => {
               /*
                 Nessun passaggio disponibile e ogni risposta un 404 o un errore: almeno un
                 sensore ha sempre pubblicato ieri, quindi GIBS non riconosce piu' i layer o
-                non risponde. E' un guasto, col «Riprova», non un cielo vuoto.
+                non risponde. E' un guasto, col «Riprova», non un cielo vuoto. I due casi si
+                dicono diversi: con richieste fallite (`parziale`) puo' mancare la rete del
+                telefono, e il messaggio dava la colpa alla NASA anche senza campo; coi soli
+                404 la NASA ha risposto.
               */
               : {
                 status: 'error',
-                error: 'Il servizio NASA non risponde o non riconosce i layer della neve',
+                error: r.parziale
+                  ? 'Rete assente o servizio NASA non raggiungibile'
+                  : 'Il servizio NASA non riconosce i layer della neve',
                 lastFetch: s.layers['snow-cover'].lastFetch,
               },
         },

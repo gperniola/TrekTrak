@@ -90,13 +90,27 @@ describe('lo store della neve', () => {
     expect(rt.error).toBe('Nessuna immagine negli ultimi 3 giorni');
 
     /*
-      404 ovunque non e' un cielo vuoto: GIBS non riconosce piu' i layer, o non risponde.
+      404 ovunque non e' un cielo vuoto: GIBS ha risposto, e non riconosce piu' i layer.
       Va detto come guasto, col «Riprova», non come «nessun dato».
     */
     s.reportNeve({ stato: 'error', da: null, a: null, sensori: [], parziale: false, alle: COMPOSTE_ALLE });
     rt = useEmergencyStore.getState().layers['snow-cover'];
     expect(rt.status).toBe('error');
-    expect(rt.error).toBe('Il servizio NASA non risponde o non riconosce i layer della neve');
+    expect(rt.error).toBe('Il servizio NASA non riconosce i layer della neve');
+  });
+
+  /**
+   * Le richieste fallite (rete, 5xx) non dicono di chi è la colpa: con il telefono senza
+   * campo il messaggio dava la colpa alla NASA. Come per gli altri servizi chiamati dal
+   * telefono, si nominano entrambi i lati.
+   */
+  test('senza nessuna immagine arrivata, il guasto nomina la rete e la NASA', () => {
+    const s = useEmergencyStore.getState();
+    s.startLayer('snow-cover');
+    s.reportNeve({ stato: 'error', da: null, a: null, sensori: [], parziale: true, alle: COMPOSTE_ALLE });
+    const rt = useEmergencyStore.getState().layers['snow-cover'];
+    expect(rt.status).toBe('error');
+    expect(rt.error).toBe('Rete assente o servizio NASA non raggiungibile');
   });
 
   /**
