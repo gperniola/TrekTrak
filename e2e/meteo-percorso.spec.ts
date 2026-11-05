@@ -231,19 +231,43 @@ test.describe('meteo del percorso', () => {
 test.describe('la tabella su un telefono stretto', () => {
   test.use({ viewport: { width: 360, height: 900 } });
 
-  test('a 360 px non scorre di lato, e i tre puntini si vedono', async ({ page }) => {
-    await apriIlMeteo(page);
-    const m = await page.evaluate(() => {
+  /** Quanto la tabella esce dal suo contenitore, e se i tre puntini di ogni riga ci stanno. */
+  async function misura(page: Page): Promise<{ eccedenza: number; puntiniDentro: boolean }> {
+    return page.evaluate(() => {
       const tab = document.querySelector('table')!;
       const box = tab.parentElement!;
-      const ultima = tab.querySelector('tbody tr td:last-child')!;
+      const destra = box.getBoundingClientRect().right + 1;
+      const puntini = Array.from(tab.querySelectorAll('tbody tr td:last-child'));
       return {
         eccedenza: box.scrollWidth - box.clientWidth,
-        ultimaDentro: ultima.getBoundingClientRect().right <= box.getBoundingClientRect().right + 1,
+        puntiniDentro: puntini.length > 0 && puntini.every((td) => td.getBoundingClientRect().right <= destra),
       };
     });
+  }
+
+  test('a 360 px non scorre di lato, e i tre puntini si vedono', async ({ page }) => {
+    await apriIlMeteo(page);
+    const m = await misura(page);
     expect(m.eccedenza).toBeLessThanOrEqual(1);
-    expect(m.ultimaDentro).toBe(true);
+    expect(m.puntiniDentro).toBe(true);
+  });
+
+  /**
+   * **La colonna del punto non può essere più stretta della parola più lunga del nome**, e
+   * quando lo spazio manca è lei a spingere fuori i tre puntini — l'unico comando della
+   * riga. Con i nomi della fixture mancavano 6 px (misurato il 2026-11-05: tabella 332 px
+   * in un contenitore da 326); con un nome vero come «Pescasseroli» ne mancano di più, su
+   * qualunque telefono. La parola lunga va a capo; il comando resta.
+   */
+  test('un nome con una parola lunga va a capo, e non spinge fuori i tre puntini', async ({ page }) => {
+    const lungo = {
+      ...IT,
+      waypoints: IT.waypoints.map((w, i) => (i === 1 ? { ...w, name: 'Rifugio di Pescasseroli' } : w)),
+    };
+    await apriIlMeteo(page, lungo);
+    const m = await misura(page);
+    expect(m.eccedenza).toBeLessThanOrEqual(1);
+    expect(m.puntiniDentro).toBe(true);
   });
 
 });
